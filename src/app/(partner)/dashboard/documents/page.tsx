@@ -156,75 +156,81 @@ export default function DocumentsPage() {
         </div>
 
         {isSigned ? (
-          <div className="flex items-start gap-4 p-4 bg-green-500/[0.06] border border-green-500/20 rounded-lg">
-            <div className="shrink-0 w-10 h-10 rounded-full bg-green-500/15 border border-green-500/25 flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-sm font-semibold text-green-400 mb-1">
-                Partnership Agreement Signed
-              </p>
-              <p className="font-body text-xs text-white/50">
-                Signed on {fmtDate(agreementData?.signedDate)} &middot; Version {agreementData?.version || 1}
-              </p>
+          <div className="p-4 bg-green-500/[0.06] border border-green-500/20 rounded-lg">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-green-500/15 border border-green-500/25 flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-sm font-semibold text-green-400 mb-1">
+                  Partnership Agreement Signed
+                </p>
+                <p className="font-body text-xs text-white/50">
+                  Signed on {fmtDate(agreementData?.signedDate)} &middot; Version {agreementData?.version || 1}
+                </p>
+              </div>
             </div>
             {agreementData?.documentUrl && (
               <button
                 onClick={() => window.open(agreementData.documentUrl!, "_blank")}
-                className="shrink-0 text-[12px] font-medium tracking-wide uppercase text-white/60 border border-white/[0.12] rounded-lg px-4 py-2 hover:border-white/25 hover:text-white/80 transition-colors"
+                className="w-full sm:w-auto mt-3 text-[12px] font-medium tracking-wide uppercase text-white/60 border border-white/[0.12] rounded-lg px-4 py-2.5 hover:border-white/25 hover:text-white/80 transition-colors text-center"
               >
                 View Agreement
               </button>
             )}
           </div>
         ) : isPending ? (
-          <div className="flex items-start gap-4 p-4 bg-yellow-500/[0.06] border border-yellow-500/20 rounded-lg">
-            <div className="shrink-0 w-10 h-10 rounded-full bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center">
-              <svg className="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-sm font-semibold text-yellow-400 mb-1">
-                Agreement Sent — Awaiting Your Signature
-              </p>
-              <p className="font-body text-xs text-white/50 leading-relaxed">
-                Sent on {fmtDate(agreementData?.sentDate)}.
-                {agreementData?.embeddedSigningUrl
-                  ? " Click below to review and sign right here."
-                  : " Check your email for the signing link from SignWell."}
-              </p>
+          <div className="p-4 bg-yellow-500/[0.06] border border-yellow-500/20 rounded-lg">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center">
+                <svg className="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-sm font-semibold text-yellow-400 mb-1">
+                  Agreement Sent — Awaiting Your Signature
+                </p>
+                <p className="font-body text-xs text-white/50 leading-relaxed">
+                  Sent on {fmtDate(agreementData?.sentDate)}.
+                  {agreementData?.embeddedSigningUrl
+                    ? " Click below to review and sign right here."
+                    : " Check your email for the signing link from SignWell."}
+                </p>
+              </div>
             </div>
             {agreementData?.embeddedSigningUrl && (
               <button
                 onClick={handleOpenSigning}
-                className="shrink-0 btn-gold text-[12px] px-5 py-2"
+                className="w-full sm:w-auto mt-3 btn-gold text-[12px] px-5 py-2.5 text-center"
               >
                 Sign Now
               </button>
             )}
           </div>
         ) : (
-          <div className="flex items-start gap-4 p-4 bg-yellow-500/[0.06] border border-yellow-500/20 rounded-lg">
-            <div className="shrink-0 w-10 h-10 rounded-full bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center">
-              <svg className="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-sm font-semibold text-yellow-400 mb-1">
-                Partnership Agreement Required
-              </p>
-              <p className="font-body text-xs text-white/50 leading-relaxed">
-                You must sign your partnership agreement before submitting deals to {FIRM_SHORT}.
-              </p>
+          <div className="p-4 bg-yellow-500/[0.06] border border-yellow-500/20 rounded-lg">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center">
+                <svg className="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-sm font-semibold text-yellow-400 mb-1">
+                  Partnership Agreement Required
+                </p>
+                <p className="font-body text-xs text-white/50 leading-relaxed">
+                  You must sign your partnership agreement before submitting deals to {FIRM_SHORT}.
+                </p>
+              </div>
             </div>
             <button
               onClick={handleSignAgreement}
               disabled={sending}
-              className="shrink-0 btn-gold text-[12px] px-5 py-2 disabled:opacity-50"
+              className="w-full sm:w-auto mt-3 btn-gold text-[12px] px-5 py-2.5 disabled:opacity-50 text-center"
             >
               {sending ? "Sending..." : "Sign Agreement"}
             </button>
@@ -344,23 +350,23 @@ export default function DocumentsPage() {
             onClick={() => setShowSigningModal(false)}
           />
           {/* Modal */}
-          <div className="relative w-full max-w-4xl mx-4 h-[85vh] flex flex-col bg-brand-dark border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+          <div className="relative w-full max-w-4xl mx-2 sm:mx-4 h-[95vh] sm:h-[85vh] flex flex-col bg-brand-dark border border-white/10 rounded-xl shadow-2xl overflow-hidden">
             {/* Modal header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.08] shrink-0">
-              <div>
-                <h3 className="font-display text-sm font-bold">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-white/[0.08] shrink-0">
+              <div className="min-w-0 flex-1 mr-3">
+                <h3 className="font-display text-sm font-bold truncate">
                   Sign Partnership Agreement
                 </h3>
-                <p className="font-body text-[11px] text-white/40 mt-0.5">
+                <p className="font-body text-[11px] text-white/40 mt-0.5 hidden sm:block">
                   Review and sign your {FIRM_SHORT} partnership agreement below
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <button
                   onClick={handleSigningComplete}
-                  className="btn-gold text-[11px] px-4 py-1.5"
+                  className="btn-gold text-[11px] px-3 sm:px-4 py-1.5"
                 >
-                  Done Signing
+                  Done
                 </button>
                 <button
                   onClick={() => setShowSigningModal(false)}
