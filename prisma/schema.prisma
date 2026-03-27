@@ -76,16 +76,17 @@ model Document {
 
 // ─── PARTNERSHIP AGREEMENTS ──────────────────────────────────────────────────
 model PartnershipAgreement {
-  id                  String   @id @default(cuid())
-  partnerCode         String
-  version             Int      @default(1)
-  signwellDocumentId  String?
-  status              String   @default("not_sent") // not_sent, pending, signed, amended
-  sentDate            DateTime?
-  signedDate          DateTime?
-  documentUrl         String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  partnerCode           String
+  version               Int      @default(1)
+  signwellDocumentId    String?
+  embeddedSigningUrl    String?  // SignWell embedded signing URL for in-portal signing
+  status                String   @default("not_sent") // not_sent, pending, signed, amended
+  sentDate              DateTime?
+  signedDate            DateTime?
+  documentUrl           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   @@index([partnerCode])
 }
@@ -229,15 +230,19 @@ model FAQ {
 
 // ─── CONFERENCE SCHEDULE ─────────────────────────────────────────────────────
 model ConferenceSchedule {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  embedUrl    String?  // Zoom/Jitsi/Meet embed URL
-  joinUrl     String?  // Direct join link
-  schedule    String?  // "Weekly, Thursdays at 2pm ET"
-  nextCall    DateTime?
-  recordingUrl String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String    @id @default(cuid())
+  title        String
+  description  String?
+  embedUrl     String?   // YouTube/Vimeo embed URL for recording playback
+  joinUrl      String?   // Direct join link (Zoom/Meet)
+  recordingUrl String?   // External fallback URL for recording
+  schedule     String?   // "Weekly, Thursdays at 2pm ET"
+  nextCall     DateTime?
+  hostName     String?   // Presenter name
+  duration     String?   // e.g., "52 min"
+  weekNumber   Int?      // For labeling, e.g., 12 for "Week 12"
+  notes        String?   // Markdown meeting notes/summary
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }

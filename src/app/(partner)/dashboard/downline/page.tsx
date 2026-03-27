@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useDevice } from "@/lib/useDevice";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
+import { SkeletonTableRow, SkeletonCard } from "@/components/ui/Skeleton";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 import { fmt$, fmtDate } from "@/lib/format";
+import { DEFAULT_L2_RATE, DEFAULT_FIRM_FEE_RATE } from "@/lib/constants";
 import { getDemoDownlinePartners, getDemoDownlineDeals } from "@/lib/hubspot";
 
 export default function DownlinePage() {
@@ -13,24 +16,55 @@ export default function DownlinePage() {
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     setPartners(getDemoDownlinePartners());
     setDeals(getDemoDownlineDeals());
     setLoading(false);
   }, []);
 
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Build a map from partner code → partner name for display in downline deals
+  const partnerNameMap: Record<string, string> = {};
+  for (const partner of partners) {
+    const pp = partner.properties;
+    if (pp.partner_code) {
+      partnerNameMap[pp.partner_code] = `${pp.firstname} ${pp.lastname}`.trim();
+    }
+  }
+
+  // Resolve partner name: prefer submitting_partner_name, then map lookup, then code
+  const resolvePartnerName = (p: any) =>
+    p.submitting_partner_name || partnerNameMap[p.submitting_partner] || p.submitting_partner;
+
+  // L2 commission percentage display
+  const l2Pct = `${(DEFAULT_L2_RATE * 100).toFixed(0)}%`;
+
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-5">
-        <div className="spinner" />
-        <div className="font-body text-sm text-white/50">
-          Loading downline...
+      <div>
+        <div className="animate-pulse mb-6">
+          <div className="h-6 w-36 bg-white/[0.06] rounded-lg mb-2" />
+          <div className="h-3 w-64 bg-white/[0.06] rounded-lg" />
+        </div>
+        <div className="card mb-6">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/[0.06]">
+            <div className="h-4 w-28 bg-white/[0.06] rounded animate-pulse" />
+          </div>
+          {[1, 2, 3].map((i) => <SkeletonTableRow key={i} cols={5} />)}
+        </div>
+        <div className="card">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/[0.06]">
+            <div className="h-4 w-28 bg-white/[0.06] rounded animate-pulse" />
+          </div>
+          {[1, 2].map((i) => <SkeletonTableRow key={i} cols={6} />)}
         </div>
       </div>
     );
   }
 
   return (
+    <PullToRefresh onRefresh={loadData} disabled={!device.isMobile}>
     <div>
       <h2 className="font-display text-xl sm:text-2xl font-bold mb-2">
         My Downline
@@ -190,15 +224,23 @@ export default function DownlinePage() {
                     <StageBadge stage={p.dealstage} />
                   </div>
                   <div className="font-body text-[11px] text-white/30 mb-3">
-                    Via {p.submitting_partner} · {fmtDate(p.createdate)}
+                    Via {resolvePartnerName(p)} · {fmtDate(p.createdate)}
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <div>
                       <div className="font-body text-[9px] text-white/30 tracking-wider uppercase mb-0.5">
                         Est. Refund
                       </div>
                       <div className="font-body text-[13px] text-white/80">
                         {fmt$(p.estimated_refund_amount)}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-body text-[9px] text-white/30 tracking-wider uppercase mb-0.5">
+                        L2 Rate
+                      </div>
+                      <div className="font-body text-[13px] text-purple-400 font-semibold">
+                        {l2Pct}
                       </div>
                     </div>
                     <div className="text-right">
@@ -221,7 +263,7 @@ export default function DownlinePage() {
           /* ── Desktop/Tablet: Grid table ── */
           <div>
             {/* Header */}
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_0.7fr] gap-4 px-6 py-3 border-b border-white/[0.06]">
+            <div className="grid grid-cols-[2fr_1fr_1fr_0.6fr_1fr_0.7fr] gap-4 px-6 py-3 border-b border-white/[0.06]">
               <div className="font-body text-[10px] tracking-[1px] uppercase text-white/35">
                 Client / Deal
               </div>
@@ -230,6 +272,9 @@ export default function DownlinePage() {
               </div>
               <div className="font-body text-[10px] tracking-[1px] uppercase text-white/35">
                 Est. Refund
+              </div>
+              <div className="font-body text-[10px] tracking-[1px] uppercase text-white/35 text-center">
+                L2 %
               </div>
               <div className="font-body text-[10px] tracking-[1px] uppercase text-white/35">
                 L2 Commission
@@ -244,15 +289,15 @@ export default function DownlinePage() {
               return (
                 <div
                   key={deal.id}
-                  className="grid grid-cols-[2fr_1fr_1fr_1fr_0.7fr] gap-4 px-6 py-4 border-b border-white/[0.04] last:border-b-0 items-center hover:bg-white/[0.02] transition-colors"
+                  className="grid grid-cols-[2fr_1fr_1fr_0.6fr_1fr_0.7fr] gap-4 px-6 py-4 border-b border-white/[0.04] last:border-b-0 items-center hover:bg-white/[0.02] transition-colors"
                 >
-                  {/* Col 1: Deal name */}
+                  {/* Col 1: Deal name + partner name */}
                   <div>
                     <div className="font-body text-[13px] font-medium text-white truncate">
                       {p.dealname}
                     </div>
                     <div className="font-body text-[11px] text-white/30 mt-0.5 truncate">
-                      Via {p.submitting_partner} · {fmtDate(p.createdate)}
+                      Via {resolvePartnerName(p)} · {fmtDate(p.createdate)}
                     </div>
                   </div>
                   {/* Col 2: Stage */}
@@ -263,11 +308,17 @@ export default function DownlinePage() {
                   <div className="font-body text-[13px] text-white/80">
                     {fmt$(p.estimated_refund_amount)}
                   </div>
-                  {/* Col 4: L2 Commission */}
+                  {/* Col 4: L2 % */}
+                  <div className="text-center">
+                    <span className="font-body text-[12px] text-purple-400 font-semibold bg-purple-500/10 border border-purple-500/20 rounded px-2 py-0.5">
+                      {l2Pct}
+                    </span>
+                  </div>
+                  {/* Col 5: L2 Commission */}
                   <div className="font-display text-[15px] font-semibold text-brand-gold">
                     {fmt$(p.l2_commission_amount)}
                   </div>
-                  {/* Col 5: Status */}
+                  {/* Col 6: Status */}
                   <div className="text-right">
                     <StatusBadge status={p.l2_commission_status} />
                   </div>
@@ -278,5 +329,6 @@ export default function DownlinePage() {
         )}
       </div>
     </div>
+    </PullToRefresh>
   );
 }

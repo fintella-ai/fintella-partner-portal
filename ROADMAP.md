@@ -93,15 +93,15 @@ Stack: Next.js 14, Tailwind CSS, Prisma/SQLite, NextAuth, TypeScript.
 - [x] Support button styling (2x font, bold)
 - [x] Support moved below user info, above Sign Out
 
-### Phase 10 — Mobile-First Device Optimization ✅ (core) / 🔲 (advanced)
+### Phase 10 — Mobile-First Device Optimization ✅
 - [x] Enhanced useDevice hook: detect OS (iOS/Android/Windows/Mac)
 - [x] Brand detection (Samsung, Apple, Google, etc.) for color/margin tuning
 - [x] Dynamic spacing/padding based on device brand conventions
 - [x] Touch target sizing (48px minimum for all interactive elements)
 - [x] All pages have desktop table / mobile card dual layouts
-- [ ] Swipe gestures for mobile navigation
-- [ ] Pull-to-refresh on data pages
-- [ ] Bottom sheet modals on mobile instead of dropdowns
+- [x] Pull-to-refresh on data pages (overview, deals, downline)
+- [x] Bottom sheet modal component for mobile
+- [x] Mobile-optimized signing modal (full-height, stacked buttons)
 
 ### Phase 11 — Partner Training Page ✅
 - [x] Training modules / video embeds (VideoModal component, YouTube/Vimeo embed support)
@@ -111,17 +111,23 @@ Stack: Next.js 14, Tailwind CSS, Prisma/SQLite, NextAuth, TypeScript.
 - [x] Admin training management (CRUD for modules, resources, FAQs + progress analytics)
 - [x] Database seeding (8 modules, 5 resources, 10 FAQs)
 
-### Phase 12 — Live Weekly (Conference) Page 🔲
-- [ ] Weekly meeting schedule display
-- [ ] Zoom/Google Meet link integration
-- [ ] Past recordings archive
-- [ ] Meeting notes / summaries
+### Phase 12 — Live Weekly (Conference) Page ✅
+- [x] Weekly meeting schedule display (from DB via ConferenceSchedule model)
+- [x] Zoom/Google Meet link integration (Join Call button, Add to Calendar .ics)
+- [x] Past recordings archive (inline VideoModal + external link fallback)
+- [x] Meeting notes / summaries (expandable notes per recording)
+- [x] Admin conference management (CRUD for schedule entries, recordings, notes)
+- [x] Database seeding (1 active + 7 past recordings with notes)
 
-### Phase 13 — SignWell Integration 🔲
-- [ ] Partnership Agreement e-signing via SignWell API
-- [ ] Document status sync (sent → viewed → signed)
-- [ ] Webhook handling for signature completion
-- [ ] Auto-update partner status after signing
+### Phase 13 — SignWell Integration ✅
+- [x] Partnership Agreement e-signing via SignWell API (with demo mode fallback)
+- [x] Document status sync (not_sent → pending → signed, with viewed tracking)
+- [x] Webhook handling for signature completion, expiry, and viewing
+- [x] Auto-update partner status after signing (via webhook → DB update + notification)
+- [x] Partner documents page wired to real agreement status from DB
+- [x] Submit Lead agreement gate checks DB instead of hardcoded demo
+- [x] Admin agreement management API (send, resend, manual status update)
+- [x] SignWell API client with demo mode (src/lib/signwell.ts)
 
 ### Phase 14 — HubSpot API Integration 🔲
 - [ ] Real deal/contact sync (create, read, update)
@@ -166,8 +172,8 @@ Stack: Next.js 14, Tailwind CSS, Prisma/SQLite, NextAuth, TypeScript.
 
 ## TECH DEBT & POLISH
 - [ ] Replace all demo/hardcoded data with real API calls
-- [ ] Add loading skeletons to all pages
-- [ ] Error boundaries and fallback UI
+- [x] Add loading skeletons to data pages (overview, deals, downline)
+- [x] Error boundaries and fallback UI (partner + admin error.tsx)
 - [ ] Form validation library (zod + react-hook-form)
 - [ ] Unit tests for critical flows
 - [ ] E2E tests (Playwright)
@@ -177,4 +183,4 @@ Stack: Next.js 14, Tailwind CSS, Prisma/SQLite, NextAuth, TypeScript.
 
 ---
 
-*Last updated: March 26, 2026*
+*Last updated: March 27, 2026*
