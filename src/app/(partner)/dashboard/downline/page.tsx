@@ -19,6 +19,15 @@ export default function DownlinePage() {
     setLoading(false);
   }, []);
 
+  // Build a map from partner code → partner name for display in downline deals
+  const partnerNameMap: Record<string, string> = {};
+  for (const partner of partners) {
+    const p = partner.properties;
+    if (p.partner_code) {
+      partnerNameMap[p.partner_code] = `${p.firstname} ${p.lastname}`.trim();
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-5">
@@ -190,7 +199,7 @@ export default function DownlinePage() {
                     <StageBadge stage={p.dealstage} />
                   </div>
                   <div className="font-body text-[11px] text-white/30 mb-3">
-                    Via {p.submitting_partner} · {fmtDate(p.createdate)}
+                    Via {partnerNameMap[p.submitting_partner] || p.submitting_partner} · {fmtDate(p.createdate)}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -252,7 +261,7 @@ export default function DownlinePage() {
                       {p.dealname}
                     </div>
                     <div className="font-body text-[11px] text-white/30 mt-0.5 truncate">
-                      Via {p.submitting_partner} · {fmtDate(p.createdate)}
+                      Via {partnerNameMap[p.submitting_partner] || p.submitting_partner} · {fmtDate(p.createdate)}
                     </div>
                   </div>
                   {/* Col 2: Stage */}
