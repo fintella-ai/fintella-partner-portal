@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
+import { SkeletonStatCard, SkeletonTableRow } from "@/components/ui/Skeleton";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 import { fmt$, fmtDate } from "@/lib/format";
 import { useDevice } from "@/lib/useDevice";
 import {
@@ -20,12 +22,14 @@ export default function OverviewPage() {
   const [downlineDeals, setDownlineDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     setDirectDeals(getDemoDirectDeals());
     setDownlinePartners(getDemoDownlinePartners());
     setDownlineDeals(getDemoDownlineDeals());
     setLoading(false);
   }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   const totalRefundPipeline = directDeals.reduce(
     (s, d) => s + Number(d.properties.estimated_refund_amount || 0), 0
@@ -54,9 +58,20 @@ export default function OverviewPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-5">
-        <div className="spinner" />
-        <div className="font-body text-sm text-white/50">Loading your dashboard...</div>
+      <div>
+        <div className="animate-pulse mb-6">
+          <div className="h-6 w-48 bg-white/[0.06] rounded-lg mb-2" />
+          <div className="h-3 w-72 bg-white/[0.06] rounded-lg" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {[1, 2, 3, 4].map((i) => <SkeletonStatCard key={i} />)}
+        </div>
+        <div className="card">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/[0.06]">
+            <div className="h-4 w-32 bg-white/[0.06] rounded animate-pulse" />
+          </div>
+          {[1, 2, 3].map((i) => <SkeletonTableRow key={i} cols={4} />)}
+        </div>
       </div>
     );
   }
@@ -69,6 +84,7 @@ export default function OverviewPage() {
   ];
 
   return (
+    <PullToRefresh onRefresh={loadData} disabled={!device.isMobile}>
     <div>
       {/* Stat Cards */}
       <div className={`grid grid-cols-2 lg:grid-cols-4 ${device.gap} mb-5 sm:mb-8`}>
@@ -266,5 +282,6 @@ export default function OverviewPage() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }

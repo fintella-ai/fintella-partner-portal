@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useDevice } from "@/lib/useDevice";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
+import { SkeletonTableRow, SkeletonCard } from "@/components/ui/Skeleton";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 import { fmt$, fmtDate } from "@/lib/format";
 import { DEFAULT_L2_RATE, DEFAULT_FIRM_FEE_RATE } from "@/lib/constants";
 import { getDemoDownlinePartners, getDemoDownlineDeals } from "@/lib/hubspot";
@@ -14,11 +16,13 @@ export default function DownlinePage() {
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     setPartners(getDemoDownlinePartners());
     setDeals(getDemoDownlineDeals());
     setLoading(false);
   }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   // Build a map from partner code → partner name for display in downline deals
   const partnerNameMap: Record<string, string> = {};
@@ -38,16 +42,29 @@ export default function DownlinePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-5">
-        <div className="spinner" />
-        <div className="font-body text-sm text-white/50">
-          Loading downline...
+      <div>
+        <div className="animate-pulse mb-6">
+          <div className="h-6 w-36 bg-white/[0.06] rounded-lg mb-2" />
+          <div className="h-3 w-64 bg-white/[0.06] rounded-lg" />
+        </div>
+        <div className="card mb-6">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/[0.06]">
+            <div className="h-4 w-28 bg-white/[0.06] rounded animate-pulse" />
+          </div>
+          {[1, 2, 3].map((i) => <SkeletonTableRow key={i} cols={5} />)}
+        </div>
+        <div className="card">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/[0.06]">
+            <div className="h-4 w-28 bg-white/[0.06] rounded animate-pulse" />
+          </div>
+          {[1, 2].map((i) => <SkeletonTableRow key={i} cols={6} />)}
         </div>
       </div>
     );
   }
 
   return (
+    <PullToRefresh onRefresh={loadData} disabled={!device.isMobile}>
     <div>
       <h2 className="font-display text-xl sm:text-2xl font-bold mb-2">
         My Downline
@@ -312,5 +329,6 @@ export default function DownlinePage() {
         )}
       </div>
     </div>
+    </PullToRefresh>
   );
 }

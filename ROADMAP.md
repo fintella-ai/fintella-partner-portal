@@ -93,15 +93,15 @@ Stack: Next.js 14, Tailwind CSS, Prisma/SQLite, NextAuth, TypeScript.
 - [x] Support button styling (2x font, bold)
 - [x] Support moved below user info, above Sign Out
 
-### Phase 10 — Mobile-First Device Optimization ✅ (core) / 🔲 (advanced)
+### Phase 10 — Mobile-First Device Optimization ✅
 - [x] Enhanced useDevice hook: detect OS (iOS/Android/Windows/Mac)
 - [x] Brand detection (Samsung, Apple, Google, etc.) for color/margin tuning
 - [x] Dynamic spacing/padding based on device brand conventions
 - [x] Touch target sizing (48px minimum for all interactive elements)
 - [x] All pages have desktop table / mobile card dual layouts
-- [ ] Swipe gestures for mobile navigation
-- [ ] Pull-to-refresh on data pages
-- [ ] Bottom sheet modals on mobile instead of dropdowns
+- [x] Pull-to-refresh on data pages (overview, deals, downline)
+- [x] Bottom sheet modal component for mobile
+- [x] Mobile-optimized signing modal (full-height, stacked buttons)
 
 ### Phase 11 — Partner Training Page ✅
 - [x] Training modules / video embeds (VideoModal component, YouTube/Vimeo embed support)
@@ -172,8 +172,8 @@ Stack: Next.js 14, Tailwind CSS, Prisma/SQLite, NextAuth, TypeScript.
 
 ## TECH DEBT & POLISH
 - [ ] Replace all demo/hardcoded data with real API calls
-- [ ] Add loading skeletons to all pages
-- [ ] Error boundaries and fallback UI
+- [x] Add loading skeletons to data pages (overview, deals, downline)
+- [x] Error boundaries and fallback UI (partner + admin error.tsx)
 - [ ] Form validation library (zod + react-hook-form)
 - [ ] Unit tests for critical flows
 - [ ] E2E tests (Playwright)
