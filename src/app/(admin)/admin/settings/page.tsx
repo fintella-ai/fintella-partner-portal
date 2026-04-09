@@ -11,6 +11,7 @@ const ALL_NAV_ITEMS = [
   { id: "deals", label: "My Deals", icon: "💼" },
   { id: "downline", label: "Downline", icon: "👥" },
   { id: "commissions", label: "Commissions", icon: "💰" },
+  { id: "submit-client", label: "Submit Client", icon: "📩" },
   { id: "submit-lead", label: "Submit Lead", icon: "📝" },
   { id: "referral-links", label: "Referral Links", icon: "🔗" },
   { id: "documents", label: "Documents", icon: "📄" },

@@ -10,13 +10,15 @@ export default function ReferralLinksPage() {
   const device = useDevice();
   const partnerCode = (session?.user as any)?.partnerCode || "DEMO";
 
+  const clientRefUrl = `https://frostlawaz.com/referral?RR_WCID=5D5FFDC6-E177-4FF9-99BD-7CFECDB92D54&RR_WCID_TTL=396&REFERRALCODE=${partnerCode}&utm_campaign=Tariff+Refunds`;
+
   const links = [
     {
-      icon: "\uD83D\uDCBC",
-      title: "Client Referral Link",
+      icon: "\uD83D\uDCE9",
+      title: "Client Submission Link",
       description:
-        "Send this link to importers who may qualify for a tariff refund. When they submit through your link, the deal is tracked to your account.",
-      url: `https://trrln.com/?ref=${partnerCode}`,
+        "Send this link to importers who may qualify for a tariff refund. When they submit through your link, the deal is tracked to your account and downline.",
+      url: clientRefUrl,
       color: "#c4a050",
       borderColor: "border-[#c4a050]/30",
       bgColor: "bg-[#c4a050]/5",
