@@ -19,15 +19,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!email || !partnerCode) return null;
 
-        // Check if partner is blocked
-        const profile = await prisma.partnerProfile.findUnique({
-          where: { partnerCode },
-        });
-        if (profile?.isBlocked) return null;
-
-        // Demo mode
+        // Demo mode — accept any credentials
         const isDemo = !process.env.HUBSPOT_PRIVATE_TOKEN || process.env.HUBSPOT_PRIVATE_TOKEN === "YOUR_PRIVATE_APP_TOKEN";
         if (isDemo) {
+          // Still check if partner is blocked in demo mode
+          try {
+            const profile = await prisma.partnerProfile.findUnique({
+              where: { partnerCode },
+            });
+            if (profile?.isBlocked) return null;
+          } catch {
+            // Table may not exist yet — allow login in demo mode
+          }
+
           const demo = getDemoPartner(email, partnerCode);
           return {
             id: demo.id,
@@ -37,6 +41,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             partnerCode,
           };
         }
+
+        // Check if partner is blocked
+        const profile = await prisma.partnerProfile.findUnique({
+          where: { partnerCode },
+        });
+        if (profile?.isBlocked) return null;
 
         // Validate against HubSpot
         const partner = await fetchPartner(email, partnerCode);
@@ -64,18 +74,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!email || !password) return null;
 
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) return null;
+        // Try database lookup first
+        try {
+          const user = await prisma.user.findUnique({ where: { email } });
+          if (user) {
+            const valid = await compare(password, user.passwordHash);
+            if (!valid) return null;
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name || user.email,
+              role: user.role,
+            };
+          }
+        } catch {
+          // Table may not exist yet
+        }
 
-        const valid = await compare(password, user.passwordHash);
-        if (!valid) return null;
+        // Demo mode — accept any admin credentials
+        const isDemo = !process.env.HUBSPOT_PRIVATE_TOKEN || process.env.HUBSPOT_PRIVATE_TOKEN === "YOUR_PRIVATE_APP_TOKEN";
+        if (isDemo) {
+          return {
+            id: "demo-admin",
+            email,
+            name: "Admin User",
+            role: "admin",
+          };
+        }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name || user.email,
-          role: user.role,
-        };
+        return null;
       },
     }),
   ],
