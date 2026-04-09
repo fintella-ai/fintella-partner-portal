@@ -87,7 +87,6 @@ export default function SettingsPage() {
   const [supportEmail, setSupportEmail] = useState("");
 
   // Commissions
-  const [firmFeeRate, setFirmFeeRate] = useState("20");
   const [l1Rate, setL1Rate] = useState("20");
   const [l2Rate, setL2Rate] = useState("5");
   const [l3Rate, setL3Rate] = useState("0");
@@ -118,7 +117,6 @@ export default function SettingsPage() {
       setFirmPhone(settings.firmPhone);
       setSupportEmail(settings.supportEmail || "");
 
-      setFirmFeeRate(String(Math.round(settings.firmFeeRate * 100)));
       setL1Rate(String(Math.round(settings.l1Rate * 100)));
       setL2Rate(String(Math.round(settings.l2Rate * 100)));
       setL3Rate(String(Math.round(settings.l3Rate * 100)));
@@ -158,7 +156,6 @@ export default function SettingsPage() {
     try {
       const body = {
         firmName, firmShort, firmSlogan, firmPhone, supportEmail,
-        firmFeeRate: parseFloat(firmFeeRate) / 100,
         l1Rate: parseFloat(l1Rate) / 100,
         l2Rate: parseFloat(l2Rate) / 100,
         l3Rate: parseFloat(l3Rate) / 100,
@@ -520,13 +517,12 @@ export default function SettingsPage() {
       {tab === "commissions" && (
         <div className="card p-5 sm:p-6">
           <div className="font-body font-semibold text-sm mb-1">Default Commission Rates</div>
-          <p className="font-body text-[12px] text-white/40 mb-5">These are the default rates for all partners. Override per-partner in Partners &rarr; View Partner.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Firm Fee Rate (%)</label>
-              <input className={inputClass} type="number" min="0" max="100" value={firmFeeRate} onChange={(e) => setFirmFeeRate(e.target.value)} />
-              <p className="font-body text-[10px] text-white/30 mt-1">Percentage of refund taken as firm fee</p>
-            </div>
+          <p className="font-body text-[12px] text-white/40 mb-2">These are the default rates for all partners. Override per-partner in Partners &rarr; View Partner.</p>
+          <p className="font-body text-[11px] text-white/30 mb-5 bg-white/[0.03] border border-white/[0.06] rounded-lg p-3">
+            The firm fee rate is negotiated per deal and set at the deal level — it is not a global default.
+            Commission percentages below are calculated as a percentage of the firm fee on each deal.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>L1 Commission Rate (%)</label>
               <input className={inputClass} type="number" min="0" max="100" value={l1Rate} onChange={(e) => setL1Rate(e.target.value)} />
