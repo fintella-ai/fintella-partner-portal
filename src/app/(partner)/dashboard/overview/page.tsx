@@ -8,12 +8,6 @@ import { SkeletonStatCard, SkeletonTableRow } from "@/components/ui/Skeleton";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import { fmt$, fmtDate } from "@/lib/format";
 import { useDevice } from "@/lib/useDevice";
-import {
-  getDemoDirectDeals,
-  getDemoDownlinePartners,
-  getDemoDownlineDeals,
-} from "@/lib/hubspot";
-
 export default function OverviewPage() {
   const { data: session } = useSession();
   const device = useDevice();
@@ -23,36 +17,42 @@ export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
-    setDirectDeals(getDemoDirectDeals());
-    setDownlinePartners(getDemoDownlinePartners());
-    setDownlineDeals(getDemoDownlineDeals());
+    try {
+      const res = await fetch("/api/deals");
+      if (res.ok) {
+        const data = await res.json();
+        setDirectDeals(data.directDeals || []);
+        setDownlinePartners(data.downlinePartners || []);
+        setDownlineDeals(data.downlineDeals || []);
+      }
+    } catch {}
     setLoading(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   const totalRefundPipeline = directDeals.reduce(
-    (s, d) => s + Number(d.properties.estimated_refund_amount || 0), 0
+    (s, d) => s + Number(d.estimatedRefundAmount || 0), 0
   );
   const totalL1Earned = directDeals.reduce(
-    (s, d) => s + Number(d.properties.l1_commission_amount || 0), 0
+    (s, d) => s + Number(d.l1CommissionAmount || 0), 0
   );
   const totalL1Paid = directDeals
-    .filter((d) => d.properties.l1_commission_status === "paid")
-    .reduce((s, d) => s + Number(d.properties.l1_commission_amount || 0), 0);
+    .filter((d) => d.l1CommissionStatus === "paid")
+    .reduce((s, d) => s + Number(d.l1CommissionAmount || 0), 0);
   const totalL2Earned = downlineDeals.reduce(
-    (s, d) => s + Number(d.properties.l2_commission_amount || 0), 0
+    (s, d) => s + Number(d.l2CommissionAmount || 0), 0
   );
   const totalL2Paid = downlineDeals
-    .filter((d) => d.properties.l2_commission_status === "paid")
-    .reduce((s, d) => s + Number(d.properties.l2_commission_amount || 0), 0);
+    .filter((d) => d.l2CommissionStatus === "paid")
+    .reduce((s, d) => s + Number(d.l2CommissionAmount || 0), 0);
 
   // Build a map from partner code → partner name for display in downline deals
   const partnerNameMap: Record<string, string> = {};
   for (const partner of downlinePartners) {
-    const p = partner.properties;
-    if (p.partner_code) {
-      partnerNameMap[p.partner_code] = `${p.firstname} ${p.lastname}`.trim();
+    const p = partner;
+    if (p.partnerCode) {
+      partnerNameMap[p.partnerCode] = `${p.firstName} ${p.lastName}`.trim();
     }
   }
 
@@ -115,31 +115,31 @@ export default function OverviewPage() {
           /* ── Mobile: Card layout ── */
           <div>
             {directDeals.slice(0, 5).map((deal) => {
-              const p = deal.properties;
+              const p = deal;
               return (
                 <div key={deal.id} className="px-4 py-4 border-b border-white/5 last:border-b-0">
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="font-body text-[13px] font-medium text-white leading-snug flex-1 min-w-0">
-                      {p.dealname}
+                      {p.dealName}
                     </div>
-                    <StageBadge stage={p.dealstage} />
+                    <StageBadge stage={p.stage} />
                   </div>
                   <div className="font-body text-[11px] text-white/30 mb-3">
-                    {p.ieepa_imported_products || p.product_type} · {fmtDate(p.createdate)}
+                    {p.importedProducts || p.productType} · {fmtDate(p.createdAt)}
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <div className="font-body text-[9px] text-white/30 tracking-wider uppercase mb-0.5">Refund</div>
-                      <div className="font-body text-[13px] text-white/80">{fmt$(p.estimated_refund_amount)}</div>
+                      <div className="font-body text-[13px] text-white/80">{fmt$(p.estimatedRefundAmount)}</div>
                     </div>
                     <div>
                       <div className="font-body text-[9px] text-white/30 tracking-wider uppercase mb-0.5">Firm Fee</div>
-                      <div className="font-body text-[13px] text-white/60">{fmt$(p.firm_fee_amount)}</div>
+                      <div className="font-body text-[13px] text-white/60">{fmt$(p.firmFeeAmount)}</div>
                     </div>
                     <div className="text-right">
                       <div className="font-body text-[9px] text-white/30 tracking-wider uppercase mb-0.5">Commission</div>
-                      <div className="font-display text-sm font-semibold text-brand-gold">{fmt$(p.l1_commission_amount)}</div>
-                      <div className="mt-1"><StatusBadge status={p.l1_commission_status} /></div>
+                      <div className="font-display text-sm font-semibold text-brand-gold">{fmt$(p.l1CommissionAmount)}</div>
+                      <div className="mt-1"><StatusBadge status={p.l1CommissionStatus} /></div>
                     </div>
                   </div>
                 </div>
@@ -159,7 +159,7 @@ export default function OverviewPage() {
             </div>
             {/* Data rows */}
             {directDeals.slice(0, 5).map((deal) => {
-              const p = deal.properties;
+              const p = deal;
               return (
                 <div
                   key={deal.id}
@@ -167,29 +167,29 @@ export default function OverviewPage() {
                 >
                   {/* Col 1: Deal name */}
                   <div>
-                    <div className="font-body text-[13px] font-medium text-white truncate">{p.dealname}</div>
+                    <div className="font-body text-[13px] font-medium text-white truncate">{p.dealName}</div>
                     <div className="font-body text-[11px] text-white/30 mt-0.5 truncate">
-                      {p.ieepa_imported_products || p.product_type} · {fmtDate(p.createdate)}
+                      {p.importedProducts || p.productType} · {fmtDate(p.createdAt)}
                     </div>
                   </div>
                   {/* Col 2: Stage */}
                   <div>
-                    <StageBadge stage={p.dealstage} />
+                    <StageBadge stage={p.stage} />
                   </div>
                   {/* Col 3: Est. Refund */}
                   <div className="font-body text-[13px] text-white/80">
-                    {fmt$(p.estimated_refund_amount)}
+                    {fmt$(p.estimatedRefundAmount)}
                   </div>
                   {/* Col 4: Firm Fee */}
                   <div className="font-body text-[13px] text-white/60">
-                    {fmt$(p.firm_fee_amount)}
+                    {fmt$(p.firmFeeAmount)}
                   </div>
                   {/* Col 5: Commission + Status */}
                   <div className="text-right">
                     <div className="font-display text-[15px] font-semibold text-brand-gold mb-1">
-                      {fmt$(p.l1_commission_amount)}
+                      {fmt$(p.l1CommissionAmount)}
                     </div>
-                    <StatusBadge status={p.l1_commission_status} />
+                    <StatusBadge status={p.l1CommissionStatus} />
                   </div>
                 </div>
               );
@@ -211,27 +211,27 @@ export default function OverviewPage() {
             /* ── Mobile: Card layout ── */
             <div>
               {downlineDeals.slice(0, 3).map((deal) => {
-                const p = deal.properties;
+                const p = deal;
                 return (
                   <div key={deal.id} className="px-4 py-4 border-b border-white/5 last:border-b-0">
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="font-body text-[13px] font-medium text-white leading-snug flex-1 min-w-0">
-                        {p.dealname}
+                        {p.dealName}
                       </div>
-                      <StageBadge stage={p.dealstage} />
+                      <StageBadge stage={p.stage} />
                     </div>
                     <div className="font-body text-[11px] text-white/30 mb-3">
-                      Via {partnerNameMap[p.submitting_partner] || p.submitting_partner} · {fmtDate(p.createdate)}
+                      Via {p.submittingPartnerName || partnerNameMap[p.partnerCode] || p.partnerCode} · {fmtDate(p.createdAt)}
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <div className="font-body text-[9px] text-white/30 tracking-wider uppercase mb-0.5">Refund</div>
-                        <div className="font-body text-[13px] text-white/80">{fmt$(p.estimated_refund_amount)}</div>
+                        <div className="font-body text-[13px] text-white/80">{fmt$(p.estimatedRefundAmount)}</div>
                       </div>
                       <div className="text-right">
                         <div className="font-body text-[9px] text-white/30 tracking-wider uppercase mb-0.5">L2 Commission</div>
-                        <div className="font-display text-sm font-semibold text-brand-gold">{fmt$(p.l2_commission_amount)}</div>
-                        <div className="mt-1"><StatusBadge status={p.l2_commission_status} /></div>
+                        <div className="font-display text-sm font-semibold text-brand-gold">{fmt$(p.l2CommissionAmount)}</div>
+                        <div className="mt-1"><StatusBadge status={p.l2CommissionStatus} /></div>
                       </div>
                     </div>
                   </div>
@@ -250,29 +250,29 @@ export default function OverviewPage() {
               </div>
               {/* Rows */}
               {downlineDeals.slice(0, 3).map((deal) => {
-                const p = deal.properties;
+                const p = deal;
                 return (
                   <div
                     key={deal.id}
                     className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-b border-white/[0.04] last:border-b-0 items-center hover:bg-white/[0.02] transition-colors"
                   >
                     <div>
-                      <div className="font-body text-[13px] font-medium text-white truncate">{p.dealname}</div>
+                      <div className="font-body text-[13px] font-medium text-white truncate">{p.dealName}</div>
                       <div className="font-body text-[11px] text-white/30 mt-0.5 truncate">
-                        Via {partnerNameMap[p.submitting_partner] || p.submitting_partner} · {fmtDate(p.createdate)}
+                        Via {p.submittingPartnerName || partnerNameMap[p.partnerCode] || p.partnerCode} · {fmtDate(p.createdAt)}
                       </div>
                     </div>
                     <div>
-                      <StageBadge stage={p.dealstage} />
+                      <StageBadge stage={p.stage} />
                     </div>
                     <div className="font-body text-[13px] text-white/80">
-                      {fmt$(p.estimated_refund_amount)}
+                      {fmt$(p.estimatedRefundAmount)}
                     </div>
                     <div className="text-right">
                       <div className="font-display text-[15px] font-semibold text-brand-gold mb-1">
-                        {fmt$(p.l2_commission_amount)}
+                        {fmt$(p.l2CommissionAmount)}
                       </div>
-                      <StatusBadge status={p.l2_commission_status} />
+                      <StatusBadge status={p.l2CommissionStatus} />
                     </div>
                   </div>
                 );

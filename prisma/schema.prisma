@@ -298,3 +298,33 @@ model PortalSettings {
   // Timestamps
   updatedAt DateTime @updatedAt
 }
+
+// ─── DEALS ──────────────────────────────────────────────────────────────────
+model Deal {
+  id                    String    @id @default(cuid())
+  dealName              String
+  partnerCode           String    // submitting partner
+  clientName            String?
+  clientEmail           String?
+  clientPhone           String?
+  stage                 String    @default("new_lead") // new_lead, contacted, qualified, consultation_booked, engaged, closedwon, closedlost
+  productType           String?   // "ieepa", "section301", "other"
+  importedProducts      String?   // description of goods
+  estimatedRefundAmount Float     @default(0)
+  firmFeeRate           Float?    // negotiated per deal (e.g. 0.20 = 20%)
+  firmFeeAmount         Float     @default(0)
+  // Commissions
+  l1CommissionRate      Float?    // override for this deal (null = use partner/global default)
+  l1CommissionAmount    Float     @default(0)
+  l1CommissionStatus    String    @default("pending") // pending, due, approved, paid
+  l2CommissionAmount    Float     @default(0)
+  l2CommissionStatus    String    @default("pending")
+  // Notes
+  notes                 String?
+  closeDate             DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([partnerCode])
+  @@index([stage])
+}
