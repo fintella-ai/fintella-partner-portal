@@ -1,0 +1,154 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+/**
+ * GET /api/partner/settings
+ * Returns the current partner's personal info + profile (address).
+ */
+export async function GET() {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const partnerCode = (session.user as any).partnerCode;
+  if (!partnerCode) {
+    return NextResponse.json({ error: "Not a partner" }, { status: 403 });
+  }
+
+  try {
+    const [partner, profile] = await Promise.all([
+      prisma.partner.findUnique({ where: { partnerCode } }),
+      prisma.partnerProfile.findUnique({ where: { partnerCode } }),
+    ]);
+
+    if (!partner) {
+      return NextResponse.json({ error: "Partner not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      firstName: partner.firstName,
+      lastName: partner.lastName,
+      companyName: partner.companyName || "",
+      tin: partner.tin || "",
+      email: partner.email,
+      phone: partner.phone || "",
+      mobilePhone: partner.mobilePhone || "",
+      street: profile?.street || "",
+      street2: profile?.street2 || "",
+      city: profile?.city || "",
+      state: profile?.state || "",
+      zip: profile?.zip || "",
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to fetch settings" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/partner/settings
+ * Updates the partner's personal info + profile.
+ * If firstName, lastName, or companyName changed, invalidates the current agreement.
+ */
+export async function PATCH(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const partnerCode = (session.user as any).partnerCode;
+  if (!partnerCode) {
+    return NextResponse.json({ error: "Not a partner" }, { status: 403 });
+  }
+
+  try {
+    const body = await req.json();
+    const {
+      firstName, lastName, companyName, tin,
+      email, phone, mobilePhone,
+      street, street2, city, state, zip,
+    } = body;
+
+    // Fetch current partner to detect name/company changes
+    const currentPartner = await prisma.partner.findUnique({
+      where: { partnerCode },
+    });
+
+    if (!currentPartner) {
+      return NextResponse.json({ error: "Partner not found" }, { status: 404 });
+    }
+
+    const nameChanged =
+      (firstName !== undefined && firstName !== currentPartner.firstName) ||
+      (lastName !== undefined && lastName !== currentPartner.lastName) ||
+      (companyName !== undefined && (companyName || "") !== (currentPartner.companyName || ""));
+
+    // Update Partner record
+    await prisma.partner.update({
+      where: { partnerCode },
+      data: {
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+        ...(companyName !== undefined && { companyName: companyName || null }),
+        ...(tin !== undefined && { tin: tin || null }),
+        ...(email !== undefined && { email }),
+        ...(phone !== undefined && { phone: phone || null }),
+        ...(mobilePhone !== undefined && { mobilePhone: mobilePhone || null }),
+      },
+    });
+
+    // Upsert PartnerProfile for address fields
+    await prisma.partnerProfile.upsert({
+      where: { partnerCode },
+      create: {
+        partnerCode,
+        street: street || null,
+        street2: street2 || null,
+        city: city || null,
+        state: state || null,
+        zip: zip || null,
+      },
+      update: {
+        ...(street !== undefined && { street: street || null }),
+        ...(street2 !== undefined && { street2: street2 || null }),
+        ...(city !== undefined && { city: city || null }),
+        ...(state !== undefined && { state: state || null }),
+        ...(zip !== undefined && { zip: zip || null }),
+      },
+    });
+
+    // If name or company changed, invalidate current signed agreement
+    let agreementReset = false;
+    if (nameChanged) {
+      const currentAgreement = await prisma.partnershipAgreement.findFirst({
+        where: { partnerCode, status: "signed" },
+        orderBy: { version: "desc" },
+      });
+
+      if (currentAgreement) {
+        await prisma.partnershipAgreement.update({
+          where: { id: currentAgreement.id },
+          data: { status: "amended" },
+        });
+        agreementReset = true;
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      agreementReset,
+      message: agreementReset
+        ? "Settings saved. Your name or company changed, so a new partnership agreement is required."
+        : "Settings saved successfully.",
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || "Failed to update settings" },
+      { status: 500 }
+    );
+  }
+}
