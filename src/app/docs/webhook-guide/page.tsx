@@ -238,8 +238,7 @@ export default function WebhookGuidePage() {
                 <span style={{ fontSize: 11, color: "var(--doc-text-muted)", fontFamily: "monospace" }}>POST /api/webhook/referral</span>
               </div>
               <pre style={{ padding: "16px 20px", fontSize: 13, lineHeight: 1.75, overflowX: "auto", color: "var(--doc-pre-text)", margin: 0 }}>
-{`{
-  `}{jsonLine("utm_content", "PTNABC123")}
+{`{\n`}{jsonLine("utm_content", "PTNABC123")}
 {jsonLine("first_name", "Jane")}
 {jsonLine("last_name", "Smith")}
 {jsonLine("email", "jane@acmeimports.com")}
