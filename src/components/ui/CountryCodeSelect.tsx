@@ -97,7 +97,7 @@ export default function CountryCodeSelect({ selectedCode, onChange }: Props) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 bg-white/5 border border-white/[0.12] rounded-lg px-3 py-3 text-white font-body text-sm hover:border-brand-gold/40 transition-colors h-full min-w-[100px]"
+        className="flex items-center gap-1.5 bg-white/5 border border-white/[0.12] rounded-lg px-2.5 py-3 text-white font-body text-sm hover:border-brand-gold/40 transition-colors h-full min-w-[85px] sm:min-w-[100px]"
       >
         <span className="text-base leading-none">{selected.flag}</span>
         <span className="text-white/70">{selected.dial}</span>
@@ -107,13 +107,13 @@ export default function CountryCodeSelect({ selectedCode, onChange }: Props) {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-[240px] max-h-[240px] overflow-y-auto bg-[#0c1228] border border-white/[0.12] rounded-lg shadow-xl z-50">
+        <div className="absolute top-full left-0 mt-1 w-[min(240px,85vw)] max-h-[240px] overflow-y-auto bg-[#0c1228] border border-white/[0.12] rounded-lg shadow-xl z-50">
           {COUNTRIES.map((c) => (
             <button
               key={c.code}
               type="button"
               onClick={() => { onChange(c.code); setOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 text-left font-body text-[13px] hover:bg-white/5 transition-colors ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left font-body text-[13px] hover:bg-white/5 transition-colors min-h-[44px] ${
                 c.code === selectedCode ? "bg-brand-gold/10 text-brand-gold" : "text-white/70"
               }`}
             >

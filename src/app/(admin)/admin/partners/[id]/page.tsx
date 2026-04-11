@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fmtDate } from "@/lib/format";
 import CountryCodeSelect, { parseMobilePhone, buildMobilePhone } from "@/components/ui/CountryCodeSelect";
+import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 
 type Partner = {
   id: string;
@@ -62,8 +63,10 @@ export default function PartnerDetailPage() {
   const router = useRouter();
   const [partner, setPartner] = useState<Partner | null>(null);
   const [downline, setDownline] = useState<Partner[]>([]);
+  const [l3Partners, setL3Partners] = useState<Partner[]>([]);
   const [documents, setDocuments] = useState<DocEntry[]>([]);
   const [agreement, setAgreement] = useState<Agreement | null>(null);
+  const [downlineView, setDownlineView] = useState<"list" | "tree">("list");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -105,6 +108,7 @@ export default function PartnerDetailPage() {
       const prof = data.profile;
       setPartner(p);
       setDownline(data.downline || []);
+      setL3Partners(data.l3Partners || []);
       setDocuments(data.documents || []);
       setAgreement(data.agreement || null);
 
@@ -269,11 +273,11 @@ export default function PartnerDetailPage() {
             <label className={labelClass}>Phone</label>
             <input className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-0000" />
           </div>
-          <div>
+          <div className="sm:col-span-2 lg:col-span-1">
             <label className={labelClass}>Mobile Phone (SMS)</label>
             <div className="flex gap-2">
               <CountryCodeSelect selectedCode={mobileCountry} onChange={setMobileCountry} />
-              <input className={`${inputClass} flex-1`} value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="555-555-0000" />
+              <input className={`${inputClass} flex-1 min-w-0`} value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="555-555-0000" />
             </div>
           </div>
           <div>
@@ -384,11 +388,65 @@ export default function PartnerDetailPage() {
 
       {/* ─── DOWNLINE ─────────────────────────────────────────────── */}
       <div className="card mb-6">
-        <div className="px-5 py-4 border-b border-white/[0.06]">
+        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between flex-wrap gap-2">
           <div className="font-body font-semibold text-sm">Downline Partners ({downline.length})</div>
+          {downline.length > 0 && (
+            <div className="flex bg-white/5 rounded-lg p-0.5">
+              <button
+                onClick={() => setDownlineView("list")}
+                className={`font-body text-[11px] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
+                  downlineView === "list" ? "bg-brand-gold/15 text-brand-gold" : "text-white/40 hover:text-white/60"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                List
+              </button>
+              <button
+                onClick={() => setDownlineView("tree")}
+                className={`font-body text-[11px] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
+                  downlineView === "tree" ? "bg-brand-gold/15 text-brand-gold" : "text-white/40 hover:text-white/60"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v4m0 0a4 4 0 014 4h2a2 2 0 012 2v2M12 8a4 4 0 00-4 4H6a2 2 0 00-2 2v2m8-8v4m0 0a2 2 0 012 2v2m-2-4a2 2 0 00-2 2v2" />
+                </svg>
+                Tree View
+              </button>
+            </div>
+          )}
         </div>
         {downline.length === 0 ? (
           <div className="px-5 py-8 text-center font-body text-[13px] text-white/30">No downline partners.</div>
+        ) : downlineView === "tree" ? (
+          (() => {
+            const rootPartner: TreePartner = {
+              id: partner.id,
+              partnerCode: partner.partnerCode,
+              firstName: partner.firstName,
+              lastName: partner.lastName,
+              status: partner.status,
+              children: downline.map((d) => ({
+                id: d.id,
+                partnerCode: d.partnerCode,
+                firstName: d.firstName,
+                lastName: d.lastName,
+                status: d.status,
+                children: l3Partners
+                  .filter((l3) => l3.referredByPartnerCode === d.partnerCode)
+                  .map((l3) => ({
+                    id: l3.id,
+                    partnerCode: l3.partnerCode,
+                    firstName: l3.firstName,
+                    lastName: l3.lastName,
+                    status: l3.status,
+                    children: [],
+                  })),
+              })),
+            };
+            return <DownlineTree root={rootPartner} />;
+          })()
         ) : (
           <div>
             {downline.map((d) => (

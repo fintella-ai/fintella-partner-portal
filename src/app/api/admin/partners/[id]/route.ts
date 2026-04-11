@@ -41,7 +41,16 @@ export async function GET(
       }).catch(() => []),
     ]);
 
-    return NextResponse.json({ partner, downlineCount, downline, agreement, profile, documents });
+    // L3 downline (partners recruited by L2 partners)
+    const downlineCodes = downline.map((p: any) => p.partnerCode);
+    const l3Partners = downlineCodes.length > 0
+      ? await prisma.partner.findMany({
+          where: { referredByPartnerCode: { in: downlineCodes } },
+          orderBy: { createdAt: "desc" },
+        })
+      : [];
+
+    return NextResponse.json({ partner, downlineCount, downline, agreement, profile, documents, l3Partners });
   } catch {
     return NextResponse.json({ error: "Failed to fetch partner" }, { status: 500 });
   }
