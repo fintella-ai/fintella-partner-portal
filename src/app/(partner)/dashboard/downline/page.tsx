@@ -1,19 +1,26 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { useDevice } from "@/lib/useDevice";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { SkeletonTableRow, SkeletonCard } from "@/components/ui/Skeleton";
 import PullToRefresh from "@/components/ui/PullToRefresh";
+import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 import { fmt$, fmtDate } from "@/lib/format";
 import { DEFAULT_L2_RATE, DEFAULT_FIRM_FEE_RATE } from "@/lib/constants";
 
+type PartnerView = "list" | "tree";
+
 export default function DownlinePage() {
   const device = useDevice();
+  const { data: session } = useSession();
   const [partners, setPartners] = useState<any[]>([]);
+  const [l3Partners, setL3Partners] = useState<any[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [partnerView, setPartnerView] = useState<PartnerView>("list");
 
   const loadData = useCallback(async () => {
     try {
@@ -21,6 +28,7 @@ export default function DownlinePage() {
       if (res.ok) {
         const data = await res.json();
         setPartners(data.downlinePartners || []);
+        setL3Partners(data.l3Partners || []);
         setDeals(data.downlineDeals || []);
       }
     } catch {}
@@ -80,10 +88,36 @@ export default function DownlinePage() {
 
       {/* ═══ YOUR PARTNERS ═══ */}
       <div className="card mb-6">
-        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.06]">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.06] flex items-center justify-between flex-wrap gap-2">
           <div className="font-body font-semibold text-sm sm:text-[15px]">
             Your Partners
           </div>
+          {partners.length > 0 && (
+            <div className="flex bg-white/5 rounded-lg p-0.5">
+              <button
+                onClick={() => setPartnerView("list")}
+                className={`font-body text-[11px] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
+                  partnerView === "list" ? "bg-brand-gold/15 text-brand-gold" : "text-white/40 hover:text-white/60"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                List
+              </button>
+              <button
+                onClick={() => setPartnerView("tree")}
+                className={`font-body text-[11px] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
+                  partnerView === "tree" ? "bg-brand-gold/15 text-brand-gold" : "text-white/40 hover:text-white/60"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v4m0 0a4 4 0 014 4h2a2 2 0 012 2v2M12 8a4 4 0 00-4 4H6a2 2 0 00-2 2v2m8-8v4m0 0a2 2 0 012 2v2m-2-4a2 2 0 00-2 2v2" />
+                </svg>
+                Tree View
+              </button>
+            </div>
+          )}
         </div>
 
         {partners.length === 0 ? (
@@ -91,6 +125,36 @@ export default function DownlinePage() {
             No downline partners yet. Share your partner recruitment link to
             start building your team.
           </div>
+        ) : partnerView === "tree" ? (
+          /* ── Tree View ── */
+          (() => {
+            const user = session?.user as any;
+            const rootPartner: TreePartner = {
+              id: "self",
+              partnerCode: user?.partnerCode || "YOU",
+              firstName: user?.name?.split(" ")[0] || "You",
+              lastName: user?.name?.split(" ").slice(1).join(" ") || "",
+              status: "active",
+              children: partners.map((p) => ({
+                id: p.id,
+                partnerCode: p.partnerCode,
+                firstName: p.firstName,
+                lastName: p.lastName,
+                status: p.status,
+                children: l3Partners
+                  .filter((l3) => l3.referredByPartnerCode === p.partnerCode)
+                  .map((l3) => ({
+                    id: l3.id,
+                    partnerCode: l3.partnerCode,
+                    firstName: l3.firstName,
+                    lastName: l3.lastName,
+                    status: l3.status,
+                    children: [],
+                  })),
+              })),
+            };
+            return <DownlineTree root={rootPartner} isMobile={device.isMobile} />;
+          })()
         ) : device.isMobile ? (
           /* ── Mobile: Card layout ── */
           <div>
