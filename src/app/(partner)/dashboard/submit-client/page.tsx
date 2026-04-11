@@ -22,7 +22,7 @@ export default function SubmitClientPage() {
     fetch("/api/agreement")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
-        setAgreementSigned(data.agreement?.status === "signed");
+        setAgreementSigned(data.agreement?.status === "signed" || data.agreement?.status === "approved");
       })
       .catch(() => {
         // If API fails, default to allowing access (demo mode)

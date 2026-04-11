@@ -150,3 +150,65 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: err.message || "Failed to void document" }, { status: 500 });
   }
 }
+
+/**
+ * PUT /api/admin/documents
+ * Approve a document that is "under_review" (uploaded by L1 partner).
+ * If it's an agreement, activates the partner.
+ */
+export async function PUT(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const role = (session.user as any).role;
+  if (role !== "admin" && role !== "super_admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const body = await req.json();
+    const { documentId, action } = body;
+
+    if (!documentId || action !== "approve") {
+      return NextResponse.json({ error: "documentId and action='approve' are required" }, { status: 400 });
+    }
+
+    const doc = await prisma.document.findUnique({ where: { id: documentId } });
+    if (!doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
+
+    // Approve the document
+    await prisma.document.update({
+      where: { id: documentId },
+      data: { status: "approved" },
+    });
+
+    // If it's an agreement, update the partnership agreement and activate partner
+    if (doc.docType === "agreement") {
+      const latestAgreement = await prisma.partnershipAgreement.findFirst({
+        where: { partnerCode: doc.partnerCode, status: "pending" },
+        orderBy: { version: "desc" },
+      });
+
+      if (latestAgreement) {
+        await prisma.partnershipAgreement.update({
+          where: { id: latestAgreement.id },
+          data: { status: "approved", signedDate: new Date() },
+        });
+      }
+
+      // Activate partner
+      await prisma.partner.update({
+        where: { partnerCode: doc.partnerCode },
+        data: { status: "active" },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      partnerActivated: doc.docType === "agreement",
+    });
+  } catch (err: any) {
+    console.error("[Admin Documents Approve] Error:", err);
+    return NextResponse.json({ error: err.message || "Failed to approve document" }, { status: 500 });
+  }
+}

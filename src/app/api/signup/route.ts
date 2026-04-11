@@ -110,48 +110,21 @@ export async function POST(req: NextRequest) {
       data: { status: "used", usedByPartnerCode: partnerCode },
     });
 
-    // Get the correct agreement template based on rate
-    const settings = await prisma.portalSettings.findUnique({ where: { id: "global" } });
-    const ratePercent = Math.round(invite.commissionRate * 100);
-    let templateId: string | undefined;
-    if (settings) {
-      if (ratePercent === 25) templateId = settings.agreementTemplate25 || undefined;
-      else if (ratePercent === 20) templateId = settings.agreementTemplate20 || undefined;
-      else if (ratePercent === 15) templateId = settings.agreementTemplate15 || undefined;
-      else if (ratePercent === 10) templateId = settings.agreementTemplate10 || undefined;
-    }
-
-    // Send partnership agreement
     const partnerName = `${firstName.trim()} ${lastName.trim()}`;
-    const { documentId, embeddedSigningUrl } = await sendForSigning({
-      name: `${FIRM_SHORT} Partnership Agreement — ${partnerName} (${ratePercent}%)`,
-      subject: `${FIRM_SHORT} Partnership Agreement`,
-      message: `Hi ${partnerName}, please review and sign your ${FIRM_NAME} partnership agreement at ${ratePercent}% commission.`,
-      recipients: [{ id: partnerCode, email: email.trim(), name: partnerName, role: "Partner" }],
-      templateId,
-    });
+    const ratePercent = Math.round(invite.commissionRate * 100);
 
-    await prisma.partnershipAgreement.create({
-      data: {
-        partnerCode,
-        version: 1,
-        signwellDocumentId: documentId,
-        embeddedSigningUrl: embeddedSigningUrl || null,
-        templateRate: invite.commissionRate,
-        templateId: templateId || null,
-        status: "pending",
-        sentDate: new Date(),
-      },
-    });
+    // L2/L3 partners do NOT receive SignWell agreements.
+    // Their L1 upline is responsible for uploading a signed agreement.
+    // Partner stays "pending" until L1 uploads and admin approves.
 
-    // Notify the inviting partner
+    // Notify the inviting partner (L1) about the new signup
     await prisma.notification.create({
       data: {
         recipientType: "partner",
         recipientId: invite.inviterCode,
         type: "deal_update",
         title: "New Partner Signed Up!",
-        message: `${partnerName} has signed up as your ${invite.targetTier.toUpperCase()} partner at ${ratePercent}% commission. Their agreement has been sent.`,
+        message: `${partnerName} has signed up as your ${invite.targetTier.toUpperCase()} partner at ${ratePercent}% commission. Please upload their signed partnership agreement from your Downline page.`,
         link: "/dashboard/downline",
       },
     }).catch(() => {});
@@ -159,8 +132,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       partnerCode,
-      embeddedSigningUrl: embeddedSigningUrl || null,
-      message: `Account created! Your partnership agreement has been sent to ${email}. Once signed, you can log in with your email and partner code: ${partnerCode}`,
+      message: `Account created! Your upline partner will submit your partnership agreement. Once approved, you can log in and start submitting deals.`,
     }, { status: 201 });
   } catch (err: any) {
     console.error("[Signup] Error:", err);

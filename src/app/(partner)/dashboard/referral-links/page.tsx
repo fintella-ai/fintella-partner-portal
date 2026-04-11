@@ -36,7 +36,7 @@ export default function ReferralLinksPage() {
     fetch("/api/agreement")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
-        setAgreementSigned(data.agreement?.status === "signed");
+        setAgreementSigned(data.agreement?.status === "signed" || data.agreement?.status === "approved");
       })
       .catch(() => {
         setAgreementSigned(true); // demo mode fallback

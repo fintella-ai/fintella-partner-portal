@@ -895,6 +895,25 @@ export default function PartnerDetailPage() {
                       </a>
                     </>
                   )}
+                  {d.status === "under_review" && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Approve this ${d.docType === "agreement" ? "agreement" : "document"} for ${partner.firstName} ${partner.lastName}?${d.docType === "agreement" ? "\n\nThis will activate the partner." : ""}`)) return;
+                        try {
+                          const res = await fetch("/api/admin/documents", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ documentId: d.id, action: "approve" }),
+                          });
+                          if (res.ok) { fetchPartner(); setSaved(true); setTimeout(() => setSaved(false), 3000); }
+                          else { const err = await res.json().catch(() => ({})); alert(err.error || "Failed to approve"); }
+                        } catch { alert("Network error"); }
+                      }}
+                      className="font-body text-[10px] text-green-400 border border-green-400/20 rounded px-2 py-0.5 hover:bg-green-400/10 transition-colors"
+                    >
+                      Approve
+                    </button>
+                  )}
                   {d.status !== "voided" && (
                     <button
                       onClick={async () => {

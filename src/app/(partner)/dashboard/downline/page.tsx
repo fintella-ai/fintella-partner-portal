@@ -192,6 +192,25 @@ export default function DownlinePage() {
                     </span>
                     <span>Joined {fmtDate(p.signupDate)}</span>
                   </div>
+                  {p.status === "pending" && (
+                    <label className="mt-2 w-full font-body text-[11px] text-green-400/70 border border-green-400/20 rounded-lg px-3 py-2 hover:bg-green-400/10 transition-colors cursor-pointer text-center block">
+                      Upload Signed Agreement
+                      <input type="file" accept=".pdf,.doc,.docx,.png,.jpg" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0]; if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = async () => {
+                          const res = await fetch("/api/partner/upload-agreement", {
+                            method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ targetPartnerCode: p.partnerCode, fileName: file.name, fileData: reader.result }),
+                          });
+                          if (res.ok) { alert("Agreement uploaded! It will be reviewed by an admin."); loadData(); }
+                          else { const err = await res.json().catch(() => ({})); alert(err.error || "Upload failed"); }
+                        };
+                        reader.readAsDataURL(file);
+                        e.target.value = "";
+                      }} />
+                    </label>
+                  )}
                 </div>
               );
             })}
@@ -200,22 +219,10 @@ export default function DownlinePage() {
           /* ── Desktop/Tablet: Table layout ── */
           <div>
             {/* Header */}
-            <div className="grid grid-cols-[2fr_1.5fr_1fr_0.8fr_1fr] gap-4 px-6 py-3 border-b border-[var(--app-border)]">
-              <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">
-                Partner
-              </div>
-              <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">
-                Email
-              </div>
-              <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">
-                Code
-              </div>
-              <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">
-                Status
-              </div>
-              <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] text-right">
-                Joined
-              </div>
+            <div className="grid grid-cols-[2fr_1.5fr_1fr_0.7fr_0.8fr_0.8fr] gap-4 px-6 py-3 border-b border-[var(--app-border)]">
+              {["Partner", "Email", "Code", "Status", "Joined", "Agreement"].map((h) => (
+                <div key={h} className={`font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Agreement" ? "text-right" : ""}`}>{h}</div>
+              ))}
             </div>
             {/* Rows */}
             {partners.map((p) => {
@@ -224,7 +231,7 @@ export default function DownlinePage() {
               return (
                 <div
                   key={p.partnerCode}
-                  className="grid grid-cols-[2fr_1.5fr_1fr_0.8fr_1fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors"
+                  className="grid grid-cols-[2fr_1.5fr_1fr_0.7fr_0.8fr_0.8fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors"
                 >
                   {/* Col 1: Name + avatar */}
                   <div className="flex items-center gap-3 min-w-0">
@@ -250,8 +257,32 @@ export default function DownlinePage() {
                     <StatusBadge status={p.status} />
                   </div>
                   {/* Col 5: Joined */}
-                  <div className="font-body text-[13px] text-[var(--app-text-muted)] text-right">
+                  <div className="font-body text-[13px] text-[var(--app-text-muted)]">
                     {fmtDate(p.signupDate)}
+                  </div>
+                  {/* Col 6: Agreement upload */}
+                  <div className="text-right">
+                    {p.status === "pending" ? (
+                      <label className="font-body text-[10px] text-green-400/70 border border-green-400/20 rounded-lg px-2.5 py-1.5 hover:bg-green-400/10 transition-colors cursor-pointer">
+                        Upload Agreement
+                        <input type="file" accept=".pdf,.doc,.docx,.png,.jpg" className="hidden" onChange={async (e) => {
+                          const file = e.target.files?.[0]; if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = async () => {
+                            const res = await fetch("/api/partner/upload-agreement", {
+                              method: "POST", headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ targetPartnerCode: p.partnerCode, fileName: file.name, fileData: reader.result }),
+                            });
+                            if (res.ok) { alert("Agreement uploaded! It will be reviewed by an admin."); loadData(); }
+                            else { const err = await res.json().catch(() => ({})); alert(err.error || "Upload failed"); }
+                          };
+                          reader.readAsDataURL(file);
+                          e.target.value = "";
+                        }} />
+                      </label>
+                    ) : (
+                      <span className="font-body text-[10px] text-green-400">&#10003; Active</span>
+                    )}
                   </div>
                 </div>
               );
