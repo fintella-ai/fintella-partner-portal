@@ -1,13 +1,29 @@
 const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
 
-// Use the same DATABASE_URL that prisma db push used
-console.log("[seed] DATABASE_URL:", process.env.DATABASE_URL);
-console.log("[seed] cwd:", process.cwd());
+console.log("[seed] DATABASE_URL:", process.env.DATABASE_URL ? "(set)" : "(not set)");
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("Seeding database...\n");
+
+  // ── Admin User ────────────────────────────────────────────────────────
+  const adminEmail = "admin@trln.com";
+  const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (!existing) {
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        passwordHash: bcrypt.hashSync("admin123", 10),
+        name: "Admin User",
+        role: "super_admin",
+      },
+    });
+    console.log("✓ Admin user created (admin@trln.com)");
+  } else {
+    console.log("✓ Admin user already exists");
+  }
 
   // ── Partners ──────────────────────────────────────────────────────────
   const partners = [
