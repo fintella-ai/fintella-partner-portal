@@ -1,7 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { fmt$ } from "@/lib/format";
+
+type SortDir = "asc" | "desc";
+
+function SortHeader({ label, sortKey, currentSort, currentDir, onSort }: {
+  label: string; sortKey: string; currentSort: string; currentDir: SortDir; onSort: (key: string) => void;
+}) {
+  const isActive = currentSort === sortKey;
+  return (
+    <button onClick={() => onSort(sortKey)} className="flex items-center gap-1 font-body text-[10px] tracking-[1px] uppercase theme-text-muted hover:text-brand-gold transition-colors text-left">
+      {label}
+      <span className={`text-[8px] flex flex-col leading-none ${isActive ? "text-brand-gold" : "theme-text-faint"}`}>
+        <span className={isActive && currentDir === "asc" ? "text-brand-gold" : ""}>&#9650;</span>
+        <span className={isActive && currentDir === "desc" ? "text-brand-gold" : ""}>&#9660;</span>
+      </span>
+    </button>
+  );
+}
 
 const MONTHS = ["Mar 2025", "Feb 2025", "Jan 2025", "Dec 2024", "Nov 2024"];
 
@@ -37,6 +54,28 @@ const MONTHLY_DATA = [
 export default function ReportsPage() {
   const [period, setPeriod] = useState("Mar 2025");
   const s = DEMO_STATS;
+
+  // Monthly table sorting
+  const [mSort, setMSort] = useState("month");
+  const [mDir, setMDir] = useState<SortDir>("desc");
+  const toggleMSort = (key: string) => { if (mSort === key) setMDir(mDir === "asc" ? "desc" : "asc"); else { setMSort(key); setMDir("asc"); } };
+
+  const sortedMonthly = useMemo(() => [...MONTHLY_DATA].sort((a, b) => {
+    const av = (a as any)[mSort]; const bv = (b as any)[mSort];
+    if (typeof av === "string") return mDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    return mDir === "asc" ? av - bv : bv - av;
+  }), [mSort, mDir]);
+
+  // Top partners sorting
+  const [pSort, setPSort] = useState("commission");
+  const [pDir, setPDir] = useState<SortDir>("desc");
+  const togglePSort = (key: string) => { if (pSort === key) setPDir(pDir === "asc" ? "desc" : "asc"); else { setPSort(key); setPDir("desc"); } };
+
+  const sortedPartners = useMemo(() => [...TOP_PARTNERS].sort((a, b) => {
+    const av = (a as any)[pSort]; const bv = (b as any)[pSort];
+    if (typeof av === "string") return pDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    return pDir === "asc" ? av - bv : bv - av;
+  }), [pSort, pDir]);
 
   return (
     <div>
@@ -94,11 +133,14 @@ export default function ReportsPage() {
           <div className="font-body font-semibold text-sm">Monthly Commission Report</div>
         </div>
         <div className="grid grid-cols-[1fr_0.6fr_0.6fr_0.8fr_0.8fr_0.6fr] gap-4 px-6 py-3 border-b border-[var(--app-border)]">
-          {["Month", "New Deals", "Closed Won", "Comm. Paid", "Comm. Due", "New Partners"].map((h) => (
-            <div key={h} className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">{h}</div>
-          ))}
+          <SortHeader label="Month" sortKey="month" currentSort={mSort} currentDir={mDir} onSort={toggleMSort} />
+          <SortHeader label="New Deals" sortKey="newDeals" currentSort={mSort} currentDir={mDir} onSort={toggleMSort} />
+          <SortHeader label="Closed Won" sortKey="closedWon" currentSort={mSort} currentDir={mDir} onSort={toggleMSort} />
+          <SortHeader label="Comm. Paid" sortKey="commPaid" currentSort={mSort} currentDir={mDir} onSort={toggleMSort} />
+          <SortHeader label="Comm. Due" sortKey="commDue" currentSort={mSort} currentDir={mDir} onSort={toggleMSort} />
+          <SortHeader label="New Partners" sortKey="newPartners" currentSort={mSort} currentDir={mDir} onSort={toggleMSort} />
         </div>
-        {MONTHLY_DATA.map((row) => (
+        {sortedMonthly.map((row) => (
           <div key={row.month} className="grid grid-cols-[1fr_0.6fr_0.6fr_0.8fr_0.8fr_0.6fr] gap-4 px-6 py-3.5 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors">
             <div className="font-body text-[13px] text-[var(--app-text)]">{row.month}</div>
             <div className="font-body text-[13px] text-[var(--app-text-secondary)]">{row.newDeals}</div>
@@ -116,11 +158,14 @@ export default function ReportsPage() {
           <div className="font-body font-semibold text-sm">Top Partners by Commission</div>
         </div>
         <div className="grid grid-cols-[0.3fr_1.5fr_0.6fr_0.6fr_0.8fr_0.8fr] gap-4 px-6 py-3 border-b border-[var(--app-border)]">
-          {["#", "Partner", "Code", "Deals", "Pipeline", "Commission"].map((h) => (
-            <div key={h} className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">{h}</div>
-          ))}
+          <div className="font-body text-[10px] tracking-[1px] uppercase theme-text-muted">#</div>
+          <SortHeader label="Partner" sortKey="name" currentSort={pSort} currentDir={pDir} onSort={togglePSort} />
+          <SortHeader label="Code" sortKey="code" currentSort={pSort} currentDir={pDir} onSort={togglePSort} />
+          <SortHeader label="Deals" sortKey="deals" currentSort={pSort} currentDir={pDir} onSort={togglePSort} />
+          <SortHeader label="Pipeline" sortKey="pipeline" currentSort={pSort} currentDir={pDir} onSort={togglePSort} />
+          <SortHeader label="Commission" sortKey="commission" currentSort={pSort} currentDir={pDir} onSort={togglePSort} />
         </div>
-        {TOP_PARTNERS.map((p, i) => (
+        {sortedPartners.map((p, i) => (
           <div key={p.code} className="grid grid-cols-[0.3fr_1.5fr_0.6fr_0.6fr_0.8fr_0.8fr] gap-4 px-6 py-3.5 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors">
             <div className={`font-display text-sm font-bold ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-[var(--app-text-muted)]"}`}>
               {i + 1}

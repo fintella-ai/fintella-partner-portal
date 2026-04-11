@@ -1,7 +1,25 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { fmt$, fmtDate } from "@/lib/format";
+
+type SortDir = "asc" | "desc";
+type SortKey = string;
+
+function SortHeader({ label, sortKey, currentSort, currentDir, onSort }: {
+  label: string; sortKey: string; currentSort: string; currentDir: SortDir; onSort: (key: string) => void;
+}) {
+  const isActive = currentSort === sortKey;
+  return (
+    <button onClick={() => onSort(sortKey)} className="flex items-center gap-1 font-body text-[10px] tracking-[1px] uppercase theme-text-muted hover:text-brand-gold transition-colors text-left">
+      {label}
+      <span className={`text-[8px] flex flex-col leading-none ${isActive ? "text-brand-gold" : "theme-text-faint"}`}>
+        <span className={isActive && currentDir === "asc" ? "text-brand-gold" : ""}>&#9650;</span>
+        <span className={isActive && currentDir === "desc" ? "text-brand-gold" : ""}>&#9660;</span>
+      </span>
+    </button>
+  );
+}
 
 const TRLN_FEE_RATE = 0.40; // TRLN receives 40% of firm fee
 const PARTNER_RATE = 0.25;  // Partners receive 25% of firm fee
@@ -37,6 +55,13 @@ export default function RevenuePage() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "closedwon" | "pipeline">("all");
+  const [sortKey, setSortKey] = useState<SortKey>("dealName");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  };
 
   const fetchDeals = useCallback(async () => {
     try {
@@ -52,12 +77,39 @@ export default function RevenuePage() {
 
   useEffect(() => { fetchDeals(); }, [fetchDeals]);
 
-  // Filter deals
-  const filtered = deals.filter((d) => {
-    if (filter === "closedwon") return d.stage === "closedwon";
-    if (filter === "pipeline") return d.stage !== "closedwon" && d.stage !== "closedlost";
-    return true;
-  });
+  // Filter and sort deals
+  const filtered = useMemo(() => {
+    const base = deals.filter((d) => {
+      if (filter === "closedwon") return d.stage === "closedwon";
+      if (filter === "pipeline") return d.stage !== "closedwon" && d.stage !== "closedlost";
+      return true;
+    });
+
+    return [...base].sort((a, b) => {
+      const getFirmFee = (d: Deal) => d.firmFeeAmount || d.estimatedRefundAmount * (d.firmFeeRate || 0.20);
+      const getTrlnGross = (d: Deal) => getFirmFee(d) * TRLN_FEE_RATE;
+      const getPartnerComm = (d: Deal) => d.l1CommissionAmount + d.l2CommissionAmount;
+      const getTrlnNet = (d: Deal) => getTrlnGross(d) - getPartnerComm(d);
+
+      let aVal: string | number = "";
+      let bVal: string | number = "";
+
+      switch (sortKey) {
+        case "dealName": aVal = a.dealName.toLowerCase(); bVal = b.dealName.toLowerCase(); break;
+        case "stage": aVal = a.stage; bVal = b.stage; break;
+        case "firmFee": aVal = getFirmFee(a); bVal = getFirmFee(b); break;
+        case "trlnGross": aVal = getTrlnGross(a); bVal = getTrlnGross(b); break;
+        case "partnerComm": aVal = getPartnerComm(a); bVal = getPartnerComm(b); break;
+        case "trlnNet": aVal = getTrlnNet(a); bVal = getTrlnNet(b); break;
+        case "date": aVal = a.closeDate || a.createdAt; bVal = b.closeDate || b.createdAt; break;
+        default: return 0;
+      }
+
+      if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [deals, filter, sortKey, sortDir]);
 
   // ── Revenue calculations ──────────────────────────────────────────────
   const closedWonDeals = deals.filter((d) => d.stage === "closedwon");
@@ -183,9 +235,13 @@ export default function RevenuePage() {
         {/* Desktop table */}
         <div className="hidden sm:block overflow-x-auto">
           <div className="grid grid-cols-[1.5fr_0.7fr_0.8fr_0.8fr_0.7fr_0.7fr_0.7fr] gap-3 px-5 py-3 min-w-[700px]" style={{ borderBottom: "1px solid var(--app-border)" }}>
-            {["Deal", "Stage", "Firm Fee", "TRLN (40%)", "Partner (25%)", "TRLN Net", "Date"].map((h) => (
-              <div key={h} className="font-body text-[10px] tracking-[1px] uppercase theme-text-muted">{h}</div>
-            ))}
+            <SortHeader label="Deal" sortKey="dealName" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="Stage" sortKey="stage" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="Firm Fee" sortKey="firmFee" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="TRLN (40%)" sortKey="trlnGross" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="Partner (25%)" sortKey="partnerComm" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="TRLN Net" sortKey="trlnNet" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="Date" sortKey="date" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
           </div>
           {filtered.map((d) => {
             const firmFee = d.firmFeeAmount || d.estimatedRefundAmount * (d.firmFeeRate || 0.20);
