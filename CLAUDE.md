@@ -138,6 +138,14 @@ npm run db:studio    # Open Prisma Studio
 - Admin can set/reset partner passwords from partner detail page
 - Admin name syncs across layout from account API (not just session)
 - Company Revenue reporting page (/admin/revenue) — TRLN 40% share, partner 25%, net 15%, deal-by-deal breakdown
+- Sortable table headers on Revenue and Reports pages (A-Z, dollar amount sorting)
+- Advanced filters on Revenue page (search, partner code, stage, min/max amount)
+- Deal amount column added to Revenue table with totals
+- "All Data" option on Reports page (not just monthly)
+- Document void capability with audit trail (agreement void → partner pending, W9 void → stays active)
+- View/Download links for uploaded documents (base64 stored in DB)
+- Column headers on Documents section (Document Name, Type, Status, Actions)
+- Immutable admin notes audit log (AdminNote model — timestamped, author-tracked, cannot be deleted)
 
 ## Remaining Phases
 - **Phase 14**: HubSpot API Integration (real deal/contact sync)
