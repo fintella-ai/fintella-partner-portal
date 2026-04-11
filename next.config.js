@@ -1,11 +1,4 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    outputFileTracingIncludes: {
-      "/api/**": ["./prisma/dev.db"],
-      "/**": ["./prisma/dev.db"],
-    },
-  },
-};
+const nextConfig = {};
 
 module.exports = nextConfig;
