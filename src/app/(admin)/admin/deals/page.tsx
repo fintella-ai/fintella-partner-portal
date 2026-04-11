@@ -76,6 +76,7 @@ export default function AdminDealsPage() {
   const [editL1Status, setEditL1Status] = useState("");
   const [editL2Status, setEditL2Status] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [dealNotes, setDealNotes] = useState<Record<string, any[]>>({});
 
   const fetchDeals = useCallback(async () => {
     try {
@@ -133,7 +134,19 @@ export default function AdminDealsPage() {
       setEditL1Status(deal.l1CommissionStatus);
       setEditL2Status(deal.l2CommissionStatus);
       setEditNotes(deal.notes || "");
+      // Fetch deal notes
+      fetchDealNotes(deal.id);
     }
+  };
+
+  const fetchDealNotes = async (dealId: string) => {
+    try {
+      const res = await fetch(`/api/admin/deals/${dealId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDealNotes((prev) => ({ ...prev, [dealId]: data.dealNotes || [] }));
+      }
+    } catch {}
   };
 
   const handleUpdateDeal = async (dealId: string) => {
@@ -311,6 +324,13 @@ export default function AdminDealsPage() {
                 {/* ── Form Submission Data ── */}
                 <div className="mb-4 pb-4 border-b border-[var(--app-border)]">
                   <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">Client Submission Details</div>
+
+                  {/* Deal ID (static, immutable) */}
+                  <div className="mb-3 p-2.5 rounded-lg" style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}>
+                    <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider">Deal ID (Unique Identifier)</div>
+                    <div className="font-mono text-[12px] text-[var(--app-text)] mt-0.5 select-all">{deal.id}</div>
+                  </div>
+
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2.5">
                     {[
                       { label: "Contact Name", value: [deal.clientFirstName, deal.clientLastName].filter(Boolean).join(" ") || deal.clientName },
@@ -376,20 +396,83 @@ export default function AdminDealsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="mb-3">
-                  <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Admin Notes</label>
-                  <textarea
-                    className={`${inputClass} w-full resize-none`}
-                    rows={2}
-                    value={editNotes}
-                    onChange={(e) => setEditNotes(e.target.value)}
-                    placeholder="Admin notes on this deal..."
-                  />
-                </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-4">
                   <button onClick={() => handleUpdateDeal(deal.id)} className="btn-gold text-[11px] px-4 py-2">Save Changes</button>
                   <button onClick={() => setExpandedId(null)} className="font-body text-[11px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-4 py-2 hover:text-[var(--app-text-secondary)] transition-colors">Cancel</button>
                   <button onClick={() => handleDeleteDeal(deal.id, deal.dealName)} className="font-body text-[11px] text-red-400/60 border border-red-400/20 rounded-lg px-4 py-2 hover:bg-red-400/10 transition-colors ml-auto">Delete</button>
+                </div>
+
+                {/* ── Admin Notes (audit log) ── */}
+                <div className="border-t border-[var(--app-border)] pt-4">
+                  <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-2">Admin Notes</div>
+                  <div className="flex gap-2 mb-3">
+                    <textarea
+                      id={`dealNote-${deal.id}`}
+                      className={`${inputClass} w-full resize-none flex-1`}
+                      rows={2}
+                      placeholder="Add a note about this deal..."
+                    />
+                    <button
+                      onClick={async () => {
+                        const textarea = document.getElementById(`dealNote-${deal.id}`) as HTMLTextAreaElement;
+                        const content = textarea?.value;
+                        if (!content?.trim()) return;
+                        try {
+                          const res = await fetch("/api/admin/deal-notes", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ dealId: deal.id, content }),
+                          });
+                          if (res.ok) { textarea.value = ""; fetchDealNotes(deal.id); }
+                        } catch {}
+                      }}
+                      className="self-end font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-3 py-2 hover:bg-brand-gold/10 transition-colors shrink-0"
+                    >
+                      Post
+                    </button>
+                  </div>
+
+                  {/* Pinned notes first, then unpinned */}
+                  {(() => {
+                    const notes = dealNotes[deal.id] || [];
+                    const pinned = notes.filter((n: any) => n.isPinned);
+                    const unpinned = notes.filter((n: any) => !n.isPinned);
+                    const allSorted = [...pinned, ...unpinned];
+
+                    return allSorted.length > 0 ? (
+                      <div className="space-y-0">
+                        {allSorted.map((n: any) => (
+                          <div key={n.id} className={`py-2.5 ${n.isPinned ? "bg-brand-gold/[0.04] rounded-lg px-3 mb-1" : ""}`} style={{ borderBottom: !n.isPinned ? "1px solid var(--app-border)" : undefined }}>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                {n.isPinned && <span className="text-[10px] text-brand-gold">&#128204;</span>}
+                                <span className="font-body text-[11px] font-semibold text-[var(--app-text-secondary)]">{n.authorName}</span>
+                                <span className="font-body text-[10px] text-[var(--app-text-muted)]">
+                                  {new Date(n.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} {new Date(n.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                                </span>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  await fetch("/api/admin/deal-notes", {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ noteId: n.id, isPinned: !n.isPinned }),
+                                  });
+                                  fetchDealNotes(deal.id);
+                                }}
+                                className="font-body text-[9px] theme-text-muted hover:text-brand-gold transition-colors shrink-0"
+                              >
+                                {n.isPinned ? "Unpin" : "Pin"}
+                              </button>
+                            </div>
+                            <div className="font-body text-[12px] text-[var(--app-text-secondary)] mt-1 whitespace-pre-wrap">{n.content}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="font-body text-[12px] text-[var(--app-text-muted)] py-2">No notes yet.</div>
+                    );
+                  })()}
                 </div>
               </div>
             )}

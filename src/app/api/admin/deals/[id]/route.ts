@@ -3,6 +3,34 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 /**
+ * GET /api/admin/deals/[id]
+ * Get a single deal with its notes.
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const role = (session.user as any).role;
+  if (role !== "admin" && role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  try {
+    const deal = await prisma.deal.findUnique({ where: { id: params.id } });
+    if (!deal) return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+
+    const dealNotes = await prisma.dealNote.findMany({
+      where: { dealId: params.id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ deal, dealNotes });
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch deal" }, { status: 500 });
+  }
+}
+
+/**
  * PUT /api/admin/deals/[id]
  * Update a deal (stage, amounts, notes, etc.)
  */

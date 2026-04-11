@@ -281,9 +281,23 @@ model AdminNote {
   content     String
   authorName  String   // admin who posted the note
   authorEmail String
+  isPinned    Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   @@index([partnerCode])
+}
+
+// ─── DEAL NOTES (immutable audit log) ────────────────────────────────────────
+model DealNote {
+  id          String   @id @default(cuid())
+  dealId      String
+  content     String
+  authorName  String
+  authorEmail String
+  isPinned    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([dealId])
 }
 
 // ─── IMPERSONATION TOKENS ───────────────────────────────────────────────────

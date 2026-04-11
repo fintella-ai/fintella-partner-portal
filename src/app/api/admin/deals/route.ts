@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
     const search = req.nextUrl.searchParams.get("search");
     if (search) {
       where.OR = [
+        { id: { contains: search } },
         { dealName: { contains: search } },
         { clientName: { contains: search } },
         { clientEmail: { contains: search } },

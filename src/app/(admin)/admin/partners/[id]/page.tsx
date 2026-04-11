@@ -503,26 +503,48 @@ export default function PartnerDetailPage() {
           </div>
         </div>
 
-        {/* Notes audit log (immutable, newest first) */}
-        {(partner as any).adminNotes?.length > 0 || adminNotes.length > 0 ? (
-          <div>
-            {adminNotes.map((n: any) => (
-              <div key={n.id} className="px-5 py-3" style={{ borderBottom: "1px solid var(--app-border)" }}>
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <div className="font-body text-[12px] font-semibold text-[var(--app-text-secondary)]">{n.authorName}</div>
-                  <div className="font-body text-[10px] text-[var(--app-text-muted)] shrink-0">
-                    {new Date(n.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    {" "}
-                    {new Date(n.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+        {/* Notes audit log — pinned first, then newest first */}
+        {(() => {
+          const pinned = adminNotes.filter((n: any) => n.isPinned);
+          const unpinned = adminNotes.filter((n: any) => !n.isPinned);
+          const allSorted = [...pinned, ...unpinned];
+
+          return allSorted.length > 0 ? (
+            <div>
+              {allSorted.map((n: any) => (
+                <div key={n.id} className={`px-5 py-3 ${n.isPinned ? "bg-brand-gold/[0.04]" : ""}`} style={{ borderBottom: "1px solid var(--app-border)" }}>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2">
+                      {n.isPinned && <span className="text-[10px] text-brand-gold">&#128204;</span>}
+                      <div className="font-body text-[12px] font-semibold text-[var(--app-text-secondary)]">{n.authorName}</div>
+                      <div className="font-body text-[10px] text-[var(--app-text-muted)]">
+                        {new Date(n.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {" "}
+                        {new Date(n.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        await fetch("/api/admin/notes", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ noteId: n.id, isPinned: !n.isPinned }),
+                        });
+                        fetchPartner();
+                      }}
+                      className="font-body text-[9px] theme-text-muted hover:text-brand-gold transition-colors shrink-0"
+                    >
+                      {n.isPinned ? "Unpin" : "Pin"}
+                    </button>
                   </div>
+                  <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed whitespace-pre-wrap">{n.content}</div>
                 </div>
-                <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed whitespace-pre-wrap">{n.content}</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="px-5 py-6 text-center font-body text-[13px] text-[var(--app-text-muted)]">No notes yet.</div>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div className="px-5 py-6 text-center font-body text-[13px] text-[var(--app-text-muted)]">No notes yet.</div>
+          );
+        })()}
       </div>
 
       {/* ─── DOWNLINE ─────────────────────────────────────────────── */}
