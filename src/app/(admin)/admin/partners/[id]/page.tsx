@@ -69,6 +69,7 @@ export default function PartnerDetailPage() {
   const [l3Partners, setL3Partners] = useState<Partner[]>([]);
   const [documents, setDocuments] = useState<DocEntry[]>([]);
   const [agreement, setAgreement] = useState<Agreement | null>(null);
+  const [adminNotes, setAdminNotes] = useState<any[]>([]);
   const [downlineView, setDownlineView] = useState<"list" | "tree">("list");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -116,6 +117,7 @@ export default function PartnerDetailPage() {
       setL3Partners(data.l3Partners || []);
       setDocuments(data.documents || []);
       setAgreement(data.agreement || null);
+      setAdminNotes(data.adminNotes || []);
 
       setFirstName(p.firstName);
       setLastName(p.lastName);
@@ -463,16 +465,64 @@ export default function PartnerDetailPage() {
         </div>
       </div>
 
-      {/* ─── ADMIN NOTES ─────────────────────────────────────────── */}
-      <div className="card p-5 sm:p-6 mb-6">
-        <div className="font-body font-semibold text-sm mb-3">Admin Notes</div>
-        <textarea
-          className={`${inputClass} resize-none`}
-          rows={4}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Internal notes about this partner..."
-        />
+      {/* ─── ADMIN NOTES (audit log) ──────────────────────────────── */}
+      <div className="card mb-6">
+        <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
+          <div className="font-body font-semibold text-sm mb-3">Admin Notes</div>
+          <div className="flex gap-2">
+            <textarea
+              id="newAdminNote"
+              className={`${inputClass} resize-none flex-1`}
+              rows={2}
+              placeholder="Add a note about this partner..."
+            />
+            <button
+              onClick={async () => {
+                const textarea = document.getElementById("newAdminNote") as HTMLTextAreaElement;
+                const content = textarea?.value;
+                if (!content?.trim()) return;
+                try {
+                  const res = await fetch("/api/admin/notes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ partnerCode: partner.partnerCode, content }),
+                  });
+                  if (res.ok) {
+                    textarea.value = "";
+                    fetchPartner();
+                  } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.error || "Failed to add note");
+                  }
+                } catch { alert("Network error"); }
+              }}
+              className="self-end font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-4 py-2.5 hover:bg-brand-gold/10 transition-colors shrink-0"
+            >
+              Post Note
+            </button>
+          </div>
+        </div>
+
+        {/* Notes audit log (immutable, newest first) */}
+        {(partner as any).adminNotes?.length > 0 || adminNotes.length > 0 ? (
+          <div>
+            {adminNotes.map((n: any) => (
+              <div key={n.id} className="px-5 py-3" style={{ borderBottom: "1px solid var(--app-border)" }}>
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="font-body text-[12px] font-semibold text-[var(--app-text-secondary)]">{n.authorName}</div>
+                  <div className="font-body text-[10px] text-[var(--app-text-muted)] shrink-0">
+                    {new Date(n.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    {" "}
+                    {new Date(n.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                  </div>
+                </div>
+                <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed whitespace-pre-wrap">{n.content}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="px-5 py-6 text-center font-body text-[13px] text-[var(--app-text-muted)]">No notes yet.</div>
+        )}
       </div>
 
       {/* ─── DOWNLINE ─────────────────────────────────────────────── */}

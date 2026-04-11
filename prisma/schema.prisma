@@ -274,6 +274,18 @@ model TrainingResource {
   updatedAt   DateTime @updatedAt
 }
 
+// ─── ADMIN NOTES (immutable audit log) ───────────────────────────────────────
+model AdminNote {
+  id          String   @id @default(cuid())
+  partnerCode String
+  content     String
+  authorName  String   // admin who posted the note
+  authorEmail String
+  createdAt   DateTime @default(now())
+
+  @@index([partnerCode])
+}
+
 // ─── IMPERSONATION TOKENS ───────────────────────────────────────────────────
 model ImpersonationToken {
   id          String   @id @default(cuid())

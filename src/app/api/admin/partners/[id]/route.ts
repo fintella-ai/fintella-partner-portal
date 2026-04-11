@@ -21,7 +21,7 @@ export async function GET(
     if (!partner) return NextResponse.json({ error: "Partner not found" }, { status: 404 });
 
     // Parallel queries for related data
-    const [downlineCount, downline, agreement, profile, documents] = await Promise.all([
+    const [downlineCount, downline, agreement, profile, documents, adminNotes] = await Promise.all([
       prisma.partner.count({
         where: { referredByPartnerCode: partner.partnerCode },
       }),
@@ -40,6 +40,10 @@ export async function GET(
         where: { partnerCode: partner.partnerCode },
         orderBy: { createdAt: "desc" },
       }).catch(() => []),
+      prisma.adminNote.findMany({
+        where: { partnerCode: partner.partnerCode },
+        orderBy: { createdAt: "desc" },
+      }).catch(() => []),
     ]);
 
     // L3 downline (partners recruited by L2 partners)
@@ -51,7 +55,7 @@ export async function GET(
         })
       : [];
 
-    return NextResponse.json({ partner, downlineCount, downline, agreement, profile, documents, l3Partners });
+    return NextResponse.json({ partner, downlineCount, downline, agreement, profile, documents, l3Partners, adminNotes });
   } catch {
     return NextResponse.json({ error: "Failed to fetch partner" }, { status: 500 });
   }
