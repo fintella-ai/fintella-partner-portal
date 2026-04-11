@@ -18,6 +18,8 @@ type Partner = {
   tin: string | null;
   status: string;
   referredByPartnerCode: string | null;
+  tier: string;
+  commissionRate: number;
   l1Rate: number | null;
   l2Rate: number | null;
   l3Rate: number | null;
@@ -370,31 +372,50 @@ export default function PartnerDetailPage() {
         </div>
       </div>
 
-      {/* ─── COMMISSION OVERRIDES ─────────────────────────────────── */}
+      {/* ─── COMMISSION & TIER ────────────────────────────────────── */}
       <div className="card p-5 sm:p-6 mb-6">
-        <div className="font-body font-semibold text-sm mb-1">Commission Rates</div>
-        <p className="font-body text-[12px] text-[var(--app-text-muted)] mb-4">Leave blank to use global default rates. Enter a value to override for this partner.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className={labelClass}>L1 Rate (%)</label>
-            <input className={inputClass} type="number" min="0" max="100" value={l1Rate} onChange={(e) => setL1Rate(e.target.value)} placeholder="Default" />
+        <div className="font-body font-semibold text-sm mb-4">Commission Structure</div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          {/* Tier */}
+          <div className="p-4 rounded-lg bg-brand-gold/[0.06] border border-brand-gold/20">
+            <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-1">Partner Tier</div>
+            <div className="font-display text-xl font-bold text-brand-gold">{(partner.tier || "l1").toUpperCase()}</div>
           </div>
-          <div>
-            <label className={labelClass}>L2 Rate (%)</label>
-            <input className={inputClass} type="number" min="0" max="100" value={l2Rate} onChange={(e) => setL2Rate(e.target.value)} placeholder="Default" />
+
+          {/* Commission rate */}
+          <div className="p-4 rounded-lg" style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-border)" }}>
+            <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-1">Commission Rate</div>
+            <div className="font-display text-xl font-bold text-brand-gold">
+              {partner.commissionRate ? `${Math.round(partner.commissionRate * 100)}%` : "25%"}
+            </div>
+            <div className="font-body text-[10px] text-[var(--app-text-muted)] mt-0.5">of firm fee on direct deals</div>
           </div>
-          <div>
-            <label className={labelClass}>L3 Rate (%)</label>
-            <div className="flex gap-2">
-              <input className={`${inputClass} flex-1`} type="number" min="0" max="100" value={l3Rate} onChange={(e) => setL3Rate(e.target.value)} placeholder="0" disabled={!l3Enabled} />
+
+          {/* L3 toggle */}
+          <div className="p-4 rounded-lg" style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-border)" }}>
+            <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-1">L3 Recruitment</div>
+            <div className="flex items-center gap-3 mt-1">
               <button
                 onClick={() => setL3Enabled(!l3Enabled)}
-                className={`relative inline-flex h-11 w-14 items-center rounded-lg shrink-0 transition-colors ${l3Enabled ? "bg-green-500" : "bg-[var(--app-input-bg)]"}`}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full shrink-0 transition-colors ${l3Enabled ? "bg-green-500" : "bg-[var(--app-input-bg)]"}`}
               >
-                <span className={`inline-block h-6 w-6 transform rounded-md bg-white transition-transform ${l3Enabled ? "translate-x-7" : "translate-x-1"}`} />
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${l3Enabled ? "translate-x-7" : "translate-x-1.5"}`} />
               </button>
+              <span className={`font-body text-[13px] font-medium ${l3Enabled ? "text-green-400" : "text-[var(--app-text-muted)]"}`}>
+                {l3Enabled ? "Enabled" : "Disabled"}
+              </span>
+            </div>
+            <div className="font-body text-[10px] text-[var(--app-text-muted)] mt-2">
+              {l3Enabled ? "This partner can recruit L3 sub-partners" : "Enable to allow this partner to recruit L3 sub-partners"}
             </div>
           </div>
+        </div>
+
+        <div className="p-3 rounded-lg bg-brand-gold/[0.04] border border-brand-gold/10">
+          <p className="font-body text-[11px] text-[var(--app-text-muted)] leading-relaxed">
+            All partners earn <strong className="text-brand-gold">25%</strong> of the firm fee total across tiers. L2/L3 rates are chosen by the recruiting partner (10%, 15%, or 20%) when they generate a recruitment link. The override (25% minus the recruit&apos;s rate) goes to the upline.
+          </p>
         </div>
       </div>
 
