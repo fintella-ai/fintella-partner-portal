@@ -5,7 +5,12 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
 
-  // Public routes
+  // Public docs — accessible to anyone, no redirects
+  if (pathname.startsWith("/docs/")) {
+    return NextResponse.next();
+  }
+
+  // Public routes (login, home)
   if (pathname === "/login" || pathname === "/" || pathname.startsWith("/api/auth")) {
     // If already logged in, redirect to appropriate dashboard
     if (session?.user) {
