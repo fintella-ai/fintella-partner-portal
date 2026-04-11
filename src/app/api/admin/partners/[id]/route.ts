@@ -19,24 +19,29 @@ export async function GET(
     const partner = await prisma.partner.findUnique({ where: { id: params.id } });
     if (!partner) return NextResponse.json({ error: "Partner not found" }, { status: 404 });
 
-    // Get downline count
-    const downlineCount = await prisma.partner.count({
-      where: { referredByPartnerCode: partner.partnerCode },
-    });
+    // Parallel queries for related data
+    const [downlineCount, downline, agreement, profile, documents] = await Promise.all([
+      prisma.partner.count({
+        where: { referredByPartnerCode: partner.partnerCode },
+      }),
+      prisma.partner.findMany({
+        where: { referredByPartnerCode: partner.partnerCode },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.partnershipAgreement.findFirst({
+        where: { partnerCode: partner.partnerCode },
+        orderBy: { version: "desc" },
+      }).catch(() => null),
+      prisma.partnerProfile.findUnique({
+        where: { partnerCode: partner.partnerCode },
+      }).catch(() => null),
+      prisma.document.findMany({
+        where: { partnerCode: partner.partnerCode },
+        orderBy: { createdAt: "desc" },
+      }).catch(() => []),
+    ]);
 
-    // Get downline partners
-    const downline = await prisma.partner.findMany({
-      where: { referredByPartnerCode: partner.partnerCode },
-      orderBy: { createdAt: "desc" },
-    });
-
-    // Get agreement status
-    const agreement = await prisma.partnershipAgreement.findFirst({
-      where: { partnerCode: partner.partnerCode },
-      orderBy: { version: "desc" },
-    }).catch(() => null);
-
-    return NextResponse.json({ partner, downlineCount, downline, agreement });
+    return NextResponse.json({ partner, downlineCount, downline, agreement, profile, documents });
   } catch {
     return NextResponse.json({ error: "Failed to fetch partner" }, { status: 500 });
   }
@@ -64,6 +69,9 @@ export async function PUT(
     if (body.lastName !== undefined) data.lastName = body.lastName;
     if (body.email !== undefined) data.email = body.email;
     if (body.phone !== undefined) data.phone = body.phone || null;
+    if (body.companyName !== undefined) data.companyName = body.companyName || null;
+    if (body.tin !== undefined) data.tin = body.tin || null;
+    if (body.mobilePhone !== undefined) data.mobilePhone = body.mobilePhone || null;
     if (body.status !== undefined) data.status = body.status;
     if (body.referredByPartnerCode !== undefined) data.referredByPartnerCode = body.referredByPartnerCode || null;
     if (body.notes !== undefined) data.notes = body.notes || null;
@@ -86,6 +94,22 @@ export async function PUT(
       where: { id: params.id },
       data,
     });
+
+    // Update PartnerProfile (address) if any address fields provided
+    const profileFields: Record<string, any> = {};
+    if (body.street !== undefined) profileFields.street = body.street || null;
+    if (body.street2 !== undefined) profileFields.street2 = body.street2 || null;
+    if (body.city !== undefined) profileFields.city = body.city || null;
+    if (body.state !== undefined) profileFields.state = body.state || null;
+    if (body.zip !== undefined) profileFields.zip = body.zip || null;
+
+    if (Object.keys(profileFields).length > 0) {
+      await prisma.partnerProfile.upsert({
+        where: { partnerCode: partner.partnerCode },
+        create: { partnerCode: partner.partnerCode, ...profileFields },
+        update: profileFields,
+      });
+    }
 
     return NextResponse.json({ partner });
   } catch {

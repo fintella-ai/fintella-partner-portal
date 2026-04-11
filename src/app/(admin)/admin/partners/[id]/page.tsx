@@ -10,7 +10,10 @@ type Partner = {
   email: string;
   firstName: string;
   lastName: string;
+  companyName: string | null;
   phone: string | null;
+  mobilePhone: string | null;
+  tin: string | null;
   status: string;
   referredByPartnerCode: string | null;
   l1Rate: number | null;
@@ -19,6 +22,30 @@ type Partner = {
   l3Enabled: boolean;
   notes: string | null;
   signupDate: string;
+};
+
+type PartnerProfile = {
+  street: string | null;
+  street2: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+};
+
+type DocEntry = {
+  id: string;
+  docType: string;
+  fileName: string;
+  status: string;
+  createdAt: string;
+};
+
+type Agreement = {
+  id: string;
+  status: string;
+  version: number;
+  sentDate: string | null;
+  signedDate: string | null;
 };
 
 const statusOptions = ["active", "pending", "inactive", "blocked"];
@@ -34,6 +61,8 @@ export default function PartnerDetailPage() {
   const router = useRouter();
   const [partner, setPartner] = useState<Partner | null>(null);
   const [downline, setDownline] = useState<Partner[]>([]);
+  const [documents, setDocuments] = useState<DocEntry[]>([]);
+  const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -41,11 +70,21 @@ export default function PartnerDetailPage() {
   // Editable fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [mobilePhone, setMobilePhone] = useState("");
+  const [tin, setTin] = useState("");
   const [status, setStatus] = useState("active");
   const [referrer, setReferrer] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Address
+  const [street, setStreet] = useState("");
+  const [street2, setStreet2] = useState("");
+  const [city, setCity] = useState("");
+  const [addrState, setAddrState] = useState("");
+  const [zip, setZip] = useState("");
 
   // Commission overrides
   const [l1Rate, setL1Rate] = useState("");
@@ -59,16 +98,27 @@ export default function PartnerDetailPage() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       const p = data.partner;
+      const prof = data.profile;
       setPartner(p);
       setDownline(data.downline || []);
+      setDocuments(data.documents || []);
+      setAgreement(data.agreement || null);
 
       setFirstName(p.firstName);
       setLastName(p.lastName);
+      setCompanyName(p.companyName || "");
       setEmail(p.email);
       setPhone(p.phone || "");
+      setMobilePhone(p.mobilePhone || "");
+      setTin(p.tin || "");
       setStatus(p.status);
       setReferrer(p.referredByPartnerCode || "");
       setNotes(p.notes || "");
+      setStreet(prof?.street || "");
+      setStreet2(prof?.street2 || "");
+      setCity(prof?.city || "");
+      setAddrState(prof?.state || "");
+      setZip(prof?.zip || "");
       setL1Rate(p.l1Rate != null ? String(Math.round(p.l1Rate * 100)) : "");
       setL2Rate(p.l2Rate != null ? String(Math.round(p.l2Rate * 100)) : "");
       setL3Rate(p.l3Rate != null ? String(Math.round(p.l3Rate * 100)) : "");
@@ -85,10 +135,14 @@ export default function PartnerDetailPage() {
     try {
       const body: Record<string, any> = {
         firstName, lastName, email,
+        companyName: companyName || null,
         phone: phone || null,
+        mobilePhone: mobilePhone || null,
+        tin: tin || null,
         status,
         referredByPartnerCode: referrer || null,
         notes: notes || null,
+        street, street2, city, state: addrState, zip,
         l1Rate: l1Rate ? parseFloat(l1Rate) / 100 : null,
         l2Rate: l2Rate ? parseFloat(l2Rate) / 100 : null,
         l3Rate: l3Rate ? parseFloat(l3Rate) / 100 : null,
@@ -198,12 +252,27 @@ export default function PartnerDetailPage() {
             <input className={inputClass} value={lastName} onChange={(e) => setLastName(e.target.value)} />
           </div>
           <div>
+            <label className={labelClass}>Company Name</label>
+            <input className={inputClass} value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="If applicable" />
+          </div>
+          <div>
             <label className={labelClass}>Email</label>
             <input className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
           </div>
           <div>
             <label className={labelClass}>Phone</label>
             <input className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-0000" />
+          </div>
+          <div>
+            <label className={labelClass}>Mobile Phone (SMS)</label>
+            <input className={inputClass} value={mobilePhone} onChange={(e) => setMobilePhone(e.target.value)} placeholder="+1 555-555-0000" />
+          </div>
+          <div>
+            <label className={labelClass}>TIN</label>
+            <input className={inputClass} value={tin} onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
+              setTin(digits.length <= 2 ? digits : `${digits.slice(0, 2)}-${digits.slice(2)}`);
+            }} placeholder="##-#######" maxLength={10} />
           </div>
           <div>
             <label className={labelClass}>Status</label>
@@ -232,6 +301,35 @@ export default function PartnerDetailPage() {
           <button onClick={handleResetCode} className="font-body text-[12px] text-yellow-400/80 border border-yellow-400/20 rounded-lg px-4 py-2 hover:bg-yellow-400/10 transition-colors">
             Reset Code
           </button>
+        </div>
+      </div>
+
+      {/* ─── ADDRESS ────────────────────────────────────────────── */}
+      <div className="card p-5 sm:p-6 mb-6">
+        <div className="font-body font-semibold text-sm mb-4">Address</div>
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className={labelClass}>Street Address 1</label>
+            <input className={inputClass} value={street} onChange={(e) => setStreet(e.target.value)} placeholder="123 Main St" />
+          </div>
+          <div>
+            <label className={labelClass}>Street Address 2</label>
+            <input className={inputClass} value={street2} onChange={(e) => setStreet2(e.target.value)} placeholder="Suite 100" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className={labelClass}>City</label>
+              <input className={inputClass} value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" />
+            </div>
+            <div>
+              <label className={labelClass}>State</label>
+              <input className={inputClass} value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" />
+            </div>
+            <div>
+              <label className={labelClass}>Zip Code</label>
+              <input className={inputClass} value={zip} onChange={(e) => setZip(e.target.value)} placeholder="12345" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -296,6 +394,67 @@ export default function PartnerDetailPage() {
                 </div>
                 <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[d.status] || statusBadge.active}`}>
                   {d.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ─── DOCUMENTS & AGREEMENT ─────────────────────────────── */}
+      <div className="card mb-6">
+        <div className="px-5 py-4 border-b border-white/[0.06]">
+          <div className="font-body font-semibold text-sm">Documents & Agreement</div>
+        </div>
+
+        {/* Agreement status */}
+        <div className="px-5 py-3 border-b border-white/[0.04]">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-body text-[13px] text-white/70">Partnership Agreement</div>
+              <div className="font-body text-[11px] text-white/35 mt-0.5">
+                {agreement
+                  ? `Version ${agreement.version} — ${agreement.signedDate ? `Signed ${fmtDate(agreement.signedDate)}` : `Sent ${fmtDate(agreement.sentDate)}`}`
+                  : "No agreement on file"}
+              </div>
+            </div>
+            <span className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${
+              agreement?.status === "signed"
+                ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                : agreement?.status === "pending"
+                  ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                  : agreement?.status === "amended"
+                    ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
+                    : "bg-white/10 text-white/40 border border-white/10"
+            }`}>
+              {agreement?.status || "none"}
+            </span>
+          </div>
+        </div>
+
+        {/* Uploaded documents */}
+        {documents.length === 0 ? (
+          <div className="px-5 py-8 text-center font-body text-[13px] text-white/30">No documents uploaded.</div>
+        ) : (
+          <div>
+            {documents.map((d) => (
+              <div key={d.id} className="px-5 py-3 border-b border-white/[0.04] last:border-b-0 flex items-center justify-between">
+                <div>
+                  <div className="font-body text-[13px] text-white/80">{d.fileName}</div>
+                  <div className="font-body text-[11px] text-white/35 mt-0.5">
+                    {d.docType.toUpperCase()} &middot; {fmtDate(d.createdAt)}
+                  </div>
+                </div>
+                <span className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${
+                  d.status === "approved"
+                    ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                    : d.status === "under_review"
+                      ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                      : d.status === "rejected"
+                        ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                        : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                }`}>
+                  {d.status.replace("_", " ")}
                 </span>
               </div>
             ))}
