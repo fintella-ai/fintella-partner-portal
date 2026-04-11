@@ -146,6 +146,14 @@ npm run db:studio    # Open Prisma Studio
 - View/Download links for uploaded documents (base64 stored in DB)
 - Column headers on Documents section (Document Name, Type, Status, Actions)
 - Immutable admin notes audit log (AdminNote model — timestamped, author-tracked, cannot be deleted)
+- Removed Commissions page from admin panel (L1 dictates L2 rates via recruitment links)
+- PATCH /api/webhook/referral endpoint for deal updates (stage, amounts, closed lost reason)
+- Webhook guide redesigned with navigation menu, anchored sections, overview at top
+- DealId displayed in Client Submission Details (static, immutable, searchable)
+- Deal notes audit log with pin feature (DealNote model)
+- Pin/unpin feature on both partner and deal admin notes
+- Partner code generation restricted to super_admin only ("Generate New Code")
+- Partner code history preserved (PartnerCodeHistory model — old codes kept for audit)
 
 ## Remaining Phases
 - **Phase 14**: HubSpot API Integration (real deal/contact sync)
