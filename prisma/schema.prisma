@@ -26,7 +26,10 @@ model Partner {
   email                 String
   firstName             String
   lastName              String
+  companyName           String?
   phone                 String?
+  mobilePhone           String?  // international SMS format (+1...)
+  tin                   String?  // TIN in ##-####### format
   status                String   @default("active") // active, pending, inactive, blocked
   referredByPartnerCode String?  // who recruited them
   // Commission overrides (null = use global defaults)
@@ -63,6 +66,7 @@ model PartnerProfile {
   partnerCode     String   @unique
   // Address
   street          String?
+  street2         String?
   city            String?
   state           String?
   zip             String?

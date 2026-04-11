@@ -144,7 +144,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Spacer */}
       <div className="flex-1 min-h-[24px]" />
 
-      {/* User Info + Sign Out (centered) */}
+      {/* User Info + Account Settings + Sign Out */}
       <div className="px-2 pt-3 border-t border-white/[0.06] text-center">
         <div className="font-body text-xs text-white/50 mb-0.5">
           {user?.name || "Partner"}
@@ -152,6 +152,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="font-body text-[11px] text-white/30 tracking-[1px] mb-3">
           {partnerCode}
         </div>
+        <button
+          onClick={() => navigate("/dashboard/settings")}
+          className={`w-full font-body text-[11px] border rounded px-3 py-2 mb-2 transition-colors ${
+            isActive("/dashboard/settings")
+              ? "text-brand-gold border-brand-gold/30 bg-brand-gold/10"
+              : "text-white/40 border-white/10 hover:text-white/60 hover:border-white/20"
+          }`}
+        >
+          Account Settings
+        </button>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="w-full font-body text-[11px] text-white/40 border border-white/10 rounded px-3 py-2 hover:text-white/60 hover:border-white/20 transition-colors"
