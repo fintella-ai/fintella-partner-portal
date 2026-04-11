@@ -19,6 +19,31 @@ model User {
 
 }
 
+// ─── PARTNERS ───────────────────────────────────────────────────────────────
+model Partner {
+  id                    String   @id @default(cuid())
+  partnerCode           String   @unique
+  email                 String
+  firstName             String
+  lastName              String
+  phone                 String?
+  status                String   @default("active") // active, pending, inactive, blocked
+  referredByPartnerCode String?  // who recruited them
+  // Commission overrides (null = use global defaults)
+  l1Rate                Float?
+  l2Rate                Float?
+  l3Rate                Float?
+  l3Enabled             Boolean  @default(false)
+  // Metadata
+  notes                 String?  // admin notes
+  signupDate            DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([email])
+  @@index([referredByPartnerCode])
+}
+
 // ─── PARTNER COMMISSION OVERRIDES ────────────────────────────────────────────
 model PartnerOverride {
   id          String   @id @default(cuid())
@@ -245,4 +270,76 @@ model ConferenceSchedule {
   isActive     Boolean   @default(true)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+}
+
+// ─── PORTAL SETTINGS ────────────────────────────────────────────────────────
+model PortalSettings {
+  id        String @id @default("global") // singleton — always "global"
+  // Branding
+  firmName  String @default("Tax Refund, Recovery, & Litigation Network")
+  firmShort String @default("TRRLN")
+  firmSlogan String @default("Fighting for what's owed, reclaiming what's fair.")
+  firmPhone String @default("(410) 497-5947")
+  supportEmail String @default("")
+  // Commission Rates (stored as decimals: 0.20 = 20%)
+  firmFeeRate Float @default(0.20)
+  l1Rate      Float @default(0.20)
+  l2Rate      Float @default(0.05)
+  l3Rate      Float @default(0)
+  l3Enabled   Boolean @default(false)
+  // Navigation visibility + order (JSON strings)
+  hiddenNavItems String @default("[]")
+  navOrder       String @default("[]")  // ordered array of nav IDs
+  // Home page content (JSON strings)
+  announcements  String @default("[]")
+  upcomingEvents String @default("[]")
+  referralOpportunities String @default("[]")
+  leaderboardEnabled Boolean @default(true)
+  // Timestamps
+  updatedAt DateTime @updatedAt
+}
+
+// ─── DEALS ──────────────────────────────────────────────────────────────────
+model Deal {
+  id                    String    @id @default(cuid())
+  dealName              String
+  partnerCode           String    // submitting partner
+  // Client contact info
+  clientFirstName       String?
+  clientLastName        String?
+  clientName            String?   // legacy / computed display name
+  clientEmail           String?
+  clientPhone           String?
+  clientTitle           String?   // business title (e.g. CEO, CFO)
+  // Service & business details
+  serviceOfInterest     String?   // "Tariff Refund Support", "ERC Support", "Kwong Penalty Abatement"
+  legalEntityName       String?   // Legal Entity / Business Name
+  businessCity          String?
+  businessState         String?
+  importsGoods          String?   // "Yes", "No"
+  importCountries       String?   // countries they import from
+  annualImportValue     String?   // dropdown value (e.g. "$1M - $5M")
+  importerOfRecord      String?   // who is listed as importer of record
+  affiliateNotes        String?   // affiliate notes from referral form
+  // Deal tracking
+  stage                 String    @default("new_lead")
+  productType           String?   // "ieepa", "section301", "other"
+  importedProducts      String?   // description of goods
+  estimatedRefundAmount Float     @default(0)
+  firmFeeRate           Float?    // negotiated per deal
+  firmFeeAmount         Float     @default(0)
+  // Commissions
+  l1CommissionRate      Float?
+  l1CommissionAmount    Float     @default(0)
+  l1CommissionStatus    String    @default("pending")
+  l2CommissionAmount    Float     @default(0)
+  l2CommissionStatus    String    @default("pending")
+  // Notes
+  notes                 String?
+  closeDate             DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([partnerCode])
+  @@index([stage])
 }

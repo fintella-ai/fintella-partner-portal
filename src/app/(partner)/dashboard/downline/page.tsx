@@ -8,7 +8,6 @@ import { SkeletonTableRow, SkeletonCard } from "@/components/ui/Skeleton";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import { fmt$, fmtDate } from "@/lib/format";
 import { DEFAULT_L2_RATE, DEFAULT_FIRM_FEE_RATE } from "@/lib/constants";
-import { getDemoDownlinePartners, getDemoDownlineDeals } from "@/lib/hubspot";
 
 export default function DownlinePage() {
   const device = useDevice();
@@ -17,8 +16,14 @@ export default function DownlinePage() {
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
-    setPartners(getDemoDownlinePartners());
-    setDeals(getDemoDownlineDeals());
+    try {
+      const res = await fetch("/api/deals");
+      if (res.ok) {
+        const data = await res.json();
+        setPartners(data.downlinePartners || []);
+        setDeals(data.downlineDeals || []);
+      }
+    } catch {}
     setLoading(false);
   }, []);
 
@@ -26,16 +31,15 @@ export default function DownlinePage() {
 
   // Build a map from partner code → partner name for display in downline deals
   const partnerNameMap: Record<string, string> = {};
-  for (const partner of partners) {
-    const pp = partner.properties;
-    if (pp.partner_code) {
-      partnerNameMap[pp.partner_code] = `${pp.firstname} ${pp.lastname}`.trim();
+  for (const p of partners) {
+    if (p.partnerCode) {
+      partnerNameMap[p.partnerCode] = `${p.firstName} ${p.lastName}`.trim();
     }
   }
 
-  // Resolve partner name: prefer submitting_partner_name, then map lookup, then code
+  // Resolve partner name: prefer submittingPartnerName, then map lookup, then code
   const resolvePartnerName = (p: any) =>
-    p.submitting_partner_name || partnerNameMap[p.submitting_partner] || p.submitting_partner;
+    p.submittingPartnerName || partnerNameMap[p.partnerCode] || p.partnerCode;
 
   // L2 commission percentage display
   const l2Pct = `${(DEFAULT_L2_RATE * 100).toFixed(0)}%`;
@@ -90,13 +94,12 @@ export default function DownlinePage() {
         ) : device.isMobile ? (
           /* ── Mobile: Card layout ── */
           <div>
-            {partners.map((partner) => {
-              const p = partner.properties;
+            {partners.map((p) => {
               const initials =
-                (p.firstname?.[0] || "") + (p.lastname?.[0] || "");
+                (p.firstName?.[0] || "") + (p.lastName?.[0] || "");
               return (
                 <div
-                  key={partner.id}
+                  key={p.partnerCode}
                   className="px-4 py-4 border-b border-white/5 last:border-b-0"
                 >
                   <div className="flex items-center gap-3 mb-3">
@@ -108,22 +111,22 @@ export default function DownlinePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-body text-[13px] font-medium text-white truncate">
-                        {p.firstname} {p.lastname}
+                        {p.firstName} {p.lastName}
                       </div>
                       <div className="font-body text-[11px] text-white/30 truncate">
                         {p.email}
                       </div>
                     </div>
-                    <StatusBadge status={p.partner_status} />
+                    <StatusBadge status={p.status} />
                   </div>
                   <div className="flex items-center justify-between font-body text-[11px] text-white/30">
                     <span>
                       Code:{" "}
                       <span className="text-white/50 font-mono">
-                        {p.partner_code}
+                        {p.partnerCode}
                       </span>
                     </span>
-                    <span>Joined {fmtDate(p.partner_signup_date)}</span>
+                    <span>Joined {fmtDate(p.signupDate)}</span>
                   </div>
                 </div>
               );
@@ -151,13 +154,12 @@ export default function DownlinePage() {
               </div>
             </div>
             {/* Rows */}
-            {partners.map((partner) => {
-              const p = partner.properties;
+            {partners.map((p) => {
               const initials =
-                (p.firstname?.[0] || "") + (p.lastname?.[0] || "");
+                (p.firstName?.[0] || "") + (p.lastName?.[0] || "");
               return (
                 <div
-                  key={partner.id}
+                  key={p.partnerCode}
                   className="grid grid-cols-[2fr_1.5fr_1fr_0.8fr_1fr] gap-4 px-6 py-4 border-b border-white/[0.04] last:border-b-0 items-center hover:bg-white/[0.02] transition-colors"
                 >
                   {/* Col 1: Name + avatar */}
@@ -168,7 +170,7 @@ export default function DownlinePage() {
                       </span>
                     </div>
                     <div className="font-body text-[13px] font-medium text-white truncate">
-                      {p.firstname} {p.lastname}
+                      {p.firstName} {p.lastName}
                     </div>
                   </div>
                   {/* Col 2: Email */}
@@ -177,15 +179,15 @@ export default function DownlinePage() {
                   </div>
                   {/* Col 3: Code */}
                   <div className="font-mono text-[12px] text-white/40">
-                    {p.partner_code}
+                    {p.partnerCode}
                   </div>
                   {/* Col 4: Status */}
                   <div>
-                    <StatusBadge status={p.partner_status} />
+                    <StatusBadge status={p.status} />
                   </div>
                   {/* Col 5: Joined */}
                   <div className="font-body text-[13px] text-white/40 text-right">
-                    {fmtDate(p.partner_signup_date)}
+                    {fmtDate(p.signupDate)}
                   </div>
                 </div>
               );
@@ -210,21 +212,19 @@ export default function DownlinePage() {
         ) : device.isMobile ? (
           /* ── Mobile: Card layout ── */
           <div>
-            {deals.map((deal) => {
-              const p = deal.properties;
-              return (
+            {deals.map((p) => (
                 <div
-                  key={deal.id}
+                  key={p.dealName}
                   className="px-4 py-4 border-b border-white/5 last:border-b-0"
                 >
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="font-body text-[13px] font-medium text-white leading-snug flex-1 min-w-0">
-                      {p.dealname}
+                      {p.dealName}
                     </div>
-                    <StageBadge stage={p.dealstage} />
+                    <StageBadge stage={p.stage} />
                   </div>
                   <div className="font-body text-[11px] text-white/30 mb-3">
-                    Via {resolvePartnerName(p)} · {fmtDate(p.createdate)}
+                    Via {resolvePartnerName(p)} · {fmtDate(p.createdAt)}
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
@@ -232,7 +232,7 @@ export default function DownlinePage() {
                         Est. Refund
                       </div>
                       <div className="font-body text-[13px] text-white/80">
-                        {fmt$(p.estimated_refund_amount)}
+                        {fmt$(p.estimatedRefundAmount)}
                       </div>
                     </div>
                     <div className="text-center">
@@ -248,16 +248,15 @@ export default function DownlinePage() {
                         L2 Commission
                       </div>
                       <div className="font-display text-sm font-semibold text-brand-gold">
-                        {fmt$(p.l2_commission_amount)}
+                        {fmt$(p.l2CommissionAmount)}
                       </div>
                       <div className="mt-1">
-                        <StatusBadge status={p.l2_commission_status} />
+                        <StatusBadge status={p.l2CommissionStatus} />
                       </div>
                     </div>
                   </div>
                 </div>
-              );
-            })}
+            ))}
           </div>
         ) : (
           /* ── Desktop/Tablet: Grid table ── */
@@ -284,29 +283,27 @@ export default function DownlinePage() {
               </div>
             </div>
             {/* Rows */}
-            {deals.map((deal) => {
-              const p = deal.properties;
-              return (
+            {deals.map((p) => (
                 <div
-                  key={deal.id}
+                  key={p.dealName}
                   className="grid grid-cols-[2fr_1fr_1fr_0.6fr_1fr_0.7fr] gap-4 px-6 py-4 border-b border-white/[0.04] last:border-b-0 items-center hover:bg-white/[0.02] transition-colors"
                 >
                   {/* Col 1: Deal name + partner name */}
                   <div>
                     <div className="font-body text-[13px] font-medium text-white truncate">
-                      {p.dealname}
+                      {p.dealName}
                     </div>
                     <div className="font-body text-[11px] text-white/30 mt-0.5 truncate">
-                      Via {resolvePartnerName(p)} · {fmtDate(p.createdate)}
+                      Via {resolvePartnerName(p)} · {fmtDate(p.createdAt)}
                     </div>
                   </div>
                   {/* Col 2: Stage */}
                   <div>
-                    <StageBadge stage={p.dealstage} />
+                    <StageBadge stage={p.stage} />
                   </div>
                   {/* Col 3: Est. Refund */}
                   <div className="font-body text-[13px] text-white/80">
-                    {fmt$(p.estimated_refund_amount)}
+                    {fmt$(p.estimatedRefundAmount)}
                   </div>
                   {/* Col 4: L2 % */}
                   <div className="text-center">
@@ -316,15 +313,14 @@ export default function DownlinePage() {
                   </div>
                   {/* Col 5: L2 Commission */}
                   <div className="font-display text-[15px] font-semibold text-brand-gold">
-                    {fmt$(p.l2_commission_amount)}
+                    {fmt$(p.l2CommissionAmount)}
                   </div>
                   {/* Col 6: Status */}
                   <div className="text-right">
-                    <StatusBadge status={p.l2_commission_status} />
+                    <StatusBadge status={p.l2CommissionStatus} />
                   </div>
                 </div>
-              );
-            })}
+            ))}
           </div>
         )}
       </div>

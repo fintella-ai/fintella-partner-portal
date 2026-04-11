@@ -7,7 +7,6 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { SkeletonTableRow } from "@/components/ui/Skeleton";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import { fmt$, fmtDate } from "@/lib/format";
-import { getDemoDirectDeals } from "@/lib/hubspot";
 
 export default function DealsPage() {
   const device = useDevice();
@@ -15,7 +14,13 @@ export default function DealsPage() {
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
-    setDeals(getDemoDirectDeals());
+    try {
+      const res = await fetch("/api/deals");
+      if (res.ok) {
+        const data = await res.json();
+        setDeals(data.directDeals || []);
+      }
+    } catch {}
     setLoading(false);
   }, []);
 
@@ -57,22 +62,20 @@ export default function DealsPage() {
         ) : device.isMobile ? (
           /* ── Mobile: Card layout ── */
           <div>
-            {deals.map((deal) => {
-              const p = deal.properties;
-              return (
+            {deals.map((deal) => (
                 <div
                   key={deal.id}
                   className="px-4 py-4 border-b border-white/5 last:border-b-0"
                 >
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="font-body text-[13px] font-medium text-white leading-snug flex-1 min-w-0">
-                      {p.dealname}
+                      {deal.dealName}
                     </div>
-                    <StageBadge stage={p.dealstage} />
+                    <StageBadge stage={deal.stage} />
                   </div>
                   <div className="font-body text-[11px] text-white/30 mb-3">
-                    {p.ieepa_imported_products || p.product_type} ·{" "}
-                    {fmtDate(p.createdate)}
+                    {deal.importedProducts || deal.productType} ·{" "}
+                    {fmtDate(deal.createdAt)}
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
@@ -80,7 +83,7 @@ export default function DealsPage() {
                         Refund
                       </div>
                       <div className="font-body text-[13px] text-white/80">
-                        {fmt$(p.estimated_refund_amount)}
+                        {fmt$(deal.estimatedRefundAmount)}
                       </div>
                     </div>
                     <div>
@@ -88,7 +91,7 @@ export default function DealsPage() {
                         Firm Fee
                       </div>
                       <div className="font-body text-[13px] text-white/60">
-                        {fmt$(p.firm_fee_amount)}
+                        {fmt$(deal.firmFeeAmount)}
                       </div>
                     </div>
                     <div className="text-right">
@@ -96,16 +99,15 @@ export default function DealsPage() {
                         Commission
                       </div>
                       <div className="font-display text-sm font-semibold text-brand-gold">
-                        {fmt$(p.l1_commission_amount)}
+                        {fmt$(deal.l1CommissionAmount)}
                       </div>
                       <div className="mt-1">
-                        <StatusBadge status={p.l1_commission_status} />
+                        <StatusBadge status={deal.l1CommissionStatus} />
                       </div>
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         ) : (
           /* ── Desktop/Tablet: Grid table ── */
@@ -132,9 +134,7 @@ export default function DealsPage() {
               </div>
             </div>
             {/* Data rows */}
-            {deals.map((deal) => {
-              const p = deal.properties;
-              return (
+            {deals.map((deal) => (
                 <div
                   key={deal.id}
                   className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_0.7fr] gap-4 px-6 py-4 border-b border-white/[0.04] last:border-b-0 items-center hover:bg-white/[0.02] transition-colors"
@@ -142,36 +142,35 @@ export default function DealsPage() {
                   {/* Col 1: Deal name */}
                   <div>
                     <div className="font-body text-[13px] font-medium text-white truncate">
-                      {p.dealname}
+                      {deal.dealName}
                     </div>
                     <div className="font-body text-[11px] text-white/30 mt-0.5 truncate">
-                      {p.ieepa_imported_products || p.product_type} ·{" "}
-                      {fmtDate(p.createdate)}
+                      {deal.importedProducts || deal.productType} ·{" "}
+                      {fmtDate(deal.createdAt)}
                     </div>
                   </div>
                   {/* Col 2: Stage */}
                   <div>
-                    <StageBadge stage={p.dealstage} />
+                    <StageBadge stage={deal.stage} />
                   </div>
                   {/* Col 3: Est. Refund */}
                   <div className="font-body text-[13px] text-white/80">
-                    {fmt$(p.estimated_refund_amount)}
+                    {fmt$(deal.estimatedRefundAmount)}
                   </div>
                   {/* Col 4: Firm Fee */}
                   <div className="font-body text-[13px] text-white/60">
-                    {fmt$(p.firm_fee_amount)}
+                    {fmt$(deal.firmFeeAmount)}
                   </div>
                   {/* Col 5: Commission */}
                   <div className="font-display text-[15px] font-semibold text-brand-gold">
-                    {fmt$(p.l1_commission_amount)}
+                    {fmt$(deal.l1CommissionAmount)}
                   </div>
                   {/* Col 6: Status */}
                   <div className="text-right">
-                    <StatusBadge status={p.l1_commission_status} />
+                    <StatusBadge status={deal.l1CommissionStatus} />
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         )}
       </div>

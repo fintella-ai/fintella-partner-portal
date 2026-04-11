@@ -5,7 +5,9 @@ export const FIRM_SLOGAN = "Fighting for what's owed, reclaiming what's fair.";
 export const FIRM_PHONE = "(410) 497-5947";
 
 // ─── COMMISSION DEFAULTS ─────────────────────────────────────────────────────
-export const DEFAULT_FIRM_FEE_RATE = 0.20; // 20% of refund
+// Firm fee rate is per-deal (negotiated between firm and client).
+// This example rate is only used for display/demo calculations.
+export const DEFAULT_FIRM_FEE_RATE = 0.20;
 export const DEFAULT_L1_RATE = 0.20; // 20% of firm fee
 export const DEFAULT_L2_RATE = 0.05; // 5% of firm fee
 export const DEFAULT_L3_RATE = 0; // off by default

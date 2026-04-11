@@ -2,7 +2,14 @@
 
 import { useSession } from "next-auth/react";
 import { useDevice } from "@/lib/useDevice";
-import { useState } from "react";
+import { FIRM_SHORT } from "@/lib/constants";
+
+const BASE_REFERRAL_URL = "https://frostlawaz.com/referral";
+const DEFAULT_PARAMS = {
+  RR_WCID: "5D5FFDC6-E177-4FF9-99BD-7CFECDB92D54",
+  RR_WCID_TTL: "396",
+  utm_campaign: "Tariff+Refunds",
+};
 
 export default function SubmitClientPage() {
   const { data: session } = useSession();
@@ -10,81 +17,81 @@ export default function SubmitClientPage() {
   const user = session?.user as any;
   const partnerCode = user?.partnerCode || "DEMO";
   const partnerName = user?.name || "Partner";
-  const [copiedLink, setCopiedLink] = useState(false);
 
-  const referralUrl = `https://referral.frostlawaz.com/l/ANNEXATIONPR/?REFERRALCODE=${partnerCode}`;
+  // Build the referral URL with the partner's code
+  const params = new URLSearchParams({
+    ...DEFAULT_PARAMS,
+    REFERRALCODE: partnerCode,
+  });
+  const referralUrl = `${BASE_REFERRAL_URL}?${params.toString()}`;
 
-  function copyReferralLink() {
+  const handleCopyLink = () => {
     navigator.clipboard.writeText(referralUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  }
+  };
 
   return (
     <div>
-      <h2 className="font-display text-xl sm:text-2xl font-bold mb-1">
+      <h2 className={`font-display ${device.isMobile ? "text-lg" : "text-[22px]"} font-bold mb-1.5`}>
         Submit a Client
       </h2>
-      <p className="font-body text-sm text-white/40 mb-5">
+      <p className="font-body text-[13px] text-white/40 mb-4">
         Use the form below to submit a client referral. This submission is tracked to your partner account.
       </p>
 
       {/* Partner info bar */}
-      <div className={`card ${device.cardPadding} ${device.borderRadius} border border-brand-gold/20 mb-1`}>
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-brand-gold/15 border border-brand-gold/25 flex items-center justify-center font-display text-xs font-bold text-brand-gold">
-              {partnerName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
-            </div>
-            <div>
-              <div className="font-body text-sm font-semibold text-white">{partnerName}</div>
-              <div className="font-body text-[11px] text-white/40 tracking-wider">{partnerCode}</div>
-            </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 card px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-brand-gold/10 border border-brand-gold/25 flex items-center justify-center">
+            <span className="font-body text-[11px] font-bold text-brand-gold">
+              {partnerName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+            </span>
           </div>
+          <div>
+            <div className="font-body text-[13px] text-white/80 font-medium">{partnerName}</div>
+            <div className="font-mono text-[11px] text-white/40">{partnerCode}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
           <button
-            onClick={copyReferralLink}
-            className={`font-body text-[12px] font-semibold tracking-wider border rounded-lg px-4 py-2.5 transition-all ${
-              copiedLink
-                ? "bg-green-500/15 border-green-500/30 text-green-400"
-                : "bg-white/5 border-white/15 text-white/60 hover:bg-white/10 hover:text-white/80"
-            }`}
+            onClick={handleCopyLink}
+            className="font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-3 py-1.5 hover:bg-brand-gold/10 transition-colors"
           >
-            {copiedLink ? "Copied!" : "Copy Referral Link"}
+            Copy Referral Link
           </button>
         </div>
       </div>
 
-      {/* Tracking badge */}
-      <div className="mb-4 px-1">
-        <div className="font-body text-[12px] text-white/40">
-          Client Submission Form &mdash; tracked to{" "}
-          <span className="text-brand-gold font-semibold">{partnerCode}</span>
-        </div>
-      </div>
-
-      {/* Frost Law referral form iframe */}
-      <div className={`card ${device.borderRadius} border border-white/[0.08] overflow-hidden`}>
-        {/* Open in new tab bar */}
-        <div className="flex justify-end px-4 py-2 border-b border-white/[0.06]">
+      {/* Embedded referral form */}
+      <div className={`card overflow-hidden ${device.borderRadius}`}>
+        <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+          <div className="font-body text-[12px] text-white/40">
+            Client Submission Form — tracked to <span className="text-brand-gold font-semibold">{partnerCode}</span>
+          </div>
           <a
             href={referralUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-body text-[12px] text-white/40 hover:text-white/60 transition-colors flex items-center gap-1"
+            className="font-body text-[11px] text-white/30 hover:text-white/50 transition-colors"
           >
-            Open in new tab
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
+            Open in new tab ↗
           </a>
         </div>
-        <iframe
-          src={referralUrl}
-          className="w-full border-0"
-          style={{ minHeight: device.isMobile ? "700px" : "900px" }}
-          title="Frost Law Client Referral Form"
-          allow="forms"
-        />
+        <div className="bg-white" style={{ height: device.isMobile ? "calc(100vh - 220px)" : "75vh" }}>
+          <iframe
+            src={referralUrl}
+            className="w-full h-full border-0"
+            title="Client Referral Submission"
+            allow="camera; microphone; geolocation"
+            sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation"
+          />
+        </div>
+      </div>
+
+      {/* Info footer */}
+      <div className="mt-4 font-body text-[11px] text-white/25 text-center leading-relaxed">
+        All submissions through this form are automatically tracked to your partner account ({partnerCode}).
+        <br />
+        Your downline partners have their own unique links. Contact {FIRM_SHORT} support with any questions.
       </div>
     </div>
   );

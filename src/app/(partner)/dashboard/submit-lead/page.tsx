@@ -166,19 +166,26 @@ export default function SubmitLeadPage() {
 
     setLoading(true);
     try {
-      // TODO: replace with actual API call once /api/hubspot/leads exists
-      console.log("[SubmitLead] POST /api/hubspot/leads", {
-        ...form,
-        estimatedAnnualImportValue: form.estimatedAnnualImportValue
-          ? Number(form.estimatedAnnualImportValue)
-          : null,
-        submittedBy: session?.user?.email ?? "unknown",
+      const res = await fetch("/api/deals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessName: form.businessName,
+          contactFirstName: form.contactFirstName,
+          contactLastName: form.contactLastName,
+          email: form.email,
+          phone: form.phone,
+          estimatedAnnualImportValue: form.estimatedAnnualImportValue
+            ? Number(form.estimatedAnnualImportValue)
+            : null,
+          productType: form.productType,
+          notes: form.notes,
+        }),
       });
 
-      // Simulate network delay
-      await new Promise((r) => setTimeout(r, 1200));
-
-      setSubmitted(true);
+      if (res.ok) {
+        setSubmitted(true);
+      }
     } catch (err) {
       console.error("[SubmitLead] Error:", err);
     } finally {

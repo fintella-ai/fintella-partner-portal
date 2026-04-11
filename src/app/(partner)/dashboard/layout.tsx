@@ -2,8 +2,8 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { FIRM_SHORT, FIRM_SLOGAN } from "@/lib/constants";
+import { useState, useEffect } from "react";
+import { FIRM_SHORT as DEFAULT_FIRM_SHORT, FIRM_SLOGAN as DEFAULT_FIRM_SLOGAN } from "@/lib/constants";
 import { useDevice } from "@/lib/useDevice";
 
 // ─── NAV STRUCTURE ───────────────────────────────────────────────────────────
@@ -15,7 +15,7 @@ const MAIN_NAV = [
   { id: "deals", href: "/dashboard/deals", icon: "\u{1F4BC}", label: "My Deals", shortLabel: "Deals" },
   { id: "downline", href: "/dashboard/downline", icon: "\u{1F465}", label: "Downline", shortLabel: "Team" },
   { id: "commissions", href: "/dashboard/commissions", icon: "\u{1F4B0}", label: "Commissions", shortLabel: "Earn" },
-  { id: "submit-client", href: "/dashboard/submit-client", icon: "\u{1F4E5}", label: "Submit Client", shortLabel: "Client" },
+  { id: "submit-client", href: "/dashboard/submit-client", icon: "\u{1F4E9}", label: "Submit Client", shortLabel: "Submit" },
   { id: "submit-lead", href: "/dashboard/submit-lead", icon: "\u{1F4DD}", label: "Submit Lead", shortLabel: "Lead" },
   { id: "referral-links", href: "/dashboard/referral-links", icon: "\u{1F517}", label: "Referral Links", shortLabel: "Links" },
   { id: "documents", href: "/dashboard/documents", icon: "\u{1F4C4}", label: "Documents", shortLabel: "Docs" },
@@ -68,11 +68,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [firmShort, setFirmShort] = useState(DEFAULT_FIRM_SHORT);
+  const [firmSlogan, setFirmSlogan] = useState(DEFAULT_FIRM_SLOGAN);
+  const [hiddenNavItems, setHiddenNavItems] = useState<string[]>([]);
+  const [navOrder, setNavOrder] = useState<string[]>([]);
+
+  // Fetch portal settings
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(({ settings }) => {
+        if (settings.firmShort) setFirmShort(settings.firmShort);
+        if (settings.firmSlogan) setFirmSlogan(settings.firmSlogan);
+        try { setHiddenNavItems(JSON.parse(settings.hiddenNavItems || "[]")); } catch {}
+        try {
+          const order = JSON.parse(settings.navOrder || "[]");
+          if (order.length > 0) setNavOrder(order);
+        } catch {}
+      })
+      .catch(() => {});
+  }, []);
 
   const user = session?.user as any;
   const partnerCode = user?.partnerCode || "DEMO";
 
-  const clientRefUrl = `https://referral.frostlawaz.com/l/ANNEXATIONPR/?REFERRALCODE=${partnerCode}`;
+  const clientRefUrl = `https://frostlawaz.com/referral?RR_WCID=5D5FFDC6-E177-4FF9-99BD-7CFECDB92D54&RR_WCID_TTL=396&REFERRALCODE=${partnerCode}&utm_campaign=Tariff+Refunds`;
   const partnerRefUrl = `https://trrln.com/partner?ref=${partnerCode}`;
 
   function copyAndNotify(url: string, label: string) {
@@ -100,16 +120,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Brand */}
       <div className="pl-2 mb-6">
         <div className="font-display text-sm font-bold text-brand-gold tracking-[1px]">
-          {FIRM_SHORT}
+          {firmShort}
         </div>
         <div className="font-body text-[10px] text-white/30 mt-1 italic leading-tight">
-          {FIRM_SLOGAN}
+          {firmSlogan}
         </div>
       </div>
 
       {/* Main Nav */}
       <div className="flex flex-col gap-0.5">
-        {MAIN_NAV.map((item) => (
+        {(navOrder.length > 0
+          ? navOrder.map((id) => MAIN_NAV.find((n) => n.id === id)).filter(Boolean) as typeof MAIN_NAV
+          : MAIN_NAV
+        ).filter((item) => !hiddenNavItems.includes(item.id)).map((item) => (
           <NavButton
             key={item.id}
             item={item}
@@ -206,7 +229,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {device.isMobile && (
             <div className="flex justify-between items-center mb-3">
               <div className="font-display text-[13px] font-semibold text-brand-gold tracking-[1px]">
-                {FIRM_SHORT}
+                {firmShort}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -356,7 +379,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
             <div className="bg-brand-gold/10 border border-brand-gold/15 rounded-xl rounded-tl-sm px-4 py-3 max-w-[85%]">
               <div className="font-body text-[13px] text-white/80 leading-relaxed">
-                Hi! I&apos;m your {FIRM_SHORT} support assistant. How can I help you today?
+                Hi! I&apos;m your {firmShort} support assistant. How can I help you today?
               </div>
               <div className="font-body text-[10px] text-white/30 mt-1.5">Just now</div>
             </div>
