@@ -740,24 +740,55 @@ export default function PartnerDetailPage() {
         ) : (
           <div>
             {documents.map((d) => (
-              <div key={d.id} className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 flex items-center justify-between">
-                <div>
-                  <div className="font-body text-[13px] text-[var(--app-text)]">{d.fileName}</div>
+              <div key={d.id} className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-body text-[13px] text-[var(--app-text)] truncate">{d.fileName}</div>
                   <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">
                     {d.docType.toUpperCase()} &middot; {fmtDate(d.createdAt)}
                   </div>
                 </div>
-                <span className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${
-                  d.status === "approved"
-                    ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                    : d.status === "under_review"
-                      ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                      : d.status === "rejected"
-                        ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                        : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                }`}>
-                  {d.status.replace("_", " ")}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${
+                    d.status === "approved"
+                      ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                      : d.status === "voided"
+                        ? "bg-gray-500/10 text-gray-400 border border-gray-500/20 line-through"
+                        : d.status === "under_review"
+                          ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                          : d.status === "rejected"
+                            ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                            : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                  }`}>
+                    {d.status.replace("_", " ")}
+                  </span>
+                  {d.status !== "voided" && (
+                    <button
+                      onClick={async () => {
+                        const docLabel = d.docType === "agreement" ? "agreement" : "W9";
+                        if (!confirm(`Void this ${docLabel} (${d.fileName})?${d.docType === "agreement" ? "\n\nThis will set the partner back to PENDING status until a new agreement is uploaded." : ""}`)) return;
+                        if (!confirm(`CONFIRM: Void ${d.fileName}? This cannot be undone.`)) return;
+                        try {
+                          const res = await fetch("/api/admin/documents", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ documentId: d.id, action: "void" }),
+                          });
+                          if (res.ok) {
+                            fetchPartner();
+                            setSaved(true);
+                            setTimeout(() => setSaved(false), 3000);
+                          } else {
+                            const err = await res.json().catch(() => ({}));
+                            alert(err.error || "Failed to void");
+                          }
+                        } catch { alert("Network error"); }
+                      }}
+                      className="font-body text-[10px] text-red-400/60 hover:text-red-400 border border-red-400/15 hover:border-red-400/30 rounded px-2 py-0.5 transition-colors"
+                    >
+                      Void
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

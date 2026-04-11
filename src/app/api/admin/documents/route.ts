@@ -83,3 +83,70 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message || "Failed to upload document" }, { status: 500 });
   }
 }
+
+/**
+ * PATCH /api/admin/documents
+ * Void a document. Keeps the record for audit but marks it as voided.
+ * If it's an agreement, sets the partner back to "pending".
+ */
+export async function PATCH(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const role = (session.user as any).role;
+  if (role !== "admin" && role !== "super_admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const body = await req.json();
+    const { documentId, action } = body;
+
+    if (!documentId || action !== "void") {
+      return NextResponse.json({ error: "documentId and action='void' are required" }, { status: 400 });
+    }
+
+    // Find the document
+    const doc = await prisma.document.findUnique({ where: { id: documentId } });
+    if (!doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
+
+    // Mark document as voided (keep for audit trail)
+    await prisma.document.update({
+      where: { id: documentId },
+      data: { status: "voided" },
+    });
+
+    // If it's an agreement, also void the partnership agreement and set partner to pending
+    if (doc.docType === "agreement") {
+      // Void the latest signed agreement
+      const latestAgreement = await prisma.partnershipAgreement.findFirst({
+        where: { partnerCode: doc.partnerCode, status: "signed" },
+        orderBy: { version: "desc" },
+      });
+
+      if (latestAgreement) {
+        await prisma.partnershipAgreement.update({
+          where: { id: latestAgreement.id },
+          data: { status: "voided" },
+        });
+      }
+
+      // Set partner back to pending
+      await prisma.partner.update({
+        where: { partnerCode: doc.partnerCode },
+        data: { status: "pending" },
+      });
+    }
+
+    // If it's a W9, just void the document (partner stays active)
+    // The W9 status will show "needed" again since no approved W9 exists
+
+    return NextResponse.json({
+      success: true,
+      partnerSetPending: doc.docType === "agreement",
+    });
+  } catch (err: any) {
+    console.error("[Admin Documents Void] Error:", err);
+    return NextResponse.json({ error: err.message || "Failed to void document" }, { status: 500 });
+  }
+}
