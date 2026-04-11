@@ -1,159 +1,101 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 type DocEntry = {
   id: string;
-  partnerName: string;
   partnerCode: string;
-  docType: "W9" | "Tax Form" | "Agreement";
-  status: "required" | "uploaded" | "under_review" | "approved";
-  uploadDate: string | null;
-  hasIncome: boolean;
+  partnerName: string;
+  docType: string;
+  fileName: string;
+  fileUrl: string;
+  status: string;
+  uploadedBy: string;
+  createdAt: string;
 };
-
-const documents: DocEntry[] = [
-  {
-    id: "DOC-001",
-    partnerName: "Summit Legal Group",
-    partnerCode: "SLG-001",
-    docType: "W9",
-    status: "required",
-    uploadDate: null,
-    hasIncome: true,
-  },
-  {
-    id: "DOC-002",
-    partnerName: "Apex Trade Advisors",
-    partnerCode: "ATA-012",
-    docType: "W9",
-    status: "under_review",
-    uploadDate: "2026-03-15",
-    hasIncome: true,
-  },
-  {
-    id: "DOC-003",
-    partnerName: "Redstone Recovery LLC",
-    partnerCode: "RRL-045",
-    docType: "Tax Form",
-    status: "approved",
-    uploadDate: "2026-02-28",
-    hasIncome: true,
-  },
-  {
-    id: "DOC-004",
-    partnerName: "Pinnacle Partners",
-    partnerCode: "PP-008",
-    docType: "W9",
-    status: "approved",
-    uploadDate: "2026-01-20",
-    hasIncome: true,
-  },
-  {
-    id: "DOC-005",
-    partnerName: "Liberty Tariff Solutions",
-    partnerCode: "LTS-023",
-    docType: "Agreement",
-    status: "uploaded",
-    uploadDate: "2026-03-22",
-    hasIncome: false,
-  },
-  {
-    id: "DOC-006",
-    partnerName: "Northgate Consulting",
-    partnerCode: "NGC-031",
-    docType: "W9",
-    status: "required",
-    uploadDate: null,
-    hasIncome: true,
-  },
-];
 
 const tabs = ["All", "Needs Attention", "Approved"] as const;
 type Tab = (typeof tabs)[number];
 
-const statusBadge: Record<DocEntry["status"], string> = {
+const statusBadge: Record<string, string> = {
   required: "bg-red-500/20 text-red-400",
   uploaded: "bg-blue-500/20 text-blue-400",
   under_review: "bg-yellow-500/20 text-yellow-400",
   approved: "bg-green-500/20 text-green-400",
+  voided: "bg-gray-500/20 text-gray-400 line-through",
 };
-
-const statusLabel: Record<DocEntry["status"], string> = {
-  required: "Required",
-  uploaded: "Uploaded",
-  under_review: "Under Review",
-  approved: "Approved",
-};
-
-function needsAttention(d: DocEntry) {
-  return (d.status === "required" && d.hasIncome) || d.status === "under_review";
-}
 
 function fmtDate(d: string | null) {
   if (!d) return "\u2014";
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function DocumentTrackingPage() {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("All");
+  const [documents, setDocuments] = useState<DocEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDocuments = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/documents/list");
+      if (res.ok) {
+        const data = await res.json();
+        setDocuments(data.documents || []);
+      }
+    } catch {} finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchDocuments(); }, [fetchDocuments]);
 
   const filtered = documents.filter((d) => {
     if (tab === "All") return true;
-    if (tab === "Needs Attention") return needsAttention(d);
+    if (tab === "Needs Attention") return d.status === "under_review" || d.status === "uploaded";
     if (tab === "Approved") return d.status === "approved";
     return true;
   });
 
-  const totalPartners = new Set(documents.map((d) => d.partnerCode)).size;
-  const w9Pending = documents.filter(
-    (d) => d.docType === "W9" && d.status === "required"
-  ).length;
-  const underReview = documents.filter(
-    (d) => d.status === "under_review"
-  ).length;
+  const totalDocs = documents.length;
+  const underReview = documents.filter((d) => d.status === "under_review" || d.status === "uploaded").length;
   const approved = documents.filter((d) => d.status === "approved").length;
+  const agreements = documents.filter((d) => d.docType === "agreement").length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="font-body text-sm theme-text-muted">Loading documents...</div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h2 className="font-display text-xl sm:text-2xl font-bold mb-1">
-            Document Tracking
-          </h2>
-          <p className="font-body text-sm text-[var(--app-text-muted)]">
-            Track and manage partner documents.
-          </p>
+          <h2 className="font-display text-xl sm:text-2xl font-bold mb-1">Document Tracking</h2>
+          <p className="font-body text-sm text-[var(--app-text-muted)]">Track and manage partner documents.</p>
         </div>
-        <button className="btn-gold text-sm px-4 py-2 rounded-lg font-body self-start">
-          Send W9 Request
-        </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Total Partners", value: totalPartners },
-          { label: "W9 Pending", value: w9Pending },
-          { label: "Under Review", value: underReview },
-          { label: "Approved", value: approved },
+          { label: "Total Documents", value: totalDocs },
+          { label: "Needs Review", value: underReview, color: "text-yellow-400" },
+          { label: "Approved", value: approved, color: "text-green-400" },
+          { label: "Agreements", value: agreements, color: "text-brand-gold" },
         ].map((s) => (
           <div key={s.label} className="card px-4 py-3">
-            <div className="font-body text-xs text-[var(--app-text-muted)] mb-1">
-              {s.label}
-            </div>
-            <div className="font-display text-xl font-bold text-brand-gold">
-              {s.value}
-            </div>
+            <div className="font-body text-xs text-[var(--app-text-muted)] mb-1">{s.label}</div>
+            <div className={`font-display text-xl font-bold ${s.color || "text-[var(--app-text)]"}`}>{s.value}</div>
           </div>
         ))}
       </div>
 
-      {/* ── SignWell Agreement Quick Actions ─────────────────────────────── */}
+      {/* SignWell info */}
       <div className="card p-4 sm:p-5 mb-6">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -177,12 +119,10 @@ export default function DocumentTrackingPage() {
             key={t}
             onClick={() => setTab(t)}
             className={`font-body text-sm px-4 py-1.5 rounded-full whitespace-nowrap transition ${
-              tab === t
-                ? "bg-brand-gold/20 text-brand-gold"
-                : "bg-[var(--app-input-bg)] text-[var(--app-text-secondary)] hover:text-[var(--app-text-secondary)]"
+              tab === t ? "bg-brand-gold/20 text-brand-gold" : "bg-[var(--app-input-bg)] text-[var(--app-text-secondary)]"
             }`}
           >
-            {t}
+            {t} {t === "Needs Attention" && underReview > 0 ? `(${underReview})` : ""}
           </button>
         ))}
       </div>
@@ -194,59 +134,61 @@ export default function DocumentTrackingPage() {
             <tr className="border-b border-[var(--app-border)] text-[var(--app-text-muted)] text-xs uppercase tracking-wider">
               <th className="px-4 py-3">Partner</th>
               <th className="px-4 py-3">Document Type</th>
+              <th className="px-4 py-3">File Name</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Upload Date</th>
-              <th className="px-4 py-3">Income Generated?</th>
-              <th className="px-4 py-3">Action</th>
+              <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((d) => (
-              <tr
-                key={d.id}
-                className="border-b border-[var(--app-border-subtle)] hover:bg-[var(--app-card-bg)] transition"
-              >
+              <tr key={d.id} className="border-b border-[var(--app-border)] hover:bg-[var(--app-hover)] transition">
                 <td className="px-4 py-3">
                   <div className="text-[var(--app-text)]">{d.partnerName}</div>
                   <div className="text-xs text-[var(--app-text-muted)]">{d.partnerCode}</div>
                 </td>
-                <td className="px-4 py-3 text-[var(--app-text-secondary)]">{d.docType}</td>
+                <td className="px-4 py-3 text-[var(--app-text-secondary)]">{d.docType === "agreement" ? "Agreement" : d.docType === "w9" ? "Tax Document (W9)" : d.docType.toUpperCase()}</td>
+                <td className="px-4 py-3 text-[var(--app-text-secondary)] text-[12px] truncate max-w-[150px]">{d.fileName}</td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`inline-block text-xs px-2 py-0.5 rounded-full ${statusBadge[d.status]}`}
-                  >
-                    {statusLabel[d.status]}
+                  <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${statusBadge[d.status] || statusBadge.uploaded}`}>
+                    {d.status === "under_review" ? "Under Review" : d.status.charAt(0).toUpperCase() + d.status.slice(1)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-[var(--app-text-secondary)]">
-                  {fmtDate(d.uploadDate)}
-                </td>
-                <td className="px-4 py-3">
-                  {d.hasIncome ? (
-                    <span className="text-green-400 text-xs">Yes</span>
-                  ) : (
-                    <span className="text-[var(--app-text-muted)] text-xs">No</span>
-                  )}
-                </td>
+                <td className="px-4 py-3 text-[var(--app-text-secondary)]">{fmtDate(d.createdAt)}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
-                    {d.status === "uploaded" || d.status === "under_review" ? (
-                      <button className="text-xs text-brand-gold hover:underline">
-                        Review
+                    {d.fileUrl && (
+                      <>
+                        <button onClick={() => { const w = window.open(); if (w) { w.document.write(`<iframe src="${d.fileUrl}" style="width:100%;height:100vh;border:none;"></iframe>`); w.document.title = d.fileName; } }} className="text-xs text-brand-gold hover:underline">View</button>
+                        <a href={d.fileUrl} download={d.fileName} className="text-xs text-blue-400 hover:underline">Download</a>
+                      </>
+                    )}
+                    {d.status === "under_review" && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Approve this document for ${d.partnerName}?`)) return;
+                          const res = await fetch("/api/admin/documents", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ documentId: d.id, action: "approve" }),
+                          });
+                          if (res.ok) fetchDocuments();
+                        }}
+                        className="text-xs text-green-400 hover:underline"
+                      >
+                        Approve
                       </button>
-                    ) : d.status === "required" ? (
-                      <button className="text-xs text-brand-gold hover:underline">
-                        Send Request
-                      </button>
-                    ) : (
-                      <span className="text-xs text-[var(--app-text-faint)]">
-                        No action needed
-                      </span>
+                    )}
+                    {d.status === "under_review" && (
+                      <button onClick={() => router.push(`/admin/partners`)} className="text-xs text-[var(--app-text-muted)] hover:underline">View Partner</button>
                     )}
                   </div>
                 </td>
               </tr>
             ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-10 text-center text-[var(--app-text-muted)]">No documents found.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -257,41 +199,45 @@ export default function DocumentTrackingPage() {
           <div key={d.id} className="card p-4">
             <div className="flex items-start justify-between mb-2">
               <div>
-                <div className="font-body text-sm font-medium text-[var(--app-text)]">
-                  {d.partnerName}
-                </div>
-                <div className="font-body text-xs text-[var(--app-text-muted)] mt-0.5">
-                  {d.partnerCode}
-                </div>
+                <div className="font-body text-sm font-medium text-[var(--app-text)]">{d.partnerName}</div>
+                <div className="font-body text-xs text-[var(--app-text-muted)] mt-0.5">{d.partnerCode}</div>
               </div>
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${statusBadge[d.status]}`}
-              >
-                {statusLabel[d.status]}
+              <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${statusBadge[d.status] || statusBadge.uploaded}`}>
+                {d.status === "under_review" ? "Under Review" : d.status.charAt(0).toUpperCase() + d.status.slice(1)}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--app-text-secondary)] mb-3">
-              <span>{d.docType}</span>
+              <span>{d.docType === "agreement" ? "Agreement" : d.docType === "w9" ? "W9" : d.docType}</span>
               <span>&middot;</span>
-              <span>{fmtDate(d.uploadDate)}</span>
+              <span>{fmtDate(d.createdAt)}</span>
               <span>&middot;</span>
-              <span>Income: {d.hasIncome ? "Yes" : "No"}</span>
+              <span className="truncate max-w-[120px]">{d.fileName}</span>
             </div>
-            <div className="flex justify-end">
-              {d.status === "uploaded" || d.status === "under_review" ? (
-                <button className="text-xs text-brand-gold hover:underline">
-                  Review
+            <div className="flex gap-3">
+              {d.fileUrl && (
+                <>
+                  <button onClick={() => { const w = window.open(); if (w) { w.document.write(`<iframe src="${d.fileUrl}" style="width:100%;height:100vh;border:none;"></iframe>`); w.document.title = d.fileName; } }} className="text-xs text-brand-gold">View</button>
+                  <a href={d.fileUrl} download={d.fileName} className="text-xs text-blue-400">Download</a>
+                </>
+              )}
+              {d.status === "under_review" && (
+                <button
+                  onClick={async () => {
+                    if (!confirm(`Approve this document for ${d.partnerName}?`)) return;
+                    const res = await fetch("/api/admin/documents", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ documentId: d.id, action: "approve" }) });
+                    if (res.ok) fetchDocuments();
+                  }}
+                  className="text-xs text-green-400"
+                >
+                  Approve
                 </button>
-              ) : d.status === "required" ? (
-                <button className="text-xs text-brand-gold hover:underline">
-                  Send Request
-                </button>
-              ) : (
-                <span className="text-xs text-[var(--app-text-faint)]">No action needed</span>
               )}
             </div>
           </div>
         ))}
+        {filtered.length === 0 && (
+          <div className="card p-6 text-center text-[var(--app-text-muted)]">No documents found.</div>
+        )}
       </div>
     </div>
   );
