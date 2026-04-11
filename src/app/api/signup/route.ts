@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendForSigning, isSignWellConfigured } from "@/lib/signwell";
+import { hashSync } from "bcryptjs";
 import { FIRM_NAME, FIRM_SHORT } from "@/lib/constants";
 
 function generatePartnerCode(): string {
@@ -53,10 +54,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { token, firstName, lastName, email, phone, companyName, emailOptIn, smsOptIn } = body;
+    const { token, firstName, lastName, email, phone, companyName, password, emailOptIn, smsOptIn } = body;
 
-    if (!token || !firstName || !lastName || !email) {
-      return NextResponse.json({ error: "Token, first name, last name, and email are required" }, { status: 400 });
+    if (!token || !firstName || !lastName || !email || !password) {
+      return NextResponse.json({ error: "Token, first name, last name, email, and password are required" }, { status: 400 });
+    }
+    if (password.length < 6) {
+      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
     }
 
     // Validate invite
@@ -79,6 +83,7 @@ export async function POST(req: NextRequest) {
       data: {
         partnerCode,
         email: email.trim(),
+        passwordHash: hashSync(password, 10),
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         companyName: companyName?.trim() || null,

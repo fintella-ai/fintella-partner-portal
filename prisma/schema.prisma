@@ -25,6 +25,7 @@ model Partner {
   id                    String   @id @default(cuid())
   partnerCode           String   @unique
   email                 String
+  passwordHash          String?  // bcrypt hash, null = legacy (uses partnerCode to log in)
   firstName             String
   lastName              String
   companyName           String?

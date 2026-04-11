@@ -34,6 +34,8 @@ function SignupContent() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [confirmSignupPassword, setConfirmSignupPassword] = useState("");
   const [emailOptIn, setEmailOptIn] = useState(false);
   const [smsOptIn, setSmsOptIn] = useState(false);
 
@@ -55,6 +57,14 @@ function SignupContent() {
       setError("First name, last name, and email are required.");
       return;
     }
+    if (!signupPassword || signupPassword.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (signupPassword !== confirmSignupPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     if (!emailOptIn || !smsOptIn) {
       setError("You must consent to both email and SMS communications to proceed.");
       return;
@@ -66,7 +76,7 @@ function SignupContent() {
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, firstName, lastName, email, phone, companyName, emailOptIn, smsOptIn }),
+        body: JSON.stringify({ token, firstName, lastName, email, phone, companyName, password: signupPassword, emailOptIn, smsOptIn }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Signup failed"); return; }
@@ -151,6 +161,17 @@ function SignupContent() {
                 <div className="mb-4">
                   <label className={labelClass}>Email <span className="text-red-400">*</span></label>
                   <input className={inputClass} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@yourfirm.com" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className={labelClass}>Password <span className="text-red-400">*</span></label>
+                    <input className={inputClass} type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} placeholder="Min 6 characters" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Confirm Password <span className="text-red-400">*</span></label>
+                    <input className={inputClass} type="password" value={confirmSignupPassword} onChange={(e) => setConfirmSignupPassword(e.target.value)} placeholder="Re-enter password" />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">

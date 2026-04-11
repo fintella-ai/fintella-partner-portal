@@ -329,18 +329,60 @@ export default function PartnerDetailPage() {
         </div>
       </div>
 
-      {/* ─── PARTNER CODE / RESET ─────────────────────────────────── */}
+      {/* ─── LOGIN CREDENTIALS ──────────────────────────────────── */}
       <div className="card p-5 sm:p-6 mb-6">
-        <div className="flex items-center justify-between">
+        <div className="font-body font-semibold text-sm mb-4">Login Credentials</div>
+
+        {/* Partner Code */}
+        <div className="flex items-center justify-between mb-4 pb-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
           <div>
-            <div className="font-body font-semibold text-sm">Partner Code</div>
-            <p className="font-body text-[12px] text-[var(--app-text-muted)] mt-0.5">
-              Current code: <span className="font-mono text-[var(--app-text-secondary)]">{partner.partnerCode}</span> — Used to log in.
-            </p>
+            <div className="font-body text-[12px] text-[var(--app-text-secondary)]">Partner Code</div>
+            <div className="font-mono text-[14px] text-[var(--app-text)] mt-0.5">{partner.partnerCode}</div>
+            <p className="font-body text-[10px] text-[var(--app-text-muted)] mt-0.5">Legacy login method (email + code)</p>
           </div>
           <button onClick={handleResetCode} className="font-body text-[12px] text-yellow-400/80 border border-yellow-400/20 rounded-lg px-4 py-2 hover:bg-yellow-400/10 transition-colors">
             Reset Code
           </button>
+        </div>
+
+        {/* Set Password */}
+        <div>
+          <div className="font-body text-[12px] text-[var(--app-text-secondary)] mb-2">Set / Reset Password</div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              id="partnerNewPassword"
+              type="password"
+              className={inputClass + " flex-1"}
+              placeholder="Enter new password (min 6 characters)"
+            />
+            <button
+              onClick={async () => {
+                const input = document.getElementById("partnerNewPassword") as HTMLInputElement;
+                const pw = input?.value;
+                if (!pw || pw.length < 6) { alert("Password must be at least 6 characters."); return; }
+                if (!confirm(`Set a new password for ${partner.firstName} ${partner.lastName}?`)) return;
+                try {
+                  const res = await fetch(`/api/admin/partners/${id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ newPassword: pw }),
+                  });
+                  if (res.ok) {
+                    input.value = "";
+                    setSaved(true);
+                    setTimeout(() => setSaved(false), 3000);
+                  } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.error || "Failed to set password");
+                  }
+                } catch { alert("Network error"); }
+              }}
+              className="font-body text-[12px] text-green-400/80 border border-green-400/20 rounded-lg px-4 py-2.5 hover:bg-green-400/10 transition-colors shrink-0"
+            >
+              Set Password
+            </button>
+          </div>
+          <p className="font-body text-[10px] text-[var(--app-text-muted)] mt-1.5">Partner will log in with their email + this password.</p>
         </div>
       </div>
 

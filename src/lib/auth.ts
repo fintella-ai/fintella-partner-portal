@@ -10,23 +10,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       name: "Partner Login",
       credentials: {
         email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
         partnerCode: { label: "Partner Code", type: "text" },
       },
       async authorize(credentials) {
         const email = credentials?.email as string;
+        const password = credentials?.password as string;
         const partnerCode = credentials?.partnerCode as string;
 
-        if (!email || !partnerCode) return null;
+        if (!email) return null;
 
         try {
-          // Look up partner in our database
-          const partner = await prisma.partner.findUnique({
-            where: { partnerCode },
+          // Find partner by email
+          const partner = await prisma.partner.findFirst({
+            where: { email },
           });
 
           if (partner) {
-            // Found in DB — check status
             if (partner.status === "blocked") return null;
+
+            // If partner has a password, authenticate with email + password
+            if (partner.passwordHash && password) {
+              const valid = await compare(password, partner.passwordHash);
+              if (!valid) return null;
+            } else if (partnerCode) {
+              // Legacy: authenticate with email + partner code
+              if (partner.partnerCode !== partnerCode.toUpperCase()) return null;
+            } else {
+              return null;
+            }
+
             return {
               id: partner.id,
               email: partner.email,
@@ -39,14 +52,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // DB may not be ready yet
         }
 
-        // Demo mode fallback — accept any credentials when no partner found
-        return {
-          id: "demo",
-          email,
-          name: "Demo Partner",
-          role: "partner",
-          partnerCode,
-        };
+        // Demo mode fallback
+        if (partnerCode) {
+          return {
+            id: "demo",
+            email,
+            name: "Demo Partner",
+            role: "partner",
+            partnerCode,
+          };
+        }
+
+        return null;
       },
     }),
     Credentials({
@@ -62,7 +79,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!email || !password) return null;
 
-        // Try database lookup first
         try {
           const user = await prisma.user.findUnique({ where: { email } });
           if (user) {
@@ -79,7 +95,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Table may not exist yet
         }
 
-        // Demo mode — accept any admin credentials
+        // Demo mode
         const isDemo = !process.env.HUBSPOT_PRIVATE_TOKEN || process.env.HUBSPOT_PRIVATE_TOKEN === "YOUR_PRIVATE_APP_TOKEN";
         if (isDemo) {
           return {

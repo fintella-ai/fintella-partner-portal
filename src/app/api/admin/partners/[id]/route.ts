@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hashSync } from "bcryptjs";
 
 /**
  * GET /api/admin/partners/[id]
@@ -97,6 +98,14 @@ export async function PUT(
       let code = "PTN";
       for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
       data.partnerCode = code;
+    }
+
+    // Set/reset partner password
+    if (body.newPassword) {
+      if (body.newPassword.length < 6) {
+        return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+      }
+      data.passwordHash = hashSync(body.newPassword, 10);
     }
 
     const partner = await prisma.partner.update({

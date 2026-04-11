@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [partnerCode, setPartnerCode] = useState("");
   const [password, setPassword] = useState("");
+  const [useLegacyCode, setUseLegacyCode] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -21,18 +22,19 @@ export default function LoginPage() {
 
     try {
       if (mode === "partner") {
-        if (!email.trim() || !partnerCode.trim()) {
-          setError("Both email and partner code are required.");
+        if (!email.trim() || (!password.trim() && !partnerCode.trim())) {
+          setError("Email and password are required.");
           setLoading(false);
           return;
         }
         const result = await signIn("partner-login", {
           email: email.trim(),
-          partnerCode: partnerCode.trim().toUpperCase(),
+          password: password.trim(),
+          partnerCode: partnerCode.trim().toUpperCase() || undefined,
           redirect: false,
         });
         if (result?.error) {
-          setError("No partner account found. Please check your email and partner code.");
+          setError("Invalid email or password. If you signed up before passwords were enabled, use your partner code instead.");
         } else {
           router.push("/dashboard/home");
         }
@@ -139,18 +141,42 @@ export default function LoginPage() {
 
             {mode === "partner" ? (
               <div className="mb-7">
-                <label className="font-body text-[11px] tracking-[1px] uppercase theme-text-muted mb-2 block">
-                  Partner Code
-                </label>
-                <input
-                  type="text"
-                  placeholder="PTNJD8K3F"
-                  value={partnerCode}
-                  onChange={(e) => setPartnerCode(e.target.value.toUpperCase())}
-                  className="w-full theme-input rounded-lg px-4 py-3.5 sm:py-3 font-body text-sm sm:text-[14px] outline-none focus:border-brand-gold/40 transition-colors tracking-[2px] uppercase"
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                />
+                {useLegacyCode ? (
+                  <>
+                    <label className="font-body text-[11px] tracking-[1px] uppercase theme-text-muted mb-2 block">
+                      Partner Code
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="PTNJD8K3F"
+                      value={partnerCode}
+                      onChange={(e) => setPartnerCode(e.target.value.toUpperCase())}
+                      className="w-full theme-input rounded-lg px-4 py-3.5 sm:py-3 font-body text-sm sm:text-[14px] outline-none focus:border-brand-gold/40 transition-colors tracking-[2px] uppercase"
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <label className="font-body text-[11px] tracking-[1px] uppercase theme-text-muted mb-2 block">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full theme-input rounded-lg px-4 py-3.5 sm:py-3 font-body text-sm sm:text-[14px] outline-none focus:border-brand-gold/40 transition-colors"
+                    />
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setUseLegacyCode(!useLegacyCode); setPassword(""); setPartnerCode(""); }}
+                  className="font-body text-[11px] text-brand-gold/60 hover:text-brand-gold mt-2 transition-colors"
+                >
+                  {useLegacyCode ? "Use password instead" : "Use partner code instead"}
+                </button>
               </div>
             ) : (
               <div className="mb-7">
