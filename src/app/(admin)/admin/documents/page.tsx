@@ -87,7 +87,7 @@ const statusLabel: Record<DocEntry["status"], string> = {
 };
 
 function needsAttention(d: DocEntry) {
-  return d.status === "required" && d.hasIncome;
+  return (d.status === "required" && d.hasIncome) || d.status === "under_review";
 }
 
 function fmtDate(d: string | null) {

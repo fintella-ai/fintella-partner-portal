@@ -58,9 +58,16 @@ export async function POST(req: NextRequest) {
         partnerCode: targetPartnerCode,
         version: (latestAgreement?.version || 0) + 1,
         templateRate: targetPartner.commissionRate,
-        status: "pending",
+        status: "under_review",
         sentDate: new Date(),
+        documentUrl: fileData || null,
       },
+    });
+
+    // Update partner status to reflect under review
+    await prisma.partner.update({
+      where: { partnerCode: targetPartnerCode },
+      data: { status: "under_review" },
     });
 
     return NextResponse.json({

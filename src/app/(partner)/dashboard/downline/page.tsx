@@ -211,6 +211,11 @@ export default function DownlinePage() {
                       }} />
                     </label>
                   )}
+                  {p.status === "under_review" && (
+                    <div className="mt-2 text-center">
+                      <span className="inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Agreement Under Review</span>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -260,8 +265,8 @@ export default function DownlinePage() {
                   <div className="font-body text-[13px] text-[var(--app-text-muted)]">
                     {fmtDate(p.signupDate)}
                   </div>
-                  {/* Col 6: Agreement upload */}
-                  <div className="text-right">
+                  {/* Col 6: Agreement */}
+                  <div className="text-right flex items-center justify-end gap-2">
                     {p.status === "pending" ? (
                       <label className="font-body text-[10px] text-green-400/70 border border-green-400/20 rounded-lg px-2.5 py-1.5 hover:bg-green-400/10 transition-colors cursor-pointer">
                         Upload Agreement
@@ -280,6 +285,8 @@ export default function DownlinePage() {
                           e.target.value = "";
                         }} />
                       </label>
+                    ) : p.status === "under_review" ? (
+                      <span className="inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Under Review</span>
                     ) : (
                       <span className="font-body text-[10px] text-green-400">&#10003; Active</span>
                     )}
