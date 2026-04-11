@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { FIRM_SHORT } from "@/lib/constants";
@@ -35,8 +35,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const device = useDevice();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState("");
 
   const user = session?.user as any;
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(({ settings }) => {
+        if (settings.logoUrl) setLogoUrl(settings.logoUrl);
+      })
+      .catch(() => {});
+  }, []);
 
   function navigate(href: string) {
     router.push(href);
@@ -45,10 +55,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const sidebarContent = (
     <>
-      <div className={`${collapsed ? "px-1" : "pl-2"} mb-1`}>
-        <div className={`font-display font-bold text-brand-gold tracking-[1px] ${collapsed ? "text-center text-xs" : "text-sm"}`}>
-          {collapsed ? "T" : FIRM_SHORT}
-        </div>
+      <div className={`${collapsed ? "px-1 text-center" : "pl-2"} mb-1`}>
+        {collapsed ? (
+          logoUrl
+            ? <img src={logoUrl} alt={FIRM_SHORT} className="max-h-7 mx-auto object-contain" />
+            : <div className="font-display text-xs font-bold text-brand-gold">{FIRM_SHORT.charAt(0)}</div>
+        ) : logoUrl ? (
+          <img src={logoUrl} alt={FIRM_SHORT} className="max-h-10 max-w-[180px] object-contain" />
+        ) : (
+          <div className="font-display text-sm font-bold text-brand-gold tracking-[1px]">{FIRM_SHORT}</div>
+        )}
       </div>
       {!collapsed && (
         <div className="font-body text-[10px] theme-text-muted tracking-[2px] uppercase mb-5 pl-2">
