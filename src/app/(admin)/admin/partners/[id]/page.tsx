@@ -179,7 +179,8 @@ export default function PartnerDetailPage() {
   };
 
   const handleResetCode = async () => {
-    if (!confirm("Generate a new partner code? The partner will need to use the new code to log in.")) return;
+    if (!confirm(`Are you sure you want to reset the partner code for ${partner?.firstName} ${partner?.lastName}?\n\nCurrent code: ${partner?.partnerCode}\n\nThis action cannot be undone. The partner will need the new code to log in.`)) return;
+    if (!confirm(`FINAL CONFIRMATION: This will permanently change the login code for ${partner?.firstName} ${partner?.lastName}. Continue?`)) return;
     try {
       const res = await fetch(`/api/admin/partners/${id}`, {
         method: "PUT",
