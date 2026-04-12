@@ -370,6 +370,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       )}
 
+      {/* ── MOBILE FLOATING NOTIFICATION BELL ── */}
+      {device.isMobile && (
+        <div className="fixed z-[902] right-4" style={{ top: "calc(env(safe-area-inset-top, 12px) + 56px)" }}>
+          <NotificationBell />
+        </div>
+      )}
+
       {/* ══ MAIN CONTENT ══ */}
       <div
         className={`flex-1 overflow-y-auto ${device.padding}`}
@@ -381,29 +388,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <>
               {/* Safe area spacer for iPhone notch/Dynamic Island */}
               <div style={{ paddingTop: "env(safe-area-inset-top, 12px)" }} />
+              {/* Top bar: Sign Out (left) — TRLN (center) — Support (right) */}
               <div className="flex justify-between items-center py-3">
-                <div className="font-display text-[13px] font-semibold text-brand-gold tracking-[1px]">
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="font-body text-[10px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded px-3 py-1.5 tracking-wider min-h-[32px]"
+                >
+                  Sign Out
+                </button>
+                <div className="font-display text-[14px] font-semibold text-brand-gold tracking-[1.5px]">
                   {firmShort}
                 </div>
-                <div className="flex items-center gap-2">
-                  <NotificationBell />
-                  <button
-                    onClick={() => navigate("/dashboard/support")}
-                    className={`font-body text-lg font-bold border rounded px-3 py-1.5 tracking-wider min-h-[32px] transition-colors ${
-                      isActive("/dashboard/support")
-                        ? "text-brand-gold border-brand-gold/30 bg-brand-gold/10"
-                        : "text-[var(--app-text-muted)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)]"
-                    }`}
-                  >
-                    🎫 Support
-                  </button>
-                  <button
-                    onClick={() => signOut({ callbackUrl: "/login" })}
-                    className="font-body text-[10px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded px-3 py-1.5 tracking-wider min-h-[32px]"
-                  >
-                    Sign Out
-                  </button>
-                </div>
+                <button
+                  onClick={() => navigate("/dashboard/support")}
+                  className={`font-body text-[10px] border rounded px-3 py-1.5 tracking-wider min-h-[32px] transition-colors ${
+                    isActive("/dashboard/support")
+                      ? "text-brand-gold border-brand-gold/30 bg-brand-gold/10"
+                      : "text-[var(--app-text-muted)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)]"
+                  }`}
+                >
+                  🎫 Support
+                </button>
               </div>
               {/* Divider below header bar */}
               <div className="border-b border-[var(--app-border)] mb-3" />
