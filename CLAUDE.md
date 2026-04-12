@@ -172,6 +172,10 @@ npm run db:studio    # Open Prisma Studio
 - Clickable partner name links: all partner names across admin pages (deals, documents, support, payouts, reports, communications, revenue) link to partner profile via PartnerLink component
 - Communication log in partner profile: support tickets + system notifications displayed in partner detail page with status badges and timestamps
 - PartnerLink reusable component: `src/components/ui/PartnerLink.tsx` — stopPropagation-aware, gold hover underline, graceful null fallback
+- Enterprise Partner system: EnterprisePartner + EnterpriseOverride Prisma models, /api/admin/enterprise API (super_admin only)
+- Revenue page tabs: Revenue, Custom Commissions, Enterprise Reporting
+- Custom Commissions tab: create enterprise partners with custom total rate, add/remove L1 partners by code, expandable detail cards
+- Enterprise Reporting tab: deal-level breakdown per enterprise partner showing TRLN 40%, L1 commission, enterprise override, and net profit
 
 ## Remaining Phases
 - **Phase 14**: HubSpot API Integration (real deal/contact sync)

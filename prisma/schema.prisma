@@ -440,3 +440,40 @@ model Deal {
   @@index([partnerCode])
   @@index([stage])
 }
+
+// ─── ENTERPRISE PARTNERS ────────────────────────────────────────────────────
+// An Enterprise Partner receives a custom commission rate higher than the
+// standard 25% L1 rate. The "override" (total rate minus 25%) is earned on
+// all L1 partners placed under them via EnterpriseOverride records.
+// Example: 30% total → 5% override on each assigned L1 partner's deals.
+model EnterprisePartner {
+  id              String   @id @default(cuid())
+  partnerCode     String   @unique           // must be an existing active Partner
+  totalRate       Float                      // e.g. 0.30 for 30%
+  overrideRate    Float                      // totalRate - 0.25 (auto-calculated, stored for convenience)
+  status          String   @default("active") // active, inactive
+  notes           String?
+  createdBy       String?                    // admin email who created
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  overrides EnterpriseOverride[]
+}
+
+// Each record assigns an L1 partner under an Enterprise Partner.
+// The Enterprise Partner earns overrideRate on all deals by this L1.
+model EnterpriseOverride {
+  id                    String   @id @default(cuid())
+  enterprisePartnerCode String                // the enterprise partner's code
+  l1PartnerCode         String                // the L1 partner placed under them
+  status                String   @default("active") // active, removed
+  createdBy             String?               // admin email
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  enterprise EnterprisePartner @relation(fields: [enterprisePartnerCode], references: [partnerCode])
+
+  @@unique([enterprisePartnerCode, l1PartnerCode])
+  @@index([enterprisePartnerCode])
+  @@index([l1PartnerCode])
+}
