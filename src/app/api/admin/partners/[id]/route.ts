@@ -182,7 +182,11 @@ export async function PUT(
     if (body.routingNumber !== undefined) profileFields.routingNumber = body.routingNumber || null;
     if (body.accountNumber !== undefined) profileFields.accountNumber = body.accountNumber || null;
     if (body.beneficiaryName !== undefined) profileFields.beneficiaryName = body.beneficiaryName || null;
-    if (body.bankAddress !== undefined) profileFields.bankAddress = body.bankAddress || null;
+    if (body.bankStreet !== undefined) profileFields.bankStreet = body.bankStreet || null;
+    if (body.bankStreet2 !== undefined) profileFields.bankStreet2 = body.bankStreet2 || null;
+    if (body.bankCity !== undefined) profileFields.bankCity = body.bankCity || null;
+    if (body.bankState !== undefined) profileFields.bankState = body.bankState || null;
+    if (body.bankZip !== undefined) profileFields.bankZip = body.bankZip || null;
 
     if (Object.keys(profileFields).length > 0) {
       await prisma.partnerProfile.upsert({

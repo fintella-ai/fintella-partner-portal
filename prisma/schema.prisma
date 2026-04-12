@@ -89,7 +89,12 @@ model PartnerProfile {
   routingNumber   String?
   accountNumber   String?
   beneficiaryName String?  // name on the account
-  bankAddress     String?  // bank branch address
+  bankAddress     String?  // legacy single-line (kept for backward compat)
+  bankStreet      String?  // bank branch street address line 1
+  bankStreet2     String?  // bank branch street address line 2
+  bankCity        String?
+  bankState       String?
+  bankZip         String?
   paypalEmail     String?
   // Status
   isBlocked       Boolean  @default(false)

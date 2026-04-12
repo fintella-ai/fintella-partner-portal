@@ -116,7 +116,11 @@ export default function PartnerDetailPage() {
   const [routingNumber, setRoutingNumber] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [beneficiaryName, setBeneficiaryName] = useState("");
-  const [bankAddress, setBankAddress] = useState("");
+  const [bankStreet, setBankStreet] = useState("");
+  const [bankStreet2, setBankStreet2] = useState("");
+  const [bankCity, setBankCity] = useState("");
+  const [bankState, setBankState] = useState("");
+  const [bankZip, setBankZip] = useState("");
 
   // Commission overrides
   const [l1Rate, setL1Rate] = useState("");
@@ -165,7 +169,11 @@ export default function PartnerDetailPage() {
       setRoutingNumber(prof?.routingNumber || "");
       setAccountNumber(prof?.accountNumber || "");
       setBeneficiaryName(prof?.beneficiaryName || "");
-      setBankAddress(prof?.bankAddress || "");
+      setBankStreet(prof?.bankStreet || "");
+      setBankStreet2(prof?.bankStreet2 || "");
+      setBankCity(prof?.bankCity || "");
+      setBankState(prof?.bankState || "");
+      setBankZip(prof?.bankZip || "");
       setL1Rate(p.l1Rate != null ? String(Math.round(p.l1Rate * 100)) : "");
       setL2Rate(p.l2Rate != null ? String(Math.round(p.l2Rate * 100)) : "");
       setL3Rate(p.l3Rate != null ? String(Math.round(p.l3Rate * 100)) : "");
@@ -191,7 +199,8 @@ export default function PartnerDetailPage() {
         notes: notes || null,
         street, street2, city, state: addrState, zip,
         payoutMethod, bankName, accountType, routingNumber,
-        accountNumber, beneficiaryName, bankAddress,
+        accountNumber, beneficiaryName,
+        bankStreet, bankStreet2, bankCity, bankState, bankZip,
         l1Rate: l1Rate ? parseFloat(l1Rate) / 100 : null,
         l2Rate: l2Rate ? parseFloat(l2Rate) / 100 : null,
         l3Rate: l3Rate ? parseFloat(l3Rate) / 100 : null,
@@ -496,8 +505,10 @@ export default function PartnerDetailPage() {
             <label className={labelClass}>Account Type</label>
             <select className={inputClass} value={accountType} onChange={(e) => setAccountType(e.target.value)}>
               <option value="">Select type...</option>
-              <option value="checking">Business Checking</option>
-              <option value="savings">Business Savings</option>
+              <option value="business_checking">Business Checking</option>
+              <option value="business_savings">Business Savings</option>
+              <option value="personal_checking">Personal Checking</option>
+              <option value="personal_savings">Personal Savings</option>
             </select>
           </div>
           <div>
@@ -515,9 +526,33 @@ export default function PartnerDetailPage() {
             <input className={inputClass} value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="Account number" />
           </div>
         </div>
-        <div>
-          <label className={labelClass}>Bank Address</label>
-          <input className={inputClass} value={bankAddress} onChange={(e) => setBankAddress(e.target.value)} placeholder="Full bank branch street address" />
+        <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3 mt-2">Bank Branch Address</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className={labelClass}>Street Address 1</label>
+            <input className={inputClass} value={bankStreet} onChange={(e) => setBankStreet(e.target.value)} placeholder="123 Main St" />
+          </div>
+          <div>
+            <label className={labelClass}>Street Address 2</label>
+            <input className={inputClass} value={bankStreet2} onChange={(e) => setBankStreet2(e.target.value)} placeholder="Suite, Floor, etc." />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className={labelClass}>City</label>
+            <input className={inputClass} value={bankCity} onChange={(e) => setBankCity(e.target.value)} placeholder="City" />
+          </div>
+          <div>
+            <label className={labelClass}>State</label>
+            <select className={inputClass} value={bankState} onChange={(e) => setBankState(e.target.value)}>
+              <option value="">Select state...</option>
+              {["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"].map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>Zip Code</label>
+            <input className={inputClass} value={bankZip} onChange={(e) => setBankZip(e.target.value)} placeholder="12345" maxLength={10} />
+          </div>
         </div>
       </div>
 

@@ -47,7 +47,11 @@ export async function GET() {
       routingNumber: profile?.routingNumber || "",
       accountNumber: profile?.accountNumber || "",
       beneficiaryName: profile?.beneficiaryName || "",
-      bankAddress: profile?.bankAddress || "",
+      bankStreet: profile?.bankStreet || "",
+      bankStreet2: profile?.bankStreet2 || "",
+      bankCity: profile?.bankCity || "",
+      bankState: profile?.bankState || "",
+      bankZip: profile?.bankZip || "",
     });
   } catch {
     return NextResponse.json(
@@ -80,7 +84,8 @@ export async function PATCH(req: NextRequest) {
       email, phone, mobilePhone,
       street, street2, city, state, zip,
       payoutMethod, bankName, accountType, routingNumber,
-      accountNumber, beneficiaryName, bankAddress,
+      accountNumber, beneficiaryName,
+      bankStreet, bankStreet2, bankCity, bankState, bankZip,
     } = body;
 
     // Fetch current partner to detect name/company changes
@@ -127,7 +132,11 @@ export async function PATCH(req: NextRequest) {
         routingNumber: routingNumber || null,
         accountNumber: accountNumber || null,
         beneficiaryName: beneficiaryName || null,
-        bankAddress: bankAddress || null,
+        bankStreet: bankStreet || null,
+        bankStreet2: bankStreet2 || null,
+        bankCity: bankCity || null,
+        bankState: bankState || null,
+        bankZip: bankZip || null,
       },
       update: {
         ...(street !== undefined && { street: street || null }),
@@ -141,7 +150,11 @@ export async function PATCH(req: NextRequest) {
         ...(routingNumber !== undefined && { routingNumber: routingNumber || null }),
         ...(accountNumber !== undefined && { accountNumber: accountNumber || null }),
         ...(beneficiaryName !== undefined && { beneficiaryName: beneficiaryName || null }),
-        ...(bankAddress !== undefined && { bankAddress: bankAddress || null }),
+        ...(bankStreet !== undefined && { bankStreet: bankStreet || null }),
+        ...(bankStreet2 !== undefined && { bankStreet2: bankStreet2 || null }),
+        ...(bankCity !== undefined && { bankCity: bankCity || null }),
+        ...(bankState !== undefined && { bankState: bankState || null }),
+        ...(bankZip !== undefined && { bankZip: bankZip || null }),
       },
     });
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useDevice } from "@/lib/useDevice";
 import { useRouter } from "next/navigation";
 import CountryCodeSelect, { parseMobilePhone, buildMobilePhone } from "@/components/ui/CountryCodeSelect";
+import { US_STATES } from "@/lib/constants";
 
 interface SettingsData {
   firstName: string;
@@ -25,7 +26,11 @@ interface SettingsData {
   routingNumber: string;
   accountNumber: string;
   beneficiaryName: string;
-  bankAddress: string;
+  bankStreet: string;
+  bankStreet2: string;
+  bankCity: string;
+  bankState: string;
+  bankZip: string;
 }
 
 const EMPTY: SettingsData = {
@@ -33,7 +38,8 @@ const EMPTY: SettingsData = {
   email: "", phone: "", mobilePhone: "",
   street: "", street2: "", city: "", state: "", zip: "",
   payoutMethod: "", bankName: "", accountType: "", routingNumber: "",
-  accountNumber: "", beneficiaryName: "", bankAddress: "",
+  accountNumber: "", beneficiaryName: "",
+  bankStreet: "", bankStreet2: "", bankCity: "", bankState: "", bankZip: "",
 };
 
 function formatTIN(value: string): string {
@@ -362,8 +368,10 @@ export default function AccountSettingsPage() {
                 className={inputClass}
               >
                 <option value="">Select type...</option>
-                <option value="checking">Business Checking</option>
-                <option value="savings">Business Savings</option>
+                <option value="business_checking">Business Checking</option>
+                <option value="business_savings">Business Savings</option>
+                <option value="personal_checking">Personal Checking</option>
+                <option value="personal_savings">Personal Savings</option>
               </select>
             </div>
             <div>
@@ -383,9 +391,33 @@ export default function AccountSettingsPage() {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="bankAddress" className={labelClass}>Bank Address (Branch)</label>
-            <input id="bankAddress" name="bankAddress" value={form.bankAddress} onChange={handleChange} className={inputClass} placeholder="Bank branch address" />
+          <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3 mt-5">Bank Branch Address</div>
+          <div className={`grid ${device.isMobile ? "grid-cols-1" : "grid-cols-2"} gap-4 mb-4`}>
+            <div>
+              <label htmlFor="bankStreet" className={labelClass}>Street Address 1</label>
+              <input id="bankStreet" name="bankStreet" value={form.bankStreet} onChange={handleChange} className={inputClass} placeholder="123 Main St" />
+            </div>
+            <div>
+              <label htmlFor="bankStreet2" className={labelClass}>Street Address 2</label>
+              <input id="bankStreet2" name="bankStreet2" value={form.bankStreet2} onChange={handleChange} className={inputClass} placeholder="Suite, Floor, etc." />
+            </div>
+          </div>
+          <div className={`grid ${device.isMobile ? "grid-cols-1 gap-4" : "grid-cols-3 gap-4"} mb-4`}>
+            <div>
+              <label htmlFor="bankCity" className={labelClass}>City</label>
+              <input id="bankCity" name="bankCity" value={form.bankCity} onChange={handleChange} className={inputClass} placeholder="City" />
+            </div>
+            <div>
+              <label htmlFor="bankState" className={labelClass}>State</label>
+              <select id="bankState" name="bankState" value={form.bankState} onChange={handleChange} className={inputClass}>
+                <option value="">Select state...</option>
+                {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="bankZip" className={labelClass}>Zip Code</label>
+              <input id="bankZip" name="bankZip" value={form.bankZip} onChange={handleChange} className={inputClass} placeholder="12345" maxLength={10} />
+            </div>
           </div>
 
           <div className="mt-4 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">

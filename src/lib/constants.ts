@@ -48,3 +48,11 @@ export const TICKET_CATEGORIES = [
 ] as const;
 
 export const TICKET_STATUSES = ["open", "in_progress", "resolved", "closed"] as const;
+
+// ─── US STATES ──────────────────────────────────────────────────────────────
+export const US_STATES = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
+  "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
+  "VA","WA","WV","WI","WY","DC",
+] as const;
