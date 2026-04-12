@@ -167,7 +167,6 @@ export default function WebhookGuidePage() {
                 { href: "#store-deal-id", label: "Store Deal ID" },
                 { href: "#update-deal", label: "Updating a Deal (PATCH)" },
                 { href: "#closing-deal", label: "Closing a Deal" },
-                { href: "#deal-example", label: "Deal Example" },
                 { href: "#health-check", label: "Health Check" },
               ].map((item) => (
                 <a
@@ -431,26 +430,6 @@ export default function WebhookGuidePage() {
           </Section>
 
           </div>
-          </div>
-
-          {/* ═══ DEAL EXAMPLE ═══ */}
-          <div id="deal-example" style={{ scrollMarginTop: 20 }}>
-          <Section title="Our System — Deal Example Data After Webhook Received">
-            <p style={{ fontSize: 14, color: "var(--doc-text-muted)", marginBottom: 16 }}>
-              Below is an example of how a deal appears in our admin portal after the webhook data is received and processed. All client details, partner attribution, deal stage, financials, and commission tracking are displayed in an expanded deal view.
-            </p>
-            <div style={{ background: "var(--doc-card-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, overflow: "hidden", padding: 2 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/docs/deal-example.png"
-                alt="TRLN Admin Portal — Deal Example showing client submission details, deal management stage, and commission tracking after webhook data is received"
-                style={{ width: "100%", height: "auto", display: "block", borderRadius: 10 }}
-              />
-            </div>
-            <div style={{ marginTop: 12, fontSize: 12, color: "var(--doc-text-faint)", fontStyle: "italic" }}>
-              Example: An expanded deal view in the TRLN admin panel showing client submission details (contact, business info, tariff fields), deal stage management, commission status, and financial breakdown — all populated from webhook data.
-            </div>
-          </Section>
           </div>
 
           {/* ═══ HEALTH CHECK ═══ */}
