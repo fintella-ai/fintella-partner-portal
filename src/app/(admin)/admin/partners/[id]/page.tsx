@@ -320,57 +320,86 @@ export default function PartnerDetailPage() {
         </div>
       )}
 
-      {/* ─── PARTNER INFO ─────────────────────────────────────────── */}
-      <div className="card p-5 sm:p-6 mb-6">
-        <div className="font-body font-semibold text-sm mb-4">Partner Information</div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label className={labelClass}>First Name</label>
-            <input className={inputClass} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-          </div>
-          <div>
-            <label className={labelClass}>Last Name</label>
-            <input className={inputClass} value={lastName} onChange={(e) => setLastName(e.target.value)} />
-          </div>
-          <div>
-            <label className={labelClass}>Company Name</label>
-            <input className={inputClass} value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="If applicable" />
-          </div>
-          <div>
-            <label className={labelClass}>Email</label>
-            <input className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
-          </div>
-          <div>
-            <label className={labelClass}>Phone</label>
-            <input className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-0000" />
-          </div>
-          <div className="sm:col-span-2 lg:col-span-1">
-            <label className={labelClass}>Mobile Phone (SMS)</label>
-            <div className="flex gap-2">
-              <CountryCodeSelect selectedCode={mobileCountry} onChange={setMobileCountry} />
-              <input className={`${inputClass} flex-1 min-w-0`} value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="555-555-0000" />
-            </div>
-          </div>
-          <div>
-            <label className={labelClass}>TIN</label>
-            <input className={inputClass} value={tin} onChange={(e) => {
-              const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
-              setTin(digits.length <= 2 ? digits : `${digits.slice(0, 2)}-${digits.slice(2)}`);
-            }} placeholder="##-#######" maxLength={10} />
-          </div>
-          <div>
-            <label className={labelClass}>Status</label>
-            <select className={inputClass} value={status} onChange={(e) => setStatus(e.target.value)}>
-              {statusOptions.map((s) => (
-                <option key={s} value={s} className="bg-[var(--app-bg)]">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Referred By (Code)</label>
-            <input className={inputClass} value={referrer} onChange={(e) => setReferrer(e.target.value)} placeholder="e.g. PTNJRO001" />
+      {/* ─── ADMIN NOTES (audit log) ──────────────────────────────── */}
+      <div className="card mb-6">
+        <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
+          <div className="font-body font-semibold text-sm mb-3">Admin Notes</div>
+          <div className="flex gap-2">
+            <textarea
+              id="newAdminNote"
+              className={`${inputClass} resize-none flex-1`}
+              rows={2}
+              placeholder="Add a note about this partner..."
+            />
+            <button
+              onClick={async () => {
+                const textarea = document.getElementById("newAdminNote") as HTMLTextAreaElement;
+                const content = textarea?.value;
+                if (!content?.trim()) return;
+                try {
+                  const res = await fetch("/api/admin/notes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ partnerCode: partner.partnerCode, content }),
+                  });
+                  if (res.ok) {
+                    textarea.value = "";
+                    fetchPartner();
+                  } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.error || "Failed to add note");
+                  }
+                } catch { alert("Network error"); }
+              }}
+              className="self-end font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-4 py-2.5 hover:bg-brand-gold/10 transition-colors shrink-0"
+            >
+              Post Note
+            </button>
           </div>
         </div>
+
+        {/* Notes audit log — pinned first, then newest first */}
+        {(() => {
+          const pinned = adminNotes.filter((n: any) => n.isPinned);
+          const unpinned = adminNotes.filter((n: any) => !n.isPinned);
+          const allSorted = [...pinned, ...unpinned];
+
+          return allSorted.length > 0 ? (
+            <div>
+              {allSorted.map((n: any) => (
+                <div key={n.id} className={`px-5 py-3 ${n.isPinned ? "bg-brand-gold/[0.04]" : ""}`} style={{ borderBottom: "1px solid var(--app-border)" }}>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2">
+                      {n.isPinned && <span className="text-[10px] text-brand-gold">&#128204;</span>}
+                      <div className="font-body text-[12px] font-semibold text-[var(--app-text-secondary)]">{n.authorName}</div>
+                      <div className="font-body text-[10px] text-[var(--app-text-muted)]">
+                        {new Date(n.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {" "}
+                        {new Date(n.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        await fetch("/api/admin/notes", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ noteId: n.id, isPinned: !n.isPinned }),
+                        });
+                        fetchPartner();
+                      }}
+                      className="font-body text-[9px] theme-text-muted hover:text-brand-gold transition-colors shrink-0"
+                    >
+                      {n.isPinned ? "Unpin" : "Pin"}
+                    </button>
+                  </div>
+                  <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed whitespace-pre-wrap">{n.content}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-5 py-6 text-center font-body text-[13px] text-[var(--app-text-muted)]">No notes yet.</div>
+          );
+        })()}
       </div>
 
       {/* ─── LOGIN CREDENTIALS ──────────────────────────────────── */}
@@ -453,6 +482,59 @@ export default function PartnerDetailPage() {
         </div>
       </div>
 
+      {/* ─── PARTNER INFO ─────────────────────────────────────────── */}
+      <div className="card p-5 sm:p-6 mb-6">
+        <div className="font-body font-semibold text-sm mb-4">Partner Information</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <label className={labelClass}>First Name</label>
+            <input className={inputClass} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          </div>
+          <div>
+            <label className={labelClass}>Last Name</label>
+            <input className={inputClass} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          </div>
+          <div>
+            <label className={labelClass}>Company Name</label>
+            <input className={inputClass} value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="If applicable" />
+          </div>
+          <div>
+            <label className={labelClass}>Email</label>
+            <input className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+          </div>
+          <div>
+            <label className={labelClass}>Phone</label>
+            <input className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-0000" />
+          </div>
+          <div className="sm:col-span-2 lg:col-span-1">
+            <label className={labelClass}>Mobile Phone (SMS)</label>
+            <div className="flex gap-2">
+              <CountryCodeSelect selectedCode={mobileCountry} onChange={setMobileCountry} />
+              <input className={`${inputClass} flex-1 min-w-0`} value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="555-555-0000" />
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>TIN</label>
+            <input className={inputClass} value={tin} onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
+              setTin(digits.length <= 2 ? digits : `${digits.slice(0, 2)}-${digits.slice(2)}`);
+            }} placeholder="##-#######" maxLength={10} />
+          </div>
+          <div>
+            <label className={labelClass}>Status</label>
+            <select className={inputClass} value={status} onChange={(e) => setStatus(e.target.value)}>
+              {statusOptions.map((s) => (
+                <option key={s} value={s} className="bg-[var(--app-bg)]">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>Referred By (Code)</label>
+            <input className={inputClass} value={referrer} onChange={(e) => setReferrer(e.target.value)} placeholder="e.g. PTNJRO001" />
+          </div>
+        </div>
+      </div>
+
       {/* ─── ADDRESS ────────────────────────────────────────────── */}
       <div className="card p-5 sm:p-6 mb-6">
         <div className="font-body font-semibold text-sm mb-4">Address</div>
@@ -482,78 +564,89 @@ export default function PartnerDetailPage() {
         </div>
       </div>
 
-      {/* ─── PAYOUT INFORMATION ─────────────────────────────────── */}
-      <div className="card p-5 sm:p-6 mb-6">
-        <div className="font-body font-semibold text-sm mb-4">Payout Information</div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className={labelClass}>Payout Method</label>
-            <select className={inputClass} value={payoutMethod} onChange={(e) => setPayoutMethod(e.target.value)}>
-              <option value="">Select method...</option>
-              <option value="wire">Domestic Wire Transfer</option>
-              <option value="ach">ACH Transfer</option>
-              <option value="check">Paper Check</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Bank Name</label>
-            <input className={inputClass} value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. Chase, Bank of America" />
-          </div>
+      {/* ─── DOWNLINE ─────────────────────────────────────────────── */}
+      <div className="card mb-6">
+        <div className="px-5 py-4 border-b border-[var(--app-border)] flex items-center justify-between flex-wrap gap-2">
+          <div className="font-body font-semibold text-sm">Downline Partners ({downline.length})</div>
+          {downline.length > 0 && (
+            <div className="flex bg-[var(--app-input-bg)] rounded-lg p-0.5">
+              <button
+                onClick={() => setDownlineView("list")}
+                className={`font-body text-[11px] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
+                  downlineView === "list" ? "bg-brand-gold/15 text-brand-gold" : "text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                List
+              </button>
+              <button
+                onClick={() => setDownlineView("tree")}
+                className={`font-body text-[11px] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
+                  downlineView === "tree" ? "bg-brand-gold/15 text-brand-gold" : "text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v4m0 0a4 4 0 014 4h2a2 2 0 012 2v2M12 8a4 4 0 00-4 4H6a2 2 0 00-2 2v2m8-8v4m0 0a2 2 0 012 2v2m-2-4a2 2 0 00-2 2v2" />
+                </svg>
+                Tree View
+              </button>
+            </div>
+          )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        {downline.length === 0 ? (
+          <div className="px-5 py-8 text-center font-body text-[13px] text-[var(--app-text-muted)]">No downline partners.</div>
+        ) : downlineView === "tree" ? (
+          (() => {
+            const rootPartner: TreePartner = {
+              id: partner.id,
+              partnerCode: partner.partnerCode,
+              firstName: partner.firstName,
+              lastName: partner.lastName,
+              status: partner.status,
+              commissionRate: partner.commissionRate,
+              children: downline.map((d) => ({
+                id: d.id,
+                partnerCode: d.partnerCode,
+                firstName: d.firstName,
+                lastName: d.lastName,
+                status: d.status,
+                commissionRate: d.commissionRate,
+                children: l3Partners
+                  .filter((l3) => l3.referredByPartnerCode === d.partnerCode)
+                  .map((l3) => ({
+                    id: l3.id,
+                    partnerCode: l3.partnerCode,
+                    firstName: l3.firstName,
+                    lastName: l3.lastName,
+                    status: l3.status,
+                    commissionRate: (l3 as any).commissionRate,
+                    children: [],
+                  })),
+              })),
+            };
+            return <DownlineTree root={rootPartner} />;
+          })()
+        ) : (
           <div>
-            <label className={labelClass}>Account Type</label>
-            <select className={inputClass} value={accountType} onChange={(e) => setAccountType(e.target.value)}>
-              <option value="">Select type...</option>
-              <option value="business_checking">Business Checking</option>
-              <option value="business_savings">Business Savings</option>
-              <option value="personal_checking">Personal Checking</option>
-              <option value="personal_savings">Personal Savings</option>
-            </select>
+            {downline.map((d) => (
+              <div
+                key={d.id}
+                className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer flex items-center justify-between"
+                onClick={() => router.push(`/admin/partners/${d.id}`)}
+              >
+                <div>
+                  <div className="font-body text-[13px] text-[var(--app-text)]">{d.firstName} {d.lastName}</div>
+                  <div className="font-mono text-[11px] text-[var(--app-text-muted)]">{d.partnerCode}</div>
+                </div>
+                <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[d.status] || statusBadge.active}`}>
+                  {d.status}
+                </span>
+              </div>
+            ))}
           </div>
-          <div>
-            <label className={labelClass}>Beneficiary Name</label>
-            <input className={inputClass} value={beneficiaryName} onChange={(e) => setBeneficiaryName(e.target.value)} placeholder="Name on the account" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className={labelClass}>Routing Number</label>
-            <input className={inputClass} value={routingNumber} onChange={(e) => setRoutingNumber(e.target.value)} placeholder="9-digit routing number" maxLength={9} />
-          </div>
-          <div>
-            <label className={labelClass}>Account Number</label>
-            <input className={inputClass} value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="Account number" />
-          </div>
-        </div>
-        <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3 mt-2">Bank Branch Address</div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className={labelClass}>Street Address 1</label>
-            <input className={inputClass} value={bankStreet} onChange={(e) => setBankStreet(e.target.value)} placeholder="123 Main St" />
-          </div>
-          <div>
-            <label className={labelClass}>Street Address 2</label>
-            <input className={inputClass} value={bankStreet2} onChange={(e) => setBankStreet2(e.target.value)} placeholder="Suite, Floor, etc." />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className={labelClass}>City</label>
-            <input className={inputClass} value={bankCity} onChange={(e) => setBankCity(e.target.value)} placeholder="City" />
-          </div>
-          <div>
-            <label className={labelClass}>State</label>
-            <select className={inputClass} value={bankState} onChange={(e) => setBankState(e.target.value)}>
-              <option value="">Select state...</option>
-              {["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"].map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Zip Code</label>
-            <input className={inputClass} value={bankZip} onChange={(e) => setBankZip(e.target.value)} placeholder="12345" maxLength={10} />
-          </div>
-        </div>
+        )}
       </div>
 
       {/* ─── COMMISSION & TIER ────────────────────────────────────── */}
@@ -646,178 +739,85 @@ export default function PartnerDetailPage() {
         )}
       </div>
 
-      {/* ─── DOWNLINE ─────────────────────────────────────────────── */}
-      <div className="card mb-6">
-        <div className="px-5 py-4 border-b border-[var(--app-border)] flex items-center justify-between flex-wrap gap-2">
-          <div className="font-body font-semibold text-sm">Downline Partners ({downline.length})</div>
-          {downline.length > 0 && (
-            <div className="flex bg-[var(--app-input-bg)] rounded-lg p-0.5">
-              <button
-                onClick={() => setDownlineView("list")}
-                className={`font-body text-[11px] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
-                  downlineView === "list" ? "bg-brand-gold/15 text-brand-gold" : "text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-                List
-              </button>
-              <button
-                onClick={() => setDownlineView("tree")}
-                className={`font-body text-[11px] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
-                  downlineView === "tree" ? "bg-brand-gold/15 text-brand-gold" : "text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v4m0 0a4 4 0 014 4h2a2 2 0 012 2v2M12 8a4 4 0 00-4 4H6a2 2 0 00-2 2v2m8-8v4m0 0a2 2 0 012 2v2m-2-4a2 2 0 00-2 2v2" />
-                </svg>
-                Tree View
-              </button>
-            </div>
-          )}
-        </div>
-        {downline.length === 0 ? (
-          <div className="px-5 py-8 text-center font-body text-[13px] text-[var(--app-text-muted)]">No downline partners.</div>
-        ) : downlineView === "tree" ? (
-          (() => {
-            const rootPartner: TreePartner = {
-              id: partner.id,
-              partnerCode: partner.partnerCode,
-              firstName: partner.firstName,
-              lastName: partner.lastName,
-              status: partner.status,
-              commissionRate: partner.commissionRate,
-              children: downline.map((d) => ({
-                id: d.id,
-                partnerCode: d.partnerCode,
-                firstName: d.firstName,
-                lastName: d.lastName,
-                status: d.status,
-                commissionRate: d.commissionRate,
-                children: l3Partners
-                  .filter((l3) => l3.referredByPartnerCode === d.partnerCode)
-                  .map((l3) => ({
-                    id: l3.id,
-                    partnerCode: l3.partnerCode,
-                    firstName: l3.firstName,
-                    lastName: l3.lastName,
-                    status: l3.status,
-                    commissionRate: (l3 as any).commissionRate,
-                    children: [],
-                  })),
-              })),
-            };
-            return <DownlineTree root={rootPartner} />;
-          })()
-        ) : (
+      {/* ─── PAYOUT INFORMATION ─────────────────────────────────── */}
+      <div className="card p-5 sm:p-6 mb-6">
+        <div className="font-body font-semibold text-sm mb-4">Payout Information</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            {downline.map((d) => (
-              <div
-                key={d.id}
-                className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer flex items-center justify-between"
-                onClick={() => router.push(`/admin/partners/${d.id}`)}
-              >
-                <div>
-                  <div className="font-body text-[13px] text-[var(--app-text)]">{d.firstName} {d.lastName}</div>
-                  <div className="font-mono text-[11px] text-[var(--app-text-muted)]">{d.partnerCode}</div>
-                </div>
-                <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[d.status] || statusBadge.active}`}>
-                  {d.status}
-                </span>
-              </div>
-            ))}
+            <label className={labelClass}>Payout Method</label>
+            <select className={inputClass} value={payoutMethod} onChange={(e) => setPayoutMethod(e.target.value)}>
+              <option value="">Select method...</option>
+              <option value="wire">Domestic Wire Transfer</option>
+              <option value="ach">ACH Transfer</option>
+              <option value="check">Paper Check</option>
+            </select>
           </div>
-        )}
-      </div>
-
-      {/* ─── ADMIN NOTES (audit log) ──────────────────────────────── */}
-      <div className="card mb-6">
-        <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
-          <div className="font-body font-semibold text-sm mb-3">Admin Notes</div>
-          <div className="flex gap-2">
-            <textarea
-              id="newAdminNote"
-              className={`${inputClass} resize-none flex-1`}
-              rows={2}
-              placeholder="Add a note about this partner..."
-            />
-            <button
-              onClick={async () => {
-                const textarea = document.getElementById("newAdminNote") as HTMLTextAreaElement;
-                const content = textarea?.value;
-                if (!content?.trim()) return;
-                try {
-                  const res = await fetch("/api/admin/notes", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ partnerCode: partner.partnerCode, content }),
-                  });
-                  if (res.ok) {
-                    textarea.value = "";
-                    fetchPartner();
-                  } else {
-                    const err = await res.json().catch(() => ({}));
-                    alert(err.error || "Failed to add note");
-                  }
-                } catch { alert("Network error"); }
-              }}
-              className="self-end font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-4 py-2.5 hover:bg-brand-gold/10 transition-colors shrink-0"
-            >
-              Post Note
-            </button>
+          <div>
+            <label className={labelClass}>Bank Name</label>
+            <input className={inputClass} value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. Chase, Bank of America" />
           </div>
         </div>
-
-        {/* Notes audit log — pinned first, then newest first */}
-        {(() => {
-          const pinned = adminNotes.filter((n: any) => n.isPinned);
-          const unpinned = adminNotes.filter((n: any) => !n.isPinned);
-          const allSorted = [...pinned, ...unpinned];
-
-          return allSorted.length > 0 ? (
-            <div>
-              {allSorted.map((n: any) => (
-                <div key={n.id} className={`px-5 py-3 ${n.isPinned ? "bg-brand-gold/[0.04]" : ""}`} style={{ borderBottom: "1px solid var(--app-border)" }}>
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <div className="flex items-center gap-2">
-                      {n.isPinned && <span className="text-[10px] text-brand-gold">&#128204;</span>}
-                      <div className="font-body text-[12px] font-semibold text-[var(--app-text-secondary)]">{n.authorName}</div>
-                      <div className="font-body text-[10px] text-[var(--app-text-muted)]">
-                        {new Date(n.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        {" "}
-                        {new Date(n.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
-                      </div>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        await fetch("/api/admin/notes", {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ noteId: n.id, isPinned: !n.isPinned }),
-                        });
-                        fetchPartner();
-                      }}
-                      className="font-body text-[9px] theme-text-muted hover:text-brand-gold transition-colors shrink-0"
-                    >
-                      {n.isPinned ? "Unpin" : "Pin"}
-                    </button>
-                  </div>
-                  <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed whitespace-pre-wrap">{n.content}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="px-5 py-6 text-center font-body text-[13px] text-[var(--app-text-muted)]">No notes yet.</div>
-          );
-        })()}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className={labelClass}>Account Type</label>
+            <select className={inputClass} value={accountType} onChange={(e) => setAccountType(e.target.value)}>
+              <option value="">Select type...</option>
+              <option value="business_checking">Business Checking</option>
+              <option value="business_savings">Business Savings</option>
+              <option value="personal_checking">Personal Checking</option>
+              <option value="personal_savings">Personal Savings</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>Beneficiary Name</label>
+            <input className={inputClass} value={beneficiaryName} onChange={(e) => setBeneficiaryName(e.target.value)} placeholder="Name on the account" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className={labelClass}>Routing Number</label>
+            <input className={inputClass} value={routingNumber} onChange={(e) => setRoutingNumber(e.target.value)} placeholder="9-digit routing number" maxLength={9} />
+          </div>
+          <div>
+            <label className={labelClass}>Account Number</label>
+            <input className={inputClass} value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="Account number" />
+          </div>
+        </div>
+        <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3 mt-2">Bank Branch Address</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className={labelClass}>Street Address 1</label>
+            <input className={inputClass} value={bankStreet} onChange={(e) => setBankStreet(e.target.value)} placeholder="123 Main St" />
+          </div>
+          <div>
+            <label className={labelClass}>Street Address 2</label>
+            <input className={inputClass} value={bankStreet2} onChange={(e) => setBankStreet2(e.target.value)} placeholder="Suite, Floor, etc." />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className={labelClass}>City</label>
+            <input className={inputClass} value={bankCity} onChange={(e) => setBankCity(e.target.value)} placeholder="City" />
+          </div>
+          <div>
+            <label className={labelClass}>State</label>
+            <select className={inputClass} value={bankState} onChange={(e) => setBankState(e.target.value)}>
+              <option value="">Select state...</option>
+              {["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"].map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>Zip Code</label>
+            <input className={inputClass} value={bankZip} onChange={(e) => setBankZip(e.target.value)} placeholder="12345" maxLength={10} />
+          </div>
+        </div>
       </div>
 
       {/* ─── DOCUMENTS & AGREEMENT ─────────────────────────────── */}
       <div className="card mb-6">
-        <div className="px-5 py-4 border-b border-[var(--app-border)] flex items-center justify-between">
-          <div className="font-body font-semibold text-sm">Documents & Agreement</div>
-          <div className="flex gap-2 flex-wrap">
+        <div className="px-5 py-4 border-b border-[var(--app-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="font-body font-semibold text-sm text-center sm:text-left">Documents &amp; Agreement</div>
+          <div className="flex gap-2 flex-wrap justify-center sm:justify-end">
             <button
               onClick={async () => {
                 setSendingAgreement(true);
