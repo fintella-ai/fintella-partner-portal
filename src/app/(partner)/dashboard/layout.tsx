@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
-import { FIRM_SHORT as DEFAULT_FIRM_SHORT, FIRM_SLOGAN as DEFAULT_FIRM_SLOGAN } from "@/lib/constants";
+import { FIRM_NAME, FIRM_SHORT as DEFAULT_FIRM_SHORT, FIRM_SLOGAN as DEFAULT_FIRM_SLOGAN } from "@/lib/constants";
 import { useDevice } from "@/lib/useDevice";
 import NotificationBell from "@/components/ui/NotificationBell";
 import InstallPrompt from "@/components/ui/InstallPrompt";
@@ -400,8 +400,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 >
                   Sign Out
                 </button>
-                <div className="font-display text-[14px] font-semibold text-brand-gold tracking-[1.5px]">
-                  {firmShort}
+                <div className="text-center">
+                  <div className="font-display text-[18px] font-bold text-brand-gold tracking-[2px]">
+                    {firmShort}
+                  </div>
+                  <div className="font-body text-[8px] text-[var(--app-text-muted)] tracking-[0.5px] mt-0.5 leading-tight">
+                    {FIRM_NAME}
+                  </div>
                 </div>
                 <button
                   onClick={() => navigate("/dashboard/support")}
