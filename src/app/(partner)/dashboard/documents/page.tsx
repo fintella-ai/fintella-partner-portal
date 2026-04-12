@@ -180,12 +180,21 @@ export default function DocumentsPage() {
               </div>
             </div>
             {agreementData?.documentUrl && (
-              <button
-                onClick={() => window.open(agreementData.documentUrl!, "_blank")}
-                className="w-full sm:w-auto mt-3 text-[12px] font-medium tracking-wide uppercase text-[var(--app-text-secondary)] border border-[var(--app-input-border)] rounded-lg px-4 py-2.5 hover:border-[var(--app-border)] hover:text-[var(--app-text)] transition-colors text-center"
-              >
-                View Agreement
-              </button>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                <button
+                  onClick={() => window.open(agreementData.documentUrl!, "_blank")}
+                  className="sm:w-auto text-[12px] font-medium tracking-wide uppercase text-[var(--app-text-secondary)] border border-[var(--app-input-border)] rounded-lg px-4 py-2.5 hover:border-[var(--app-border)] hover:text-[var(--app-text)] transition-colors text-center"
+                >
+                  View
+                </button>
+                <a
+                  href={agreementData.documentUrl}
+                  download={`Partnership-Agreement-v${agreementData.version || 1}.pdf`}
+                  className="sm:w-auto text-[12px] font-medium tracking-wide uppercase text-blue-400/80 border border-blue-400/20 rounded-lg px-4 py-2.5 hover:bg-blue-400/10 hover:text-blue-400 transition-colors text-center"
+                >
+                  Download
+                </a>
+              </div>
             )}
           </div>
         ) : isPending ? (
