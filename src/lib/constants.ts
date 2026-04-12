@@ -24,7 +24,7 @@ export const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   no_consultation: { label: "No Consultation Booked", color: "#ef4444" },
   consultation_booked: { label: "Consultation Booked", color: "#f59e0b" },
   client_no_show: { label: "Client No Show", color: "#ef4444" },
-  client_engaged: { label: "Client Engaged", color: "#f97316" },
+  client_engaged: { label: "Client Engaged", color: "#3b82f6" },
   in_process: { label: "In Process", color: "#8b5cf6" },
   closedwon: { label: "Closed Won", color: "#22c55e" },
   closedlost: { label: "Closed Lost", color: "#ef4444" },

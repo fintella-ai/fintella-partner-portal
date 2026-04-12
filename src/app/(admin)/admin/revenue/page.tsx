@@ -96,7 +96,7 @@ const stageBadge: Record<string, string> = {
   no_consultation: "bg-red-500/10 text-red-400 border border-red-500/20",
   consultation_booked: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
   client_no_show: "bg-red-500/10 text-red-400 border border-red-500/20",
-  client_engaged: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+  client_engaged: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
   in_process: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
   closedwon: "bg-green-500/10 text-green-400 border border-green-500/20",
   closedlost: "bg-red-500/10 text-red-400 border border-red-500/20",
