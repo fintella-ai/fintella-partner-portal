@@ -7,7 +7,7 @@ import { FIRM_SHORT, DOC_TYPE_LABELS } from "@/lib/constants";
 import { fmtDate } from "@/lib/format";
 
 type AgreementStatus = "not_sent" | "pending" | "signed" | "approved" | "amended" | "under_review";
-type DocStatus = "required" | "uploaded" | "under_review" | "approved" | "expired";
+type DocStatus = "required" | "uploaded" | "under_review" | "approved" | "expired" | "voided";
 
 const AGREEMENT_STATUS_CONFIG: Record<
   AgreementStatus,
@@ -30,6 +30,7 @@ const DOC_STATUS_CONFIG: Record<
   under_review: { label: "Under Review", bg: "bg-yellow-500/15",  text: "text-yellow-400" },
   approved:     { label: "Approved",     bg: "bg-green-500/15",   text: "text-green-400" },
   expired:      { label: "Expired",      bg: "bg-red-500/15",     text: "text-red-400" },
+  voided:       { label: "Voided",      bg: "bg-gray-500/15",    text: "text-gray-400" },
 };
 
 interface RequiredDoc {
@@ -93,7 +94,8 @@ export default function DocumentsPage() {
     ]).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  const nonAgreementDocs = documents.filter((d) => d.docType !== "agreement");
+  // Show all documents (including agreements uploaded via My Documents)
+  const allDocs = documents;
 
   const agreementStatus: AgreementStatus = agreementData?.status || "not_sent";
   const astCfg = AGREEMENT_STATUS_CONFIG[agreementStatus];
@@ -283,17 +285,17 @@ export default function DocumentsPage() {
             </div>
             <label className={`inline-flex items-center gap-2 btn-gold text-[12px] px-5 py-2.5 cursor-pointer ${uploading || !uploadType ? "opacity-50 pointer-events-none" : ""}`}>
               {uploading ? "Uploading..." : "Choose File & Upload"}
-              <input type="file" accept=".pdf,.doc,.docx,.png,.jpg" className="hidden" disabled={uploading || !uploadType} onChange={async (e) => { const file = e.target.files?.[0]; if (!file || !uploadType) return; setUploading(true); try { const reader = new FileReader(); reader.onload = async () => { const res = await fetch("/api/partner/documents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ docType: uploadType, fileName: file.name, fileData: reader.result, notes: uploadNotes || null }) }); if (res.ok) { setShowUpload(false); setUploadType(""); setUploadNotes(""); fetchDocuments(); } else { const err = await res.json().catch(() => ({})); alert(err.error || "Upload failed"); } setUploading(false); }; reader.readAsDataURL(file); } catch { setUploading(false); } e.target.value = ""; }} />
+              <input type="file" accept=".pdf,.doc,.docx,.png,.jpg" className="hidden" disabled={uploading || !uploadType} onChange={async (e) => { const file = e.target.files?.[0]; if (!file || !uploadType) return; setUploading(true); try { const reader = new FileReader(); reader.onload = async () => { const res = await fetch("/api/partner/documents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ docType: uploadType, fileName: file.name, fileData: reader.result, notes: uploadNotes || null }) }); if (res.ok) { setShowUpload(false); const savedType = uploadType; setUploadType(""); setUploadNotes(""); fetchDocuments(); if (savedType === "agreement") { fetch("/api/agreement").then((r) => (r.ok ? r.json() : null)).then((data) => { if (data?.agreement) setAgreementData(data.agreement); }).catch(() => {}); } } else { const err = await res.json().catch(() => ({})); alert(err.error || "Upload failed"); } setUploading(false); }; reader.readAsDataURL(file); } catch { setUploading(false); } e.target.value = ""; }} />
             </label>
           </div>
         )}
 
-        {nonAgreementDocs.length === 0 && !showUpload ? (
+        {allDocs.length === 0 && !showUpload ? (
           <div className="p-8 text-center">
             <div className="font-body text-sm text-[var(--app-text-muted)] mb-2">No documents uploaded yet.</div>
             <button onClick={() => setShowUpload(true)} className="font-body text-[12px] text-brand-gold hover:underline">Upload your first document</button>
           </div>
-        ) : nonAgreementDocs.length > 0 ? (
+        ) : allDocs.length > 0 ? (
           <>
             <div className="hidden md:block border border-[var(--app-border)] rounded-lg overflow-hidden">
               <div className="grid grid-cols-[1.5fr_0.8fr_0.7fr_0.6fr_0.6fr] gap-3 px-4 py-2.5 bg-[var(--app-card-bg)] border-b border-[var(--app-border)]">
@@ -301,7 +303,7 @@ export default function DocumentsPage() {
                   <span key={h} className={`font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Action" ? "text-right" : h === "Status" ? "text-center" : ""}`}>{h}</span>
                 ))}
               </div>
-              {nonAgreementDocs.map((doc: any) => {
+              {allDocs.map((doc: any) => {
                 const dCfg = DOC_STATUS_CONFIG[(doc.status || "uploaded") as DocStatus] || DOC_STATUS_CONFIG.uploaded;
                 return (
                   <div key={doc.id} className="grid grid-cols-[1.5fr_0.8fr_0.7fr_0.6fr_0.6fr] gap-3 px-4 py-3 items-center border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors">
@@ -320,7 +322,7 @@ export default function DocumentsPage() {
               })}
             </div>
             <div className="md:hidden flex flex-col gap-3">
-              {nonAgreementDocs.map((doc: any) => {
+              {allDocs.map((doc: any) => {
                 const dCfg = DOC_STATUS_CONFIG[(doc.status || "uploaded") as DocStatus] || DOC_STATUS_CONFIG.uploaded;
                 return (
                   <div key={doc.id} className="p-4 bg-[var(--app-card-bg)] border border-[var(--app-border)] rounded-lg">
