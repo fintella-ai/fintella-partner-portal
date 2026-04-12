@@ -540,3 +540,45 @@ model FeatureRequest {
   @@index([status])
   @@index([submittedBy])
 }
+
+// ─── AI ASSISTANT (TRLN PartnerOS) ──────────────────────────────────────────
+model AiConversation {
+  id          String      @id @default(cuid())
+  userId      String      // partnerCode or admin email
+  userType    String      // "partner" | "admin"
+  title       String?     // auto-generated from first message
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  messages    AiMessage[]
+
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+model AiMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String   // "user" | "assistant"
+  content        String   // message text
+  inputTokens    Int?     // for cost tracking
+  outputTokens   Int?
+  cachedTokens   Int?     // prompt cache hit tokens
+  createdAt      DateTime @default(now())
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+// Per-user rate limit + budget tracking (resets daily)
+model AiUsageDay {
+  id           String   @id @default(cuid())
+  userId       String
+  date         String   // YYYY-MM-DD
+  messageCount Int      @default(0)
+  totalCostUsd Float    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([date])
+}

@@ -15,6 +15,7 @@
     "db:seed-partners": "npx ts-node --compiler-options {\"module\":\"commonjs\"} scripts/seed-partners.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
     "@prisma/client": "^5.20.0",
     "bcryptjs": "^2.4.3",
     "next": "14.2.35",
