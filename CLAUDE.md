@@ -80,6 +80,7 @@ scripts/                     — Seeding scripts
 ## Environment Variables
 ```
 DATABASE_URL              — "file:./dev.db" (local) or PostgreSQL connection string (prod)
+DIRECT_URL                — PostgreSQL unpooled connection (Prisma migrations)
 NEXTAUTH_SECRET           — JWT signing secret
 NEXTAUTH_URL              — https://trln.partners
 SIGNWELL_API_KEY          — Optional: e-signature integration
@@ -87,6 +88,11 @@ SIGNWELL_WEBHOOK_SECRET   — Optional: SignWell webhook verification
 HUBSPOT_PRIVATE_TOKEN     — Optional: CRM integration
 HUBSPOT_PORTAL_ID         — Optional: CRM portal ID
 REFERRAL_WEBHOOK_SECRET   — Optional: Frost Law webhook security token
+GITHUB_TOKEN              — Optional: live commits feed on /admin/dev page (super_admin only)
+ANTHROPIC_API_KEY         — Optional: AI assistant (falls back to mock responses if unset)
+ANTHROPIC_MODEL           — Optional: AI model override (defaults to claude-sonnet-4-6)
+AI_DAILY_BUDGET_USD       — Optional: AI daily spend cap per deploy (defaults to $5)
+AI_DAILY_MESSAGE_LIMIT    — Optional: AI messages/partner/day (defaults to 50)
 ```
 
 ## Dev Commands
@@ -212,6 +218,45 @@ npm run db:studio    # Open Prisma Studio
 - Feature Request System: FeatureRequest Prisma model, partner + admin submission endpoints (/api/feature-requests), super_admin management endpoint (/api/admin/feature-requests) with stats + filter, partner UI (/dashboard/feature-request) for submitting ideas/bugs/UX improvements, admin UI (/admin/features) with status triage (submitted → in_review → in_progress → completed/rejected), priority, admin response notes visible to requester
 - Security hardening (branch-protected `main`): switched default branch from `master` → `main` (deleted stale master), created GitHub Ruleset on `main` (restrict deletions, require PR before merging, block force pushes, dismiss stale approvals), enabled Dependabot + private vulnerability reporting + secret scanning, Next.js 14.2.15 → 14.2.35 upgrade fixing 9 CVEs including critical CVSS 9.1 middleware auth bypass (GHSA-f82v-jwr5-mffw)
 - TRLN PartnerOS AI Assistant (Phase 17): Claude Sonnet 4.6 powered support bot with partner data context (recent deals, commission totals, downline count, agreement status), conversation persistence (AiConversation + AiMessage + AiUsageDay Prisma models), prompt caching on static knowledge base (commission structure, deal stages, FAQ), rate limiting (50 msgs/partner/day, $5/day budget cap via AI_DAILY_BUDGET_USD env var), graceful mock fallback when ANTHROPIC_API_KEY not set, dedicated page at /dashboard/ai-assistant with conversation history sidebar + suggested prompts empty state, 3 API routes (/api/ai/chat, /api/ai/conversations, /api/ai/conversations/[id]), nav item with 🤖 icon. Uses @anthropic-ai/sdk 0.88.0.
+- Phase 18a — Monitoring & Observability: Sentry error tracking (@sentry/nextjs ^10, client + server + edge configs with PII scrubbing, ignored-errors list for noise reduction), Vercel Analytics (@vercel/analytics) + Speed Insights (@vercel/speed-insights) wired into root layout, branded global-error.tsx boundary with friendly fallback UI (error ID, Try Again + Go Home buttons) that auto-reports to Sentry, src/lib/monitoring.ts helper with captureError/captureMessage + automatic secret redaction, next.config.js conditionally wrapped with withSentryConfig for build-time source map upload (only when SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT are all set). Admin /admin/dev page extended with "Recent Errors (Last 24h)" panel that fetches unresolved issues from Sentry API via new /api/admin/dev/errors route (super_admin only). ALL graceful — no env vars required for build to succeed; mock/empty states everywhere.
+
+## Session Signoff Style (user preference)
+When ending a task with "John, I am Done Now", ALWAYS use this EXACT format
+(large H1 heading + 14-circle rainbow borders — sized for mobile iOS app):
+
+```
+# 🔴🟠🟡🟢🔵🟣🔴🟠🟡🟢🔵🟣🔴🟠
+# 🎉 JOHN, I AM DONE NOW 🎉
+# 🟣🔵🟢🟡🟠🔴🟣🔵🟢🟡🟠🔴🟣🔵
+```
+
+Rules:
+- Exactly 14 circles per border row (no more, no less — John explicitly
+  tested this width on his iOS Claude app and it aligns perfectly with
+  the text row)
+- Top row pattern: 🔴🟠🟡🟢🔵🟣 × 2 + 🔴🟠 (warm-to-cool)
+- Bottom row pattern: 🟣🔵🟢🟡🟠🔴 × 2 + 🟣🔵 (reverse, cool-to-warm)
+- Both rows + middle row use `#` (H1) for max visibility
+- Party emoji 🎉 on both sides of the text
+- Only use on FULLY-complete tasks. Incomplete tasks get different
+  wording (e.g. "John, stopping here for now") WITHOUT the rainbow so
+  the rainbow signoff retains meaning as "100% done, nothing outstanding."
+
+This is a hard requirement. Do not skip it, shrink it, widen it, or
+substitute a different format.
+
+## Git Workflow (IMPORTANT — changed this session)
+**`main` is now branch-protected via GitHub Ruleset.** Direct pushes to `main` are blocked. All changes must go through pull requests. Workflow:
+1. Develop on feature branch `claude/continue-portal-build-tL9xZ` (or your designated branch)
+2. Commit + push to feature branch (works fine)
+3. Open a PR to `main` via GitHub UI or `mcp__github__create_pull_request` — **only with explicit user permission**
+4. Wait for Vercel preview deploy check to post on the PR
+5. User smoke-tests the preview URL
+6. User clicks Merge (or asks Claude to merge via MCP)
+7. Vercel auto-deploys production on merge
+Ruleset enforces: restrict deletions, require PR before merging, block force pushes, dismiss stale approvals on new commits. No bypass list.
+
+Default branch was switched from stale `master` → `main` in this session; stale `master` branch was deleted. Dependabot is live, opens auto-PRs for security patches, reports alerts directly on push. Private vulnerability reporting and secret scanning are enabled.
 
 ## Remaining Phases
 - **Phase 14**: HubSpot API Integration (real deal/contact sync)
@@ -221,6 +266,6 @@ npm run db:studio    # Open Prisma Studio
   - **VOIP**: Twilio Voice — admin click-to-call dialer from portal, call recording, call logs in partner communication log. Twilio recommended because: single provider for SMS + VOIP (unified billing, shared phone numbers), excellent API for call tracking/recording, built-in webhooks for call status events, programmable IVR, and React/Next.js SDKs available. Alternative considered: Vonage (similar features but less developer ecosystem).
   - **Integration plan**: Twilio account → provision phone numbers → build `/api/twilio/call` endpoint for outbound calls → `/api/twilio/sms` for sending → `/api/twilio/webhook` for status callbacks → CallLog + SmsLog Prisma models → display in partner communication log
 - **Phase 16**: Payments & Payouts (Stripe Connect)
-- **Phase 17**: AI Support Bot (Claude/OpenAI)
-- **Phase 18**: Deployment Hardening (monitoring, analytics, error tracking)
-- **Tech Debt**: Form validation (zod), tests, accessibility audit
+- ~~**Phase 17**: AI Support Bot~~ ✅ **COMPLETE** — TRLN PartnerOS shipped (Sonnet 4.6, Option B dedicated page, mock fallback, rate limiting, budget cap)
+- **Phase 18**: Deployment Hardening (monitoring, analytics, error tracking) — also includes a planned Next.js 14.2.35 → 15/16 upgrade to fix 5 remaining DoS-only CVEs (GHSA-h25m-26qc-wcjf, GHSA-9g9p-9gw9-jx7f, GHSA-ggv3-7p47-pfv8, GHSA-3x4c-7xq6-9pq8, GHSA-q4gf-8mx6-v5v3). Major migration — requires React 19, App Router/caching/middleware changes, dedicated testing session.
+- **Tech Debt**: Form validation (zod), tests, accessibility audit, close stale PR #33 and delete `claude/tariff-partner-portal-Pmu1K` branch (88 commits behind main, dead work from earlier session)
