@@ -169,6 +169,9 @@ npm run db:studio    # Open Prisma Studio
 - Mobile optimization pass: reports grids → hidden md:block + mobile cards, NotificationBell 44px touch target + responsive width, revenue mobile label sizes
 - Agreement status sync: "approved" and "under_review" statuses properly displayed across admin partner detail, partner documents page, agreement gates, and void logic
 - Agreement auto-reconcile: if PartnershipAgreement is "under_review" but an approved Document exists, auto-fixes on page load (both admin and partner APIs)
+- Clickable partner name links: all partner names across admin pages (deals, documents, support, payouts, reports, communications, revenue) link to partner profile via PartnerLink component
+- Communication log in partner profile: support tickets + system notifications displayed in partner detail page with status badges and timestamps
+- PartnerLink reusable component: `src/components/ui/PartnerLink.tsx` — stopPropagation-aware, gold hover underline, graceful null fallback
 
 ## Remaining Phases
 - **Phase 14**: HubSpot API Integration (real deal/contact sync)

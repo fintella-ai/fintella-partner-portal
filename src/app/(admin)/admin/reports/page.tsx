@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { fmt$ } from "@/lib/format";
+import PartnerLink from "@/components/ui/PartnerLink";
 
 type SortDir = "asc" | "desc";
 
@@ -44,6 +45,7 @@ type MonthlyRow = {
 
 type TopPartner = {
   name: string;
+  id: string | null;
   code: string;
   deals: number;
   pipeline: number;
@@ -247,7 +249,7 @@ export default function ReportsPage() {
                   <div className={`font-display text-sm font-bold ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-[var(--app-text-muted)]"}`}>
                     {i + 1}
                   </div>
-                  <div className="font-body text-[13px] text-[var(--app-text)]">{p.name}</div>
+                  <PartnerLink partnerId={p.id} className="font-body text-[13px] text-[var(--app-text)]">{p.name}</PartnerLink>
                   <div className="font-body text-[11px] text-[var(--app-text-muted)] tracking-wider">{p.code}</div>
                   <div className="font-body text-[13px] text-[var(--app-text-secondary)]">{p.deals}</div>
                   <div className="font-body text-[13px] text-[var(--app-text-secondary)]">{fmt$(p.pipeline)}</div>
@@ -264,7 +266,7 @@ export default function ReportsPage() {
                       {i + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-body text-sm font-medium text-[var(--app-text)] truncate">{p.name}</div>
+                      <PartnerLink partnerId={p.id} className="font-body text-sm font-medium text-[var(--app-text)] truncate block">{p.name}</PartnerLink>
                       <div className="font-body text-xs text-[var(--app-text-muted)] tracking-wider">{p.code}</div>
                     </div>
                     <div className="font-display text-base font-bold text-brand-gold shrink-0">{fmt$(p.commission)}</div>

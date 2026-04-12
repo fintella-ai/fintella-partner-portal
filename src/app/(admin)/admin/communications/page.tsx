@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fmtDate } from "@/lib/format";
+import PartnerLink from "@/components/ui/PartnerLink";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -226,6 +227,21 @@ type InboxFilter = (typeof inboxFilters)[number];
 
 export default function CommunicationsPage() {
   const [activeTab, setActiveTab] = useState<MainTab>("Inbox");
+  const [partnerIdMap, setPartnerIdMap] = useState<Record<string, string>>({});
+
+  // Fetch partner name→id map for clickable links
+  useEffect(() => {
+    fetch("/api/admin/partners")
+      .then((r) => r.json())
+      .then((data) => {
+        const map: Record<string, string> = {};
+        for (const p of data.partners || []) {
+          map[`${p.firstName} ${p.lastName}`] = p.id;
+        }
+        setPartnerIdMap(map);
+      })
+      .catch(() => {});
+  }, []);
 
   /* Inbox state */
   const [inboxFilter, setInboxFilter] = useState<InboxFilter>("All");
@@ -306,9 +322,9 @@ export default function CommunicationsPage() {
                   }`}
                 >
                   <td className="px-4 py-3">
-                    <div className={`font-medium ${!e.read ? "text-[var(--app-text)]" : "text-[var(--app-text-secondary)]"}`}>
+                    <PartnerLink partnerId={partnerIdMap[e.fromName] || null} className={`font-medium ${!e.read ? "text-[var(--app-text)]" : "text-[var(--app-text-secondary)]"}`}>
                       {e.fromName}
-                    </div>
+                    </PartnerLink>
                     <div className="text-xs text-[var(--app-text-muted)]">{e.fromEmail}</div>
                   </td>
                   <td className="px-4 py-3">
@@ -367,9 +383,9 @@ export default function CommunicationsPage() {
             >
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <div className={`font-body text-sm font-medium ${!e.read ? "text-[var(--app-text)]" : "text-[var(--app-text-secondary)]"}`}>
+                  <PartnerLink partnerId={partnerIdMap[e.fromName] || null} className={`font-body text-sm font-medium ${!e.read ? "text-[var(--app-text)]" : "text-[var(--app-text-secondary)]"}`}>
                     {e.fromName}
-                  </div>
+                  </PartnerLink>
                   <div className="font-body text-xs text-[var(--app-text-muted)]">{e.fromEmail}</div>
                 </div>
                 <span className="font-body text-xs text-[var(--app-text-muted)] whitespace-nowrap">

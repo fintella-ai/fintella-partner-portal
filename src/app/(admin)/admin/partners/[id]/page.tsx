@@ -74,6 +74,8 @@ export default function PartnerDetailPage() {
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [adminNotes, setAdminNotes] = useState<any[]>([]);
   const [codeHistory, setCodeHistory] = useState<any[]>([]);
+  const [supportTickets, setSupportTickets] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [downlineView, setDownlineView] = useState<"list" | "tree">("list");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -123,6 +125,8 @@ export default function PartnerDetailPage() {
       setAgreement(data.agreement || null);
       setAdminNotes(data.adminNotes || []);
       setCodeHistory(data.codeHistory || []);
+      setSupportTickets(data.supportTickets || []);
+      setNotifications(data.notifications || []);
 
       setFirstName(p.firstName);
       setLastName(p.lastName);
@@ -946,6 +950,91 @@ export default function PartnerDetailPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* ═══ COMMUNICATION LOG ═══ */}
+      <div className="card">
+        <div className="px-5 py-4 border-b border-[var(--app-border)]">
+          <div className="font-body font-semibold text-sm">Communication Log</div>
+          <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">All support tickets, notifications, and system communications with this partner.</div>
+        </div>
+
+        {supportTickets.length === 0 && notifications.length === 0 ? (
+          <div className="px-5 py-8 text-center font-body text-[13px] text-[var(--app-text-muted)]">
+            No communications recorded yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--app-border)]">
+            {/* Support Tickets */}
+            {supportTickets.length > 0 && (
+              <div>
+                <div className="px-5 py-2.5 bg-[var(--app-card-bg)]">
+                  <div className="font-body text-[10px] tracking-[1.5px] uppercase text-[var(--app-text-muted)]">
+                    Support Tickets ({supportTickets.length})
+                  </div>
+                </div>
+                {supportTickets.map((t: any) => (
+                  <div
+                    key={t.id}
+                    className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer"
+                    onClick={() => router.push("/admin/support")}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-body text-[13px] font-medium text-[var(--app-text)] truncate">{t.subject}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px]">
+                          <span className="font-body text-[var(--app-text-muted)]">{t.category}</span>
+                          <span className="text-[var(--app-text-faint)]">&middot;</span>
+                          <span className="font-body text-[var(--app-text-muted)]">{fmtDate(t.createdAt)}</span>
+                          <span className="text-[var(--app-text-faint)]">&middot;</span>
+                          <span className="font-body text-[var(--app-text-muted)]">
+                            {t.messages?.length || 0} {t.messages?.length === 1 ? "message" : "messages"}
+                          </span>
+                        </div>
+                      </div>
+                      <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase shrink-0 ${
+                        t.status === "open" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                          : t.status === "in_progress" ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                          : t.status === "resolved" ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                          : "bg-[var(--app-input-bg)] text-[var(--app-text-muted)] border border-[var(--app-border)]"
+                      }`}>
+                        {t.status.replace("_", " ")}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* System Notifications */}
+            {notifications.length > 0 && (
+              <div>
+                <div className="px-5 py-2.5 bg-[var(--app-card-bg)]">
+                  <div className="font-body text-[10px] tracking-[1.5px] uppercase text-[var(--app-text-muted)]">
+                    System Notifications ({notifications.length})
+                  </div>
+                </div>
+                {notifications.map((n: any) => (
+                  <div key={n.id} className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0">
+                    <div className="flex items-start gap-3">
+                      <span className="text-base mt-0.5 shrink-0">
+                        {n.type === "deal_update" ? "📋" : n.type === "commission_paid" ? "💰" : n.type === "document_request" ? "📄" : n.type === "ticket_response" ? "🎫" : "🔔"}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-body text-[13px] text-[var(--app-text)]">{n.title}</div>
+                        <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">{n.message}</div>
+                        <div className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">{fmtDate(n.createdAt)}</div>
+                      </div>
+                      {!n.read && <span className="w-2 h-2 rounded-full bg-brand-gold shrink-0 mt-1.5" />}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

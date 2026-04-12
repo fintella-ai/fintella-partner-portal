@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { fmt$, fmtDate } from "@/lib/format";
+import PartnerLink from "@/components/ui/PartnerLink";
 
 type SortDir = "asc" | "desc";
 type SortKey = string;
@@ -29,6 +30,7 @@ interface Deal {
   id: string;
   dealName: string;
   partnerCode: string;
+  partnerId: string | null;
   stage: string;
   estimatedRefundAmount: number;
   firmFeeRate: number | null;
@@ -353,7 +355,7 @@ export default function RevenuePage() {
               <div key={d.id} className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.7fr_0.7fr_0.6fr_0.6fr_0.6fr] gap-2 px-5 py-3 items-center min-w-[800px] hover:bg-[var(--app-hover)] transition-colors" style={{ borderBottom: "1px solid var(--app-border)" }}>
                 <div>
                   <div className="font-body text-[13px] font-medium truncate">{d.dealName}</div>
-                  <div className="font-mono text-[10px] theme-text-muted">{d.partnerCode}</div>
+                  <PartnerLink partnerId={d.partnerId} className="font-mono text-[10px] theme-text-muted">{d.partnerCode}</PartnerLink>
                 </div>
                 <div>
                   <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${stageBadge[d.stage] || stageBadge.new_lead}`}>

@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import PartnerLink from "@/components/ui/PartnerLink";
 
 type DocEntry = {
   id: string;
   partnerCode: string;
   partnerName: string;
+  partnerId: string | null;
   docType: string;
   fileName: string;
   fileUrl: string;
@@ -144,7 +146,7 @@ export default function DocumentTrackingPage() {
             {filtered.map((d) => (
               <tr key={d.id} className="border-b border-[var(--app-border)] hover:bg-[var(--app-hover)] transition">
                 <td className="px-4 py-3">
-                  <div className="text-[var(--app-text)]">{d.partnerName}</div>
+                  <PartnerLink partnerId={d.partnerId} className="text-[var(--app-text)]">{d.partnerName}</PartnerLink>
                   <div className="text-xs text-[var(--app-text-muted)]">{d.partnerCode}</div>
                 </td>
                 <td className="px-4 py-3 text-[var(--app-text-secondary)]">{d.docType === "agreement" ? "Agreement" : d.docType === "w9" ? "Tax Document (W9)" : d.docType.toUpperCase()}</td>
@@ -199,7 +201,7 @@ export default function DocumentTrackingPage() {
           <div key={d.id} className="card p-4">
             <div className="flex items-start justify-between mb-2">
               <div>
-                <div className="font-body text-sm font-medium text-[var(--app-text)]">{d.partnerName}</div>
+                <PartnerLink partnerId={d.partnerId} className="font-body text-sm font-medium text-[var(--app-text)]">{d.partnerName}</PartnerLink>
                 <div className="font-body text-xs text-[var(--app-text-muted)] mt-0.5">{d.partnerCode}</div>
               </div>
               <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${statusBadge[d.status] || statusBadge.uploaded}`}>

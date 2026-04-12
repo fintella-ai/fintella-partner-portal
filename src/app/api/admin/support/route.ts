@@ -26,11 +26,12 @@ export async function GET(req: NextRequest) {
 
     // Get partner names
     const partners = await prisma.partner.findMany({
-      select: { partnerCode: true, firstName: true, lastName: true, companyName: true },
+      select: { id: true, partnerCode: true, firstName: true, lastName: true, companyName: true },
     });
-    const partnerMap: Record<string, { name: string; company: string | null }> = {};
+    const partnerMap: Record<string, { id: string; name: string; company: string | null }> = {};
     for (const p of partners) {
       partnerMap[p.partnerCode] = {
+        id: p.id,
         name: `${p.firstName} ${p.lastName}`,
         company: p.companyName,
       };
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
     const enriched = tickets.map((t) => ({
       id: t.id,
       partnerCode: t.partnerCode,
+      partnerId: partnerMap[t.partnerCode]?.id || null,
       partnerName: partnerMap[t.partnerCode]?.name || t.partnerCode,
       companyName: partnerMap[t.partnerCode]?.company || null,
       subject: t.subject,

@@ -111,16 +111,17 @@ export async function GET() {
       partnerCommMap[comm.partnerCode].commission += comm.amount;
     }
 
-    const partnerNameMap: Record<string, string> = {};
+    const partnerInfoMap: Record<string, { name: string; id: string }> = {};
     for (const p of allPartners) {
-      partnerNameMap[p.partnerCode] = `${p.firstName} ${p.lastName}`;
+      partnerInfoMap[p.partnerCode] = { name: `${p.firstName} ${p.lastName}`, id: p.id };
     }
 
     const topPartners = Object.entries(partnerCommMap)
       .sort(([, a], [, b]) => b.commission - a.commission)
       .slice(0, 10)
       .map(([code, data]) => ({
-        name: partnerNameMap[code] || code,
+        name: partnerInfoMap[code]?.name || code,
+        id: partnerInfoMap[code]?.id || null,
         code,
         ...data,
       }));

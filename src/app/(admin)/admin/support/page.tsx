@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import PartnerLink from "@/components/ui/PartnerLink";
 
 type Ticket = {
   id: string;
+  partnerId: string | null;
   partnerName: string;
   partnerCode: string;
   companyName: string | null;
@@ -334,7 +336,7 @@ export default function SupportTicketsPage() {
                       <div className="text-xs text-[var(--app-text-muted)]">{t.messageCount} messages</div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-[var(--app-text)]">{t.partnerName}</div>
+                      <PartnerLink partnerId={t.partnerId} className="text-[var(--app-text)]">{t.partnerName}</PartnerLink>
                       <div className="text-xs text-[var(--app-text-muted)]">{t.partnerCode}</div>
                     </td>
                     <td className="px-4 py-3 text-[var(--app-text-secondary)]">{t.category}</td>
@@ -374,7 +376,7 @@ export default function SupportTicketsPage() {
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--app-text-secondary)] mb-3">
-                  <span>{t.partnerName}</span>
+                  <PartnerLink partnerId={t.partnerId} className="text-[var(--app-text-secondary)]">{t.partnerName}</PartnerLink>
                   <span>&middot;</span>
                   <span>{t.category}</span>
                   <span>&middot;</span>

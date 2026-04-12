@@ -26,11 +26,12 @@ export async function GET(req: NextRequest) {
 
     // Get partner names
     const partners = await prisma.partner.findMany({
-      select: { partnerCode: true, firstName: true, lastName: true, companyName: true },
+      select: { id: true, partnerCode: true, firstName: true, lastName: true, companyName: true },
     });
-    const partnerMap: Record<string, { name: string; company: string | null }> = {};
+    const partnerMap: Record<string, { id: string; name: string; company: string | null }> = {};
     for (const p of partners) {
       partnerMap[p.partnerCode] = {
+        id: p.id,
         name: `${p.firstName} ${p.lastName}`,
         company: p.companyName,
       };
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
     const payouts = commissions.map((c) => ({
       id: c.id,
       partnerName: partnerMap[c.partnerCode]?.company || partnerMap[c.partnerCode]?.name || c.partnerCode,
+      partnerId: partnerMap[c.partnerCode]?.id || null,
       partnerCode: c.partnerCode,
       tier: c.tier.toUpperCase(),
       dealName: c.dealName || c.dealId,

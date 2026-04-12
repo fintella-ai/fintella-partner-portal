@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { fmt$, fmtDate } from "@/lib/format";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
+import PartnerLink from "@/components/ui/PartnerLink";
 
 const STAGES = [
   { value: "all", label: "All Stages" },
@@ -23,6 +24,7 @@ type Deal = {
   dealName: string;
   partnerCode: string;
   partnerName: string;
+  partnerId: string | null;
   // Client contact
   clientFirstName: string | null;
   clientLastName: string | null;
@@ -310,7 +312,7 @@ export default function AdminDealsPage() {
                 <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate">{deal.dealName}</div>
                 <div className="font-body text-[11px] text-[var(--app-text-muted)] truncate">{deal.clientName || deal.clientEmail || "—"}</div>
               </div>
-              <div className="font-body text-[12px] text-[var(--app-text-secondary)] truncate">{deal.partnerName}</div>
+              <PartnerLink partnerId={deal.partnerId} className="font-body text-[12px] text-[var(--app-text-secondary)] truncate block">{deal.partnerName}</PartnerLink>
               <div><StageBadge stage={deal.stage} /></div>
               <div className="font-body text-[13px] text-[var(--app-text)]">{fmt$(deal.estimatedRefundAmount)}</div>
               <div className="font-body text-[13px] text-[var(--app-text-secondary)]">{fmt$(deal.firmFeeAmount)}</div>
@@ -492,7 +494,7 @@ export default function AdminDealsPage() {
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
                   <div className="font-body text-[13px] font-medium text-[var(--app-text)] truncate">{deal.dealName}</div>
-                  <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">{deal.partnerName} · {fmtDate(deal.createdAt)}</div>
+                  <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5"><PartnerLink partnerId={deal.partnerId} className="text-[var(--app-text-muted)]">{deal.partnerName}</PartnerLink> · {fmtDate(deal.createdAt)}</div>
                 </div>
                 <StageBadge stage={deal.stage} />
               </div>

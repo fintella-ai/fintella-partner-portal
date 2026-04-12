@@ -24,17 +24,18 @@ export async function GET() {
     const partnerCodes = Array.from(new Set(documents.map((d: any) => d.partnerCode)));
     const partners = await prisma.partner.findMany({
       where: { partnerCode: { in: partnerCodes } },
-      select: { partnerCode: true, firstName: true, lastName: true },
+      select: { id: true, partnerCode: true, firstName: true, lastName: true },
     });
 
-    const nameMap: Record<string, string> = {};
+    const infoMap: Record<string, { name: string; id: string }> = {};
     partners.forEach((p: any) => {
-      nameMap[p.partnerCode] = `${p.firstName} ${p.lastName}`;
+      infoMap[p.partnerCode] = { name: `${p.firstName} ${p.lastName}`, id: p.id };
     });
 
     const enriched = documents.map((d: any) => ({
       ...d,
-      partnerName: nameMap[d.partnerCode] || d.partnerCode,
+      partnerName: infoMap[d.partnerCode]?.name || d.partnerCode,
+      partnerId: infoMap[d.partnerCode]?.id || null,
     }));
 
     return NextResponse.json({ documents: enriched });

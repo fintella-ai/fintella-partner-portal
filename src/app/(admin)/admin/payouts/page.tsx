@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { fmt$ } from "@/lib/format";
+import PartnerLink from "@/components/ui/PartnerLink";
 
 type Payout = {
   id: string;
   partnerName: string;
+  partnerId: string | null;
   partnerCode: string;
   tier: string;
   dealName: string;
@@ -205,7 +207,7 @@ export default function PayoutManagementPage() {
                 {filtered.map((p) => (
                   <tr key={p.id} className="border-b border-[var(--app-border-subtle)] hover:bg-[var(--app-card-bg)] transition">
                     <td className="px-4 py-3">
-                      <div className="text-[var(--app-text)]">{p.partnerName}</div>
+                      <PartnerLink partnerId={p.partnerId} className="text-[var(--app-text)]">{p.partnerName}</PartnerLink>
                       <div className="text-xs text-[var(--app-text-muted)]">{p.partnerCode}</div>
                     </td>
                     <td className="px-4 py-3 text-[var(--app-text-secondary)]">{p.dealName}</td>
@@ -248,7 +250,7 @@ export default function PayoutManagementPage() {
               <div key={p.id} className="card p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <div className="font-body text-sm font-medium text-[var(--app-text)]">{p.partnerName}</div>
+                    <PartnerLink partnerId={p.partnerId} className="font-body text-sm font-medium text-[var(--app-text)]">{p.partnerName}</PartnerLink>
                     <div className="font-body text-xs text-[var(--app-text-muted)] mt-0.5">{p.partnerCode}</div>
                   </div>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${tierBadge[p.tier] || tierBadge.L1}`}>
