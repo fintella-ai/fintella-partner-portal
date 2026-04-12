@@ -220,20 +220,29 @@ npm run db:studio    # Open Prisma Studio
 - TRLN PartnerOS AI Assistant (Phase 17): Claude Sonnet 4.6 powered support bot with partner data context (recent deals, commission totals, downline count, agreement status), conversation persistence (AiConversation + AiMessage + AiUsageDay Prisma models), prompt caching on static knowledge base (commission structure, deal stages, FAQ), rate limiting (50 msgs/partner/day, $5/day budget cap via AI_DAILY_BUDGET_USD env var), graceful mock fallback when ANTHROPIC_API_KEY not set, dedicated page at /dashboard/ai-assistant with conversation history sidebar + suggested prompts empty state, 3 API routes (/api/ai/chat, /api/ai/conversations, /api/ai/conversations/[id]), nav item with 🤖 icon. Uses @anthropic-ai/sdk 0.88.0.
 
 ## Session Signoff Style (user preference)
-When ending a task with "John, I am Done Now", ALWAYS use this exact format
-(large heading + rainbow emoji borders):
+When ending a task with "John, I am Done Now", ALWAYS use this EXACT format
+(large H1 heading + 14-circle rainbow borders — sized for mobile iOS app):
 
 ```
-# 🔴🟠🟡🟢🔵🟣🔴🟠🟡🟢🔵🟣🔴🟠🟡🟢🔵🟣🔴🟠🟡🟢🔵🟣
+# 🔴🟠🟡🟢🔵🟣🔴🟠🟡🟢🔵🟣🔴🟠
 # 🎉 JOHN, I AM DONE NOW 🎉
-# 🟣🔵🟢🟡🟠🔴🟣🔵🟢🟡🟠🔴🟣🔵🟢🟡🟠🔴🟣🔵🟢🟡🟠🔴
+# 🟣🔵🟢🟡🟠🔴🟣🔵🟢🟡🟠🔴🟣🔵
 ```
 
-This is a hard requirement — John explicitly chose this over alternatives
-for visibility. Do not skip it, shrink it, or substitute a smaller version
-when a task is complete. If a task stops incomplete, use a different
-wording (e.g. "John, stopping here for now" WITHOUT the rainbow) so the
-rainbow signoff retains meaning as "fully complete."
+Rules:
+- Exactly 14 circles per border row (no more, no less — John explicitly
+  tested this width on his iOS Claude app and it aligns perfectly with
+  the text row)
+- Top row pattern: 🔴🟠🟡🟢🔵🟣 × 2 + 🔴🟠 (warm-to-cool)
+- Bottom row pattern: 🟣🔵🟢🟡🟠🔴 × 2 + 🟣🔵 (reverse, cool-to-warm)
+- Both rows + middle row use `#` (H1) for max visibility
+- Party emoji 🎉 on both sides of the text
+- Only use on FULLY-complete tasks. Incomplete tasks get different
+  wording (e.g. "John, stopping here for now") WITHOUT the rainbow so
+  the rainbow signoff retains meaning as "100% done, nothing outstanding."
+
+This is a hard requirement. Do not skip it, shrink it, widen it, or
+substitute a different format.
 
 ## Git Workflow (IMPORTANT — changed this session)
 **`main` is now branch-protected via GitHub Ruleset.** Direct pushes to `main` are blocked. All changes must go through pull requests. Workflow:
