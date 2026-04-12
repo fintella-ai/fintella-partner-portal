@@ -180,6 +180,9 @@ npm run db:studio    # Open Prisma Studio
 - Enterprise Partner display in admin partner profile: shows tier badge, total rate, override rate, coverage (confidential — admin-only)
 - Enterprise agreement template: SignWell template ID field in admin Settings > Agreements for enterprise partner agreements
 - Enterprise data confidentiality: EP info only visible in admin panel, never exposed to partner portal or non-EP partners
+- Deal pipeline stages updated: New Lead → No Consultation Booked → Consultation Booked → Client No Show → Client Engaged → In Process → Closed Won → Closed Lost
+- Consultation date/time fields: consultBookedDate + consultBookedTime on Deal model, webhook POST creates + PATCH updates (for rescheduling)
+- Webhook guide: consultation fields documented in POST + PATCH sections, deal example screenshot section added
 - Clickable deal name links: all deal names across admin pages (revenue, payouts, enterprise reporting) link to deals page via DealLink component with auto-expand and scroll-to
 - DealLink reusable component: `src/components/ui/DealLink.tsx` — navigates to `/admin/deals?deal={id}`, auto-expands and scrolls to target deal
 

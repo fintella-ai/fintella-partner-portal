@@ -9,10 +9,11 @@ import PartnerLink from "@/components/ui/PartnerLink";
 const STAGES = [
   { value: "all", label: "All Stages" },
   { value: "new_lead", label: "New Lead" },
-  { value: "contacted", label: "Contacted" },
-  { value: "qualified", label: "Qualified" },
+  { value: "no_consultation", label: "No Consultation Booked" },
   { value: "consultation_booked", label: "Consultation Booked" },
-  { value: "engaged", label: "Engaged" },
+  { value: "client_no_show", label: "Client No Show" },
+  { value: "client_engaged", label: "Client Engaged" },
+  { value: "in_process", label: "In Process" },
   { value: "closedwon", label: "Closed Won" },
   { value: "closedlost", label: "Closed Lost" },
 ];
@@ -44,6 +45,8 @@ type Deal = {
   affiliateNotes: string | null;
   // Deal tracking
   stage: string;
+  consultBookedDate: string | null;
+  consultBookedTime: string | null;
   productType: string | null;
   importedProducts: string | null;
   estimatedRefundAmount: number;
@@ -350,6 +353,20 @@ export default function AdminDealsPage() {
                     <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider">Deal ID (Unique Identifier)</div>
                     <div className="font-mono text-[12px] text-[var(--app-text)] mt-0.5 select-all">{deal.id}</div>
                   </div>
+
+                  {/* Consultation Date/Time */}
+                  {(deal.consultBookedDate || deal.consultBookedTime) && (
+                    <div className="mb-3 p-2.5 rounded-lg flex items-center gap-4" style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                      <div>
+                        <div className="font-body text-[10px] text-yellow-500/80 uppercase tracking-wider">Consultation Date</div>
+                        <div className="font-body text-[13px] text-[var(--app-text)] mt-0.5">{deal.consultBookedDate || "—"}</div>
+                      </div>
+                      <div>
+                        <div className="font-body text-[10px] text-yellow-500/80 uppercase tracking-wider">Consultation Time</div>
+                        <div className="font-body text-[13px] text-[var(--app-text)] mt-0.5">{deal.consultBookedTime || "—"}</div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2.5">
                     {[

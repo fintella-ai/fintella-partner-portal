@@ -121,6 +121,12 @@ const FIELDS = [
     desc: "Current stage in your pipeline. Stored exactly as sent (not mapped or transformed).",
   },
   {
+    category: "Consultation",
+    colorVar: "--doc-yellow",
+    fields: ["consult_booked_date", "consult_booked_time"],
+    desc: "Consultation scheduling. Date (YYYY-MM-DD) and time (HH:MM). Can be updated via PATCH if rescheduled.",
+  },
+  {
     category: "Notes",
     colorVar: "--doc-text-muted",
     fields: ["affiliate_notes"],
@@ -161,6 +167,7 @@ export default function WebhookGuidePage() {
                 { href: "#store-deal-id", label: "Store Deal ID" },
                 { href: "#update-deal", label: "Updating a Deal (PATCH)" },
                 { href: "#closing-deal", label: "Closing a Deal" },
+                { href: "#deal-example", label: "Deal Example" },
                 { href: "#health-check", label: "Health Check" },
               ].map((item) => (
                 <a
@@ -252,6 +259,8 @@ export default function WebhookGuidePage() {
 {jsonLine("import_countries", "China, Vietnam")}
 {jsonLine("annual_import_value", "$1M - $5M")}
 {jsonLine("importer_of_record", "Acme Imports LLC")}
+{jsonLine("consult_booked_date", "2026-04-15")}
+{jsonLine("consult_booked_time", "14:00")}
 {jsonLine("dealstage", "Qualified")}
 {jsonLine("affiliate_notes", "Referred by CPA network", true)}
 {`}`}
@@ -342,6 +351,12 @@ export default function WebhookGuidePage() {
                   desc: "Update the deal's refund amount, firm fee percentage (e.g. 20 or 0.20), or firm fee dollar amount.",
                 },
                 {
+                  category: "Consultation",
+                  colorVar: "--doc-yellow",
+                  fields: ["consult_booked_date", "consult_booked_time"],
+                  desc: "Reschedule or set the consultation date/time. Overwrites previous values.",
+                },
+                {
                   category: "Closed Lost",
                   colorVar: "--doc-text-muted",
                   fields: ["closed_lost_reason"],
@@ -416,6 +431,26 @@ export default function WebhookGuidePage() {
           </Section>
 
           </div>
+          </div>
+
+          {/* ═══ DEAL EXAMPLE ═══ */}
+          <div id="deal-example" style={{ scrollMarginTop: 20 }}>
+          <Section title="Our System — Deal Example Data After Webhook Received">
+            <p style={{ fontSize: 14, color: "var(--doc-text-muted)", marginBottom: 16 }}>
+              Below is an example of how a deal appears in our admin portal after the webhook data is received and processed. All client details, partner attribution, deal stage, financials, and commission tracking are displayed in an expanded deal view.
+            </p>
+            <div style={{ background: "var(--doc-card-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, overflow: "hidden", padding: 2 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/docs/deal-example.png"
+                alt="TRLN Admin Portal — Deal Example showing client submission details, deal management stage, and commission tracking after webhook data is received"
+                style={{ width: "100%", height: "auto", display: "block", borderRadius: 10 }}
+              />
+            </div>
+            <div style={{ marginTop: 12, fontSize: 12, color: "var(--doc-text-faint)", fontStyle: "italic" }}>
+              Example: An expanded deal view in the TRLN admin panel showing client submission details (contact, business info, tariff fields), deal stage management, commission status, and financial breakdown — all populated from webhook data.
+            </div>
+          </Section>
           </div>
 
           {/* ═══ HEALTH CHECK ═══ */}

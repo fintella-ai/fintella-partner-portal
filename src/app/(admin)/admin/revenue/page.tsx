@@ -93,10 +93,11 @@ interface Deal {
 
 const stageBadge: Record<string, string> = {
   new_lead: "bg-gray-500/10 text-gray-400 border border-gray-500/20",
-  contacted: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-  qualified: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+  no_consultation: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
   consultation_booked: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
-  engaged: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+  client_no_show: "bg-red-500/10 text-red-400 border border-red-500/20",
+  client_engaged: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+  in_process: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
   closedwon: "bg-green-500/10 text-green-400 border border-green-500/20",
   closedlost: "bg-red-500/10 text-red-400 border border-red-500/20",
 };
@@ -405,10 +406,11 @@ export default function RevenuePage() {
                 <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className="w-full theme-input rounded-lg px-3 py-2 font-body text-[12px] outline-none">
                   <option value="">All Stages</option>
                   <option value="new_lead">New Lead</option>
-                  <option value="contacted">Contacted</option>
-                  <option value="qualified">Qualified</option>
-                  <option value="consultation_booked">Consultation</option>
-                  <option value="engaged">Engaged</option>
+                  <option value="no_consultation">No Consultation Booked</option>
+                  <option value="consultation_booked">Consultation Booked</option>
+                  <option value="client_no_show">Client No Show</option>
+                  <option value="client_engaged">Client Engaged</option>
+                  <option value="in_process">In Process</option>
                   <option value="closedwon">Closed Won</option>
                   <option value="closedlost">Closed Lost</option>
                 </select>

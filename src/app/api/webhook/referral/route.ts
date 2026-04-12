@@ -81,6 +81,16 @@ export async function POST(req: NextRequest) {
       "status", "Status"
     );
 
+    // Consultation scheduling
+    const consultBookedDate = get(
+      "consult_booked_date", "consultBookedDate", "consultation_date",
+      "consultationDate", "consult_date", "meeting_date", "meetingDate"
+    );
+    const consultBookedTime = get(
+      "consult_booked_time", "consultBookedTime", "consultation_time",
+      "consultationTime", "consult_time", "meeting_time", "meetingTime"
+    );
+
     // ── Build deal name ───────────────────────────────────────────────
     const dealName = legalEntityName
       || (firstName && lastName ? `${firstName} ${lastName}` : "")
@@ -117,6 +127,8 @@ export async function POST(req: NextRequest) {
         annualImportValue: annualImportValue || null,
         importerOfRecord: importerOfRecord || null,
         affiliateNotes: affiliateNotes || null,
+        consultBookedDate: consultBookedDate || null,
+        consultBookedTime: consultBookedTime || null,
         notes: `Source: Frost Law Referral Form | Partner: ${partnerCode || "none"}${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
       },
     });
@@ -217,6 +229,12 @@ export async function PATCH(req: NextRequest) {
     // Closed lost reason
     const closedLostReason = body.closed_lost_reason || body.closedLostReason || body.lost_reason || body.lostReason;
     if (closedLostReason) data.closedLostReason = String(closedLostReason).trim();
+
+    // Consultation scheduling (create or reschedule)
+    const consultDate = body.consult_booked_date || body.consultBookedDate || body.consultation_date || body.consultationDate;
+    if (consultDate) data.consultBookedDate = String(consultDate).trim();
+    const consultTime = body.consult_booked_time || body.consultBookedTime || body.consultation_time || body.consultationTime;
+    if (consultTime) data.consultBookedTime = String(consultTime).trim();
 
     // Close date (if stage is closedwon or closedlost)
     if (stage) {

@@ -420,6 +420,8 @@ model Deal {
   // Deal tracking
   stage                 String    @default("new_lead")
   externalStage         String?   // raw deal stage from external system (Frost Law / HubSpot)
+  consultBookedDate     String?   // consultation date (YYYY-MM-DD or display format)
+  consultBookedTime     String?   // consultation time (HH:MM or display format)
   productType           String?   // "ieepa", "section301", "other"
   importedProducts      String?   // description of goods
   estimatedRefundAmount Float     @default(0)
