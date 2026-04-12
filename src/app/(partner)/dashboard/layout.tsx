@@ -378,30 +378,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Header */}
         <div className="mb-5 sm:mb-8">
           {device.isMobile && (
-            <div className="flex justify-between items-center mb-3">
-              <div className="font-display text-[13px] font-semibold text-brand-gold tracking-[1px]">
-                {firmShort}
+            <>
+              {/* Safe area spacer for iPhone notch/Dynamic Island */}
+              <div style={{ paddingTop: "env(safe-area-inset-top, 12px)" }} />
+              <div className="flex justify-between items-center py-3">
+                <div className="font-display text-[13px] font-semibold text-brand-gold tracking-[1px]">
+                  {firmShort}
+                </div>
+                <div className="flex items-center gap-2">
+                  <NotificationBell />
+                  <button
+                    onClick={() => navigate("/dashboard/support")}
+                    className={`font-body text-lg font-bold border rounded px-3 py-1.5 tracking-wider min-h-[32px] transition-colors ${
+                      isActive("/dashboard/support")
+                        ? "text-brand-gold border-brand-gold/30 bg-brand-gold/10"
+                        : "text-[var(--app-text-muted)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)]"
+                    }`}
+                  >
+                    🎫 Support
+                  </button>
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    className="font-body text-[10px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded px-3 py-1.5 tracking-wider min-h-[32px]"
+                  >
+                    Sign Out
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <NotificationBell />
-                <button
-                  onClick={() => navigate("/dashboard/support")}
-                  className={`font-body text-lg font-bold border rounded px-3 py-1.5 tracking-wider min-h-[32px] transition-colors ${
-                    isActive("/dashboard/support")
-                      ? "text-brand-gold border-brand-gold/30 bg-brand-gold/10"
-                      : "text-[var(--app-text-muted)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)]"
-                  }`}
-                >
-                  🎫 Support
-                </button>
-                <button
-                  onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="font-body text-[10px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded px-3 py-1.5 tracking-wider min-h-[32px]"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
+              {/* Divider below header bar */}
+              <div className="border-b border-[var(--app-border)] mb-3" />
+            </>
           )}
 
           {/* Mobile: Referral link buttons right at top */}
