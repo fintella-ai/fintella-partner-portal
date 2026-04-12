@@ -154,7 +154,7 @@ export default function OverviewPage() {
             {/* Header row */}
             <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-3 border-b border-[var(--app-border)]">
               <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">Client / Deal</div>
-              <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">Stage</div>
+              <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] text-center">Stage</div>
               <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">Est. Refund</div>
               <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">Firm Fee</div>
               <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] text-right">Commission</div>
@@ -175,7 +175,7 @@ export default function OverviewPage() {
                     </div>
                   </div>
                   {/* Col 2: Stage */}
-                  <div>
+                  <div className="text-center">
                     <StageBadge stage={p.stage} />
                   </div>
                   {/* Col 3: Est. Refund */}
@@ -246,7 +246,7 @@ export default function OverviewPage() {
               {/* Header */}
               <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-3 border-b border-[var(--app-border)]">
                 <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">Client / Deal</div>
-                <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">Stage</div>
+                <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] text-center">Stage</div>
                 <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)]">Est. Refund</div>
                 <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] text-right">L2 Commission</div>
               </div>
@@ -264,7 +264,7 @@ export default function OverviewPage() {
                         Via {p.submittingPartnerName || partnerNameMap[p.partnerCode] || p.partnerCode} · {fmtDate(p.createdAt)}
                       </div>
                     </div>
-                    <div>
+                    <div className="text-center">
                       <StageBadge stage={p.stage} />
                     </div>
                     <div className="font-body text-[13px] text-[var(--app-text)]">

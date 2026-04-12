@@ -297,7 +297,7 @@ export default function DocumentsPage() {
             <div className="hidden md:block border border-[var(--app-border)] rounded-lg overflow-hidden">
               <div className="grid grid-cols-[1.5fr_0.8fr_0.7fr_0.6fr_0.6fr] gap-3 px-4 py-2.5 bg-[var(--app-card-bg)] border-b border-[var(--app-border)]">
                 {["Document", "Type", "Status", "Date", "Action"].map((h) => (
-                  <span key={h} className={`font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Action" ? "text-right" : ""}`}>{h}</span>
+                  <span key={h} className={`font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Action" ? "text-right" : h === "Status" ? "text-center" : ""}`}>{h}</span>
                 ))}
               </div>
               {nonAgreementDocs.map((doc: any) => {
@@ -309,7 +309,7 @@ export default function DocumentsPage() {
                       {doc.notes && <div className="font-body text-[10px] text-[var(--app-text-muted)] mt-0.5 truncate">Note: {doc.notes}</div>}
                     </div>
                     <div className="font-body text-[12px] text-[var(--app-text-secondary)]">{DOC_TYPE_LABELS[doc.docType] || doc.docType}</div>
-                    <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase ${dCfg.bg} ${dCfg.text}`}>{dCfg.label}</span>
+                    <div className="text-center"><span className={`inline-flex items-center w-fit px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase ${dCfg.bg} ${dCfg.text}`}>{dCfg.label}</span></div>
                     <span className="font-body text-[12px] text-[var(--app-text-muted)]">{fmtDate(doc.createdAt)}</span>
                     <div className="text-right">
                       {doc.fileUrl && <div className="flex items-center gap-2"><button onClick={() => { const w = window.open(); if (w) { w.document.write(`<iframe src="${doc.fileUrl}" style="width:100%;height:100vh;border:none;"></iframe>`); w.document.title = doc.fileName; } }} className="text-[11px] text-brand-gold hover:underline">View</button><a href={doc.fileUrl} download={doc.fileName} className="text-[11px] text-blue-400 hover:underline">Download</a></div>}

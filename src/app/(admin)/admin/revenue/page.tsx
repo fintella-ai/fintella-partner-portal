@@ -455,7 +455,7 @@ export default function RevenuePage() {
                   <DealLink dealId={d.id} className="font-body text-[13px] font-medium truncate block">{d.dealName}</DealLink>
                   <PartnerLink partnerId={d.partnerId} className="font-mono text-[10px] theme-text-muted">{d.partnerCode}</PartnerLink>
                 </div>
-                <div>
+                <div className="text-center">
                   <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${stageBadge[d.stage] || stageBadge.new_lead}`}>
                     {d.stage.replace("_", " ")}
                   </span>

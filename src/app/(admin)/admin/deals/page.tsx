@@ -306,7 +306,7 @@ export default function AdminDealsPage() {
             Deal{sortIcon("dealName")}
           </button>
           <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider">Partner</div>
-          <button onClick={() => toggleSort("stage")} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-left hover:text-[var(--app-text-secondary)]">
+          <button onClick={() => toggleSort("stage")} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
             Stage{sortIcon("stage")}
           </button>
           <button onClick={() => toggleSort("estimatedRefundAmount")} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-left hover:text-[var(--app-text-secondary)]">
@@ -334,7 +334,7 @@ export default function AdminDealsPage() {
                 <div className="font-body text-[11px] text-[var(--app-text-muted)] truncate">{deal.clientName || deal.clientEmail || "—"}</div>
               </div>
               <PartnerLink partnerId={deal.partnerId} className="font-body text-[12px] text-[var(--app-text-secondary)] truncate block">{deal.partnerName}</PartnerLink>
-              <div><StageBadge stage={deal.stage} /></div>
+              <div className="text-center"><StageBadge stage={deal.stage} /></div>
               <div className="font-body text-[13px] text-[var(--app-text)]">{fmt$(deal.estimatedRefundAmount)}</div>
               <div className="font-body text-[13px] text-[var(--app-text-secondary)]">{fmt$(deal.firmFeeAmount)}</div>
               <div className="font-display text-[14px] font-semibold text-brand-gold">{fmt$(deal.l1CommissionAmount)}</div>

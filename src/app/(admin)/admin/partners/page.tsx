@@ -172,7 +172,7 @@ export default function AdminPartnersPage() {
           <div className="card hidden sm:block overflow-x-auto">
             <div className="grid grid-cols-[1.5fr_1fr_1.2fr_0.7fr_0.6fr_0.8fr_0.5fr] gap-3 px-5 py-3 border-b border-[var(--app-border)]">
               {["Partner", "Code", "Email", "Status", "W9", "Joined", ""].map((h) => (
-                <div key={h} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider">{h}</div>
+                <div key={h} className={`font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider ${h === "Status" || h === "W9" ? "text-center" : ""}`}>{h}</div>
               ))}
             </div>
             {partners.map((p) => (
@@ -184,12 +184,12 @@ export default function AdminPartnersPage() {
                 <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate">{p.firstName} {p.lastName}</div>
                 <div className="font-mono text-[12px] text-[var(--app-text-secondary)]">{p.partnerCode}</div>
                 <div className="font-body text-[12px] text-[var(--app-text-secondary)] truncate">{p.email}</div>
-                <div>
+                <div className="text-center">
                   <span className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[p.status] || statusBadge.active}`}>
                     {p.status}
                   </span>
                 </div>
-                <div>
+                <div className="text-center">
                   <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${docBadge[p.w9Status] || docBadge.needed}`}>
                     {p.w9Status === "under_review" ? "review" : p.w9Status}
                   </span>

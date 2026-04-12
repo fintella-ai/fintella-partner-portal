@@ -322,8 +322,8 @@ export default function SupportTicketsPage() {
                   <th className="px-4 py-3">Subject</th>
                   <th className="px-4 py-3">Partner</th>
                   <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Priority</th>
-                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-center">Priority</th>
+                  <th className="px-4 py-3 text-center">Status</th>
                   <th className="px-4 py-3">Last Activity</th>
                   <th className="px-4 py-3">Action</th>
                 </tr>
@@ -340,12 +340,12 @@ export default function SupportTicketsPage() {
                       <div className="text-xs text-[var(--app-text-muted)]">{t.partnerCode}</div>
                     </td>
                     <td className="px-4 py-3 text-[var(--app-text-secondary)]">{t.category}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       <span className={`inline-block text-xs px-2 py-0.5 rounded-full capitalize ${priorityBadge[t.priority]}`}>
                         {t.priority}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${statusBadge[t.status]}`}>
                         {statusLabel[t.status]}
                       </span>

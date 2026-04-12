@@ -137,7 +137,7 @@ export default function DocumentTrackingPage() {
               <th className="px-4 py-3">Partner</th>
               <th className="px-4 py-3">Document Type</th>
               <th className="px-4 py-3">File Name</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-center">Status</th>
               <th className="px-4 py-3">Upload Date</th>
               <th className="px-4 py-3">Actions</th>
             </tr>
@@ -151,7 +151,7 @@ export default function DocumentTrackingPage() {
                 </td>
                 <td className="px-4 py-3 text-[var(--app-text-secondary)]">{d.docType === "agreement" ? "Agreement" : d.docType === "w9" ? "Tax Document (W9)" : d.docType === "bank_letter" ? "Bank Letter" : d.docType.toUpperCase()}</td>
                 <td className="px-4 py-3 text-[var(--app-text-secondary)] text-[12px] truncate max-w-[150px]">{d.fileName}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-center">
                   <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${statusBadge[d.status] || statusBadge.uploaded}`}>
                     {d.status === "under_review" ? "Under Review" : d.status.charAt(0).toUpperCase() + d.status.slice(1)}
                   </span>

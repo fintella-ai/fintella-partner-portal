@@ -199,10 +199,10 @@ export default function PayoutManagementPage() {
                 <tr className="border-b border-[var(--app-border)] text-[var(--app-text-muted)] text-xs uppercase tracking-wider">
                   <th className="px-4 py-3">Partner</th>
                   <th className="px-4 py-3">Deal</th>
-                  <th className="px-4 py-3">Tier</th>
+                  <th className="px-4 py-3 text-center">Tier</th>
                   <th className="px-4 py-3">Amount</th>
                   <th className="px-4 py-3">Period</th>
-                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-center">Status</th>
                   <th className="px-4 py-3">Action</th>
                 </tr>
               </thead>
@@ -214,14 +214,14 @@ export default function PayoutManagementPage() {
                       <div className="text-xs text-[var(--app-text-muted)]">{p.partnerCode}</div>
                     </td>
                     <td className="px-4 py-3"><DealLink dealId={p.dealId} className="text-[var(--app-text-secondary)]">{p.dealName}</DealLink></td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${tierBadge[p.tier] || tierBadge.L1}`}>
                         {p.tier}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium text-[var(--app-text)]">{fmt$(p.amount)}</td>
                     <td className="px-4 py-3 text-[var(--app-text-secondary)]">{fmtMonth(p.periodMonth)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${statusBadge[p.status]}`}>
                         {statusLabel[p.status]}
                       </span>

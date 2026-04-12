@@ -139,7 +139,7 @@ export default function DealsPage() {
           <div>
             <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_0.7fr] gap-4 px-6 py-3 border-b border-[var(--app-border)]">
               {["Client / Deal", "Stage", "Est. Refund", "Firm Fee", "Commission", "Status"].map((h) => (
-                <div key={h} className={`font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Status" ? "text-right" : ""}`}>{h}</div>
+                <div key={h} className={`font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Status" || h === "Stage" ? "text-center" : ""}`}>{h}</div>
               ))}
             </div>
             {deals.map((deal) => (
@@ -152,11 +152,11 @@ export default function DealsPage() {
                     <div className="font-body text-[13px] font-medium text-[var(--app-text)] truncate">{deal.dealName}</div>
                     <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5 truncate">{fmtDate(deal.createdAt)}</div>
                   </div>
-                  <div><StageBadge stage={deal.stage} /></div>
+                  <div className="text-center"><StageBadge stage={deal.stage} /></div>
                   <div className="font-body text-[13px] text-[var(--app-text)]">{fmt$(deal.estimatedRefundAmount)}</div>
                   <div className="font-body text-[13px] text-[var(--app-text-secondary)]">{fmt$(deal.firmFeeAmount)}</div>
                   <div className="font-display text-[15px] font-semibold text-brand-gold">{fmt$(deal.l1CommissionAmount)}</div>
-                  <div className="text-right"><StatusBadge status={deal.l1CommissionStatus} /></div>
+                  <div className="text-center"><StatusBadge status={deal.l1CommissionStatus} /></div>
                 </div>
 
                 {/* Expanded detail */}
