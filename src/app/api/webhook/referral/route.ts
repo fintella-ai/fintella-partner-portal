@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
  * submitting partner's account.
  *
  * Webhook URL to give Frost Law:
- *   https://trln.partners/api/webhook/referral
+ *   https://fintella.partners/api/webhook/referral
  *
  * Optional security: set REFERRAL_WEBHOOK_SECRET env var and send it
  * as a Bearer token or x-webhook-secret header.

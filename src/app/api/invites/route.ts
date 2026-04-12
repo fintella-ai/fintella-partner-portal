@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       invite,
-      signupUrl: `${process.env.NEXTAUTH_URL || "https://trln.partners"}/signup?token=${token}`,
+      signupUrl: `${process.env.NEXTAUTH_URL || "https://fintella.partners"}/signup?token=${token}`,
     }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Failed to create invite" }, { status: 500 });
