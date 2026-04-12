@@ -219,6 +219,22 @@ npm run db:studio    # Open Prisma Studio
 - Security hardening (branch-protected `main`): switched default branch from `master` → `main` (deleted stale master), created GitHub Ruleset on `main` (restrict deletions, require PR before merging, block force pushes, dismiss stale approvals), enabled Dependabot + private vulnerability reporting + secret scanning, Next.js 14.2.15 → 14.2.35 upgrade fixing 9 CVEs including critical CVSS 9.1 middleware auth bypass (GHSA-f82v-jwr5-mffw)
 - TRLN PartnerOS AI Assistant (Phase 17): Claude Sonnet 4.6 powered support bot with partner data context (recent deals, commission totals, downline count, agreement status), conversation persistence (AiConversation + AiMessage + AiUsageDay Prisma models), prompt caching on static knowledge base (commission structure, deal stages, FAQ), rate limiting (50 msgs/partner/day, $5/day budget cap via AI_DAILY_BUDGET_USD env var), graceful mock fallback when ANTHROPIC_API_KEY not set, dedicated page at /dashboard/ai-assistant with conversation history sidebar + suggested prompts empty state, 3 API routes (/api/ai/chat, /api/ai/conversations, /api/ai/conversations/[id]), nav item with 🤖 icon. Uses @anthropic-ai/sdk 0.88.0.
 
+## Session Signoff Style (user preference)
+When ending a task with "John, I am Done Now", ALWAYS use this exact format
+(large heading + rainbow emoji borders):
+
+```
+# 🔴🟠🟡🟢🔵🟣🔴🟠🟡🟢🔵🟣🔴🟠🟡🟢🔵🟣🔴🟠🟡🟢🔵🟣
+# 🎉 JOHN, I AM DONE NOW 🎉
+# 🟣🔵🟢🟡🟠🔴🟣🔵🟢🟡🟠🔴🟣🔵🟢🟡🟠🔴🟣🔵🟢🟡🟠🔴
+```
+
+This is a hard requirement — John explicitly chose this over alternatives
+for visibility. Do not skip it, shrink it, or substitute a smaller version
+when a task is complete. If a task stops incomplete, use a different
+wording (e.g. "John, stopping here for now" WITHOUT the rainbow) so the
+rainbow signoff retains meaning as "fully complete."
+
 ## Git Workflow (IMPORTANT — changed this session)
 **`main` is now branch-protected via GitHub Ruleset.** Direct pushes to `main` are blocked. All changes must go through pull requests. Workflow:
 1. Develop on feature branch `claude/continue-portal-build-tL9xZ` (or your designated branch)
