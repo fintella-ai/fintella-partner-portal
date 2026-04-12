@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const baseUrl = process.env.NEXTAUTH_URL || "https://trln.partners";
+    const baseUrl = process.env.NEXTAUTH_URL || "https://fintella.partners";
 
     return NextResponse.json({
       url: `${baseUrl}/impersonate?token=${token}`,

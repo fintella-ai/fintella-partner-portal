@@ -74,7 +74,7 @@ export async function GET() {
         : specificDeals.filter((d) => l1Codes.includes(d.partnerCode));
 
       // Calculate enterprise override earnings
-      const FIRM_FEE_RATE = 0.40; // TRLN 40%
+      const FIRM_FEE_RATE = 0.40; // Fintella 40%
       let totalOverrideEarnings = 0;
       let totalFirmFees = 0;
       let totalDealAmount = 0;
@@ -82,9 +82,9 @@ export async function GET() {
       const dealBreakdown = epDeals.map((d) => {
         const firmFee = d.firmFeeAmount || d.estimatedRefundAmount * (d.firmFeeRate || 0.20);
         const overrideAmount = firmFee * ep.overrideRate;
-        const trlnGross = firmFee * FIRM_FEE_RATE;
+        const fintellaGross = firmFee * FIRM_FEE_RATE;
         const l1Commission = d.l1CommissionAmount + d.l2CommissionAmount;
-        const trlnNetAfterEnterprise = trlnGross - l1Commission - overrideAmount;
+        const fintellaNetAfterEnterprise = fintellaGross - l1Commission - overrideAmount;
 
         totalOverrideEarnings += overrideAmount;
         totalFirmFees += firmFee;
@@ -98,10 +98,10 @@ export async function GET() {
           stage: d.stage,
           dealAmount: d.estimatedRefundAmount,
           firmFee,
-          trlnGross,
+          fintellaGross,
           l1Commission,
           overrideAmount,
-          trlnNetAfterEnterprise,
+          fintellaNetAfterEnterprise,
           createdAt: d.createdAt,
         };
       });

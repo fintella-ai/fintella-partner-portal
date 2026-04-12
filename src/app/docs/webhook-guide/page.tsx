@@ -94,7 +94,7 @@ const FIELDS = [
     category: "Partner Tracking",
     colorVar: "--doc-gold",
     fields: ["utm_content", "referral_code", "partner_code"],
-    desc: "Identifies which TRLN partner referred the client. Passed through from the referral link URL parameter.",
+    desc: "Identifies which Fintella partner referred the client. Passed through from the referral link URL parameter.",
   },
   {
     category: "Client Info",
@@ -135,10 +135,10 @@ const FIELDS = [
 ];
 
 const STEPS = [
-  <>TRLN partners share a referral link:<br /><span style={{ fontFamily: "monospace", fontSize: 12 }}>https://referral.frostlawaz.com/l/ANNEXATIONPR/?utm_content=PTNABC123</span></>,
+  <>Fintella partners share a referral link:<br /><span style={{ fontFamily: "monospace", fontSize: 12 }}>https://referral.frostlawaz.com/l/ANNEXATIONPR/?utm_content=PTNABC123</span></>,
   "When a client is qualified by our referral partner, our partner fills out the Frost Law referral form with the client's required information",
   <>The form system passes the <Code>utm_content</Code> value through to the webhook payload<br /><span style={{ display: "block", marginTop: 6, paddingLeft: 16, fontSize: 13, color: "var(--doc-text-muted)" }}>&#8226; <strong style={{ color: "var(--doc-gold)" }}>NOTE:</strong> HubSpot CRM will automatically pull the &quot;utm_content&quot; parameters into the contact when created in HubSpot with no further integration needed. This is our partner referral code.</span></>,
-  "TRLN records the deal and attributes it to the correct partner",
+  "Fintella records the deal and attributes it to the correct partner",
   "The partner sees the deal in their portal dashboard",
 ];
 
@@ -151,8 +151,8 @@ export default function WebhookGuidePage() {
 
           {/* Header */}
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--doc-gold)", letterSpacing: 2, marginBottom: 2 }}>TRLN</div>
-            <div style={{ fontSize: 13, color: "var(--doc-text-muted)", marginBottom: 24 }}>Tariff Refund &amp; Litigation Network</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--doc-gold)", letterSpacing: 2, marginBottom: 2 }}>FINTELLA</div>
+            <div style={{ fontSize: 13, color: "var(--doc-text-muted)", marginBottom: 24 }}>Financial Intelligence Network</div>
             <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--doc-text)", margin: "0 0 8px" }}>Referral Webhook Integration Guide</h1>
             <div style={{ height: 2, width: 80, background: "var(--doc-gold)", borderRadius: 2 }} />
           </div>
@@ -200,7 +200,7 @@ export default function WebhookGuidePage() {
             {/* Endpoint summary */}
             <div style={{ marginTop: 20, background: "var(--doc-card-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, overflow: "hidden" }}>
               {[
-                ["Webhook URL", "https://trln.partners/api/webhook/referral"],
+                ["Webhook URL", "https://fintella.partners/api/webhook/referral"],
                 ["Methods", "POST (create) · PATCH (update)"],
                 ["Content-Type", "application/json"],
                 ["Security Header", "x-webhook-secret: [provided separately]"],
@@ -288,7 +288,7 @@ export default function WebhookGuidePage() {
             <div style={{ marginTop: 16 }}>
               <div style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 8 }}>1. Create the deal:</div>
               <pre style={{ background: "var(--doc-pre-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, padding: "16px 20px", fontSize: 13, lineHeight: 1.7, color: "var(--doc-pre-text)", overflowX: "auto", margin: 0 }}>
-{`POST https://trln.partners/api/webhook/referral
+{`POST https://fintella.partners/api/webhook/referral
 → 201 Created
 
 {
@@ -301,7 +301,7 @@ export default function WebhookGuidePage() {
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 8 }}>2. Store <Code>dealId</Code> in your HubSpot deal as a custom property (e.g. <Code>trln_deal_id</Code>)</div>
+              <div style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 8 }}>2. Store <Code>dealId</Code> in your HubSpot deal as a custom property (e.g. <Code>fintella_deal_id</Code>)</div>
               <div style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 8 }}>3. Use this ID for all future updates to the deal:</div>
             </div>
           </Section>
@@ -437,7 +437,7 @@ export default function WebhookGuidePage() {
           <Section title="Health Check">
             <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 12 }}>To verify the endpoint is live, send a <Code>GET</Code> request to the same URL:</p>
             <pre style={{ background: "var(--doc-pre-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, padding: "12px 20px", fontSize: 13, color: "var(--doc-pre-text)", overflowX: "auto", margin: 0 }}>
-              GET https://trln.partners/api/webhook/referral
+              GET https://fintella.partners/api/webhook/referral
             </pre>
             <p style={{ fontSize: 13, color: "var(--doc-text-muted)", marginTop: 8 }}>Returns a JSON object with field documentation and endpoint status.</p>
           </Section>
@@ -445,7 +445,7 @@ export default function WebhookGuidePage() {
 
           {/* Footer */}
           <div style={{ borderTop: "1px solid var(--doc-border)", paddingTop: 20, marginTop: 48, display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--doc-text-faint)" }}>
-            <span>TRLN Partner Portal &mdash; Webhook Integration Guide</span>
+            <span>Fintella Partner Portal &mdash; Webhook Integration Guide</span>
             <span>April 2026</span>
           </div>
         </div>

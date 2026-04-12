@@ -1,14 +1,18 @@
-# Tariff Partner Portal (TRLN)
+# Fintella Partner Portal
 
 ## Project Overview
-- **Name**: Tariff Refund & Litigation Network (TRLN)
-- **Domain**: https://trln.partners (Vercel, custom domain)
-- **Framework**: Next.js 14.2.15 (App Router) + React 18 + TypeScript 5.4
+- **Brand**: Fintella — Financial Intelligence Network
+- **Legal DBA**: "Financial Intelligence Network DBA (Fintella)" (parent: Annexation PR LLC)
+- **Historical brand**: Previously "Tariff Refund & Litigation Network (TRLN)" — rebranded April 2026. Portal had not yet launched, so no customer impact.
+- **Domain**: https://fintella.partners (primary, live on Vercel)
+- **Legacy domain**: https://trln.partners (still resolves, will eventually redirect to fintella.partners)
+- **Framework**: Next.js 14.2.35 (App Router) + React 18 + TypeScript 5.4
 - **Styling**: Tailwind CSS 3.4 — auto light/dark theme via `prefers-color-scheme` CSS variables, gold accents (#c4a050, #f0d070), fonts: Playfair Display + DM Sans
-- **Database**: Prisma 5.20 ORM — SQLite (dev: `prisma/dev.db`), PostgreSQL (prod)
+- **Database**: Prisma 5.20 ORM — PostgreSQL (Neon, production)
 - **Auth**: NextAuth.js 5.0-beta.22 — JWT sessions, dual providers (Partner: email+partnerCode, Admin: email+password)
-- **Deployment**: Vercel (project: `tariff-partner-portal-iwki`), region `iad1`
-- **Integrations**: SignWell (e-signatures), HubSpot (CRM) — both optional with demo-mode fallbacks
+- **Deployment**: Vercel (project: `tariff-partner-portal-iwki` — Vercel project name still uses the old repo slug; not renaming to avoid deployment URL churn), region `iad1`
+- **Integrations**: SignWell (e-signatures), HubSpot (CRM), Sentry (error tracking), Vercel Analytics + Speed Insights, Anthropic Claude (AI assistant) — all optional with demo/mock fallbacks
+- **AI narrative**: "Fintella" is a portmanteau of the two planned AI assistant personalities — **Finn** (direct, data-driven) and **Stella** (warm, relationship-focused). Current single "Fintella PartnerOS" assistant is a placeholder; Phase 17b will split it into the dual-personality product.
 
 ## Project Structure
 ```
@@ -219,6 +223,7 @@ npm run db:studio    # Open Prisma Studio
 - Security hardening (branch-protected `main`): switched default branch from `master` → `main` (deleted stale master), created GitHub Ruleset on `main` (restrict deletions, require PR before merging, block force pushes, dismiss stale approvals), enabled Dependabot + private vulnerability reporting + secret scanning, Next.js 14.2.15 → 14.2.35 upgrade fixing 9 CVEs including critical CVSS 9.1 middleware auth bypass (GHSA-f82v-jwr5-mffw)
 - TRLN PartnerOS AI Assistant (Phase 17): Claude Sonnet 4.6 powered support bot with partner data context (recent deals, commission totals, downline count, agreement status), conversation persistence (AiConversation + AiMessage + AiUsageDay Prisma models), prompt caching on static knowledge base (commission structure, deal stages, FAQ), rate limiting (50 msgs/partner/day, $5/day budget cap via AI_DAILY_BUDGET_USD env var), graceful mock fallback when ANTHROPIC_API_KEY not set, dedicated page at /dashboard/ai-assistant with conversation history sidebar + suggested prompts empty state, 3 API routes (/api/ai/chat, /api/ai/conversations, /api/ai/conversations/[id]), nav item with 🤖 icon. Uses @anthropic-ai/sdk 0.88.0.
 - Phase 18a — Monitoring & Observability: Sentry error tracking (@sentry/nextjs ^10, client + server + edge configs with PII scrubbing, ignored-errors list for noise reduction), Vercel Analytics (@vercel/analytics) + Speed Insights (@vercel/speed-insights) wired into root layout, branded global-error.tsx boundary with friendly fallback UI (error ID, Try Again + Go Home buttons) that auto-reports to Sentry, src/lib/monitoring.ts helper with captureError/captureMessage + automatic secret redaction, next.config.js conditionally wrapped with withSentryConfig for build-time source map upload (only when SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT are all set). Admin /admin/dev page extended with "Recent Errors (Last 24h)" panel that fetches unresolved issues from Sentry API via new /api/admin/dev/errors route (super_admin only). ALL graceful — no env vars required for build to succeed; mock/empty states everywhere.
+- Rebrand (April 2026): **TRLN → Fintella** — full rename from "Tariff Refund & Litigation Network (TRLN)" to "Fintella — Financial Intelligence Network". Portal had not yet launched, so no customer impact. Scope: FIRM_NAME/FIRM_SHORT constants, root layout metadata + PWA manifest, AI knowledge base + system prompts, InstallPrompt component + localStorage key (fintella_pwa_install_dismissed), /docs/webhook-guide (title + header + URL examples + footer), admin revenue page (labels "Fintella 40%", "Fintella Net Revenue", internal variable renames trlnGross → fintellaGross, TRLN_FEE_RATE → FINTELLA_FEE_RATE, etc.), admin enterprise API (internal vars + comment), admin/partner training seed data + FAQ content, conference pages (host name "Fintella Leadership Team", ICS filename fintella-weekly-call.ics), admin communications email templates, admin settings support email placeholder (support@fintella.partners), partner dashboard layout (mobile header, partnerRefUrl, __fintellaChatOpened DOM key), URL fallbacks in /api/invites and /api/admin/impersonate (https://fintella.partners), legal DBA consent text on /signup + /getstarted ("Financial Intelligence Network DBA (Fintella)"), package.json name (fintella-partner-portal), seed-training.ts + seed-conference.ts scripts, Accordion doc comment example. Historical session artifacts in docs/superpowers/* intentionally NOT touched. New domain fintella.partners added in Vercel alongside legacy trln.partners; NEXTAUTH_URL needs to be updated to https://fintella.partners post-merge. Vercel project name unchanged (still "tariff-partner-portal-iwki") to avoid deployment URL churn.
 
 ## Session Signoff Style (user preference)
 When ending a task with "John, I am Done Now", ALWAYS use this EXACT format

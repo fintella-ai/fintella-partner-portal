@@ -44,10 +44,10 @@ type EnterprisePartnerData = {
     stage: string;
     dealAmount: number;
     firmFee: number;
-    trlnGross: number;
+    fintellaGross: number;
     l1Commission: number;
     overrideAmount: number;
-    trlnNetAfterEnterprise: number;
+    fintellaNetAfterEnterprise: number;
     createdAt: string;
   }[];
 };
@@ -70,9 +70,9 @@ function SortHeader({ label, sortKey, currentSort, currentDir, onSort }: {
   );
 }
 
-const TRLN_FEE_RATE = 0.40; // TRLN receives 40% of firm fee
+const FINTELLA_FEE_RATE = 0.40; // Fintella receives 40% of firm fee
 const PARTNER_RATE = 0.25;  // Partners receive 25% of firm fee
-const TRLN_NET_RATE = TRLN_FEE_RATE - PARTNER_RATE; // 15% net to TRLN
+const FINTELLA_NET_RATE = FINTELLA_FEE_RATE - PARTNER_RATE; // 15% net to Fintella
 
 interface Deal {
   id: string;
@@ -200,9 +200,9 @@ export default function RevenuePage() {
 
     return [...base].sort((a, b) => {
       const getFirmFee = (d: Deal) => d.firmFeeAmount || d.estimatedRefundAmount * (d.firmFeeRate || 0.20);
-      const getTrlnGross = (d: Deal) => getFirmFee(d) * TRLN_FEE_RATE;
+      const getFintellaGross = (d: Deal) => getFirmFee(d) * FINTELLA_FEE_RATE;
       const getPartnerComm = (d: Deal) => d.l1CommissionAmount + d.l2CommissionAmount;
-      const getTrlnNet = (d: Deal) => getTrlnGross(d) - getPartnerComm(d);
+      const getFintellaNet = (d: Deal) => getFintellaGross(d) - getPartnerComm(d);
 
       let aVal: string | number = "";
       let bVal: string | number = "";
@@ -212,9 +212,9 @@ export default function RevenuePage() {
         case "stage": aVal = a.stage; bVal = b.stage; break;
         case "dealAmount": aVal = a.estimatedRefundAmount; bVal = b.estimatedRefundAmount; break;
         case "firmFee": aVal = getFirmFee(a); bVal = getFirmFee(b); break;
-        case "trlnGross": aVal = getTrlnGross(a); bVal = getTrlnGross(b); break;
+        case "fintellaGross": aVal = getFintellaGross(a); bVal = getFintellaGross(b); break;
         case "partnerComm": aVal = getPartnerComm(a); bVal = getPartnerComm(b); break;
-        case "trlnNet": aVal = getTrlnNet(a); bVal = getTrlnNet(b); break;
+        case "fintellaNet": aVal = getFintellaNet(a); bVal = getFintellaNet(b); break;
         case "date": aVal = a.closeDate || a.createdAt; bVal = b.closeDate || b.createdAt; break;
         default: return 0;
       }
@@ -232,9 +232,9 @@ export default function RevenuePage() {
   // Closed Won (realized revenue)
   const totalDealAmountWon = closedWonDeals.reduce((sum, d) => sum + d.estimatedRefundAmount, 0);
   const totalFirmFeesWon = closedWonDeals.reduce((sum, d) => sum + d.firmFeeAmount, 0);
-  const totalTRLNGrossWon = totalFirmFeesWon * TRLN_FEE_RATE;
+  const totalFintellaGrossWon = totalFirmFeesWon * FINTELLA_FEE_RATE;
   const totalPartnerCommWon = closedWonDeals.reduce((sum, d) => sum + d.l1CommissionAmount + d.l2CommissionAmount, 0);
-  const totalTRLNNetWon = totalTRLNGrossWon - totalPartnerCommWon;
+  const totalFintellaNetWon = totalFintellaGrossWon - totalPartnerCommWon;
 
   // Commission breakdown
   const commPaid = closedWonDeals
@@ -247,14 +247,14 @@ export default function RevenuePage() {
     const feeRate = d.firmFeeRate || 0.20;
     return sum + d.estimatedRefundAmount * feeRate;
   }, 0);
-  const totalTRLNGrossPipeline = totalFirmFeesPipeline * TRLN_FEE_RATE;
+  const totalFintellaGrossPipeline = totalFirmFeesPipeline * FINTELLA_FEE_RATE;
   const totalPartnerCommPipeline = totalFirmFeesPipeline * PARTNER_RATE;
-  const totalTRLNNetPipeline = totalTRLNGrossPipeline - totalPartnerCommPipeline;
+  const totalFintellaNetPipeline = totalFintellaGrossPipeline - totalPartnerCommPipeline;
 
   // All deals
   const totalFirmFeesAll = totalFirmFeesWon + totalFirmFeesPipeline;
-  const totalTRLNGrossAll = totalFirmFeesAll * TRLN_FEE_RATE;
-  const totalTRLNNetAll = totalTRLNGrossAll - totalPartnerCommWon - totalPartnerCommPipeline;
+  const totalFintellaGrossAll = totalFirmFeesAll * FINTELLA_FEE_RATE;
+  const totalFintellaNetAll = totalFintellaGrossAll - totalPartnerCommWon - totalPartnerCommPipeline;
 
   if (loading) {
     return (
@@ -270,7 +270,7 @@ export default function RevenuePage() {
         <div>
           <h2 className="font-display text-[22px] font-bold mb-1">Company Revenue</h2>
           <p className="font-body text-[13px] theme-text-muted">
-            TRLN receives {Math.round(TRLN_FEE_RATE * 100)}% of firm fees. Partner field receives {Math.round(PARTNER_RATE * 100)}%. Net to TRLN: {Math.round(TRLN_NET_RATE * 100)}%.
+            Fintella receives {Math.round(FINTELLA_FEE_RATE * 100)}% of firm fees. Partner field receives {Math.round(PARTNER_RATE * 100)}%. Net to Fintella: {Math.round(FINTELLA_NET_RATE * 100)}%.
           </p>
         </div>
       </div>
@@ -301,8 +301,8 @@ export default function RevenuePage() {
           <div className="font-body text-[10px] theme-text-muted mt-1">{closedWonDeals.length} closed won deals</div>
         </div>
         <div className="stat-card">
-          <div className="font-body text-[9px] tracking-[1.5px] uppercase theme-text-muted mb-2">TRLN Gross (40%)</div>
-          <div className="font-display text-xl sm:text-2xl font-bold text-brand-gold">{fmt$(totalTRLNGrossWon)}</div>
+          <div className="font-body text-[9px] tracking-[1.5px] uppercase theme-text-muted mb-2">Fintella Gross (40%)</div>
+          <div className="font-display text-xl sm:text-2xl font-bold text-brand-gold">{fmt$(totalFintellaGrossWon)}</div>
           <div className="font-body text-[10px] theme-text-muted mt-1">Of firm fees earned</div>
         </div>
         <div className="stat-card">
@@ -313,13 +313,13 @@ export default function RevenuePage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="font-body text-[9px] tracking-[1.5px] uppercase theme-text-muted mb-2">TRLN Net Revenue (15%)</div>
-          <div className="font-display text-xl sm:text-2xl font-bold text-green-400">{fmt$(totalTRLNNetWon)}</div>
+          <div className="font-body text-[9px] tracking-[1.5px] uppercase theme-text-muted mb-2">Fintella Net Revenue (15%)</div>
+          <div className="font-display text-xl sm:text-2xl font-bold text-green-400">{fmt$(totalFintellaNetWon)}</div>
           <div className="font-body text-[10px] theme-text-muted mt-1">After partner commissions</div>
         </div>
         <div className="stat-card">
           <div className="font-body text-[9px] tracking-[1.5px] uppercase theme-text-muted mb-2">Pipeline (Projected)</div>
-          <div className="font-display text-xl sm:text-2xl font-bold text-blue-400">{fmt$(totalTRLNNetPipeline)}</div>
+          <div className="font-display text-xl sm:text-2xl font-bold text-blue-400">{fmt$(totalFintellaNetPipeline)}</div>
           <div className="font-body text-[10px] theme-text-muted mt-1">{pipelineDeals.length} active deals</div>
         </div>
       </div>
@@ -337,8 +337,8 @@ export default function RevenuePage() {
             <span className="font-display text-[15px] font-bold">{fmt$(totalFirmFeesWon)}</span>
           </div>
           <div className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid var(--app-border)" }}>
-            <span className="font-body text-[13px] text-brand-gold">TRLN Share (40%)</span>
-            <span className="font-display text-[15px] font-bold text-brand-gold">{fmt$(totalTRLNGrossWon)}</span>
+            <span className="font-body text-[13px] text-brand-gold">Fintella Share (40%)</span>
+            <span className="font-display text-[15px] font-bold text-brand-gold">{fmt$(totalFintellaGrossWon)}</span>
           </div>
           <div className="flex items-center justify-between py-2 pl-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
             <span className="font-body text-[12px] text-green-400">Partner Commissions Paid</span>
@@ -349,8 +349,8 @@ export default function RevenuePage() {
             <span className="font-body text-[13px] text-yellow-400">-{fmt$(commPending)}</span>
           </div>
           <div className="flex items-center justify-between py-3 rounded-lg px-3 bg-green-500/5 border border-green-500/15">
-            <span className="font-body text-[14px] font-semibold text-green-400">TRLN Net Revenue</span>
-            <span className="font-display text-lg font-bold text-green-400">{fmt$(totalTRLNNetWon)}</span>
+            <span className="font-body text-[14px] font-semibold text-green-400">Fintella Net Revenue</span>
+            <span className="font-display text-lg font-bold text-green-400">{fmt$(totalFintellaNetWon)}</span>
           </div>
         </div>
       </div>
@@ -439,16 +439,16 @@ export default function RevenuePage() {
             <SortHeader label="Stage" sortKey="stage" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
             <SortHeader label="Deal Amt" sortKey="dealAmount" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
             <SortHeader label="Firm Fee" sortKey="firmFee" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
-            <SortHeader label="TRLN 40%" sortKey="trlnGross" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="Fintella 40%" sortKey="fintellaGross" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
             <SortHeader label="Partner 25%" sortKey="partnerComm" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
-            <SortHeader label="TRLN Net" sortKey="trlnNet" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="Fintella Net" sortKey="fintellaNet" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
             <SortHeader label="Date" sortKey="date" currentSort={sortKey} currentDir={sortDir} onSort={toggleSort} />
           </div>
           {filtered.map((d) => {
             const firmFee = d.firmFeeAmount || d.estimatedRefundAmount * (d.firmFeeRate || 0.20);
-            const trlnGross = firmFee * TRLN_FEE_RATE;
+            const fintellaGross = firmFee * FINTELLA_FEE_RATE;
             const partnerComm = d.l1CommissionAmount + d.l2CommissionAmount;
-            const trlnNet = trlnGross - partnerComm;
+            const fintellaNet = fintellaGross - partnerComm;
             return (
               <div key={d.id} className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.7fr_0.7fr_0.6fr_0.6fr_0.6fr] gap-2 px-5 py-3 items-center min-w-[800px] hover:bg-[var(--app-hover)] transition-colors" style={{ borderBottom: "1px solid var(--app-border)" }}>
                 <div>
@@ -462,9 +462,9 @@ export default function RevenuePage() {
                 </div>
                 <div className="font-body text-[13px]">{fmt$(d.estimatedRefundAmount)}</div>
                 <div className="font-body text-[13px] theme-text-secondary">{fmt$(firmFee)}</div>
-                <div className="font-body text-[13px] text-brand-gold font-semibold">{fmt$(trlnGross)}</div>
+                <div className="font-body text-[13px] text-brand-gold font-semibold">{fmt$(fintellaGross)}</div>
                 <div className="font-body text-[13px] text-red-400">-{fmt$(partnerComm)}</div>
-                <div className="font-display text-[13px] font-semibold text-green-400">{fmt$(trlnNet)}</div>
+                <div className="font-display text-[13px] font-semibold text-green-400">{fmt$(fintellaNet)}</div>
                 <div className="font-body text-[11px] theme-text-muted">{d.closeDate ? fmtDate(d.closeDate) : fmtDate(d.createdAt)}</div>
               </div>
             );
@@ -478,9 +478,9 @@ export default function RevenuePage() {
         <div className="sm:hidden">
           {filtered.map((d) => {
             const firmFee = d.firmFeeAmount || d.estimatedRefundAmount * (d.firmFeeRate || 0.20);
-            const trlnGross = firmFee * TRLN_FEE_RATE;
+            const fintellaGross = firmFee * FINTELLA_FEE_RATE;
             const partnerComm = d.l1CommissionAmount + d.l2CommissionAmount;
-            const trlnNet = trlnGross - partnerComm;
+            const fintellaNet = fintellaGross - partnerComm;
             return (
               <div key={d.id} className="p-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -492,8 +492,8 @@ export default function RevenuePage() {
                 <div className="font-body text-[11px] theme-text-muted mb-2">Deal: {fmt$(d.estimatedRefundAmount)} · Fee: {fmt$(firmFee)}</div>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
-                    <div className="font-body text-[10px] theme-text-muted uppercase">TRLN 40%</div>
-                    <div className="font-body text-[13px] text-brand-gold font-semibold">{fmt$(trlnGross)}</div>
+                    <div className="font-body text-[10px] theme-text-muted uppercase">Fintella 40%</div>
+                    <div className="font-body text-[13px] text-brand-gold font-semibold">{fmt$(fintellaGross)}</div>
                   </div>
                   <div>
                     <div className="font-body text-[10px] theme-text-muted uppercase">Partner</div>
@@ -501,7 +501,7 @@ export default function RevenuePage() {
                   </div>
                   <div>
                     <div className="font-body text-[10px] theme-text-muted uppercase">Net</div>
-                    <div className="font-display text-[13px] font-semibold text-green-400">{fmt$(trlnNet)}</div>
+                    <div className="font-display text-[13px] font-semibold text-green-400">{fmt$(fintellaNet)}</div>
                   </div>
                 </div>
               </div>
@@ -527,9 +527,9 @@ export default function RevenuePage() {
                 </div>
               </div>
               <div>
-                <div className="font-body text-[9px] theme-text-muted uppercase">TRLN 40%</div>
+                <div className="font-body text-[9px] theme-text-muted uppercase">Fintella 40%</div>
                 <div className="font-body text-[13px] text-brand-gold font-semibold">
-                  {fmt$(filtered.reduce((sum, d) => sum + (d.firmFeeAmount || d.estimatedRefundAmount * (d.firmFeeRate || 0.20)) * TRLN_FEE_RATE, 0))}
+                  {fmt$(filtered.reduce((sum, d) => sum + (d.firmFeeAmount || d.estimatedRefundAmount * (d.firmFeeRate || 0.20)) * FINTELLA_FEE_RATE, 0))}
                 </div>
               </div>
               <div>
@@ -537,7 +537,7 @@ export default function RevenuePage() {
                 <div className="font-display text-[13px] font-bold text-green-400">
                   {fmt$(filtered.reduce((sum, d) => {
                     const ff = d.firmFeeAmount || d.estimatedRefundAmount * (d.firmFeeRate || 0.20);
-                    return sum + ff * TRLN_FEE_RATE - d.l1CommissionAmount - d.l2CommissionAmount;
+                    return sum + ff * FINTELLA_FEE_RATE - d.l1CommissionAmount - d.l2CommissionAmount;
                   }, 0))}
                 </div>
               </div>
@@ -903,7 +903,7 @@ export default function RevenuePage() {
         <div>
           <h3 className="font-display text-lg font-bold mb-1">Enterprise Reporting & Payouts</h3>
           <p className="font-body text-[13px] theme-text-muted mb-6">
-            Deal-level breakdown showing TRLN 40% share, L1 partner commission, enterprise override, and net company profit after all payouts.
+            Deal-level breakdown showing Fintella 40% share, L1 partner commission, enterprise override, and net company profit after all payouts.
           </p>
 
           {epLoading ? (
@@ -918,8 +918,8 @@ export default function RevenuePage() {
                 const activeDeals = ep.dealBreakdown;
                 const totalOverride = ep.summary.totalOverrideEarnings;
                 const totalL1Comm = activeDeals.reduce((s, d) => s + d.l1Commission, 0);
-                const totalTRLNGross = activeDeals.reduce((s, d) => s + d.trlnGross, 0);
-                const totalNetAfterAll = activeDeals.reduce((s, d) => s + d.trlnNetAfterEnterprise, 0);
+                const totalFintellaGross = activeDeals.reduce((s, d) => s + d.fintellaGross, 0);
+                const totalNetAfterAll = activeDeals.reduce((s, d) => s + d.fintellaNetAfterEnterprise, 0);
 
                 return (
                   <div key={ep.id} className="card">
@@ -938,11 +938,11 @@ export default function RevenuePage() {
                     {/* Summary metrics */}
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 px-5 py-4 border-b border-[var(--app-border)]">
                       {[
-                        { label: "TRLN 40%", value: fmt$(totalTRLNGross), color: "text-brand-gold" },
+                        { label: "Fintella 40%", value: fmt$(totalFintellaGross), color: "text-brand-gold" },
                         { label: "L1 Commission", value: fmt$(totalL1Comm), color: "text-red-400" },
                         { label: `Enterprise ${Math.round(ep.overrideRate * 100)}%`, value: fmt$(totalOverride), color: "text-purple-400" },
                         { label: "Total Payout", value: fmt$(totalL1Comm + totalOverride), color: "text-orange-400" },
-                        { label: "TRLN Net Profit", value: fmt$(totalNetAfterAll), color: "text-green-400" },
+                        { label: "Fintella Net Profit", value: fmt$(totalNetAfterAll), color: "text-green-400" },
                       ].map((m) => (
                         <div key={m.label}>
                           <div className="font-body text-[10px] theme-text-muted uppercase tracking-wider mb-1">{m.label}</div>
@@ -956,7 +956,7 @@ export default function RevenuePage() {
                       <>
                         <div className="hidden md:block overflow-x-auto">
                           <div className="grid grid-cols-[1.4fr_0.6fr_0.6fr_0.6fr_0.6fr_0.6fr_0.6fr] gap-2 px-5 py-2.5 border-b border-[var(--app-border)] min-w-[700px]">
-                            {["Deal", "L1 Partner", "Firm Fee", "TRLN 40%", "L1 Comm", `EP ${Math.round(ep.overrideRate * 100)}%`, "Net"].map((h) => (
+                            {["Deal", "L1 Partner", "Firm Fee", "Fintella 40%", "L1 Comm", `EP ${Math.round(ep.overrideRate * 100)}%`, "Net"].map((h) => (
                               <div key={h} className="font-body text-[10px] tracking-[1px] uppercase theme-text-muted">{h}</div>
                             ))}
                           </div>
@@ -968,10 +968,10 @@ export default function RevenuePage() {
                               </div>
                               <PartnerLink partnerId={null} className="font-body text-[12px] theme-text-secondary truncate">{d.partnerName}</PartnerLink>
                               <div className="font-body text-[13px] theme-text-secondary">{fmt$(d.firmFee)}</div>
-                              <div className="font-body text-[13px] text-brand-gold font-semibold">{fmt$(d.trlnGross)}</div>
+                              <div className="font-body text-[13px] text-brand-gold font-semibold">{fmt$(d.fintellaGross)}</div>
                               <div className="font-body text-[13px] text-red-400">-{fmt$(d.l1Commission)}</div>
                               <div className="font-body text-[13px] text-purple-400 font-semibold">-{fmt$(d.overrideAmount)}</div>
-                              <div className="font-display text-[13px] font-semibold text-green-400">{fmt$(d.trlnNetAfterEnterprise)}</div>
+                              <div className="font-display text-[13px] font-semibold text-green-400">{fmt$(d.fintellaNetAfterEnterprise)}</div>
                             </div>
                           ))}
                         </div>
@@ -983,10 +983,10 @@ export default function RevenuePage() {
                               <DealLink dealId={d.id} className="font-body text-sm font-medium text-[var(--app-text)] mb-1 block">{d.dealName}</DealLink>
                               <div className="font-body text-xs theme-text-muted mb-2">{d.partnerName} &middot; {d.stage.replace("_", " ")}</div>
                               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                                <div className="flex justify-between"><span className="font-body text-xs theme-text-muted">TRLN 40%</span><span className="font-body text-xs text-brand-gold font-semibold">{fmt$(d.trlnGross)}</span></div>
+                                <div className="flex justify-between"><span className="font-body text-xs theme-text-muted">Fintella 40%</span><span className="font-body text-xs text-brand-gold font-semibold">{fmt$(d.fintellaGross)}</span></div>
                                 <div className="flex justify-between"><span className="font-body text-xs theme-text-muted">L1 Comm</span><span className="font-body text-xs text-red-400">-{fmt$(d.l1Commission)}</span></div>
                                 <div className="flex justify-between"><span className="font-body text-xs theme-text-muted">EP Override</span><span className="font-body text-xs text-purple-400 font-semibold">-{fmt$(d.overrideAmount)}</span></div>
-                                <div className="flex justify-between"><span className="font-body text-xs theme-text-muted">Net</span><span className="font-body text-xs text-green-400 font-semibold">{fmt$(d.trlnNetAfterEnterprise)}</span></div>
+                                <div className="flex justify-between"><span className="font-body text-xs theme-text-muted">Net</span><span className="font-body text-xs text-green-400 font-semibold">{fmt$(d.fintellaNetAfterEnterprise)}</span></div>
                               </div>
                             </div>
                           ))}

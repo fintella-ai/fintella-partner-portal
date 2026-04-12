@@ -136,7 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (chatEnabled && detail?.message) {
         setChatOpen(true);
         setChatInput(detail.message);
-        (window as any).__trlnChatOpened = true;
+        (window as any).__fintellaChatOpened = true;
       }
     }
     window.addEventListener("openDealChat", handleDealChat);
@@ -170,7 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const partnerCode = user?.partnerCode || "DEMO";
 
   const clientRefUrl = `https://referral.frostlawaz.com/l/ANNEXATIONPR/?utm_content=${partnerCode}`;
-  const partnerRefUrl = `https://trln.com/partner?utm_content=${partnerCode}`;
+  const partnerRefUrl = `https://fintella.partners/partner?utm_content=${partnerCode}`;
 
   function copyAndNotify(url: string, label: string) {
     navigator.clipboard.writeText(url);
@@ -394,7 +394,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <>
               {/* Safe area spacer for iPhone notch/Dynamic Island */}
               <div style={{ paddingTop: "env(safe-area-inset-top, 12px)" }} />
-              {/* Top bar: Sign Out (left) — TRLN (center) — Support (right) */}
+              {/* Top bar: Sign Out (left) — Fintella (center) — Support (right) */}
               <div className="flex justify-between items-center py-3">
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}

@@ -53,10 +53,10 @@ export default function DealsPage() {
     // Also navigate to support as fallback (if chat is not enabled, the ticket page handles it)
     setTimeout(() => {
       // Check if chat opened (layout sets a flag)
-      if (!(window as any).__trlnChatOpened) {
+      if (!(window as any).__fintellaChatOpened) {
         router.push(`/dashboard/support?newTicket=true&subject=${encodeURIComponent(`Deal Support: ${deal.dealName}`)}&category=${encodeURIComponent("Deal Tracking")}&dealRef=${encodeURIComponent(dealRef)}`);
       }
-      delete (window as any).__trlnChatOpened;
+      delete (window as any).__fintellaChatOpened;
     }, 200);
   }
 

@@ -50,7 +50,7 @@ export default function ReferralLinksPage() {
       .catch(() => setAgreementSigned(true));
   }, []);
 
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://trln.partners";
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://fintella.partners";
   const clientRefUrl = `https://referral.frostlawaz.com/l/ANNEXATIONPR/?utm_content=${partnerCode}`;
 
   const loadInvites = useCallback(async () => {
