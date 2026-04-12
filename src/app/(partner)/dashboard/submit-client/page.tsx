@@ -144,13 +144,26 @@ export default function SubmitClientPage() {
             Open in new tab ↗
           </a>
         </div>
-        <div className="bg-white" style={{ height: device.isMobile ? "calc(100vh - 220px)" : "75vh", minHeight: 400 }}>
+        {/* Cropped iframe — hides header/nav from external site */}
+        <div
+          className="bg-white overflow-hidden relative"
+          style={{
+            height: device.isMobile ? "calc(100vh - 220px)" : "75vh",
+            minHeight: 400,
+          }}
+        >
           <iframe
             src={referralUrl}
-            className="w-full h-full border-0"
+            className="w-full border-0 absolute"
             title="Client Referral Submission"
             allow="camera; microphone; geolocation"
             sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation"
+            style={{
+              top: -80,       // crop top nav/header (adjust as needed)
+              height: "calc(100% + 160px)", // add back the cropped pixels (top + bottom)
+              left: 0,
+              right: 0,
+            }}
           />
         </div>
       </div>
