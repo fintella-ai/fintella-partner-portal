@@ -95,10 +95,10 @@ export default function DealsPage() {
         ) : device.isMobile ? (
           /* ── Mobile: Card layout ── */
           <div>
-            {deals.map((deal) => (
+            {deals.map((deal, idx) => (
               <div key={deal.id}>
                 <div
-                  className="px-4 py-4 border-b border-[var(--app-border-subtle)] last:border-b-0 cursor-pointer"
+                  className={`px-4 py-4 border-b border-[var(--app-border)] cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
                   onClick={() => toggleExpand(deal.id)}
                 >
                   <div className="flex items-start justify-between gap-2 mb-3">
@@ -142,10 +142,10 @@ export default function DealsPage() {
                 <div key={h} className={`font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Status" || h === "Stage" ? "text-center" : ""}`}>{h}</div>
               ))}
             </div>
-            {deals.map((deal) => (
+            {deals.map((deal, idx) => (
               <div key={deal.id}>
                 <div
-                  className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_0.7fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer"
+                  className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_0.7fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] items-center hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
                   onClick={() => toggleExpand(deal.id)}
                 >
                   <div>

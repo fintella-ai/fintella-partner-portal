@@ -116,10 +116,10 @@ export default function OverviewPage() {
         ) : device.isMobile ? (
           /* ── Mobile: Card layout ── */
           <div>
-            {directDeals.slice(0, 5).map((deal) => {
+            {directDeals.slice(0, 5).map((deal, idx) => {
               const p = deal;
               return (
-                <div key={deal.id} className="px-4 py-4 border-b border-[var(--app-border-subtle)] last:border-b-0">
+                <div key={deal.id} className={`px-4 py-4 border-b border-[var(--app-border)] ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <button onClick={() => router.push(`/dashboard/deals?deal=${deal.id}`)} className="font-body text-[13px] font-medium text-[var(--app-text)] leading-snug flex-1 min-w-0 text-left hover:text-brand-gold hover:underline underline-offset-2 transition-colors truncate">
                       {p.dealName}
@@ -160,12 +160,12 @@ export default function OverviewPage() {
               <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] text-right">Commission</div>
             </div>
             {/* Data rows */}
-            {directDeals.slice(0, 5).map((deal) => {
+            {directDeals.slice(0, 5).map((deal, idx) => {
               const p = deal;
               return (
                 <div
                   key={deal.id}
-                  className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors"
+                  className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] items-center hover:bg-[var(--app-card-bg)] transition-colors ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
                 >
                   {/* Col 1: Deal name */}
                   <div>
@@ -212,10 +212,10 @@ export default function OverviewPage() {
           {device.isMobile ? (
             /* ── Mobile: Card layout ── */
             <div>
-              {downlineDeals.slice(0, 3).map((deal) => {
+              {downlineDeals.slice(0, 3).map((deal, idx) => {
                 const p = deal;
                 return (
-                  <div key={deal.id} className="px-4 py-4 border-b border-[var(--app-border-subtle)] last:border-b-0">
+                  <div key={deal.id} className={`px-4 py-4 border-b border-[var(--app-border)] ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="font-body text-[13px] font-medium text-[var(--app-text)] leading-snug flex-1 min-w-0">
                         {p.dealName}
@@ -251,12 +251,12 @@ export default function OverviewPage() {
                 <div className="font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] text-right">L2 Commission</div>
               </div>
               {/* Rows */}
-              {downlineDeals.slice(0, 3).map((deal) => {
+              {downlineDeals.slice(0, 3).map((deal, idx) => {
                 const p = deal;
                 return (
                   <div
                     key={deal.id}
-                    className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors"
+                    className={`grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] items-center hover:bg-[var(--app-card-bg)] transition-colors ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
                   >
                     <div>
                       <button onClick={() => router.push(`/dashboard/deals?deal=${deal.id}`)} className="font-body text-[13px] font-medium text-[var(--app-text)] truncate text-left hover:text-brand-gold hover:underline underline-offset-2 transition-colors block w-full">{p.dealName}</button>

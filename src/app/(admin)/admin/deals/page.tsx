@@ -323,10 +323,10 @@ export default function AdminDealsPage() {
           </button>
         </div>
 
-        {sorted.map((deal) => (
+        {sorted.map((deal, idx) => (
           <div key={deal.id} id={`deal-${deal.id}`}>
             <div
-              className="grid grid-cols-[1.5fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_0.6fr] gap-3 px-5 py-3.5 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer"
+              className={`grid grid-cols-[1.5fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_0.6fr] gap-3 px-5 py-3.5 border-b border-[var(--app-border)] hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
               onClick={() => toggleExpand(deal)}
             >
               <div>
@@ -523,8 +523,8 @@ export default function AdminDealsPage() {
 
       {/* ═══ MOBILE CARDS ═══ */}
       <div className="md:hidden space-y-3">
-        {sorted.map((deal) => (
-          <div key={deal.id} id={`deal-m-${deal.id}`} className="card">
+        {sorted.map((deal, idx) => (
+          <div key={deal.id} id={`deal-m-${deal.id}`} className={`card ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
             <div className="p-4 cursor-pointer" onClick={() => toggleExpand(deal)}>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">

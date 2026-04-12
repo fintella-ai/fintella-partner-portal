@@ -99,7 +99,7 @@ export default function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative font-body text-lg border rounded-lg px-3 py-2 transition-colors text-[var(--app-text-muted)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+        className="relative font-body text-lg border rounded-lg px-3 py-2 transition-colors text-[var(--app-text-muted)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)] min-h-[44px] min-w-[44px] flex items-center justify-center bg-[#c4a050]/[0.08] backdrop-blur-sm"
         title="Notifications"
       >
         🔔
