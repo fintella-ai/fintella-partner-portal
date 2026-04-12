@@ -338,11 +338,11 @@ export default function SupportPage() {
                 {errors.category && <div className="font-body text-[11px] text-red-400 mt-1">{errors.category}</div>}
               </div>
             </div>
-            {/* ── Conditional: Deal ID fields (shown for Deal Tracking) ── */}
-            {category === "Deal Tracking" && (
+            {/* ── Deal ID fields (required for Deal Tracking, optional for Commission Question) ── */}
+            {(category === "Deal Tracking" || category === "Commission Question") && (
               <div className="mb-4 p-4 rounded-lg border border-[var(--app-border)] bg-[var(--app-card-bg)]">
                 <div className="flex items-center justify-between mb-3">
-                  <label className={labelClass} style={{ marginBottom: 0 }}>Deal ID *</label>
+                  <label className={labelClass} style={{ marginBottom: 0 }}>Deal ID {category === "Deal Tracking" ? "*" : "(optional)"}</label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -409,10 +409,12 @@ export default function SupportPage() {
               </div>
             )}
 
-            {/* ── Conditional: Partner ID fields (shown for Commission Question when has downline) ── */}
-            {category === "Commission Question" && downlinePartners.length > 0 && (
+            {/* ── Partner ID fields (shown for Commission Question + Deal Tracking when has downline) ── */}
+            {(category === "Commission Question" || category === "Deal Tracking") && downlinePartners.length > 0 && (
               <div className="mb-4 p-4 rounded-lg border border-[var(--app-border)] bg-[var(--app-card-bg)]">
-                <div className="font-body text-[11px] text-[var(--app-text-muted)] mb-3">If this is about a downline partner, select them below:</div>
+                <div className="font-body text-[11px] text-[var(--app-text-muted)] mb-3">
+                  {category === "Commission Question" ? "If this is about a downline partner, select them below:" : "Related downline partner (optional):"}
+                </div>
                 <div className={`grid ${device.isMobile ? "grid-cols-1" : l3Enabled ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
                   <div>
                     <label className={labelClass}>L2 Partner</label>
