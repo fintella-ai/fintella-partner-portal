@@ -196,6 +196,9 @@ npm run db:studio    # Open Prisma Studio
 - Live chat on/off toggle: admin Settings > Home Page tab, controls `liveChatEnabled` in PortalSettings
 - Partner chat widget: only visible when live chat is enabled, creates sessions, sends/receives messages with 4s polling
 - Admin chat page: split panel (session list left, conversation right), 5s polling, unread badges, close session, partner profile links
+- PWA "Add to Home Screen": manifest API (/api/manifest), icon API (/api/icon), service worker, apple-web-app meta tags
+- PWA install prompt overlay: full-screen onboarding on first dashboard visit, platform-specific instructions (iOS Share→Add, Android native install), reappears every 7 days if not installed, hidden in standalone mode
+- PWA hook: `src/lib/useInstallPrompt.ts` — beforeinstallprompt capture, standalone detection, localStorage dismiss with 7-day reappearance
 
 ## Remaining Phases
 - **Phase 14**: HubSpot API Integration (real deal/contact sync)
@@ -207,4 +210,4 @@ npm run db:studio    # Open Prisma Studio
 - **Phase 16**: Payments & Payouts (Stripe Connect)
 - **Phase 17**: AI Support Bot (Claude/OpenAI)
 - **Phase 18**: Deployment Hardening (monitoring, analytics, error tracking)
-- **Tech Debt**: Form validation (zod), tests, accessibility audit, PWA
+- **Tech Debt**: Form validation (zod), tests, accessibility audit

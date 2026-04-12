@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { FIRM_SHORT as DEFAULT_FIRM_SHORT, FIRM_SLOGAN as DEFAULT_FIRM_SLOGAN } from "@/lib/constants";
 import { useDevice } from "@/lib/useDevice";
 import NotificationBell from "@/components/ui/NotificationBell";
+import InstallPrompt from "@/components/ui/InstallPrompt";
 
 // ─── NAV STRUCTURE ───────────────────────────────────────────────────────────
 // Main nav items (top section of sidebar)
@@ -271,6 +272,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex flex-col min-h-screen">
+      {/* ── PWA INSTALL PROMPT ── */}
+      {!isSudo && <InstallPrompt />}
+
       {/* ── ADMIN SUDO BANNER ── */}
       {isSudo && (
         <div className="w-full bg-purple-600 text-white text-center py-2 px-4 font-body text-[12px] font-semibold tracking-wider flex items-center justify-center gap-3 z-[1000] relative">

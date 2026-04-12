@@ -1,15 +1,34 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import SessionProvider from "@/components/layout/SessionProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Tariff Refund & Litigation Network — Partner Portal",
   description: "Fighting for what's owed, reclaiming what's fair.",
+  manifest: "/api/manifest",
   icons: {
     icon: "/api/favicon",
     shortcut: "/api/favicon",
-    apple: "/api/favicon",
+    apple: "/api/icon?size=180",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "TRLN",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "application-name": "TRLN",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#c4a050",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
