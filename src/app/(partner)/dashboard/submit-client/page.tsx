@@ -160,10 +160,10 @@ export default function SubmitClientPage() {
             allow="camera; microphone; geolocation"
             sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation"
             style={{
-              top: -680,       // crop nav (~80px) + hero section (~600px) to show form directly
+              top: device.isMobile ? -450 : -680,  // mobile: shorter hero; desktop: full hero crop
               left: 0,
               width: "100%",
-              height: "calc(100% + 750px)", // extra height to compensate: 680 top + 70 bottom
+              height: device.isMobile ? "calc(100% + 500px)" : "calc(100% + 750px)",
             }}
           />
         </div>
