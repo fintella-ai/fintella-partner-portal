@@ -120,7 +120,7 @@ function GetStartedContent() {
           <div className="font-display text-sm font-semibold text-brand-gold tracking-[2px] uppercase mb-4">{FIRM_NAME}</div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold mb-2">Become a Partner</h1>
           <p className="font-body text-[13px] theme-text-muted italic">{FIRM_SLOGAN}</p>
-          <p className="font-body text-[12px] theme-text-faint mt-2">Earn 25% of the firm fee on every deal you refer.</p>
+          <p className="font-body text-[12px] theme-text-faint mt-2">Earn a considerable % of the firm fee on every deal you refer!</p>
         </div>
 
         <div className="card p-5 sm:p-6">
