@@ -208,6 +208,8 @@ npm run db:studio    # Open Prisma Studio
 - Partner deal notes & activity: timeline showing creation, consultation scheduled, referral notes, close events
 - Deal Support button: opens live chat (if enabled) pre-filled with deal context, or opens support ticket with deal ID auto-populated
 - Partner downline tree: commission percentages shown for L2/L3 downline only (upline % hidden from downline view)
+- Admin Development page (/admin/dev, super_admin only): live GitHub commits feed via GITHUB_TOKEN, deployment info (Vercel env vars), quick-links to Claude Code + GitHub repo, static fallback when token absent
+- Feature Request System: FeatureRequest Prisma model, partner + admin submission endpoints (/api/feature-requests), super_admin management endpoint (/api/admin/feature-requests) with stats + filter, partner UI (/dashboard/feature-request) for submitting ideas/bugs/UX improvements, admin UI (/admin/features) with status triage (submitted → in_review → in_progress → completed/rejected), priority, admin response notes visible to requester
 
 ## Remaining Phases
 - **Phase 14**: HubSpot API Integration (real deal/contact sync)
