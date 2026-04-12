@@ -144,12 +144,13 @@ export default function SubmitClientPage() {
             Open in new tab ↗
           </a>
         </div>
-        {/* Cropped iframe — hides header/nav/footer from external site */}
+        {/* Cropped iframe — hides header/nav, dark bg for contrast */}
         <div
-          className="bg-white overflow-hidden relative"
+          className="overflow-hidden relative"
           style={{
+            background: "#0c1630", // dark blue theme background for contrast
             height: device.isMobile ? "calc(100vh - 200px)" : "85vh",
-            minHeight: 600,
+            minHeight: 700,
           }}
         >
           <iframe
@@ -159,10 +160,10 @@ export default function SubmitClientPage() {
             allow="camera; microphone; geolocation"
             sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation"
             style={{
-              top: -70,        // crop top nav/header border
-              left: -10,       // crop left border
-              width: "calc(100% + 20px)", // compensate left+right crop
-              height: "calc(100% + 140px)", // extra height: 70 top + 70 bottom crop
+              top: -120,       // crop top nav + hero section
+              left: 0,
+              width: "100%",
+              height: "calc(100% + 200px)", // extra height: 120 top + 80 bottom
             }}
           />
         </div>
