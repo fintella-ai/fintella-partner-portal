@@ -268,6 +268,7 @@ export default function DocumentsPage() {
                 <label className="font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-secondary)] mb-1.5 block">Document Type *</label>
                 <select value={uploadType} onChange={(e) => setUploadType(e.target.value)} className="w-full bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-3 py-2.5 text-[var(--app-text)] font-body text-sm outline-none">
                   <option value="">Select type...</option>
+                  <option value="agreement">Agreement</option>
                   <option value="w9">W-9 Form</option>
                   <option value="w8">W-8 Form</option>
                   <option value="tax_form">Tax Form</option>

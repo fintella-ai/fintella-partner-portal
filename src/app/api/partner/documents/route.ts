@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "docType and fileName are required" }, { status: 400 });
     }
 
-    const allowedTypes = ["w9", "w8", "tax_form", "bank_letter", "voided_check"];
+    const allowedTypes = ["agreement", "w9", "w8", "tax_form", "bank_letter", "voided_check"];
     if (!allowedTypes.includes(docType)) {
       return NextResponse.json({ error: "Invalid document type" }, { status: 400 });
     }
