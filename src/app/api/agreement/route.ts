@@ -20,10 +20,24 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const agreement = await prisma.partnershipAgreement.findFirst({
+    let agreement = await prisma.partnershipAgreement.findFirst({
       where: { partnerCode },
       orderBy: { version: "desc" },
     });
+
+    // Auto-reconcile: if agreement is under_review but there's an approved document, fix it
+    if (agreement && (agreement.status === "under_review" || agreement.status === "pending")) {
+      const approvedDoc = await prisma.document.findFirst({
+        where: { partnerCode, docType: "agreement", status: "approved" },
+        orderBy: { createdAt: "desc" },
+      });
+      if (approvedDoc) {
+        agreement = await prisma.partnershipAgreement.update({
+          where: { id: agreement.id },
+          data: { status: "approved", signedDate: agreement.signedDate || new Date() },
+        });
+      }
+    }
 
     // For pending agreements, try to get the embedded signing URL
     let embeddedSigningUrl = agreement?.embeddedSigningUrl || null;

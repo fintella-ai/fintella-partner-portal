@@ -59,7 +59,22 @@ export async function GET(
         })
       : [];
 
-    return NextResponse.json({ partner, downlineCount, downline, agreement, profile, documents, l3Partners, adminNotes, codeHistory });
+    // Auto-reconcile: if there's an approved agreement document but the
+    // PartnershipAgreement record is still under_review, fix it now
+    let reconciledAgreement = agreement;
+    if (agreement && (agreement.status === "under_review" || agreement.status === "pending")) {
+      const hasApprovedDoc = (documents as any[]).some(
+        (d: any) => d.docType === "agreement" && d.status === "approved"
+      );
+      if (hasApprovedDoc) {
+        reconciledAgreement = await prisma.partnershipAgreement.update({
+          where: { id: agreement.id },
+          data: { status: "approved", signedDate: agreement.signedDate || new Date() },
+        });
+      }
+    }
+
+    return NextResponse.json({ partner, downlineCount, downline, agreement: reconciledAgreement, profile, documents, l3Partners, adminNotes, codeHistory });
   } catch {
     return NextResponse.json({ error: "Failed to fetch partner" }, { status: 500 });
   }
