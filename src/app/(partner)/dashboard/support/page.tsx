@@ -55,6 +55,7 @@ export default function SupportPage() {
   const [l3PartnerCode, setL3PartnerCode] = useState("");
   const [partnerDeals, setPartnerDeals] = useState<any[]>([]);
   const [downlinePartners, setDownlinePartners] = useState<any[]>([]);
+  const [l3Partners, setL3Partners] = useState<any[]>([]);
   const [l3Enabled, setL3Enabled] = useState(false);
 
   // Detail view
@@ -81,7 +82,10 @@ export default function SupportPage() {
         if (data?.directDeals) setPartnerDeals(data.directDeals);
         if (data?.downlinePartners) setDownlinePartners(data.downlinePartners);
         // Check if any downline partner has L3 enabled (user is L1 with L3 capability)
-        if (data?.l3Partners?.length > 0) setL3Enabled(true);
+        if (data?.l3Partners?.length > 0) {
+          setL3Enabled(true);
+          setL3Partners(data.l3Partners);
+        }
       })
       .catch(() => {});
   }, []);
@@ -426,12 +430,16 @@ export default function SupportPage() {
                   {l3Enabled && (
                     <div>
                       <label className={labelClass}>L3 Partner</label>
-                      <input
+                      <select
                         className={inputClass}
-                        placeholder="L3 Partner Code (if applicable)"
                         value={l3PartnerCode}
-                        onChange={(e) => setL3PartnerCode(e.target.value.toUpperCase())}
-                      />
+                        onChange={(e) => setL3PartnerCode(e.target.value)}
+                      >
+                        <option value="">Select L3 partner (optional)...</option>
+                        {l3Partners.map((p: any) => (
+                          <option key={p.partnerCode} value={p.partnerCode}>{p.firstName} {p.lastName} ({p.partnerCode})</option>
+                        ))}
+                      </select>
                     </div>
                   )}
                 </div>
