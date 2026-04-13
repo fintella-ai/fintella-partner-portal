@@ -5,6 +5,10 @@ import {
   sendWelcomeEmail,
   sendInviterSignupNotificationEmail,
 } from "@/lib/sendgrid";
+import {
+  sendWelcomeSms,
+  sendInviterSignupNotificationSms,
+} from "@/lib/twilio";
 import { hashSync } from "bcryptjs";
 import { FIRM_NAME, FIRM_SHORT } from "@/lib/constants";
 
@@ -58,7 +62,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { token, firstName, lastName, email, phone, companyName, password, emailOptIn, smsOptIn } = body;
+    const { token, firstName, lastName, email, phone, mobilePhone, companyName, password, emailOptIn, smsOptIn } = body;
 
     if (!token || !firstName || !lastName || !email || !password) {
       return NextResponse.json({ error: "Token, first name, last name, email, and password are required" }, { status: 400 });
@@ -92,6 +96,7 @@ export async function POST(req: NextRequest) {
         lastName: lastName.trim(),
         companyName: companyName?.trim() || null,
         phone: phone?.trim() || null,
+        mobilePhone: mobilePhone?.trim() || null,
         status: "pending", // pending until agreement signed
         referredByPartnerCode: invite.inviterCode,
         tier: invite.targetTier,
@@ -142,10 +147,28 @@ export async function POST(req: NextRequest) {
       lastName: partner.lastName,
     }).catch((err) => console.error("[Signup] welcome email failed:", err));
 
-    // 2) Notification email to the inviting L1 partner
+    // Phase 15b — fire welcome SMS in parallel. Gated on smsOptIn inside
+    // sendSms; if the partner declined SMS or has no mobile number, the call
+    // logs a "skipped_optout" row and short-circuits.
+    sendWelcomeSms({
+      partnerCode,
+      mobilePhone: partner.mobilePhone,
+      smsOptIn: partner.smsOptIn,
+      firstName: partner.firstName,
+      lastName: partner.lastName,
+    }).catch((err) => console.error("[Signup] welcome SMS failed:", err));
+
+    // 2) Notification email + SMS to the inviting L1 partner
     const inviter = await prisma.partner.findUnique({
       where: { partnerCode: invite.inviterCode },
-      select: { email: true, firstName: true, lastName: true, partnerCode: true },
+      select: {
+        email: true,
+        firstName: true,
+        lastName: true,
+        partnerCode: true,
+        mobilePhone: true,
+        smsOptIn: true,
+      },
     }).catch(() => null);
     if (inviter?.email) {
       const inviterName =
@@ -160,6 +183,19 @@ export async function POST(req: NextRequest) {
         commissionRate: invite.commissionRate,
       }).catch((err) =>
         console.error("[Signup] inviter notification email failed:", err)
+      );
+
+      // Phase 15b — parallel SMS to the L1 inviter (gated on their smsOptIn)
+      sendInviterSignupNotificationSms({
+        inviterCode: inviter.partnerCode,
+        inviterMobilePhone: inviter.mobilePhone,
+        inviterSmsOptIn: inviter.smsOptIn,
+        inviterFirstName: inviter.firstName,
+        recruitName: partnerName,
+        recruitTier: invite.targetTier,
+        commissionRate: invite.commissionRate,
+      }).catch((err) =>
+        console.error("[Signup] inviter notification SMS failed:", err)
       );
     }
 

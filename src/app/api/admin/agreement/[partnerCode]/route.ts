@@ -9,6 +9,7 @@ import {
   resolveAgreementTemplateId,
 } from "@/lib/signwell";
 import { sendAgreementReadyEmail } from "@/lib/sendgrid";
+import { sendAgreementReadySms } from "@/lib/twilio";
 import { FIRM_NAME, FIRM_SHORT } from "@/lib/constants";
 
 /**
@@ -172,6 +173,17 @@ export async function POST(
       embeddedSigningUrl || null
     ).catch((err) =>
       console.error("[AdminAgreement] agreement-ready email failed:", err)
+    );
+
+    // Phase 15b — parallel SMS notification (gated on partner.smsOptIn)
+    sendAgreementReadySms({
+      partnerCode,
+      mobilePhone: partner.mobilePhone,
+      smsOptIn: partner.smsOptIn,
+      firstName: partner.firstName,
+      lastName: partner.lastName,
+    }).catch((err) =>
+      console.error("[AdminAgreement] agreement-ready SMS failed:", err)
     );
 
     return NextResponse.json({ agreement }, { status: 201 });
