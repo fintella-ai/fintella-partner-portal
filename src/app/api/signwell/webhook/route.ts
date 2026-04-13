@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendAgreementSignedEmail } from "@/lib/sendgrid";
+import { sendAgreementSignedSms } from "@/lib/twilio";
 
 // SignWell sends webhooks when documents are signed, viewed, etc.
 // Webhook events: document_completed, document_viewed, document_expired
@@ -46,15 +47,38 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Phase 15a — fire transactional "account active" email.
-        // Best-effort; webhook should still 200 even if SendGrid is down.
+        // Phase 15a + 15b — fire transactional "account active" email + SMS.
+        // Best-effort; webhook should still 200 even if SendGrid/Twilio is down.
         const partner = await prisma.partner.findUnique({
           where: { partnerCode: agreement.partnerCode },
-          select: { partnerCode: true, email: true, firstName: true, lastName: true },
+          select: {
+            partnerCode: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            mobilePhone: true,
+            smsOptIn: true,
+          },
         }).catch(() => null);
         if (partner?.email) {
-          sendAgreementSignedEmail(partner).catch((err) =>
+          sendAgreementSignedEmail({
+            partnerCode: partner.partnerCode,
+            email: partner.email,
+            firstName: partner.firstName,
+            lastName: partner.lastName,
+          }).catch((err) =>
             console.error("[SignWellWebhook] agreement-signed email failed:", err)
+          );
+        }
+        if (partner) {
+          sendAgreementSignedSms({
+            partnerCode: partner.partnerCode,
+            mobilePhone: partner.mobilePhone,
+            smsOptIn: partner.smsOptIn,
+            firstName: partner.firstName,
+            lastName: partner.lastName,
+          }).catch((err) =>
+            console.error("[SignWellWebhook] agreement-signed SMS failed:", err)
           );
         }
       }
