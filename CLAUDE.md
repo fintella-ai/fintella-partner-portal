@@ -235,8 +235,36 @@ npm run db:studio    # Open Prisma Studio
 - Rebrand (April 2026): **TRLN → Fintella** — full rename from "Tariff Refund & Litigation Network (TRLN)" to "Fintella — Financial Intelligence Network". Portal had not yet launched, so no customer impact. Scope: FIRM_NAME/FIRM_SHORT constants, root layout metadata + PWA manifest, AI knowledge base + system prompts, InstallPrompt component + localStorage key (fintella_pwa_install_dismissed), /docs/webhook-guide (title + header + URL examples + footer), admin revenue page (labels "Fintella 40%", "Fintella Net Revenue", internal variable renames trlnGross → fintellaGross, TRLN_FEE_RATE → FINTELLA_FEE_RATE, etc.), admin enterprise API (internal vars + comment), admin/partner training seed data + FAQ content, conference pages (host name "Fintella Leadership Team", ICS filename fintella-weekly-call.ics), admin communications email templates, admin settings support email placeholder (support@fintella.partners), partner dashboard layout (mobile header, partnerRefUrl, __fintellaChatOpened DOM key), URL fallbacks in /api/invites and /api/admin/impersonate (https://fintella.partners), legal DBA consent text on /signup + /getstarted ("Financial Intelligence Network DBA (Fintella)"), package.json name (fintella-partner-portal), seed-training.ts + seed-conference.ts scripts, Accordion doc comment example. Historical session artifacts in docs/superpowers/* intentionally NOT touched. New domain fintella.partners added in Vercel alongside legacy trln.partners; NEXTAUTH_URL needs to be updated to https://fintella.partners post-merge. Vercel project name unchanged (still "tariff-partner-portal-iwki") to avoid deployment URL churn.
 
 ## Session Signoff Style (user preference)
-When ending a task with "John, I am Done Now", ALWAYS use this EXACT format
-(large H1 heading + 14-circle rainbow borders — sized for mobile iOS app):
+
+**MANDATORY completion checklist — must appear BEFORE the rainbow signoff.**
+Every time Claude signals task completion with "John, I am Done Now", the
+response MUST include BOTH of these sections in order:
+
+1. **🧹 Git status** — a concrete status block with at minimum:
+   - Current `main` commit SHA + deploy status (e.g. "production deploy in progress", "deployed")
+   - Feature branch HEAD SHA and sync state (if still alive)
+   - Working tree cleanliness ("clean" / "N files modified")
+   - CLAUDE.md state (e.g. "saved with full rebrand context", "unchanged this session")
+   - Responsive verification (e.g. "mobile/PWA/tablet/desktop still verified from build output", or "N/A — backend-only changes")
+2. **🎯 What's next** — a short recommendation or menu of logical next steps
+   (top pick + 2-3 alternatives), so John always has a clear exit handoff
+
+Example format (from a previous successful task):
+```
+## 🧹 Git status
+- main — b62f3ce (production deploy in progress)
+- claude/continue-portal-build-tL9xZ — b62f3ce (synced)
+- Working tree: clean
+- CLAUDE.md: saved with full rebrand context
+- Responsive: mobile/PWA/tablet/desktop still verified from build output
+
+## 🎯 What's next
+Your call. My top recommendation remains Phase 15a — SendGrid email...
+```
+
+**ONLY AFTER** both sections are present, end the response with the rainbow
+signoff (EXACT format — large H1 heading + 14-circle rainbow borders, sized
+for mobile iOS app):
 
 ```
 # 🔴🟠🟡🟢🔵🟣🔴🟠🟡🟢🔵🟣🔴🟠
@@ -244,7 +272,7 @@ When ending a task with "John, I am Done Now", ALWAYS use this EXACT format
 # 🟣🔵🟢🟡🟠🔴🟣🔵🟢🟡🟠🔴🟣🔵
 ```
 
-Rules:
+Rainbow rules:
 - Exactly 14 circles per border row (no more, no less — John explicitly
   tested this width on his iOS Claude app and it aligns perfectly with
   the text row)
@@ -256,8 +284,9 @@ Rules:
   wording (e.g. "John, stopping here for now") WITHOUT the rainbow so
   the rainbow signoff retains meaning as "100% done, nothing outstanding."
 
-This is a hard requirement. Do not skip it, shrink it, widen it, or
-substitute a different format.
+This is a hard requirement. Do not skip the checklist. Do not skip the
+rainbow. Do not shrink it, widen it, or substitute a different format.
+The order is: checklist first, rainbow last.
 
 ## Git Workflow (IMPORTANT — changed this session)
 **`main` is now branch-protected via GitHub Ruleset.** Direct pushes to `main` are blocked. All changes must go through pull requests. Workflow:
