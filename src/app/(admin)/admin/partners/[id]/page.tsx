@@ -1364,28 +1364,38 @@ export default function PartnerDetailPage() {
               </div>
             </div>
             {smsLogs.map((s: any) => {
+              const isInbound = s.direction === "inbound";
               const statusBadge =
                 s.status === "sent"
                   ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                  : s.status === "received"
+                  ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                   : s.status === "failed"
                   ? "bg-red-500/10 text-red-400 border border-red-500/20"
                   : s.status === "skipped_optout"
                   ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
                   : "bg-[var(--app-input-bg)] text-[var(--app-text-muted)] border border-[var(--app-border)]";
               const statusLabel = s.status === "skipped_optout" ? "skipped (no opt-in)" : s.status;
+              const directionLabel = isInbound ? "From" : "To";
+              const directionPhone = isInbound ? s.fromPhone : s.toPhone;
               return (
                 <div key={s.id} className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0">
                   <div className="flex items-start gap-3">
-                    <span className="text-base mt-0.5 shrink-0">💬</span>
+                    <span className="text-base mt-0.5 shrink-0">{isInbound ? "📥" : "💬"}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-body text-[13px] font-medium text-[var(--app-text)] truncate">{s.template}</span>
+                        {isInbound && (
+                          <span className="inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase shrink-0 bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            inbound
+                          </span>
+                        )}
                         <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase shrink-0 ${statusBadge}`}>
                           {statusLabel}
                         </span>
                       </div>
                       <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5 truncate">
-                        To: {s.toPhone || "(no number)"}
+                        {directionLabel}: {directionPhone || "(no number)"}
                       </div>
                       {s.body && (
                         <div className="font-body text-[11px] text-[var(--app-text-secondary)] mt-1 line-clamp-2">{s.body}</div>

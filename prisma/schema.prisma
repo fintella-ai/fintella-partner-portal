@@ -608,20 +608,27 @@ model EmailLog {
 // Mirrors EmailLog. Every outbound SMS lands here, including TCPA opt-out
 // short-circuits ("skipped_optout" status) so the audit trail captures both
 // what was sent AND what was suppressed for compliance reasons.
+//
+// Phase 15b-fu #2: also captures inbound messages from the Twilio webhook
+// (STOP / START / other), distinguished by the `direction` field. Inbound
+// rows trigger Partner.smsOptIn flips at the route level; this table is
+// the single source of truth for both directions of SMS traffic.
 model SmsLog {
   id                String   @id @default(cuid())
   partnerCode       String?  // nullable so we can log sends to recipients without a partner record
-  toPhone           String   // E.164 format (+1...)
-  fromPhone         String   // configured TWILIO_FROM_NUMBER
+  direction         String   @default("outbound") // "outbound" | "inbound"
+  toPhone           String   // E.164 format (+1...) — destination for outbound, our number for inbound
+  fromPhone         String   // configured TWILIO_FROM_NUMBER for outbound, partner's number for inbound
   body              String   // full message body — SMS is short, no need to truncate
-  template          String   // "welcome", "agreement_ready", "agreement_signed", "signup_notification", "manual", etc.
-  status            String   // "sent", "demo", "failed", "skipped_optout"
-  providerMessageId String?  // Twilio Message SID (real sends only)
+  template          String   // outbound: "welcome"/"agreement_ready"/etc. inbound: "stop_keyword"/"start_keyword"/"inbound_other"
+  status            String   // "sent", "demo", "failed", "skipped_optout", "received"
+  providerMessageId String?  // Twilio Message SID
   errorMessage      String?  // populated on failure
   createdAt         DateTime @default(now())
 
   @@index([partnerCode])
   @@index([createdAt])
+  @@index([direction])
 }
 
 // ─── CALL LOG (Phase 15c — Twilio Voice) ─────────────────────────────────────
