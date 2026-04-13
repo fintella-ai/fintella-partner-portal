@@ -582,3 +582,24 @@ model AiUsageDay {
   @@unique([userId, date])
   @@index([date])
 }
+
+// ─── EMAIL LOG (Phase 15a — SendGrid) ────────────────────────────────────────
+// Every outbound transactional email is logged here, whether it went out via
+// the real SendGrid API or was a demo/no-op send. Surfaces in the admin
+// partner detail Communication Log → Email tab.
+model EmailLog {
+  id                String   @id @default(cuid())
+  partnerCode       String?  // nullable so we can log sends to non-partners (e.g. inviters who haven't onboarded yet)
+  toEmail           String
+  fromEmail         String
+  subject           String
+  bodyPreview       String   // first ~300 chars of the plain-text body, for the comm log
+  template          String   // "welcome", "agreement_ready", "agreement_signed", "signup_notification", "manual", etc.
+  status            String   // "sent", "demo", "failed"
+  providerMessageId String?  // SendGrid X-Message-Id header (real sends only)
+  errorMessage      String?  // populated on failure
+  createdAt         DateTime @default(now())
+
+  @@index([partnerCode])
+  @@index([createdAt])
+}

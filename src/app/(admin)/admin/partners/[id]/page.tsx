@@ -78,6 +78,7 @@ export default function PartnerDetailPage() {
   const [codeHistory, setCodeHistory] = useState<any[]>([]);
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [emailLogs, setEmailLogs] = useState<any[]>([]);
   const [enterprisePartner, setEnterprisePartner] = useState<any>(null);
   const [commLogFilter, setCommLogFilter] = useState<"all" | "support" | "email" | "sms" | "chat" | "phone">("all");
   const [downlineView, setDownlineView] = useState<"list" | "tree">("list");
@@ -144,6 +145,7 @@ export default function PartnerDetailPage() {
       setCodeHistory(data.codeHistory || []);
       setSupportTickets(data.supportTickets || []);
       setNotifications(data.notifications || []);
+      setEmailLogs(data.emailLogs || []);
       setEnterprisePartner(data.enterprisePartner || null);
 
       setFirstName(p.firstName);
@@ -1246,12 +1248,56 @@ export default function PartnerDetailPage() {
           </div>
         )}
 
-        {/* Email placeholder */}
-        {commLogFilter === "email" && (
+        {/* Email logs (Phase 15a — SendGrid) */}
+        {(commLogFilter === "all" || commLogFilter === "email") && emailLogs.length > 0 && (
+          <div>
+            <div className="px-5 py-2.5 bg-[var(--app-card-bg)] border-b border-[var(--app-border)]">
+              <div className="font-body text-[10px] tracking-[1.5px] uppercase text-[var(--app-text-muted)]">
+                Emails ({emailLogs.length})
+              </div>
+            </div>
+            {emailLogs.map((e: any) => {
+              const statusBadge =
+                e.status === "sent"
+                  ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                  : e.status === "failed"
+                  ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                  : "bg-[var(--app-input-bg)] text-[var(--app-text-muted)] border border-[var(--app-border)]";
+              return (
+                <div key={e.id} className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0">
+                  <div className="flex items-start gap-3">
+                    <span className="text-base mt-0.5 shrink-0">📧</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-body text-[13px] font-medium text-[var(--app-text)] truncate">{e.subject}</span>
+                        <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase shrink-0 ${statusBadge}`}>
+                          {e.status}
+                        </span>
+                      </div>
+                      <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5 truncate">
+                        To: {e.toEmail} · {e.template}
+                      </div>
+                      {e.bodyPreview && (
+                        <div className="font-body text-[11px] text-[var(--app-text-secondary)] mt-1 line-clamp-2">{e.bodyPreview}</div>
+                      )}
+                      {e.errorMessage && (
+                        <div className="font-body text-[10px] text-red-400 mt-1 truncate">{e.errorMessage}</div>
+                      )}
+                      <div className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">{fmtDate(e.createdAt)}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {commLogFilter === "email" && emailLogs.length === 0 && (
           <div className="px-5 py-8 text-center">
             <div className="text-2xl mb-2">📧</div>
-            <div className="font-body text-sm text-[var(--app-text-muted)]">Email communication logs will appear here once email integration is connected.</div>
-            <div className="font-body text-[11px] text-[var(--app-text-faint)] mt-1">Coming in Phase 15 — SendGrid Integration</div>
+            <div className="font-body text-sm text-[var(--app-text-muted)]">No emails sent to this partner yet.</div>
+            <div className="font-body text-[11px] text-[var(--app-text-faint)] mt-1">
+              Transactional sends (welcome, agreement, activation) appear here automatically.
+            </div>
           </div>
         )}
 
@@ -1283,7 +1329,7 @@ export default function PartnerDetailPage() {
         )}
 
         {/* Empty state for filtered views */}
-        {commLogFilter === "all" && supportTickets.length === 0 && notifications.length === 0 && (
+        {commLogFilter === "all" && supportTickets.length === 0 && notifications.length === 0 && emailLogs.length === 0 && (
           <div className="px-5 py-8 text-center font-body text-[13px] text-[var(--app-text-muted)]">
             No communications recorded yet.
           </div>

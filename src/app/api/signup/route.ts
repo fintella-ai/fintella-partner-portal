@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendForSigning, isSignWellConfigured } from "@/lib/signwell";
+import {
+  sendWelcomeEmail,
+  sendInviterSignupNotificationEmail,
+} from "@/lib/sendgrid";
 import { hashSync } from "bcryptjs";
 import { FIRM_NAME, FIRM_SHORT } from "@/lib/constants";
 
@@ -128,6 +132,36 @@ export async function POST(req: NextRequest) {
         link: "/dashboard/downline",
       },
     }).catch(() => {});
+
+    // Phase 15a — fire transactional onboarding emails (best-effort, never blocks the response).
+    // 1) Welcome email to the new partner
+    sendWelcomeEmail({
+      partnerCode,
+      email: partner.email,
+      firstName: partner.firstName,
+      lastName: partner.lastName,
+    }).catch((err) => console.error("[Signup] welcome email failed:", err));
+
+    // 2) Notification email to the inviting L1 partner
+    const inviter = await prisma.partner.findUnique({
+      where: { partnerCode: invite.inviterCode },
+      select: { email: true, firstName: true, lastName: true, partnerCode: true },
+    }).catch(() => null);
+    if (inviter?.email) {
+      const inviterName =
+        [inviter.firstName, inviter.lastName].filter(Boolean).join(" ").trim() ||
+        "Partner";
+      sendInviterSignupNotificationEmail({
+        inviterEmail: inviter.email,
+        inviterName,
+        inviterCode: inviter.partnerCode,
+        recruitName: partnerName,
+        recruitTier: invite.targetTier,
+        commissionRate: invite.commissionRate,
+      }).catch((err) =>
+        console.error("[Signup] inviter notification email failed:", err)
+      );
+    }
 
     return NextResponse.json({
       success: true,
