@@ -8,6 +8,7 @@ import {
   buildPartnerTemplateFields,
   resolveAgreementTemplateId,
 } from "@/lib/signwell";
+import { sendAgreementReadyEmail } from "@/lib/sendgrid";
 import { FIRM_NAME, FIRM_SHORT } from "@/lib/constants";
 
 /**
@@ -158,6 +159,20 @@ export async function POST(
         sentDate: new Date(),
       },
     });
+
+    // Phase 15a — fire transactional "agreement ready to sign" email.
+    // Best-effort; never blocks the API response.
+    sendAgreementReadyEmail(
+      {
+        partnerCode,
+        email: partnerEmail,
+        firstName: partner.firstName,
+        lastName: partner.lastName,
+      },
+      embeddedSigningUrl || null
+    ).catch((err) =>
+      console.error("[AdminAgreement] agreement-ready email failed:", err)
+    );
 
     return NextResponse.json({ agreement }, { status: 201 });
   } catch (err: any) {
