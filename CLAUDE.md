@@ -96,6 +96,8 @@ DATABASE_URL              — "file:./dev.db" (local) or PostgreSQL connection s
 DIRECT_URL                — PostgreSQL unpooled connection (Prisma migrations)
 NEXTAUTH_SECRET           — JWT signing secret
 NEXTAUTH_URL              — https://fintella.partners
+SEED_ADMIN_EMAIL          — Optional: first-deploy admin email (required in prod when no super_admin exists)
+SEED_ADMIN_PASSWORD       — Optional: first-deploy admin password (required in prod when no super_admin exists)
 SIGNWELL_API_KEY          — Optional: e-signature integration
 SIGNWELL_WEBHOOK_SECRET   — Optional: SignWell webhook verification
 HUBSPOT_PRIVATE_TOKEN     — Optional: CRM integration
