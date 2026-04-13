@@ -80,6 +80,9 @@ export default function PartnerDetailPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
   const [smsLogs, setSmsLogs] = useState<any[]>([]);
+  const [callLogs, setCallLogs] = useState<any[]>([]);
+  const [callingPartner, setCallingPartner] = useState(false);
+  const [callMessage, setCallMessage] = useState<string | null>(null);
   const [enterprisePartner, setEnterprisePartner] = useState<any>(null);
   const [commLogFilter, setCommLogFilter] = useState<"all" | "support" | "email" | "sms" | "chat" | "phone">("all");
   const [downlineView, setDownlineView] = useState<"list" | "tree">("list");
@@ -148,6 +151,7 @@ export default function PartnerDetailPage() {
       setNotifications(data.notifications || []);
       setEmailLogs(data.emailLogs || []);
       setSmsLogs(data.smsLogs || []);
+      setCallLogs(data.callLogs || []);
       setEnterprisePartner(data.enterprisePartner || null);
 
       setFirstName(p.firstName);
@@ -188,6 +192,36 @@ export default function PartnerDetailPage() {
   }, [id]);
 
   useEffect(() => { fetchPartner(); }, [fetchPartner]);
+
+  // Phase 15c — initiate a Twilio bridged voice call to the partner.
+  async function handleCallPartner() {
+    if (!partner?.partnerCode) return;
+    setCallingPartner(true);
+    setCallMessage(null);
+    try {
+      const res = await fetch("/api/twilio/call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partnerCode: partner.partnerCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCallMessage(data.error || "Failed to initiate call");
+      } else if (data.status === "demo") {
+        setCallMessage("Demo mode — call logged but not actually placed (Twilio Voice not configured).");
+      } else if (data.status === "initiated") {
+        setCallMessage("Call initiated — your phone will ring momentarily.");
+      } else {
+        setCallMessage(data.error || "Call failed.");
+      }
+      // Refresh comm log so the new CallLog row appears.
+      fetchPartner();
+    } catch (err: any) {
+      setCallMessage(err?.message || "Network error");
+    } finally {
+      setCallingPartner(false);
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true);
@@ -1151,10 +1185,28 @@ export default function PartnerDetailPage() {
 
       {/* ═══ COMMUNICATION LOG ═══ */}
       <div className="card">
-        <div className="px-5 py-4 border-b border-[var(--app-border)]">
-          <div className="font-body font-semibold text-sm">Communication Log</div>
-          <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">All communications with this partner across all channels.</div>
+        <div className="px-5 py-4 border-b border-[var(--app-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="font-body font-semibold text-sm">Communication Log</div>
+            <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">All communications with this partner across all channels.</div>
+          </div>
+          {partner?.mobilePhone && (
+            <button
+              onClick={handleCallPartner}
+              disabled={callingPartner}
+              className="font-body text-[11px] text-brand-gold border border-brand-gold/30 rounded-lg px-3 py-2 min-h-[40px] hover:bg-brand-gold/10 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+              title="Initiate a Twilio bridged voice call to this partner"
+            >
+              <span>📞</span>
+              <span>{callingPartner ? "Initiating..." : "Call Partner"}</span>
+            </button>
+          )}
         </div>
+        {callMessage && (
+          <div className="px-5 py-2.5 bg-[var(--app-card-bg)] border-b border-[var(--app-border)] font-body text-[11px] text-[var(--app-text-secondary)]">
+            {callMessage}
+          </div>
+        )}
 
         {/* Filter tabs */}
         <div className="px-5 py-3 border-b border-[var(--app-border)] flex gap-2 overflow-x-auto">
@@ -1368,17 +1420,78 @@ export default function PartnerDetailPage() {
           </div>
         )}
 
-        {/* Phone Calls placeholder */}
-        {commLogFilter === "phone" && (
+        {/* Call logs (Phase 15c — Twilio Voice) */}
+        {(commLogFilter === "all" || commLogFilter === "phone") && callLogs.length > 0 && (
+          <div>
+            <div className="px-5 py-2.5 bg-[var(--app-card-bg)] border-b border-[var(--app-border)]">
+              <div className="font-body text-[10px] tracking-[1.5px] uppercase text-[var(--app-text-muted)]">
+                Phone Calls ({callLogs.length})
+              </div>
+            </div>
+            {callLogs.map((c: any) => {
+              const statusBadge =
+                c.status === "completed"
+                  ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                  : c.status === "in-progress" || c.status === "ringing" || c.status === "initiated"
+                  ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                  : c.status === "failed" || c.status === "no-answer" || c.status === "busy" || c.status === "canceled"
+                  ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                  : "bg-[var(--app-input-bg)] text-[var(--app-text-muted)] border border-[var(--app-border)]";
+              const fmtDuration = (s: number | null) =>
+                typeof s === "number" && s > 0
+                  ? `${Math.floor(s / 60)}m ${s % 60}s`
+                  : null;
+              const dur = fmtDuration(c.durationSeconds);
+              return (
+                <div key={c.id} className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0">
+                  <div className="flex items-start gap-3">
+                    <span className="text-base mt-0.5 shrink-0">📞</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-body text-[13px] font-medium text-[var(--app-text)] truncate">
+                          Outbound call to {c.toPhone || "(no number)"}
+                        </span>
+                        <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase shrink-0 ${statusBadge}`}>
+                          {c.status}
+                        </span>
+                      </div>
+                      <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5 truncate">
+                        {c.initiatedByName || c.initiatedByEmail || "Admin"}
+                        {dur && <> · {dur}</>}
+                      </div>
+                      {c.recordingUrl && (
+                        <a
+                          href={c.recordingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-body text-[11px] text-brand-gold hover:underline mt-1 inline-block"
+                        >
+                          ▶ Listen to recording
+                        </a>
+                      )}
+                      {c.errorMessage && (
+                        <div className="font-body text-[10px] text-red-400 mt-1 truncate">{c.errorMessage}</div>
+                      )}
+                      <div className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">{fmtDate(c.createdAt)}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {commLogFilter === "phone" && callLogs.length === 0 && (
           <div className="px-5 py-8 text-center">
             <div className="text-2xl mb-2">📞</div>
-            <div className="font-body text-sm text-[var(--app-text-muted)]">Phone call logs and recordings will appear here once VOIP is connected.</div>
-            <div className="font-body text-[11px] text-[var(--app-text-faint)] mt-1">Coming in Phase 15 — Twilio VOIP Integration</div>
+            <div className="font-body text-sm text-[var(--app-text-muted)]">No calls placed to this partner yet.</div>
+            <div className="font-body text-[11px] text-[var(--app-text-faint)] mt-1">
+              Use the &ldquo;Call Partner&rdquo; button at the top of this page to initiate a Twilio bridged call.
+            </div>
           </div>
         )}
 
         {/* Empty state for filtered views */}
-        {commLogFilter === "all" && supportTickets.length === 0 && notifications.length === 0 && emailLogs.length === 0 && smsLogs.length === 0 && (
+        {commLogFilter === "all" && supportTickets.length === 0 && notifications.length === 0 && emailLogs.length === 0 && smsLogs.length === 0 && callLogs.length === 0 && (
           <div className="px-5 py-8 text-center font-body text-[13px] text-[var(--app-text-muted)]">
             No communications recorded yet.
           </div>

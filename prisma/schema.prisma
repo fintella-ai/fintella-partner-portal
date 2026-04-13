@@ -623,3 +623,32 @@ model SmsLog {
   @@index([partnerCode])
   @@index([createdAt])
 }
+
+// ─── CALL LOG (Phase 15c — Twilio Voice) ─────────────────────────────────────
+// Every outbound voice call initiated from the admin partner detail page
+// lands here. The status field is updated by Twilio's status callback
+// webhook as the call progresses (initiated → ringing → in-progress →
+// completed / failed / no-answer / busy / canceled). Recording URLs and
+// durations are populated when Twilio finishes recording (if recording
+// was enabled at call initiation).
+model CallLog {
+  id                String   @id @default(cuid())
+  partnerCode       String?  // nullable so we can log calls to non-partner numbers
+  direction         String   @default("outbound") // "outbound" | "inbound" (inbound reserved for future)
+  toPhone           String   // E.164 — partner's number for outbound
+  fromPhone         String   // E.164 — TWILIO_FROM_NUMBER or TWILIO_ADMIN_PHONE
+  initiatedByEmail  String?  // admin user email who clicked "Call Partner"
+  initiatedByName   String?  // admin display name for the comm log
+  status            String   // "initiated"|"ringing"|"in-progress"|"completed"|"failed"|"no-answer"|"busy"|"canceled"|"demo"
+  durationSeconds   Int?     // populated by Twilio status callback on completion
+  recordingUrl      String?  // populated by Twilio recording webhook (if recording enabled)
+  recordingDurationSeconds Int?
+  providerCallSid   String?  // Twilio Call SID
+  errorMessage      String?
+  createdAt         DateTime @default(now())
+  completedAt       DateTime?
+
+  @@index([partnerCode])
+  @@index([createdAt])
+  @@index([providerCallSid])
+}
