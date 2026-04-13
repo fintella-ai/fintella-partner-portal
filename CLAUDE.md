@@ -133,6 +133,7 @@ The portal is feature-complete for demo / pre-launch. Everything below is shippe
 **Key Prisma models** — User, Partner, PartnerProfile, PartnerOverride, RecruitmentInvite, PartnershipAgreement, Document, Deal, DealNote, CommissionLedger, PayoutBatch, EnterprisePartner, EnterpriseOverride, SupportTicket, TicketMessage, ChatSession, ChatMessage, Notification, TrainingModule, TrainingProgress, ConferenceSchedule, FeatureRequest, AdminNote, AiConversation, AiMessage, AiUsageDay, ImpersonationToken, PartnerCodeHistory, PortalSettings.
 
 **Recent major milestones** (most recent first):
+- Auto-delete merged branches workflow (`.github/workflows/delete-merged-branches.yml`) — fires on every push to main, deletes any non-protected branch with `ahead_by == 0` vs main via GitHub REST API. Supports manual `workflow_dispatch` trigger. Replaces manual `git push origin --delete`.
 - Responsive + mobile + PWA hardening pass (safe-area insets, notch safety, slideIn keyframe, accessibility pinch-zoom, orientation unlock)
 - SignWell template field pre-fill across all three agreement send paths + webhook test harness at /admin/dev/webhook-test
 - Rebrand TRLN → Fintella (April 2026, pre-launch so no customer impact)
@@ -190,8 +191,8 @@ John explicitly requires this full workflow on every code-touching task. Do NOT 
 **7. Post-merge cleanup**
 - `git checkout main && git pull origin main`
 - Delete local feature branch: `git branch -D <branch>`
-- Delete remote feature branch: `git push origin --delete <branch>` (may fail in sandbox — report to John if so)
-- Verify `git branch -a` shows only expected branches
+- **Remote feature branch is deleted automatically** by the `.github/workflows/delete-merged-branches.yml` workflow (fires on every push to main, deletes any non-protected branch with `ahead_by == 0` vs main). No manual `git push origin --delete` needed.
+- Verify `git branch -a` shows only expected branches (remote deletion may lag by ~30s while the workflow runs)
 
 **8. Memory maintenance**
 - If architectural decisions were made, update CLAUDE.md in a separate `docs:` commit
