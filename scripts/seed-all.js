@@ -9,20 +9,69 @@ async function main() {
   console.log("Seeding database...\n");
 
   // ── Admin User ────────────────────────────────────────────────────────
-  const adminEmail = "admin@fintella.partners";
-  const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (!existing) {
-    await prisma.user.create({
-      data: {
-        email: adminEmail,
-        passwordHash: bcrypt.hashSync("admin123", 10),
-        name: "Admin User",
-        role: "super_admin",
-      },
-    });
-    console.log("✓ Admin user created (admin@fintella.partners)");
+  // Hardened per Phase 15b-fu operational-security work (2026-04-13):
+  //
+  // We DO NOT auto-create a default-password super_admin in production.
+  // The hardcoded default `admin123` is in a public GitHub repo — any
+  // attacker reading the source knows the creds. The guards below make
+  // the seed safe to run on every Vercel build (which it does) without
+  // ever silently reintroducing weak credentials.
+  //
+  // Rules:
+  //   1. If ANY super_admin already exists in the DB, SKIP admin seeding
+  //      entirely. This protects the real admin record from being shadowed
+  //      by a second default-password account (which is the exact bug
+  //      that surfaced during the TRLN → Fintella rebrand).
+  //   2. In production (NODE_ENV === "production"), require BOTH
+  //      SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD env vars. If unset and
+  //      no super_admin exists, log a big warning and skip rather than
+  //      create a weak default. First-deploy bootstrap should be done
+  //      with explicit env vars.
+  //   3. In dev/test (NODE_ENV !== "production"), fall back to the
+  //      historical defaults (admin@fintella.partners / admin123) for
+  //      developer convenience on localhost / preview.
+
+  const existingSuperAdmin = await prisma.user.findFirst({
+    where: { role: "super_admin" },
+  });
+
+  if (existingSuperAdmin) {
+    console.log(
+      "✓ Admin seeding SKIPPED — super_admin already exists: " +
+        existingSuperAdmin.email
+    );
   } else {
-    console.log("✓ Admin user already exists");
+    const isProd = process.env.NODE_ENV === "production";
+    const envEmail = process.env.SEED_ADMIN_EMAIL;
+    const envPassword = process.env.SEED_ADMIN_PASSWORD;
+
+    if (isProd && (!envEmail || !envPassword)) {
+      console.warn(
+        "⚠ No super_admin exists and SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD\n" +
+          "  env vars are not set. SKIPPING admin seed to avoid creating a\n" +
+          "  default-password account in production. Bootstrap the first\n" +
+          "  admin by setting both env vars in Vercel and re-deploying, OR\n" +
+          "  run `npx tsx scripts/seed-admin.ts` locally against the prod\n" +
+          "  DATABASE_URL with the env vars set."
+      );
+    } else {
+      const adminEmail = envEmail || "admin@fintella.partners";
+      const adminPassword = envPassword || "admin123";
+      await prisma.user.create({
+        data: {
+          email: adminEmail,
+          passwordHash: bcrypt.hashSync(adminPassword, 10),
+          name: "Admin User",
+          role: "super_admin",
+        },
+      });
+      console.log("✓ Admin user created (" + adminEmail + ")");
+      if (!envPassword && !isProd) {
+        console.log(
+          "  ⓘ Using default dev password. Set SEED_ADMIN_PASSWORD env var to override."
+        );
+      }
+    }
   }
 
   // ── Partners ──────────────────────────────────────────────────────────
