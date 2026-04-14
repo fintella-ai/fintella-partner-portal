@@ -1,327 +1,206 @@
 # Fintella Partner Portal
 
-## Development Status (IMPORTANT)
-**Pre-launch / pure build-out mode.** The portal is NOT live to real customers yet. There are no real partners, deals, commissions, or customer data in any environment — every row in every database (local, preview, production) is test data Claude or John seeded. Implications for Claude sessions:
-- Safe to freely test, seed, reset, or wipe any environment without concern for data loss
-- Safe to run `prisma db push --accept-data-loss` style migrations without hesitation
-- Smoke-testing can go directly against production (fintella.partners) instead of fussing with Vercel preview deployment protection
-- Do NOT add "heads-up, this writes to the real DB" style warnings for routine test actions
-- Destructive schema changes, seed resets, and test deal creation via `/admin/dev/webhook-test` are all zero-stakes
-- When this status changes (real customers sign up), update this section
+Self-sustaining partner management platform. Next.js 14 (App Router) + React 18 + TypeScript + Prisma 5.20 + Neon PostgreSQL + NextAuth.js JWT. Deployed on Vercel at **https://fintella.partners**.
 
-## Project Overview
-- **Brand**: Fintella — Financial Intelligence Network
-- **Legal DBA**: "Financial Intelligence Network DBA (Fintella)" (parent: Annexation PR LLC)
-- **Historical brand**: Previously "Tariff Refund & Litigation Network (TRLN)" — rebranded April 2026. Portal had not yet launched, so no customer impact.
-- **Domain**: https://fintella.partners (primary, live on Vercel)
-- **Legacy domain**: https://trln.partners (still resolves, will eventually redirect to fintella.partners)
-- **Framework**: Next.js 14.2.35 (App Router) + React 18 + TypeScript 5.4
-- **Styling**: Tailwind CSS 3.4 — auto light/dark theme via `prefers-color-scheme` CSS variables, gold accents (#c4a050, #f0d070), fonts: Playfair Display + DM Sans
-- **Database**: Prisma 5.20 ORM — PostgreSQL (Neon, production)
-- **Auth**: NextAuth.js 5.0-beta.22 — JWT sessions, dual providers (Partner: email+partnerCode, Admin: email+password)
-- **Deployment**: Vercel (project: `tariff-partner-portal-iwki` — Vercel project name still uses the old repo slug; not renaming to avoid deployment URL churn), region `iad1`
-- **Integrations**: SignWell (e-signatures), HubSpot (CRM), Sentry (error tracking), Vercel Analytics + Speed Insights, Anthropic Claude (AI assistant) — all optional with demo/mock fallbacks
-- **AI narrative**: "Fintella" is a portmanteau of the two planned AI assistant personalities — **Finn** (direct, data-driven) and **Stella** (warm, relationship-focused). Current single "Fintella PartnerOS" assistant is a placeholder; Phase 17b will split it into the dual-personality product.
+- **Brand**: Fintella — Financial Intelligence Network (DBA of Annexation PR LLC)
+- **Historical brand**: Previously "TRLN" — rebranded April 2026, pre-launch so no customer impact
+- **Legacy domain**: https://trln.partners (still resolves, redirect pending)
+- **AI narrative**: "Fintella" is a portmanteau of the planned dual-personality assistant — **Finn** (direct, data-driven) + **Stella** (warm, relationship-focused). Current single "Fintella PartnerOS" assistant is a placeholder; Phase 17b splits it.
 
-## Project Structure
+## ⚠️ Development status (read first)
+
+**Pre-launch / pure build-out mode.** The portal is NOT live to real customers. Every row in every database (local, preview, production) is test data Claude or John seeded. Implications:
+
+- Safe to freely test, seed, reset, or wipe any environment
+- Safe to run `prisma db push --accept-data-loss` without hesitation
+- Smoke-testing goes directly against production (`fintella.partners`) instead of Vercel preview
+- Do NOT add "this writes to the real DB" style warnings for routine test actions
+- Update this section when the first real customer signs up
+
+## Architecture: hub-and-spoke
+
+- **Fintella = HUB** — owns partners, commissions, reporting, payouts, all comms logs
+- **Frost Law = SPOKE** — runs its own CRM, receives referrals via iframe on `/dashboard/submit-client`, pushes deal updates back via webhook
+- **Connection**: webhooks only, no direct CRM integration
+- **Phase 14 HubSpot integration is DESCOPED** — do not build or recreate
+- **Phase 18b Next.js 14 → 16 migration is DEFERRED** pending dedicated session
+
+## Data flow
+
+1. L1 partner generates an invite link → recruit opens `fintella.partners/signup?token=XXX` → partner created as `pending`
+2. Partner signs agreement via SignWell embedded iframe → `document_completed` webhook flips `Partner.status` pending → active (PR #76)
+3. Partner shares referral link (`utm_content=partnerCode`) → client fills Frost Law form
+4. Frost Law POSTs to `/api/webhook/referral` → Deal created with `stage: "new_lead"` and `idempotencyKey` honored if provided
+5. Frost Law PATCHes `/api/webhook/referral` with `dealId` + stage updates
+6. On first `closed_won` transition with a firm fee → webhook auto-creates `CommissionLedger` entries with `status="pending"` via waterfall (PR #79)
+7. Client pays Frost Law → Frost Law pays Fintella the override → admin clicks "Mark Payment Received" on `/admin/deals` → pending entries flipped to `due` (PR #71 + #79)
+8. Admin creates a `PayoutBatch` from all `due` entries → processes → flips entries to `paid`
+
+## Commission waterfall
+
+- **L1 direct deal**: L1 = 25% of firm fee
+- **L2 deal**: L2 = assigned rate (10/15/20%), L1 override = 25% − L2 rate
+- **L3 deal** (if enabled): L3 = assigned rate (10/15%), L2 override = L2 rate − L3 rate, L1 override = 25% − L2 rate
+- **Total across all tiers: always 25% of firm fee**
+- Rates set via `RecruitmentInvite` tokens — L1 picks the rate when generating the invite
+- Each rate maps to a SignWell agreement template (configured in admin Settings → Agreements)
+- Shared helper: `computeDealCommissions()` in `src/lib/commission.ts` — walks the partner chain, calls `calcWaterfallCommissions`, returns ledger entries. Used by both the webhook PATCH handler and the admin Mark Payment Received route.
+
+## Three-phase commission ledger lifecycle (post-PR #79)
+
+| Status | Set by | Meaning |
+|---|---|---|
+| `pending` | `/api/webhook/referral` PATCH on first closed_won transition | Deal closed, firm has not yet paid Fintella the override |
+| `due` | Admin "Mark Payment Received" button on `/admin/deals` | Firm has paid, ready to batch |
+| `paid` | `process_batch` action on `/api/admin/payouts` | Partner has been paid |
+
+`CommissionLedger` has a `@@unique([dealId, partnerCode, tier])` constraint so there's exactly one row per partner per tier per deal. Webhook PATCH handles P2002 collisions as idempotent success.
+
+## Admin role matrix (post-PR #77)
+
+Four roles: `super_admin`, `admin`, `accounting`, `partner_support`. Middleware gates `/admin/*` to any of the four. Per-route gates at the API level:
+
+| Route | Allowed roles |
+|---|---|
+| `/api/admin/impersonate` POST | `super_admin`, `admin` only (privilege escalation surface) |
+| `/api/admin/payouts` POST (create/approve/process batch) | `super_admin`, `admin`, `accounting` |
+| `/api/admin/settings` PUT | `super_admin` only (portal-wide config) |
+| `/api/admin/users` | `super_admin` only |
+| `/api/admin/dev/*` (dev page, webhook test, errors) | `super_admin` only |
+| Most GETs | All 4 admin roles |
+
+Impersonation tokens are 32-byte random hex, **60-second TTL**, single-use, deleted after first consumption.
+
+## Webhook security contract (post-PR #74)
+
+`/api/webhook/referral` accepts **EITHER** auth scheme:
+
+- `X-Fintella-Api-Key: <key>` (preferred, env var `FROST_LAW_API_KEY`)
+- `x-webhook-secret: <key>` OR `Authorization: Bearer <key>` (legacy, env var `REFERRAL_WEBHOOK_SECRET`)
+
+Plus:
+- **60 req/60s per key** sliding-window rate limit, 429 with `Retry-After`
+- **Idempotency** via optional `idempotencyKey` body field — re-POST with same key returns 200 with original `dealId`
+- **HMAC signature** optional (`X-Fintella-Signature: sha256=<hex>`) — log-only, not yet enforced, flip when Frost Law cuts over
+- **Event type whitelist** optional: `{referral.submitted, referral.stage_updated, referral.closed}`
+
+Full integration spec at `/docs/webhook-guide` (refreshed in PR #75).
+
+## Integration status
+
+| Integration | Status | Gate (env var) |
+|---|---|---|
+| SignWell (e-signatures, 4-template by rate) | Demo-gated | `SIGNWELL_API_KEY` |
+| SendGrid (transactional email, 4 templates) | Demo-gated | `SENDGRID_API_KEY` + domain auth DNS |
+| Twilio SMS (TCPA opt-in gate, 4 templates) | Demo-gated | `TWILIO_ACCOUNT_SID` + A2P 10DLC approval |
+| Twilio Voice (bridged click-to-call) | Demo-gated | `TWILIO_AUTH_TOKEN` + `TWILIO_ADMIN_PHONE` |
+| PartnerOS AI (Claude Sonnet 4.6) | Demo-gated | `ANTHROPIC_API_KEY` |
+| Sentry | Configured | `NEXT_PUBLIC_SENTRY_DSN` |
+| Vercel Analytics + Speed Insights | Active | — |
+| PWA (manifest, install prompt, safe-area) | Active | — |
+
+Every integration follows the **demo-gate pattern**: if the env var is unset, the send is a no-op that still writes an audit row with `status="demo"`. No provider SDKs — raw `fetch()` against REST APIs. TCPA enforcement is hard — every SMS send checks `Partner.smsOptIn` **before** the network call.
+
+## Public pages (unauthenticated)
+
+`/`, `/login`, `/signup`, `/impersonate`, `/getstarted`, `/docs/*`, `/privacy` (TCR), `/terms` (TCR), `/api/auth/*`, `/api/webhook/referral` (auth'd via API key, not session).
+
+## Project structure
+
 ```
-src/app/(admin)/admin/       — Admin routes (partners, deals, commissions, payouts, settings, etc.)
-src/app/(partner)/dashboard/ — Partner routes (home, overview, deals, commissions, downline, submit-client, training, etc.)
-src/app/(auth)/login/        — Public login page (light/dark adaptive)
-src/app/signup/              — Public partner signup page (invite-based, with embedded agreement signing)
-src/app/impersonate/         — Admin sudo: auto-signs in as a partner
-src/app/api/                 — API routes (RESTful, session-checked via auth())
-src/app/api/webhook/referral — Frost Law referral form webhook (public, creates Deals)
-src/app/api/invites/         — Recruitment invite management (create/list invite links)
-src/app/api/signup/          — Public partner signup (validates invite, creates partner, sends agreement)
-src/app/api/admin/impersonate — Admin impersonation token generation
-src/app/api/admin/documents  — Admin document upload (agreements, W9s)
-src/app/api/favicon          — Dynamic favicon served from PortalSettings
-src/app/docs/                — Public docs (webhook guide — auto light/dark theme)
-src/lib/                     — Shared utils: auth.ts, prisma.ts, constants.ts, commission.ts, format.ts, signwell.ts, hubspot.ts, useDevice.ts
-src/components/ui/           — Reusable components: StageBadge, StatusBadge, Skeleton, Accordion, BottomSheet, VideoModal, CopyButton, PullToRefresh, CountryCodeSelect, DownlineTree
-src/middleware.ts            — Route protection (public: /, /login, /signup, /impersonate, /api/auth, /docs/*; admin: /admin/*)
-prisma/schema.prisma         — Database schema
-scripts/                     — Seeding scripts
+src/app/(admin)/admin/       — Admin routes (partners, deals, payouts, settings, dev, etc.)
+src/app/(partner)/dashboard/ — Partner routes (home, deals, commissions, downline, submit-client, etc.)
+src/app/api/                 — API routes, role-gated via auth() + session.user.role
+src/app/api/webhook/referral — Frost Law webhook (POST + PATCH + GET)
+src/app/api/signwell/webhook — SignWell document events (handles document_completed → partner activation)
+src/lib/                     — auth.ts, prisma.ts, commission.ts, signwell.ts, sendgrid.ts, twilio.ts, twilio-voice.ts, ai.ts
+src/middleware.ts            — Public-route allowlist + admin role gate
+prisma/schema.prisma         — Source of truth for data model
+scripts/seed-all.js          — Runs on every Vercel build
 ```
 
-## Commission Structure (Waterfall Model)
-- **L1 partners**: fixed 25% of firm fee on direct deals
-- **L2 partners**: L1 chooses rate (10%, 15%, or 20%) when recruiting. L1 override = 25% - L2 rate
-- **L3 partners** (if enabled by admin): L2 chooses rate (10% or 15%). L2 override = L2 rate - L3 rate. L1 override = 25% - L2 rate
-- **Total across all tiers**: always 25% of firm fee
-- Rates are set via **RecruitmentInvite** tokens — L1 generates a link with a pre-set rate
-- Each rate maps to a **SignWell agreement template** (configured in admin Settings > Agreements)
+## Key files
 
-## Partner Signup Flow
-1. L1 goes to Referral Links → selects rate (10/15/20%) → generates invite link
-2. Recruit opens `fintella.partners/signup?token=XXX`
-3. Fills out form (name, email, phone, company) + required email/SMS opt-in checkboxes
-4. Partner created as "pending", agreement sent via SignWell + embedded iframe for immediate signing
-5. SignWell webhook marks agreement as signed → partner becomes active
-6. Agreement gate blocks Submit Client + Referral Links until signed
+- `src/app/api/webhook/referral/route.ts` — Frost Law webhook (hardened in #74, auto-ledger in #79)
+- `src/app/api/admin/deals/[id]/payment-received/route.ts` — Mark Payment Received flip/create (#71 + #79)
+- `src/app/api/signwell/webhook/route.ts` — document_completed → Partner.status activation (#76)
+- `src/lib/commission.ts` — Waterfall math + `computeDealCommissions` helper
+- `src/app/api/admin/payouts/route.ts` — Batch creation, approval, processing, EP overrides
+- `prisma/schema.prisma` — 30+ models, source of truth
 
-## Key Patterns
-- **API routes**: Verify session via `auth()`, check `role` (admin/super_admin vs partner). Return JSON with HTTP status codes.
-- **Theme system**: CSS custom properties in `globals.css` with `prefers-color-scheme` media query. All pages use `var(--app-*)` for colors. Theme utility classes: `theme-text`, `theme-text-secondary`, `theme-text-muted`, `theme-input`, `theme-sidebar`, `theme-hover`, etc.
-- **Partner tracking**: `utm_content` query parameter on client referral links. HubSpot auto-captures this on form submissions.
-- **Client referral URL**: `https://referral.frostlawaz.com/l/ANNEXATIONPR/?utm_content={partnerCode}`
-- **Demo mode**: HubSpot returns demo data when `HUBSPOT_PRIVATE_TOKEN` not set. SignWell returns mock IDs without API key.
-- **Path alias**: `@/*` maps to `src/*`
-- **Collapsible sidebar**: Both partner and admin sidebars collapse to icon-only (68px) on desktop. Mobile has overlay sidebar with hamburger + X close.
-- **Logo/Favicon**: Stored as base64 data URLs in PortalSettings. Logo displayed in sidebar, favicon via `/api/favicon`. Uploaded images auto-compressed via canvas.
-- **Admin impersonation**: "View as Partner" button generates one-time token (60s expiry), opens partner portal in new tab with purple "ADMIN SUDO VIEW" banner.
-- **Agreement gates**: Submit Client page + Referral Links page both check agreement status, show lock screen if unsigned.
+## Commands
 
-## Database Models (Key)
-| Model | Purpose |
-|-------|---------|
-| User | Admin accounts (email, passwordHash, role) |
-| Partner | Affiliate partners (partnerCode, email, tier, commissionRate, companyName, tin, mobilePhone, emailOptIn, smsOptIn, status, referredByPartnerCode) |
-| PartnerProfile | Extended info (street, street2, city, state, zip, payout method, bank details) |
-| RecruitmentInvite | Token-based invite links with pre-set commission rates (inviterCode, targetTier, commissionRate, status) |
-| Deal | Sales leads (dealName, partnerCode, stage, externalStage, estimatedRefund, client info, tariff fields) |
-| CommissionLedger | Commission entries (partnerCode, dealId, amount, tier, status, batchId) |
-| PayoutBatch | Grouped payouts (totalAmount, partnerCount, status) |
-| Document | Partner documents (docType: w9/agreement, fileUrl, status) |
-| PartnershipAgreement | E-signed agreements (signwellDocumentId, templateRate, templateId, status, embeddedSigningUrl) |
-| SupportTicket / TicketMessage | Support system |
-| TrainingModule / TrainingProgress | Training content + completion tracking |
-| ConferenceSchedule | Training call schedule |
-| PortalSettings | Global config (firmName, firmShort, logoUrl, faviconUrl, commission rates, agreementTemplate25/20/15/10, branding, navigation) |
-
-## Environment Variables
-```
-DATABASE_URL              — "file:./dev.db" (local) or PostgreSQL connection string (prod)
-DIRECT_URL                — PostgreSQL unpooled connection (Prisma migrations)
-NEXTAUTH_SECRET           — JWT signing secret
-NEXTAUTH_URL              — https://fintella.partners
-SEED_ADMIN_EMAIL          — Optional: first-deploy admin email (required in prod when no super_admin exists)
-SEED_ADMIN_PASSWORD       — Optional: first-deploy admin password (required in prod when no super_admin exists)
-SIGNWELL_API_KEY          — Optional: e-signature integration
-SIGNWELL_WEBHOOK_SECRET   — Optional: SignWell webhook verification
-HUBSPOT_PRIVATE_TOKEN     — Optional: CRM integration
-HUBSPOT_PORTAL_ID         — Optional: CRM portal ID
-REFERRAL_WEBHOOK_SECRET   — Optional: Frost Law webhook security token
-SENDGRID_API_KEY          — Optional: transactional email via SendGrid (demo mode if unset — sends still log to EmailLog)
-SENDGRID_FROM_EMAIL       — Optional: From address (defaults to noreply@fintella.partners)
-SENDGRID_FROM_NAME        — Optional: From name (defaults to "Fintella")
-TWILIO_ACCOUNT_SID        — Optional: Twilio SMS + Voice account SID (demo mode if unset — sends still log to SmsLog/CallLog, SMS gated on Partner.smsOptIn)
-TWILIO_AUTH_TOKEN         — Optional: Twilio auth token (also signs inbound webhooks)
-TWILIO_ADMIN_PHONE        — Optional: admin phone Twilio dials first in the bridged Voice flow (E.164)
-TWILIO_FROM_NUMBER        — Optional: Twilio outbound number (E.164, e.g. +14105551234)
-GITHUB_TOKEN              — Optional: live commits feed on /admin/dev page (super_admin only)
-ANTHROPIC_API_KEY         — Optional: AI assistant (falls back to mock responses if unset)
-ANTHROPIC_MODEL           — Optional: AI model override (defaults to claude-sonnet-4-6)
-AI_DAILY_BUDGET_USD       — Optional: AI daily spend cap per deploy (defaults to $5)
-AI_DAILY_MESSAGE_LIMIT    — Optional: AI messages/partner/day (defaults to 50)
-```
-
-## Dev Commands
 ```bash
-npm run dev          # Start dev server
-npm run build        # Full build (prisma generate + db push + seed + next build)
-npm run db:push      # Apply schema changes
-npm run db:studio    # Open Prisma Studio
+npm run dev                              # Dev server on :3000
+npm run build                            # Full build (prisma generate + db push + seed + next build)
+npm run lint                             # ESLint
+npx prisma studio                        # DB browser
+npx prisma generate                      # Regenerate client after schema edits
+npx prisma db push --accept-data-loss    # Apply schema (safe pre-launch)
 ```
 
-## Webhook Endpoints
-- **SignWell**: `POST /api/signwell/webhook` — handles document_completed, document_viewed, document_expired
-- **Frost Law Referral**: `POST /api/webhook/referral` — receives form submissions, creates Deal records, attributes to partner via `utm_content`. Public docs at `https://fintella.partners/docs/webhook-guide`
+Build currently produces **97/97 static pages** with only a pre-existing `global-error.tsx` Sentry deprecation warning.
 
-## Portal State (compressed — see git history for detail)
+## Code patterns
 
-The portal is feature-complete for demo / pre-launch. Everything below is shipped and working. Git commit history is the source of truth for line-level detail — this section is just a map.
+- **Demo gate**: `if (!ENV_VAR) { log "demo"; write audit row status="demo"; return mock; }`
+- **Webhook handlers**: preflight (auth + rate limit + HMAC) → parse → validate → transactional write → return `{...}`
+- **Commission writes**: idempotent, enforced via `@@unique([dealId, partnerCode, tier])` + P2002 race recovery
+- **Email/SMS**: fire-and-forget, `.catch()` only, failures write `status="failed"` audit rows and never block the user
+- **SMS TCPA gate**: every send helper checks `Partner.smsOptIn` **before** the network call
+- **Theme system**: CSS custom properties via `prefers-color-scheme`; use `var(--app-*)` and `theme-*` classes, never hardcoded colors
+- **Agreement gate**: `/dashboard/submit-client` + `/dashboard/referral-links` require BOTH `agreement.status in (signed, approved)` AND `Partner.status === "active"` (post-#77 defense-in-depth)
 
-**Partner side** — home feed, overview stats, deals (with pipeline tracker + drill-down), commissions, downline tree, training, live weekly conference, submit client (Frost Law iframe), referral links, documents, account settings, support tickets, feature requests, AI assistant (Fintella PartnerOS — Claude Sonnet 4.6).
+## Git workflow
 
-**Admin side** — partners (detail, notes, communications log, sudo impersonation), deals, revenue / custom commissions / enterprise reporting, payouts (with EP overrides), support, chat (live agent panel), communications hub, documents, training management, conference management, feature request triage, user management (4 roles: super_admin / admin / accounting / partner_support), settings, development page (/admin/dev) with live GitHub feed + Sentry errors panel + webhook test harness (super_admin only).
+- Branches: `claude/<short-description>-<suffix>`
+- Conventional commits: `feat:`, `fix:`, `docs:`, `security:`, `chore:`
+- `main` is **branch-protected** via GitHub ruleset — all changes via PR, no force push, CodeQL + Vercel checks must pass
+- Squash merge to `main` → Vercel auto-deploys production
+- Remote feature branches auto-deleted by `.github/workflows/delete-merged-branches.yml` after merge
+- **Never merge major-version dependabot PRs without a dedicated migration session** (the ignore rule in `.github/dependabot.yml` blocks new ones)
 
-**Key systems** — NextAuth dual providers (partner email+password, admin email+password), Prisma + PostgreSQL (Neon), SignWell e-signing with template field pre-fill, HubSpot CRM stub (demo mode), referral webhook (POST+PATCH+GET), PWA (manifest, install prompt, safe-area handling), notification bell (30s polling), live chat (WebSocket-style polling), waterfall commission model (L1/L2/L3), enterprise partner overrides, admin role-based permissions, Sentry + Vercel Analytics + Speed Insights, 4 agreement templates by rate (25/20/15/10), Dependabot + CodeQL + branch protection on main.
+## Mandatory pre-commit checks
 
-**Key Prisma models** — User, Partner, PartnerProfile, PartnerOverride, RecruitmentInvite, PartnershipAgreement, Document, Deal, DealNote, CommissionLedger, PayoutBatch, EnterprisePartner, EnterpriseOverride, SupportTicket, TicketMessage, ChatSession, ChatMessage, Notification, TrainingModule, TrainingProgress, ConferenceSchedule, FeatureRequest, AdminNote, AiConversation, AiMessage, AiUsageDay, ImpersonationToken, PartnerCodeHistory, PortalSettings.
+1. `./node_modules/.bin/next build` — must compile cleanly, 97/97 pages expected
+2. Fix TypeScript errors at the root cause — **never** suppress with `any` / `@ts-ignore`
+3. `npx prisma generate` after any `schema.prisma` edit
+4. Stage only intentional files — **never `git add -A`** blindly (risks grabbing `.env`, `package-lock.json` drift, node_modules leak)
+5. UI changes: verify `theme-*` classes, ≥44px touch targets, `pt-safe`/`pb-safe` for fixed elements, responsive breakpoints
+6. No commit with failing hooks — fix the root cause, don't use `--no-verify`
+7. Never amend existing commits — always create new ones (avoids destroying work when a hook fails)
 
-**Recent major milestones** (most recent first):
-- Responsive pass #2 — iterative refinement on top of the original responsive hardening pass. Fixed: mobile dashboard sign-out + support buttons (text-[10px] / 32px → text-[11px] / 44px min, with `active:scale-95` press feedback); mobile bottom-nav touch targets (py-2.5 / ~40px → py-3 with min-h-[56px], aria-current, active scale); admin sidebar Collapse toggle (text-[11px] / py-2.5 → text-[12px] / min-h-[44px]); commission tier card $ amounts on mobile (text-3xl → text-[28px] leading-tight + break-words to prevent overflow on $1M+ values); settings address city/state/zip grid (was forced 3-col on tablet causing input squeeze; now `grid-cols-1 lg:grid-cols-3` so tablet stacks); partner /dashboard/deals desktop table (added `overflow-x-auto` wrapper + `min-w-[820px]` so iPad portrait scrolls horizontally instead of cramming columns); partner /dashboard/downline desktop table (same pattern, `min-w-[840px]`); admin /admin/deals desktop table (same pattern, `min-w-[920px]`). Build still 91/91 pages, no new TS errors.
-- Auto-delete merged branches workflow (`.github/workflows/delete-merged-branches.yml`) — fires on every push to main, deletes any non-protected branch with `ahead_by == 0` vs main via GitHub REST API. Supports manual `workflow_dispatch` trigger. Replaces manual `git push origin --delete`.
-- Responsive + mobile + PWA hardening pass (safe-area insets, notch safety, slideIn keyframe, accessibility pinch-zoom, orientation unlock)
-- SignWell template field pre-fill across all three agreement send paths + webhook test harness at /admin/dev/webhook-test
-- Rebrand TRLN → Fintella (April 2026, pre-launch so no customer impact)
-- Phase 18a monitoring: Sentry + Vercel Analytics + Speed Insights + graceful fallbacks
-- Phase 17 AI assistant: Claude Sonnet 4.6 powered PartnerOS with prompt caching + budget cap
-- Security hardening: main branch protection, Dependabot, private vulnerability reporting, Next.js 14.2.15 → 14.2.35 (9 CVEs fixed)
-- Enterprise partner system (hidden from partner view, admin-only reporting)
-- Admin role-based permissions (4 roles with per-feature gates)
-- PostgreSQL migration (Neon), PWA install prompt, real DB queries on reports/payouts/support
+## Session continuity protocol
 
+**Single source of truth**: `.claude/session-state.md`. File is mechanically maintained by the active Claude Code session (not hand-edited) and committed to the repo so it survives across machines.
 
-## Session Continuity Protocol (usage-limit failsafe)
+**MANDATORY — read on startup**: at the start of every session, before responding to the first user message, read `.claude/session-state.md`. If the `🕒 Last updated` timestamp is within ~48 hours, treat it as authoritative context and summarize "where we left off" in your first response.
 
-**Why**: Long sessions can run into context-window compaction, rate limits, or token budget caps. When that happens, the next session needs to pick up exactly where the last one left off without replaying the whole conversation. This protocol is the failsafe.
+**MANDATORY — update at checkpoints**:
+1. After every PR merge — bump the merge log, shift "what's next"
+2. At the end of every completed task
+3. Before any session-ending operation (build verify, major commit)
+4. On explicit user request ("checkpoint", "save state")
+5. Proactively when the session feels long
 
-**The state file**: `.claude/session-state.md` is the single source of truth for session-to-session continuity. It's committed to the repo so it survives across machines and sessions. **The active Claude session mechanically maintains this file.** Humans generally do NOT hand-edit it.
+**Proactive usage-limit alerts**: flag when the session is getting long (40+ exchanges, or >10 distinct files touched, or repeated auto-compaction notices). Say something like "Heads up — this conversation is getting long, want me to checkpoint state and break?". Don't stop working unless John says so.
 
-**MANDATORY — read on startup**: At the start of every Claude Code session on this repo, **before responding to the first user message**, read `.claude/session-state.md`. If it exists and has a `🕒 Last updated` timestamp within the last ~48 hours, treat it as authoritative context about what was in flight and what's queued next. Summarize "where we left off" in your first substantive response so John knows you've picked up the thread.
+**Structure of `.claude/session-state.md`**: `🕒 Last updated` / `🌿 Git state` / `✅ What's done` / `🔄 What's in flight` / `🎯 What's next` / `🧠 Context that matters for resuming` / `📂 Relevant files for the next task`.
 
-**MANDATORY — update at checkpoints**: The active session must update `.claude/session-state.md` at all of these points:
+See also `docs/launch-status.md` for the product-level launch-readiness document.
 
-1. **After every PR merge** — bump the done table, shift the "what's next" list, refresh `🕒 Last updated`
-2. **At the end of every completed task** (even if no commit) — update "what's in flight" + "what's next"
-3. **Before any operation that could end the session** — build verify, PR merge, major commit — so if the session dies mid-operation the next one can resume cleanly
-4. **On explicit user request** ("checkpoint", "save state", "update session state")
-5. **Proactively when the session feels long** — see next section
+## Session signoff style (MANDATORY format)
 
-**Proactive usage-limit alerts (John's explicit ask)**: The active session must voluntarily flag when it notices signs of an approaching usage / context limit. Trigger any of these and say something like "Heads up — this conversation is getting long. Want me to checkpoint state and break so we can resume in a fresh session cleanly?":
+Every time Claude signals task completion, the response MUST include BOTH of these sections BEFORE the rainbow:
 
-- **Message count**: after ~40+ user/assistant exchanges in a single session
-- **Repeated context reminders**: if the system has sent >3 auto-compaction or "context getting low" notices
-- **Huge tool output dumps**: after any single tool call that returned >5k tokens of output (big file reads, large grep results, long build logs)
-- **Deeply nested work**: if the current task has touched >10 distinct files in one session and isn't clearly wrapping up
-- **Before starting a new major phase** — always checkpoint before opening a big new scope so the pre-new-work state is recoverable
+1. **🧹 Git status** — concrete block with at minimum:
+   - Current `main` commit SHA + deploy status
+   - Feature branch HEAD SHA + sync state (if alive)
+   - Working tree cleanliness
+   - Responsive verification (or "N/A — backend only")
+2. **🎯 What's next** — short menu of logical next steps (top pick + 2-3 alternatives)
 
-The alert is purely informational. Do NOT stop working unless John says so. Just surface the risk, update `.claude/session-state.md` so resume is safe, and let John decide whether to keep going or break.
-
-**Structure of `.claude/session-state.md`** — always contains these headings in order:
-
-1. `🕒 Last updated` — ISO 8601 timestamp + session id
-2. `🌿 Git state at last checkpoint` — current branch, base commit on main, working tree state, last clean commit
-3. `✅ What's done` — ordered table of merged PRs / completed tasks this session
-4. `🔄 What's in flight` — current task description + uncommitted file list + next step after commit
-5. `🎯 What's next` — prioritized queue of tasks for the next session
-6. `🧠 Context that matters for resuming` — gotchas, policy reminders, environmental facts the next Claude needs to know
-7. `📂 Relevant files for the next task` — file paths + line refs for the first queued item so the next session doesn't have to re-explore
-
-**Recovery protocol from a fresh session**:
-
-1. Read `.claude/session-state.md` first
-2. Run `git status` and `git log --oneline -5` to verify the reported git state matches reality (guard against stale state file)
-3. If the state file's `🕒 Last updated` is older than ~7 days OR the reported git state doesn't match reality, flag that to John and ask whether to trust the file or start fresh
-4. Otherwise, say something like "Picking up from `.claude/session-state.md` — last session left off at [X], next step is [Y]. Ready to continue?"
-5. Wait for confirmation before touching code
-
-**The state file is NOT a substitute for CLAUDE.md**. CLAUDE.md describes the project and the workflow rules. `.claude/session-state.md` describes the current in-flight work and queued next steps. Both are read on startup; CLAUDE.md takes precedence for project policy.
-
-
-## Mandatory Task Workflow (user preference — applies to EVERY code task)
-
-John explicitly requires this full workflow on every code-touching task. Do NOT skip steps to save time — John has stated he prefers thoroughness and accuracy over speed. The workflow:
-
-**1. Pre-flight**
-- Read `CLAUDE.md` (this file) to refresh project context
-- `git status` to verify working tree state
-- `git log --oneline -5` to see recent history
-- Confirm the designated feature branch (never work directly on `main` — it's branch-protected)
-- Use `TodoWrite` to lay out the planned subtasks before touching code
-
-**2. Development**
-- Make changes on a feature branch (pattern: `claude/<short-description>-<suffix>`)
-- Follow existing code patterns — don't add speculative abstractions
-- Don't skip hooks (`--no-verify`), don't amend existing commits (always new commits)
-- Keep diffs focused on the task — no unrelated "improvements"
-
-**3. Build verification (MANDATORY before commit)**
-- `./node_modules/.bin/next build` — must compile cleanly
-- Static page count should match expected (currently 91) unless new routes were added
-- Fix TypeScript errors by resolving the root cause, NEVER by suppressing with `any` / `@ts-ignore`
-- Do not commit if build is red
-
-**4. Responsive / UI audit (MANDATORY for any UI-touching change)**
-- Verify new UI uses `theme-*` CSS variable classes (not hardcoded colors)
-- Verify mobile breakpoints (`sm:` / `md:` / `lg:` / `xl:`) where layout differs
-- Verify touch targets ≥44px on interactive elements
-- Verify safe-area padding on any new fixed-position element (use `pt-safe` / `pb-safe` / `pl-safe` / `pr-safe` / `top-safe` / `bottom-safe` utility classes)
-- Verify new tables have both desktop grid + mobile card fallback OR `overflow-x-auto` wrapper
-- Verify dark/light theme both render correctly
-
-**5. Git hygiene**
-- `git diff --stat` — review what's staged
-- Stage only intentional files (NEVER `git add -A` blindly — can grab `package-lock.json` drift, `.env`, node_modules leak, etc.)
-- Commit message follows existing style (conventional prefix: `feat:`, `fix:`, `docs:`, `security:`, `chore:`, etc.)
-- `git push -u origin <branch>` with retry on network errors
-
-**6. PR flow**
-- Open PR via `mcp__github__create_pull_request`
-- Wait for Vercel preview + CodeQL + Analyze checks to turn green (use `mcp__github__pull_request_read` with `method: get_status` and `get_check_runs`)
-- Address any CodeQL findings immediately — don't ignore security flags
-- Merge ONLY after John says so OR explicit pre-authorization was given in the current task
-
-**7. Post-merge cleanup**
-- `git checkout main && git pull origin main`
-- Delete local feature branch: `git branch -D <branch>`
-- **Remote feature branch is deleted automatically** by the `.github/workflows/delete-merged-branches.yml` workflow (fires on every push to main, deletes any non-protected branch with `ahead_by == 0` vs main). No manual `git push origin --delete` needed.
-- Verify `git branch -a` shows only expected branches (remote deletion may lag by ~30s while the workflow runs)
-
-**8. Memory maintenance**
-- If architectural decisions were made, update CLAUDE.md in a separate `docs:` commit
-- If long-lived features were added, add a one-line entry to the State section (not a 50-line changelog)
-- Periodically compress the State section — git history is the source of truth for detail
-
-**9. Signoff**
-- Signal completion ONLY when fully done (no outstanding errors, no half-finished TODOs)
-- Follow Session Signoff Style rules below (checklist + rainbow)
-
-**10. Schema changes**
-- After any edit to `prisma/schema.prisma`, run `npx prisma generate` before `next build`
-- Catches type drift before it hits the build-time type checker
-- For destructive changes, `npx prisma db push --accept-data-loss` is safe (pre-launch DB)
-
-**11. Package-lock drift check (before every commit)**
-- After installing any dep (or if `npm install` ran implicitly), run `git diff --stat package-lock.json`
-- If `package-lock.json` changed but `package.json` didn't, investigate — usually a rebrand rename or accidental `npm install` side effect
-- Stage lockfile changes only when intentional; never `git add -A` blindly
-
-**12. Real-time TodoWrite discipline**
-- Mark items `completed` the instant they finish, not in batches
-- Exactly ONE item `in_progress` at any time (the current action)
-- When new subtasks emerge mid-work, add them immediately
-- Stale todos = lost context; keep the list honest
-
-**13. Sentry error check after risky changes**
-- After deploying anything touching auth, webhooks, SignWell, HubSpot, AI, payouts, or DB writes, fetch `/api/admin/dev/errors` to verify no new unresolved issues in the last hour
-- Mention new Sentry issues in the signoff status block if any appear
-
-**14. Webhook smoke-test after webhook changes**
-- After any edit to `/api/webhook/referral/route.ts`, `/api/signwell/webhook/route.ts`, or related files, fire a test POST via `/admin/dev/webhook-test` before reporting done
-- Verify the test deal / event lands in the DB and the response matches the pre-change contract
-
-**15. Parallel subagent sanity-check for cross-cutting refactors**
-- Before touching files for a refactor that spans more than 3 files or crosses partner/admin boundaries, spawn an Explore subagent to enumerate the actual scope
-- Prevents missing files and speculative over-scoping; keeps main context clean
-
-### Confirmed additional requirements (enforced, all 6 items John confirmed)
-All items from the previous "recommendations" block have been promoted into steps 10-15 above. This section is retained as a historical marker — the rules themselves are now part of the main mandatory workflow.
-
-## Session Signoff Style (user preference)
-
-**MANDATORY completion checklist — must appear BEFORE the rainbow signoff.**
-Every time Claude signals task completion with "John, I am Done Now", the
-response MUST include BOTH of these sections in order:
-
-1. **🧹 Git status** — a concrete status block with at minimum:
-   - Current `main` commit SHA + deploy status (e.g. "production deploy in progress", "deployed")
-   - Feature branch HEAD SHA and sync state (if still alive)
-   - Working tree cleanliness ("clean" / "N files modified")
-   - CLAUDE.md state (e.g. "saved with full rebrand context", "unchanged this session")
-   - Responsive verification (e.g. "mobile/PWA/tablet/desktop still verified from build output", or "N/A — backend-only changes")
-2. **🎯 What's next** — a short recommendation or menu of logical next steps
-   (top pick + 2-3 alternatives), so John always has a clear exit handoff
-
-Example format (from a previous successful task):
-```
-## 🧹 Git status
-- main — b62f3ce (production deploy in progress)
-- claude/continue-portal-build-tL9xZ — b62f3ce (synced)
-- Working tree: clean
-- CLAUDE.md: saved with full rebrand context
-- Responsive: mobile/PWA/tablet/desktop still verified from build output
-
-## 🎯 What's next
-Your call. My top recommendation remains Phase 15a — SendGrid email...
-```
-
-**ONLY AFTER** both sections are present, end the response with the rainbow
-signoff (EXACT format — large H1 heading + 14-circle rainbow borders, sized
-for mobile iOS app):
+**Rainbow signoff format** (EXACT, 14 circles per border row, H1 heading):
 
 ```
 # 🔴🟠🟡🟢🔵🟣🔴🟠🟡🟢🔵🟣🔴🟠
@@ -330,41 +209,21 @@ for mobile iOS app):
 ```
 
 Rainbow rules:
-- Exactly 14 circles per border row (no more, no less — John explicitly
-  tested this width on his iOS Claude app and it aligns perfectly with
-  the text row)
-- Top row pattern: 🔴🟠🟡🟢🔵🟣 × 2 + 🔴🟠 (warm-to-cool)
-- Bottom row pattern: 🟣🔵🟢🟡🟠🔴 × 2 + 🟣🔵 (reverse, cool-to-warm)
-- Both rows + middle row use `#` (H1) for max visibility
-- Party emoji 🎉 on both sides of the text
-- Only use on FULLY-complete tasks. Incomplete tasks get different
-  wording (e.g. "John, stopping here for now") WITHOUT the rainbow so
-  the rainbow signoff retains meaning as "100% done, nothing outstanding."
+- Exactly 14 circles per border row (John tested this width on iOS Claude app — it aligns perfectly with the text row)
+- Top row: warm-to-cool (`🔴🟠🟡🟢🔵🟣` × 2 + `🔴🟠`)
+- Bottom row: cool-to-warm reverse (`🟣🔵🟢🟡🟠🔴` × 2 + `🟣🔵`)
+- Party emoji 🎉 on both sides of text
+- **Only on FULLY complete tasks** — incomplete work gets "stopping here for now" WITHOUT the rainbow so the rainbow retains meaning as "100% done"
 
-This is a hard requirement. Do not skip the checklist. Do not skip the
-rainbow. Do not shrink it, widen it, or substitute a different format.
-The order is: checklist first, rainbow last.
+## Compact instructions
 
-## Git Workflow (IMPORTANT — changed this session)
-**`main` is now branch-protected via GitHub Ruleset.** Direct pushes to `main` are blocked. All changes must go through pull requests. Workflow:
-1. Develop on feature branch `claude/continue-portal-build-tL9xZ` (or your designated branch)
-2. Commit + push to feature branch (works fine)
-3. Open a PR to `main` via GitHub UI or `mcp__github__create_pull_request` — **only with explicit user permission**
-4. Wait for Vercel preview deploy check to post on the PR
-5. User smoke-tests the preview URL
-6. User clicks Merge (or asks Claude to merge via MCP)
-7. Vercel auto-deploys production on merge
-Ruleset enforces: restrict deletions, require PR before merging, block force pushes, dismiss stale approvals on new commits. No bypass list.
+When compacting, ALWAYS preserve:
 
-Default branch was switched from stale `master` → `main` in this session; stale `master` branch was deleted. Dependabot is live, opens auto-PRs for security patches, reports alerts directly on push. Private vulnerability reporting and secret scanning are enabled.
+- Current integration activation status (which env vars are set, what's waiting)
+- Active blockers + resolution status (e.g. Twilio A2P approval window, SendGrid DNS)
+- Files modified this session
+- The hub-and-spoke architecture (**NEVER reintroduce HubSpot integration**)
+- **Phase 14 HubSpot is DESCOPED** — do not recreate
+- **Phase 18b Next.js 14→16 is DEFERRED** — do not attempt without dedicated session
 
-## Remaining Phases
-- ~~**Phase 14**: HubSpot API Integration~~ ❌ **DESCOPED** — Fintella does not run its own HubSpot. Frost Law owns the CRM and pushes deal data to us via `POST /api/webhook/referral` (with PATCH for lifecycle updates). Outbound HubSpot sync is not needed.
-- **Phase 15**: Email, SMS & VOIP Integration
-  - **Phase 15a — Email (SendGrid) ✅ SHIPPED**: `src/lib/sendgrid.ts` uses the SendGrid v3 REST API via raw `fetch()` (no `@sendgrid/mail` package — matches house pattern from `signwell.ts` / `hubspot.ts`). Demo-mode fallback when `SENDGRID_API_KEY` is unset — every send still writes an `EmailLog` row with `status="demo"` so the admin Communication Log fills out during local dev. Four transactional templates wired in: **welcome** (POST /api/signup), **agreement_ready** (POST /api/admin/agreement/[partnerCode]), **agreement_signed** (POST /api/signwell/webhook on `document_completed`), and **signup_notification** (L1 inviter on POST /api/signup). All sends are fire-and-forget — failures log to EmailLog with `status="failed"` and never block the user-facing flow. New `EmailLog` Prisma model (partnerCode, toEmail, fromEmail, subject, bodyPreview, template, status, providerMessageId, errorMessage). Admin partner detail Communication Log → Email tab now reads from `emailLogs` instead of showing the placeholder. Commission alerts deferred to 15a-followup (need to identify the right ledger creation hook first).
-  - **Phase 15b — SMS (Twilio Programmable Messaging) ✅ SHIPPED**: `src/lib/twilio.ts` uses the Twilio v2010 REST API via raw `fetch()` (no `twilio` npm package — matches house pattern). Demo-mode fallback when any of `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` are unset. **TCPA gate**: every send checks `Partner.smsOptIn` BEFORE the network call; non-opted-in partners get a `status="skipped_optout"` row in `SmsLog` (immutable audit trail) and no SMS is sent. Sends are also short-circuited when no `mobilePhone` is on file. Four template helpers wired into the same trigger points as 15a: **welcome** (POST /api/signup), **agreement_ready** (POST /api/admin/agreement/[partnerCode]), **agreement_signed** (SignWell webhook), and **signup_notification** (L1 inviter on POST /api/signup). All sends are fire-and-forget. New `SmsLog` Prisma model (partnerCode, toPhone, fromPhone, body, template, status, providerMessageId, errorMessage). Admin partner detail Communication Log → SMS tab now reads from `smsLogs` instead of showing the placeholder; "skipped (no opt-in)" rows render with a yellow badge so it's visually obvious which sends were suppressed for compliance. Also fixed a pre-existing bug where the signup page POSTed `mobilePhone` but the API ignored it — now correctly persisted to `Partner.mobilePhone`. Partner-side opt-in toggle in `/dashboard/settings` deferred to a 15b-followup so this PR stays tight.
-  - **Phase 15c — VOIP (Twilio Voice) ✅ SHIPPED (foundation)**: `src/lib/twilio-voice.ts` uses the Twilio v2010 REST API via raw `fetch()` (no `twilio` npm package, matches house pattern). Demo-mode fallback when any of `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` / `TWILIO_ADMIN_PHONE` are unset. **Bridged click-to-call flow**: admin clicks "Call Partner" on `/admin/partners/[id]` → `POST /api/twilio/call` (admin-only, role-gated) → Twilio dials `TWILIO_ADMIN_PHONE` first → admin answers → Twilio fetches `/api/twilio/voice-webhook` for TwiML `<Dial>` to bridge the partner's mobile → `/api/twilio/call-status` receives Twilio status callbacks (initiated/ringing/in-progress/completed/failed/no-answer/busy/canceled) and updates the `CallLog` row in place. New `CallLog` Prisma model (partnerCode, direction, toPhone, fromPhone, initiatedByEmail, initiatedByName, status, durationSeconds, recordingUrl, recordingDurationSeconds, providerCallSid, errorMessage, completedAt). Admin partner detail Communication Log → Phone Calls tab now reads from `callLogs` instead of showing the placeholder; rows include direction, status badge (green completed / blue ringing/in-progress/initiated / red failed-family), duration, initiator name, and a "▶ Listen to recording" link when present. Recording is intentionally NOT enabled in this initial cut — state-by-state legal disclosure requirements (CA / WA / FL / IL / etc. require all-party consent); recording will land in a 15c-followup with a recorded consent prompt + per-state config.
-- **Phase 16**: Payments & Payouts (Stripe Connect)
-- ~~**Phase 17**: AI Support Bot~~ ✅ **COMPLETE** — TRLN PartnerOS shipped (Sonnet 4.6, Option B dedicated page, mock fallback, rate limiting, budget cap)
-- **Phase 18**: Deployment Hardening (monitoring, analytics, error tracking) — also includes a planned Next.js 14.2.35 → 16 upgrade to fix 5 remaining DoS-only CVEs (GHSA-h25m-26qc-wcjf high / CVSS 7.5, GHSA-9g9p-9gw9-jx7f moderate / CVSS 5.9, GHSA-ggv3-7p47-pfv8 moderate, GHSA-3x4c-7xq6-9pq8 moderate, GHSA-q4gf-8mx6-v5v3 moderate). Major migration — requires React 18 → 19, middleware.ts → proxy.ts convention, App Router caching opt-in model, Turbopack-as-default, dedicated testing session. **Deferral verified 2026-04-13** via `npm audit --json`: exactly 1 vulnerable package (`next`), 5 CVEs rolled up, all DoS-only (no RCE / auth bypass / data exfil), pre-launch impact = zero. **No safe intermediate version** — Next 15.5.14 is still within vulnerable range for 2 of the 5 CVEs, so 15.x is not a useful stopping point. Must go straight 14 → 16 in Phase 18b.
-- **Tech Debt**: Form validation (zod), tests, accessibility audit
+Reference `@.claude/session-state.md` for current in-flight work and `@docs/launch-status.md` for product-level launch state.
