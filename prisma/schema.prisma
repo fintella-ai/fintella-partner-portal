@@ -446,6 +446,11 @@ model Deal {
   notes                 String?
   closedLostReason      String?   // reason if stage moved to closedlost
   closeDate             DateTime?
+  // Payment received (admin confirms Frost Law has paid Fintella the override —
+  // this is the trigger that flips L1/L2/L3 commissions from "pending" to "due"
+  // and creates CommissionLedger rows so the payout batch flow can pick them up)
+  paymentReceivedAt     DateTime?
+  paymentReceivedBy     String?   // admin email who clicked Mark Payment Received
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

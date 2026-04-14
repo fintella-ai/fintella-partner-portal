@@ -57,6 +57,8 @@ type Deal = {
   l2CommissionAmount: number;
   l2CommissionStatus: string;
   notes: string | null;
+  paymentReceivedAt: string | null;
+  paymentReceivedBy: string | null;
   createdAt: string;
 };
 
@@ -195,6 +197,31 @@ export default function AdminDealsPage() {
       await fetch(`/api/admin/deals/${dealId}`, { method: "DELETE" });
       fetchDeals();
     } catch {}
+  };
+
+  const handlePaymentReceived = async (dealId: string, dealName: string) => {
+    if (!confirm(
+      `Mark payment received for "${dealName}"?\n\n` +
+      `This will create commission ledger entries (status "due") for L1/L2/L3 ` +
+      `partners and stamp the deal. Cannot be undone via this UI.`
+    )) return;
+    try {
+      const res = await fetch(`/api/admin/deals/${dealId}/payment-received`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to mark payment received");
+        return;
+      }
+      alert(
+        `Payment marked received.\n\n` +
+        `${data.ledgerCount} commission ${data.ledgerCount === 1 ? "entry" : "entries"} ` +
+        `queued for payout, totaling $${(data.totalCommission || 0).toFixed(2)}.`
+      );
+      fetchDeals();
+      fetchDealNotes(dealId);
+    } catch {
+      alert("Failed to mark payment received");
+    }
   };
 
   const inputClass = "bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-3 py-2 text-[var(--app-text)] font-body text-sm outline-none focus:border-brand-gold/40 transition-colors placeholder:text-[var(--app-text-muted)]";
@@ -434,9 +461,26 @@ export default function AdminDealsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2 mb-4">
+                <div className="flex gap-2 mb-4 flex-wrap">
                   <button onClick={() => handleUpdateDeal(deal.id)} className="btn-gold text-[11px] px-4 py-2">Save Changes</button>
                   <button onClick={() => setExpandedId(null)} className="font-body text-[11px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-4 py-2 hover:text-[var(--app-text-secondary)] transition-colors">Cancel</button>
+                  {deal.stage === "closedwon" && !deal.paymentReceivedAt && (
+                    <button
+                      onClick={() => handlePaymentReceived(deal.id, deal.dealName)}
+                      className="font-body text-[11px] font-semibold text-green-300 bg-green-500/15 border border-green-400/40 rounded-lg px-4 py-2 hover:bg-green-500/25 transition-colors min-h-[44px]"
+                      title="Confirm Frost Law has paid Fintella — creates L1/L2/L3 commission ledger entries"
+                    >
+                      ✓ Mark Payment Received
+                    </button>
+                  )}
+                  {deal.paymentReceivedAt && (
+                    <span
+                      className="font-body text-[11px] text-green-400 border border-green-500/20 bg-green-500/5 rounded-lg px-3 py-2"
+                      title={`Stamped by ${deal.paymentReceivedBy || "—"}`}
+                    >
+                      ✓ Paid {new Date(deal.paymentReceivedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
+                  )}
                   <button onClick={() => handleDeleteDeal(deal.id, deal.dealName)} className="font-body text-[11px] text-red-400/60 border border-red-400/20 rounded-lg px-4 py-2 hover:bg-red-400/10 transition-colors ml-auto">Delete</button>
                 </div>
 
@@ -609,6 +653,19 @@ export default function AdminDealsPage() {
                   onChange={(e) => setEditNotes(e.target.value)}
                   placeholder="Notes..."
                 />
+                {deal.stage === "closedwon" && !deal.paymentReceivedAt && (
+                  <button
+                    onClick={() => handlePaymentReceived(deal.id, deal.dealName)}
+                    className="w-full font-body text-[12px] font-semibold text-green-300 bg-green-500/15 border border-green-400/40 rounded-lg px-4 py-3 hover:bg-green-500/25 transition-colors min-h-[44px] mb-2"
+                  >
+                    ✓ Mark Payment Received
+                  </button>
+                )}
+                {deal.paymentReceivedAt && (
+                  <div className="w-full text-center font-body text-[11px] text-green-400 border border-green-500/20 bg-green-500/5 rounded-lg px-3 py-2 mb-2">
+                    ✓ Paid {new Date(deal.paymentReceivedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button onClick={() => handleUpdateDeal(deal.id)} className="btn-gold text-[11px] px-4 py-2 flex-1">Save</button>
                   <button onClick={() => handleDeleteDeal(deal.id, deal.dealName)} className="font-body text-[11px] text-red-400/60 border border-red-400/20 rounded-lg px-3 py-2 hover:bg-red-400/10 transition-colors">Del</button>
