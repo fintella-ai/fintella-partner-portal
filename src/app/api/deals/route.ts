@@ -14,6 +14,15 @@ export async function GET(req: NextRequest) {
   if (!partnerCode) return NextResponse.json({ error: "Not a partner" }, { status: 403 });
 
   try {
+    // The current partner — we need their commissionRate + tier to render
+    // the Commission % column on the deals table (the partner is the L1 on
+    // their own direct deals, so their own rate is what they earn). Also
+    // useful as a top-level field for the page header.
+    const me = await prisma.partner.findUnique({
+      where: { partnerCode },
+      select: { partnerCode: true, tier: true, commissionRate: true },
+    });
+
     // Direct deals
     const directDeals = await prisma.deal.findMany({
       where: { partnerCode },
@@ -54,6 +63,7 @@ export async function GET(req: NextRequest) {
       : [];
 
     return NextResponse.json({
+      me,
       directDeals,
       downlinePartners,
       downlineDeals: downlineDealsWithNames,
