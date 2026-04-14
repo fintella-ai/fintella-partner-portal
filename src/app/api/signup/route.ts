@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendForSigning, isSignWellConfigured } from "@/lib/signwell";
 import {
   sendWelcomeEmail,
   sendInviterSignupNotificationEmail,

@@ -47,8 +47,9 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Phase 15a + 15b — fire transactional "account active" email + SMS.
-        // Best-effort; webhook should still 200 even if SendGrid/Twilio is down.
+        // Fetch the partner so we can both (a) activate them if they were
+        // still pending and (b) pass their contact info to the post-sign
+        // notifications below.
         const partner = await prisma.partner.findUnique({
           where: { partnerCode: agreement.partnerCode },
           select: {
@@ -58,8 +59,27 @@ export async function POST(req: NextRequest) {
             lastName: true,
             mobilePhone: true,
             smsOptIn: true,
+            status: true,
           },
         }).catch(() => null);
+
+        // Activate the partner if they were pending. This is the
+        // CLAUDE.md-documented "SignWell webhook marks agreement as
+        // signed → partner becomes active" step. Without it, Partner.status
+        // stays "pending" forever even after the agreement is signed,
+        // which breaks every code path that filters on status==="active"
+        // (admin views, chat routing, enterprise override calculations).
+        // Deliberately NOT wrapped in try/catch — if this DB write fails,
+        // we want the webhook to 500 so SignWell retries.
+        if (partner && partner.status === "pending") {
+          await prisma.partner.update({
+            where: { partnerCode: agreement.partnerCode },
+            data: { status: "active" },
+          });
+        }
+
+        // Phase 15a + 15b — fire transactional "account active" email + SMS.
+        // Best-effort; webhook should still 200 even if SendGrid/Twilio is down.
         if (partner?.email) {
           sendAgreementSignedEmail({
             partnerCode: partner.partnerCode,
