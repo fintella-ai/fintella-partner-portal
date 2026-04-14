@@ -14,6 +14,7 @@ export default function DealsPage() {
   const device = useDevice();
   const router = useRouter();
   const [deals, setDeals] = useState<any[]>([]);
+  const [me, setMe] = useState<{ commissionRate: number; tier: string } | null>(null);
   const [loading, setLoading] = useState(true);
   // Deep link: auto-expand a deal from URL ?deal=xxx
   const [expandedId, setExpandedId] = useState<string | null>(() => {
@@ -29,6 +30,7 @@ export default function DealsPage() {
       if (res.ok) {
         const data = await res.json();
         setDeals(data.directDeals || []);
+        setMe(data.me || null);
       }
     } catch {}
     setLoading(false);
@@ -167,7 +169,15 @@ export default function DealsPage() {
                   </div>
                   <div className="font-body text-[13px] text-[var(--app-text-secondary)] text-center">{fmt$(deal.firmFeeAmount)}</div>
                   <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">
-                    {deal.l1CommissionRate != null ? `${(deal.l1CommissionRate * 100).toFixed(0)}%` : "—"}
+                    {/* Commission % on a partner's own direct deals = their
+                        own commissionRate (they ARE the L1 on these deals).
+                        Falls back to deal.l1CommissionRate if a custom per-
+                        deal rate was negotiated. */}
+                    {me?.commissionRate != null
+                      ? `${(me.commissionRate * 100).toFixed(0)}%`
+                      : deal.l1CommissionRate != null
+                      ? `${(deal.l1CommissionRate * 100).toFixed(0)}%`
+                      : "—"}
                   </div>
                   <div className="font-display text-[15px] font-semibold text-brand-gold text-center">{fmt$(deal.l1CommissionAmount)}</div>
                   <div className="text-center"><StatusBadge status={deal.l1CommissionStatus} /></div>
