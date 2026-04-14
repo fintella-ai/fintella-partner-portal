@@ -40,14 +40,22 @@ export async function POST(req: NextRequest) {
     }
 
     const secret = process.env.REFERRAL_WEBHOOK_SECRET;
+    const apiKey = process.env.FROST_LAW_API_KEY;
 
     // Build a synthetic NextRequest pointing at the referral webhook.
     // The origin is taken from the incoming request (for display only);
     // the actual handler never sees it — we're invoking the function
     // directly below.
+    //
+    // The hardened webhook handler accepts EITHER auth scheme, so we inject
+    // whichever env vars are available. If both are set, both are sent and
+    // either one will satisfy the check.
     const headers = new Headers({ "Content-Type": "application/json" });
     if (secret) {
       headers.set("x-webhook-secret", secret);
+    }
+    if (apiKey) {
+      headers.set("x-fintella-api-key", apiKey);
     }
 
     // Synthetic URL — hardcoded path, no user input in the destination.
@@ -95,6 +103,7 @@ export async function POST(req: NextRequest) {
       method,
       body,
       secretInjected: !!secret,
+      apiKeyInjected: !!apiKey,
     });
   } catch (err: any) {
     console.error("[webhook-test] error:", err);

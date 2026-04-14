@@ -451,6 +451,10 @@ model Deal {
   // and creates CommissionLedger rows so the payout batch flow can pick them up)
   paymentReceivedAt     DateTime?
   paymentReceivedBy     String?   // admin email who clicked Mark Payment Received
+  // Webhook idempotency — if a POST to /api/webhook/referral includes an
+  // idempotencyKey, we store it here and any re-POST with the same key
+  // returns the existing dealId with HTTP 200 instead of creating a duplicate.
+  idempotencyKey        String?   @unique
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
