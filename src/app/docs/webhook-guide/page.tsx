@@ -1,9 +1,29 @@
 import { Metadata } from "next";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "Fintella Webhook Integration Guide",
   description: "Referral webhook integration guide for Frost Law",
 };
+
+/**
+ * Best-effort logo lookup. The /docs/webhook-guide page is public, so the DB
+ * read can't be auth-gated. We accept the small extra latency in exchange
+ * for keeping the brand asset in PortalSettings (single source of truth) and
+ * fall back to no-logo if Neon hiccups so the page still renders cleanly.
+ * Mirrors the same pattern in /privacy and /terms (PR #73).
+ */
+async function getLogoUrl(): Promise<string | null> {
+  try {
+    const settings = await prisma.portalSettings.findUnique({
+      where: { id: "global" },
+      select: { logoUrl: true },
+    });
+    return settings?.logoUrl || null;
+  } catch {
+    return null;
+  }
+}
 
 /* ── Theme-aware CSS via prefers-color-scheme ─────────────────────────── */
 const themeCSS = `
@@ -154,17 +174,44 @@ const STEPS = [
   "The partner sees the deal in their portal dashboard",
 ];
 
-export default function WebhookGuidePage() {
+export default async function WebhookGuidePage() {
+  const logoUrl = await getLogoUrl();
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: themeCSS }} />
       <div style={{ minHeight: "100vh", background: "var(--doc-bg)", color: "var(--doc-text)", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", lineHeight: 1.65 }}>
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "clamp(20px, 5vw, 40px) clamp(12px, 4vw, 20px) 60px" }}>
 
-          {/* Header */}
+          {/* Header — logo (if PortalSettings has one) sits left of the
+              FINTELLA wordmark + subtitle stack. Logo is a square sized via
+              `aspectRatio: 1/1` + `alignSelf: stretch` so it auto-spans from
+              the top of FINTELLA to the bottom of "Financial Intelligence
+              Network" without us hardcoding pixel heights. Falls back to
+              text-only when no logo is configured. */}
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--doc-gold)", letterSpacing: 2, marginBottom: 2 }}>FINTELLA</div>
-            <div style={{ fontSize: 13, color: "var(--doc-text-muted)", marginBottom: 24 }}>Financial Intelligence Network</div>
+            <div style={{ display: "flex", alignItems: "stretch", gap: 14, marginBottom: 24 }}>
+              {logoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoUrl}
+                  alt="Fintella"
+                  style={{
+                    aspectRatio: "1 / 1",
+                    alignSelf: "stretch",
+                    height: "auto",
+                    width: "auto",
+                    maxHeight: "100%",
+                    borderRadius: 4,
+                    objectFit: "contain",
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: "var(--doc-gold)", letterSpacing: 2, marginBottom: 2 }}>FINTELLA</div>
+                <div style={{ fontSize: 13, color: "var(--doc-text-muted)" }}>Financial Intelligence Network</div>
+              </div>
+            </div>
             <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--doc-text)", margin: "0 0 8px" }}>Referral Webhook Integration Guide</h1>
             <div style={{ height: 2, width: 80, background: "var(--doc-gold)", borderRadius: 2 }} />
           </div>
