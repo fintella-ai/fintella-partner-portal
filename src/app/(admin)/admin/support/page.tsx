@@ -37,6 +37,50 @@ type Stats = { total: number; open: number; inProgress: number; resolved: number
 const tabs = ["All", "Open", "In Progress", "Resolved"] as const;
 type Tab = (typeof tabs)[number];
 
+// Transform a support message into React nodes with clickable deal-ID links.
+// Partners include a "Deal ID(s): id1, id2, ..." line when they open a ticket
+// from the Deal Tracking category (see /dashboard/support). This turns each
+// comma-separated id into an <a> that opens /admin/deals?deal=<id> in a new
+// tab so the support ticket stays open while you investigate the deal.
+function renderSupportMessage(content: string): React.ReactNode {
+  const lines = content.split("\n");
+  return lines.map((line, i) => {
+    const dealMatch = line.match(/^(\s*Deal ID\(s\):\s*)(.*)$/);
+    if (dealMatch) {
+      const ids = dealMatch[2]
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return (
+        <span key={i}>
+          {dealMatch[1]}
+          {ids.map((id, j) => (
+            <span key={`${id}-${j}`}>
+              <a
+                href={`/admin/deals?deal=${encodeURIComponent(id)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-gold underline decoration-brand-gold/40 hover:decoration-brand-gold transition-colors"
+                title="Open this deal in a new tab"
+              >
+                {id}
+              </a>
+              {j < ids.length - 1 ? ", " : ""}
+            </span>
+          ))}
+          {i < lines.length - 1 ? "\n" : ""}
+        </span>
+      );
+    }
+    return (
+      <span key={i}>
+        {line}
+        {i < lines.length - 1 ? "\n" : ""}
+      </span>
+    );
+  });
+}
+
 const priorityBadge: Record<string, string> = {
   low: "bg-[var(--app-input-bg)] text-[var(--app-text-secondary)]",
   normal: "bg-blue-500/20 text-blue-400",
@@ -213,7 +257,7 @@ export default function SupportTicketsPage() {
                     {fmtDateTime(msg.createdAt)}
                   </span>
                 </div>
-                <div className="font-body text-sm text-[var(--app-text-secondary)] whitespace-pre-wrap">{msg.content}</div>
+                <div className="font-body text-sm text-[var(--app-text-secondary)] whitespace-pre-wrap">{renderSupportMessage(msg.content)}</div>
               </div>
             ))}
           </div>
