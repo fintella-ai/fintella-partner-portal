@@ -11,6 +11,7 @@ type Partner = {
   firstName: string;
   lastName: string;
   phone: string | null;
+  mobilePhone: string | null;
   status: string;
   referredByPartnerCode: string | null;
   l1Rate: number | null;
@@ -20,6 +21,18 @@ type Partner = {
   agreementStatus: string;
   w9Status: string;
 };
+
+// Normalize a stored mobile number to E.164 for the softphone Device.
+// Accepts 10-digit US, 11-digit starting with 1, or already-E.164.
+function normalizeForSoftphone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("+") && /^\+[1-9]\d{6,14}$/.test(trimmed)) return trimmed;
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return null;
+}
 
 const docBadge: Record<string, string> = {
   signed: "bg-green-500/10 text-green-400 border border-green-500/20",
@@ -170,19 +183,38 @@ export default function AdminPartnersPage() {
         <>
           {/* Desktop Table */}
           <div className="card hidden sm:block overflow-x-auto">
-            <div className="grid grid-cols-[1.5fr_1fr_1.2fr_0.7fr_0.6fr_0.8fr_0.5fr] gap-3 px-5 py-3 border-b border-[var(--app-border)]">
-              {["Partner", "Code", "Email", "Status", "W9", "Joined", ""].map((h) => (
+            <div className="grid grid-cols-[1.5fr_1fr_0.9fr_1.2fr_0.7fr_0.6fr_0.8fr_0.5fr] gap-3 px-5 py-3 border-b border-[var(--app-border)]">
+              {["Partner", "Code", "Phone", "Email", "Status", "W9", "Joined", ""].map((h) => (
                 <div key={h} className={`font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider ${h === "Status" || h === "W9" ? "text-center" : ""}`}>{h}</div>
               ))}
             </div>
-            {partners.map((p) => (
+            {partners.map((p) => {
+              const e164 = normalizeForSoftphone(p.mobilePhone || p.phone);
+              return (
               <div
                 key={p.id}
-                className="grid grid-cols-[1.5fr_1fr_1.2fr_0.7fr_0.6fr_0.8fr_0.5fr] gap-3 px-5 py-3.5 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer"
+                className="grid grid-cols-[1.5fr_1fr_0.9fr_1.2fr_0.7fr_0.6fr_0.8fr_0.5fr] gap-3 px-5 py-3.5 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer"
                 onClick={() => router.push(`/admin/partners/${p.id}`)}
               >
                 <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate">{p.firstName} {p.lastName}</div>
                 <div className="font-mono text-[12px] text-[var(--app-text-secondary)]">{p.partnerCode}</div>
+                <div className="font-mono text-[12px] truncate">
+                  {e164 ? (
+                    <button
+                      onClick={(evt) => {
+                        evt.stopPropagation();
+                        const sp = (window as any).__fintellaSoftphone;
+                        if (sp) sp.call(e164, `${p.firstName} ${p.lastName}`.trim());
+                      }}
+                      className="text-brand-gold hover:underline"
+                      title="Click to dial via softphone"
+                    >
+                      📞 {p.mobilePhone || p.phone}
+                    </button>
+                  ) : (
+                    <span className="text-[var(--app-text-muted)]">—</span>
+                  )}
+                </div>
                 <div className="font-body text-[12px] text-[var(--app-text-secondary)] truncate">{p.email}</div>
                 <div className="text-center">
                   <span className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[p.status] || statusBadge.active}`}>
@@ -199,7 +231,8 @@ export default function AdminPartnersPage() {
                   <span className="font-body text-[11px] text-brand-gold/60 hover:text-brand-gold transition-colors">View →</span>
                 </div>
               </div>
-            ))}
+              );
+            })}
             {partners.length === 0 && (
               <div className="px-5 py-10 text-center font-body text-[13px] text-[var(--app-text-muted)]">No partners found.</div>
             )}
