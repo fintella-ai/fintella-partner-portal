@@ -8,6 +8,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { SkeletonTableRow } from "@/components/ui/Skeleton";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import { fmt$, fmtDate } from "@/lib/format";
+import { resolveDealFinancials, formatRate } from "@/lib/dealCalc";
 import { STAGE_LABELS } from "@/lib/constants";
 
 export default function DealsPage() {
@@ -152,7 +153,13 @@ export default function DealsPage() {
                 <div key={h} className={`font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Client / Deal" ? "" : "text-center"}`}>{h}</div>
               ))}
             </div>
-            {deals.map((deal, idx) => (
+            {deals.map((deal, idx) => {
+              // Cross-calculate missing financial values using the shared
+              // helper. The partner's own commissionRate (from `me`) is the
+              // fallback rate for their direct deals — see src/lib/dealCalc.ts
+              // for the full precedence rules.
+              const fin = resolveDealFinancials(deal, me?.commissionRate);
+              return (
               <div key={deal.id}>
                 <div
                   className={`grid grid-cols-[2fr_1fr_1fr_0.55fr_1fr_0.65fr_1fr_0.7fr] gap-6 px-6 py-4 border-b border-[var(--app-border)] items-center hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
@@ -163,23 +170,15 @@ export default function DealsPage() {
                     <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5 truncate">{fmtDate(deal.createdAt)}</div>
                   </div>
                   <div className="text-center"><StageBadge stage={deal.stage} /></div>
-                  <div className="font-body text-[13px] text-[var(--app-text)] text-center">{fmt$(deal.estimatedRefundAmount)}</div>
+                  <div className="font-body text-[13px] text-[var(--app-text)] text-center">{fmt$(fin.refund)}</div>
                   <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">
-                    {deal.firmFeeRate != null ? `${(deal.firmFeeRate * 100).toFixed(0)}%` : "—"}
+                    {formatRate(fin.firmFeeRate)}
                   </div>
-                  <div className="font-body text-[13px] text-[var(--app-text-secondary)] text-center">{fmt$(deal.firmFeeAmount)}</div>
+                  <div className="font-body text-[13px] text-[var(--app-text-secondary)] text-center">{fmt$(fin.firmFeeAmount)}</div>
                   <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">
-                    {/* Commission % on a partner's own direct deals = their
-                        own commissionRate (they ARE the L1 on these deals).
-                        Falls back to deal.l1CommissionRate if a custom per-
-                        deal rate was negotiated. */}
-                    {me?.commissionRate != null
-                      ? `${(me.commissionRate * 100).toFixed(0)}%`
-                      : deal.l1CommissionRate != null
-                      ? `${(deal.l1CommissionRate * 100).toFixed(0)}%`
-                      : "—"}
+                    {formatRate(fin.commissionRate)}
                   </div>
-                  <div className="font-display text-[15px] font-semibold text-brand-gold text-center">{fmt$(deal.l1CommissionAmount)}</div>
+                  <div className="font-display text-[15px] font-semibold text-brand-gold text-center">{fmt$(fin.commissionAmount)}</div>
                   <div className="text-center"><StatusBadge status={deal.l1CommissionStatus} /></div>
                 </div>
 
@@ -188,7 +187,8 @@ export default function DealsPage() {
                   <DealDetail deal={deal} onSupport={() => handleDealSupport(deal)} />
                 )}
               </div>
-            ))}
+              );
+            })}
             </div>
           </div>
         )}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { fmt$, fmtDate } from "@/lib/format";
+import { resolveDealFinancials, formatRate } from "@/lib/dealCalc";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import PartnerLink from "@/components/ui/PartnerLink";
@@ -368,7 +369,14 @@ export default function AdminDealsPage() {
           </button>
         </div>
 
-        {sorted.map((deal, idx) => (
+        {sorted.map((deal, idx) => {
+          // Cross-calculate missing firm fee / commission values from the
+          // siblings we DO have. E.g. if a deal has refund + firm fee amount
+          // but no firm fee rate, we compute it as amount/refund and show
+          // it in the % column. Same pattern for commission. Pure helper,
+          // see src/lib/dealCalc.ts for precedence rules.
+          const fin = resolveDealFinancials(deal);
+          return (
           <div key={deal.id} id={`deal-${deal.id}`}>
             <div
               className={`grid grid-cols-[1.5fr_1fr_0.8fr_0.8fr_0.55fr_0.8fr_0.65fr_0.8fr_0.6fr] gap-6 px-5 py-3.5 border-b border-[var(--app-border)] hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
@@ -382,25 +390,23 @@ export default function AdminDealsPage() {
                 <PartnerLink partnerId={deal.partnerId} className="font-body text-[12px] text-[var(--app-text-secondary)] truncate inline-block max-w-full">{deal.partnerName}</PartnerLink>
               </div>
               <div className="text-center"><StageBadge stage={deal.stage} /></div>
-              <div className="font-body text-[13px] text-[var(--app-text)] text-center">{fmt$(deal.estimatedRefundAmount)}</div>
+              <div className="font-body text-[13px] text-[var(--app-text)] text-center">{fmt$(fin.refund)}</div>
               <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">
-                {deal.firmFeeRate != null ? `${(deal.firmFeeRate * 100).toFixed(0)}%` : "—"}
+                {formatRate(fin.firmFeeRate)}
               </div>
-              <div className="font-body text-[13px] text-[var(--app-text-secondary)] text-center">{fmt$(deal.firmFeeAmount)}</div>
+              <div className="font-body text-[13px] text-[var(--app-text-secondary)] text-center">{fmt$(fin.firmFeeAmount)}</div>
               <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">
-                {/* Per-row Commission % — resolved server-side as
-                    deal.l1CommissionRate ?? submittingPartner.commissionRate
-                    so each deal shows the correct rate even with mixed-tier
-                    partners across the table. */}
-                {deal.effectiveCommissionRate != null
-                  ? `${(deal.effectiveCommissionRate * 100).toFixed(0)}%`
-                  : "—"}
+                {formatRate(fin.commissionRate)}
               </div>
-              <div className="font-display text-[14px] font-semibold text-brand-gold text-center">{fmt$(deal.l1CommissionAmount)}</div>
+              <div className="font-display text-[14px] font-semibold text-brand-gold text-center">{fmt$(fin.commissionAmount)}</div>
               <div className="font-body text-[12px] text-[var(--app-text-muted)] text-right">{fmtDate(deal.createdAt)}</div>
             </div>
 
             {/* Expanded detail + edit panel */}
+            {/* The arrow-fn open { on the .map above means we close with
+                }); at the bottom of this iteration — see below. Also note
+                that `fin` (resolved financials) is in scope here and could
+                be used inside the expanded detail view too if needed. */}
             {expandedId === deal.id && (
               <div className="px-5 py-4 bg-[var(--app-card-bg)] border-b border-[var(--app-border)]">
                 {/* ── Form Submission Data ── */}
@@ -590,7 +596,8 @@ export default function AdminDealsPage() {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
 
         {sorted.length === 0 && (
           <div className="px-5 py-10 text-center font-body text-[13px] text-[var(--app-text-muted)]">No deals found matching your filters.</div>
