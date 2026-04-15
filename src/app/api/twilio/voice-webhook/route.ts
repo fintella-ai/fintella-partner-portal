@@ -83,9 +83,22 @@ function buildBridgeTwiml(
       ` recordingStatusCallbackMethod="POST"`;
   }
 
+  // When recording is enabled, use <Number url="..."> so Twilio plays
+  // the partner-consent-webhook TwiML to the PARTNER (outbound leg) before
+  // bridging. This ensures the called party also hears the consent
+  // disclosure — required for all-party consent states (CA, WA, FL, etc.)
+  // and best practice everywhere. Without this, only the admin hears it.
+  let dialContent: string;
+  if (recordingEnabled) {
+    const consentUrl = `${PORTAL_URL}/api/twilio/partner-consent-webhook${state ? `?state=${encodeURIComponent(state)}` : ""}`;
+    dialContent = `<Number url="${escapeXml(consentUrl)}">${safeNumber}</Number>`;
+  } else {
+    dialContent = safeNumber;
+  }
+
   return `<Response>${consentSay}
   <Say voice="Polly.Joanna">Connecting you to your ${escapeXml(FIRM_SHORT)} partner now.</Say>
-  <Dial timeout="25" answerOnBridge="true"${recordingAttrs}>${safeNumber}</Dial>
+  <Dial timeout="25" answerOnBridge="true"${recordingAttrs}>${dialContent}</Dial>
 </Response>`;
 }
 
