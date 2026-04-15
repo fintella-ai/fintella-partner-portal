@@ -413,8 +413,9 @@ model PortalSettings {
   announcements  String @default("[]")
   upcomingEvents String @default("[]")
   referralOpportunities String @default("[]")
-  leaderboardEnabled Boolean @default(true)
-  liveChatEnabled    Boolean @default(false) // live support chat on/off
+  leaderboardEnabled     Boolean @default(true)
+  liveChatEnabled        Boolean @default(false) // live support chat on/off
+  callRecordingEnabled   Boolean @default(false) // record outbound voice calls (requires Twilio)
   // Timestamps
   updatedAt DateTime @updatedAt
 }

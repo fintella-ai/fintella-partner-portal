@@ -198,6 +198,7 @@ export default function SettingsPage() {
   const [referralOpps, setReferralOpps] = useState<ReferralOpp[]>(DEFAULT_REFERRAL_OPPS);
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(true);
   const [liveChatEnabled, setLiveChatEnabled] = useState(false);
+  const [callRecordingEnabled, setCallRecordingEnabled] = useState(false);
 
   // ── Fetch settings ────────────────────────────────────────────────────
 
@@ -249,6 +250,7 @@ export default function SettingsPage() {
       } catch {}
       setLeaderboardEnabled(settings.leaderboardEnabled);
       if (settings.liveChatEnabled !== undefined) setLiveChatEnabled(settings.liveChatEnabled);
+      if (settings.callRecordingEnabled !== undefined) setCallRecordingEnabled(settings.callRecordingEnabled);
     } catch {
       // Use defaults
     } finally {
@@ -335,6 +337,7 @@ export default function SettingsPage() {
         referralOpportunities: JSON.stringify(referralOpps),
         leaderboardEnabled,
         liveChatEnabled,
+        callRecordingEnabled,
       };
 
       const res = await fetch("/api/admin/settings", {
@@ -861,6 +864,27 @@ export default function SettingsPage() {
             {liveChatEnabled && (
               <div className="mt-3 p-2.5 rounded-lg bg-green-500/5 border border-green-500/10">
                 <div className="font-body text-[11px] text-green-400">Chat is active. Partners will see the chat widget. Admin agents can respond from the Live Chat page.</div>
+              </div>
+            )}
+          </div>
+
+          {/* Call Recording toggle */}
+          <div className="card p-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-body font-semibold text-sm">Call Recording</div>
+                <p className="font-body text-[12px] text-[var(--app-text-muted)] mt-0.5">Record outbound partner calls. All-party consent disclosure plays automatically in required states (CA, FL, IL, PA, WA + 9 others).</p>
+              </div>
+              <button
+                onClick={() => setCallRecordingEnabled(!callRecordingEnabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${callRecordingEnabled ? "bg-green-500" : "bg-[var(--app-input-bg)]"}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${callRecordingEnabled ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
+            {callRecordingEnabled && (
+              <div className="mt-3 p-2.5 rounded-lg bg-green-500/5 border border-green-500/10">
+                <div className="font-body text-[11px] text-green-400">Recording active. Calls will be recorded via Twilio and linked in the Communications Log once processed.</div>
               </div>
             )}
           </div>
