@@ -20,14 +20,12 @@ const MAIN_NAV = [
   { id: "submit-client", href: "/dashboard/submit-client", icon: "\u{1F4E9}", label: "Submit Client", shortLabel: "Submit" },
   { id: "referral-links", href: "/dashboard/referral-links", icon: "\u{1F517}", label: "Referral Links", shortLabel: "Links" },
   { id: "documents", href: "/dashboard/documents", icon: "\u{1F4C4}", label: "Documents", shortLabel: "Docs" },
+  // Support sits right under Documents per partner-portal layout spec —
+  // was previously rendered as a separate top-right button.
+  { id: "support", href: "/dashboard/support", icon: "\u{1F3AB}", label: "Support", shortLabel: "Help" },
   { id: "conference", href: "/dashboard/conference", icon: "\u{1F4F9}", label: "Live Weekly Call!", shortLabel: "Live" },
   { id: "ai-assistant", href: "/dashboard/ai-assistant", icon: "\u{1F916}", label: "PartnerOS AI", shortLabel: "AI" },
   { id: "feature-request", href: "/dashboard/feature-request", icon: "\u{2728}", label: "Feature Requests", shortLabel: "Ideas" },
-];
-
-// Bottom section items (above user info)
-const BOTTOM_NAV = [
-  { id: "support", href: "/dashboard/support", icon: "\u{1F3AB}", label: "Support", shortLabel: "Help" },
 ];
 
 // Mobile bottom bar items (subset)
@@ -409,13 +407,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className={`flex-1 overflow-y-auto ${device.padding}`}
         style={{ paddingTop: device.isTablet ? 72 : undefined }}
       >
+        {/* ── STICKY TOP CTA BAR ──
+            Submit Client + Referral Links pinned to the top of the
+            scrollable content area. Uses position: sticky inside the
+            scroll container so it stays visible when the user scrolls
+            down the welcome + module content below. Centered with the
+            NotificationBell still floating in its top-right fixed
+            corner. Shown on both mobile and desktop. */}
+        <div
+          className="sticky top-0 z-40 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8 py-3 mb-5 bg-[var(--app-bg)]/85 backdrop-blur-md border-b border-[var(--app-border)]"
+        >
+          <div className="flex items-center justify-center gap-2 sm:gap-3 max-w-xl mx-auto">
+            <button
+              onClick={() => navigate("/dashboard/submit-client")}
+              className={`flex-1 sm:flex-none font-body text-[12px] sm:text-[13px] font-semibold tracking-wider border rounded-lg px-4 sm:px-5 py-2.5 transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
+                isActive("/dashboard/submit-client")
+                  ? "bg-brand-gold/15 border-brand-gold/40 text-brand-gold"
+                  : "bg-brand-gold/[0.06] border-brand-gold/20 text-brand-gold hover:bg-brand-gold/10"
+              }`}
+            >
+              💼 Submit Client
+            </button>
+            <button
+              onClick={() => navigate("/dashboard/referral-links")}
+              className={`flex-1 sm:flex-none font-body text-[12px] sm:text-[13px] font-semibold tracking-wider border rounded-lg px-4 sm:px-5 py-2.5 transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
+                isActive("/dashboard/referral-links")
+                  ? "bg-purple-500/15 border-purple-500/40 text-purple-400"
+                  : "bg-purple-500/[0.06] border-purple-500/20 text-purple-400 hover:bg-purple-500/10"
+              }`}
+            >
+              👥 Referral Links
+            </button>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="mb-5 sm:mb-8">
           {device.isMobile && (
             <>
               {/* Safe area spacer for iPhone notch/Dynamic Island */}
               <div style={{ paddingTop: "env(safe-area-inset-top, 12px)" }} />
-              {/* Top bar: Sign Out (left) — Fintella (center) — Support (right) */}
+              {/* Top bar: Sign Out (left) — Fintella (center) — spacer (right, balanced) */}
               <div className="flex justify-between items-center py-3 gap-2">
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
@@ -432,39 +464,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {FIRM_NAME}
                   </div>
                 </div>
-                <button
-                  onClick={() => navigate("/dashboard/support")}
-                  aria-label="Support"
-                  className={`font-body text-[11px] border rounded-lg px-3.5 py-2.5 tracking-wider min-h-[44px] min-w-[44px] flex items-center transition-all active:scale-95 ${
-                    isActive("/dashboard/support")
-                      ? "text-brand-gold border-brand-gold/30 bg-brand-gold/10"
-                      : "text-[var(--app-text-muted)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)]"
-                  }`}
-                >
-                  🎫 Support
-                </button>
+                {/* Right slot kept empty to balance the centered title.
+                    The floating NotificationBell already occupies the
+                    top-right corner for all mobile viewports. */}
+                <div className="min-h-[44px] min-w-[44px]" />
               </div>
               {/* Divider below header bar */}
               <div className="border-b border-[var(--app-border)] mb-3" />
             </>
-          )}
-
-          {/* Mobile: Referral link buttons right at top */}
-          {device.isMobile && (
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => navigate("/dashboard/submit-client")}
-                className="flex-1 font-body text-[11px] font-semibold tracking-wider border rounded-lg px-3 py-2.5 transition-all text-center bg-brand-gold/[0.06] border-brand-gold/20 text-brand-gold"
-              >
-                💼 Submit Client
-              </button>
-              <button
-                onClick={() => navigate("/dashboard/referral-links")}
-                className="flex-1 font-body text-[11px] font-semibold tracking-wider border rounded-lg px-3 py-2.5 transition-all text-center bg-purple-500/[0.06] border-purple-500/20 text-purple-400"
-              >
-                👥 Referral Links
-              </button>
-            </div>
           )}
 
           <div className="flex justify-between items-start">
@@ -490,41 +497,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </div>
             </div>
-            {/* Desktop: Support + Referral links in top right */}
-            {!device.isDesktop ? null : (
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => navigate("/dashboard/submit-client")}
-                  className={`font-body text-[12px] font-semibold tracking-wider border rounded-lg px-4 py-2.5 transition-all flex items-center gap-1.5 ${
-                    isActive("/dashboard/submit-client")
-                      ? "bg-brand-gold/15 border-brand-gold/30 text-brand-gold"
-                      : "bg-brand-gold/[0.06] border-brand-gold/20 text-brand-gold hover:bg-brand-gold/10"
-                  }`}
-                >
-                  💼 Submit Client
-                </button>
-                <button
-                  onClick={() => navigate("/dashboard/referral-links")}
-                  className={`font-body text-[12px] font-semibold tracking-wider border rounded-lg px-4 py-2.5 transition-all flex items-center gap-1.5 ${
-                    isActive("/dashboard/referral-links")
-                      ? "bg-purple-500/15 border-purple-500/30 text-purple-400"
-                      : "bg-purple-500/[0.06] border-purple-500/20 text-purple-400 hover:bg-purple-500/10"
-                  }`}
-                >
-                  👥 Referral Links
-                </button>
-                <button
-                  onClick={() => navigate("/dashboard/support")}
-                  className={`font-body text-lg font-bold tracking-[1px] border rounded-lg px-5 py-2.5 transition-colors flex items-center gap-2 ${
-                    isActive("/dashboard/support")
-                      ? "text-brand-gold border-brand-gold/30 bg-brand-gold/10"
-                      : "text-[var(--app-text-secondary)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)] hover:border-[var(--app-border)]"
-                  }`}
-                >
-                  🎫 Support
-                </button>
-              </div>
-            )}
+            {/* Desktop top-right CTAs moved to the sticky top bar above.
+                Top-right corner is now reserved for the floating
+                NotificationBell only. */}
           </div>
         </div>
 
