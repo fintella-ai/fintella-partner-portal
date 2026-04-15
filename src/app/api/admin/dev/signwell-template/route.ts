@@ -50,32 +50,47 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // SignWell's template endpoint. Try /template/<id> first, fall back
-  // to /templates/<id> — docs have used both spellings over the years.
+  // SignWell template API paths. /document_templates/<id> is the
+  // current documented endpoint; the others are legacy variants we
+  // try as fallbacks before giving up.
   const candidateUrls = [
-    `https://www.signwell.com/api/v1/template/${templateId}`,
+    `https://www.signwell.com/api/v1/document_templates/${templateId}`,
+    `https://www.signwell.com/api/v1/document_templates/${templateId}/`,
+    `https://www.signwell.com/api/v2/document_templates/${templateId}`,
     `https://www.signwell.com/api/v1/templates/${templateId}`,
+    `https://www.signwell.com/api/v1/template/${templateId}`,
   ];
 
   let raw: any = null;
-  let lastError: string | null = null;
+  const attempts: Array<{ url: string; status: number; snippet: string }> = [];
   for (const url of candidateUrls) {
     const res = await fetch(url, {
-      headers: { "X-Api-Key": apiKey },
+      headers: {
+        "X-Api-Key": apiKey,
+        Accept: "application/json",
+      },
+    });
+    const body = await res.text();
+    attempts.push({
+      url,
+      status: res.status,
+      snippet: body.slice(0, 200),
     });
     if (res.ok) {
-      raw = await res.json();
-      break;
+      try {
+        raw = JSON.parse(body);
+        break;
+      } catch {
+        // not JSON, keep trying
+      }
     }
-    lastError = `${res.status} ${await res.text()}`;
   }
 
   if (!raw) {
     return NextResponse.json(
       {
-        error: "SignWell API rejected the request.",
-        detail: lastError,
-        tried: candidateUrls,
+        error: "SignWell API rejected every candidate URL.",
+        attempts,
       },
       { status: 502 }
     );
