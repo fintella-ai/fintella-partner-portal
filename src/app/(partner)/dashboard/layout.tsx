@@ -20,14 +20,12 @@ const MAIN_NAV = [
   { id: "submit-client", href: "/dashboard/submit-client", icon: "\u{1F4E9}", label: "Submit Client", shortLabel: "Submit" },
   { id: "referral-links", href: "/dashboard/referral-links", icon: "\u{1F517}", label: "Referral Links", shortLabel: "Links" },
   { id: "documents", href: "/dashboard/documents", icon: "\u{1F4C4}", label: "Documents", shortLabel: "Docs" },
+  // Support sits right under Documents per partner-portal layout spec —
+  // was previously rendered as a separate top-right button.
+  { id: "support", href: "/dashboard/support", icon: "\u{1F3AB}", label: "Support", shortLabel: "Help" },
   { id: "conference", href: "/dashboard/conference", icon: "\u{1F4F9}", label: "Live Weekly Call!", shortLabel: "Live" },
   { id: "ai-assistant", href: "/dashboard/ai-assistant", icon: "\u{1F916}", label: "PartnerOS AI", shortLabel: "AI" },
   { id: "feature-request", href: "/dashboard/feature-request", icon: "\u{2728}", label: "Feature Requests", shortLabel: "Ideas" },
-];
-
-// Bottom section items (above user info)
-const BOTTOM_NAV = [
-  { id: "support", href: "/dashboard/support", icon: "\u{1F3AB}", label: "Support", shortLabel: "Help" },
 ];
 
 // Mobile bottom bar items (subset)
@@ -415,7 +413,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <>
               {/* Safe area spacer for iPhone notch/Dynamic Island */}
               <div style={{ paddingTop: "env(safe-area-inset-top, 12px)" }} />
-              {/* Top bar: Sign Out (left) — Fintella (center) — Support (right) */}
+              {/* Top bar: Sign Out (left) — Fintella (center) — spacer (right, balanced) */}
               <div className="flex justify-between items-center py-3 gap-2">
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
@@ -432,17 +430,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {FIRM_NAME}
                   </div>
                 </div>
-                <button
-                  onClick={() => navigate("/dashboard/support")}
-                  aria-label="Support"
-                  className={`font-body text-[11px] border rounded-lg px-3.5 py-2.5 tracking-wider min-h-[44px] min-w-[44px] flex items-center transition-all active:scale-95 ${
-                    isActive("/dashboard/support")
-                      ? "text-brand-gold border-brand-gold/30 bg-brand-gold/10"
-                      : "text-[var(--app-text-muted)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)]"
-                  }`}
-                >
-                  🎫 Support
-                </button>
+                {/* Right slot kept empty to balance the centered title.
+                    The floating NotificationBell already occupies the
+                    top-right corner for all mobile viewports. */}
+                <div className="min-h-[44px] min-w-[44px]" />
               </div>
               {/* Divider below header bar */}
               <div className="border-b border-[var(--app-border)] mb-3" />
@@ -490,7 +481,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </div>
             </div>
-            {/* Desktop: Support + Referral links in top right */}
+            {/* Desktop: Submit Client + Referral Links in top right.
+                Support moved into the left sidebar under Documents per
+                partner-portal layout update — top-right stays focused
+                on the two revenue-driving CTAs. */}
             {!device.isDesktop ? null : (
               <div className="flex items-center gap-2 shrink-0">
                 <button
@@ -512,16 +506,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   }`}
                 >
                   👥 Referral Links
-                </button>
-                <button
-                  onClick={() => navigate("/dashboard/support")}
-                  className={`font-body text-lg font-bold tracking-[1px] border rounded-lg px-5 py-2.5 transition-colors flex items-center gap-2 ${
-                    isActive("/dashboard/support")
-                      ? "text-brand-gold border-brand-gold/30 bg-brand-gold/10"
-                      : "text-[var(--app-text-secondary)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)] hover:border-[var(--app-border)]"
-                  }`}
-                >
-                  🎫 Support
                 </button>
               </div>
             )}

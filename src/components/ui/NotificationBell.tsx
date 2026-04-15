@@ -99,8 +99,12 @@ export default function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative font-body text-lg border rounded-lg px-3 py-2 transition-colors text-[var(--app-text-muted)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)] min-h-[44px] min-w-[44px] flex items-center justify-center bg-[#c4a050]/[0.08] backdrop-blur-sm"
-        title="Notifications"
+        className={`relative font-body text-lg border rounded-lg px-3 py-2 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center backdrop-blur-sm ${
+          unreadCount > 0
+            ? "text-brand-gold border-brand-gold/60 bg-brand-gold/[0.15] animate-pulse shadow-[0_0_16px_rgba(196,160,80,0.35)]"
+            : "text-[var(--app-text-muted)] border-[var(--app-border)] hover:text-[var(--app-text-secondary)] bg-[#c4a050]/[0.08]"
+        }`}
+        title={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}` : "Notifications"}
       >
         🔔
         {unreadCount > 0 && (
