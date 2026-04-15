@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FIRM_SHORT, ALL_PARTY_CONSENT_STATES } from "@/lib/constants";
+import { prisma } from "@/lib/prisma";
 
 const PORTAL_URL =
   process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "https://fintella.partners";
-const RECORDING_ENABLED = !!process.env.TWILIO_RECORDING_ENABLED;
 
 /**
  * Twilio Voice Webhook (Phase 15c)
@@ -51,7 +51,8 @@ function escapeXml(s: string): string {
 function buildBridgeTwiml(
   toPhone: string,
   state: string | null,
-  logId: string | null
+  logId: string | null,
+  recordingEnabled: boolean
 ): string {
   // Brief Say + Dial. The Say uses Twilio's polly voice for clearer
   // English than the legacy "alice" voice. callerId defaults to whatever
@@ -60,9 +61,9 @@ function buildBridgeTwiml(
   const safeNumber = escapeXml(toPhone);
 
   // All-party consent disclosure: played to the admin before bridging when
-  // TWILIO_RECORDING_ENABLED is set and the partner's state requires it.
+  // recording is enabled and the partner's state requires it.
   const needsConsent =
-    RECORDING_ENABLED && !!state && ALL_PARTY_CONSENT_STATES.has(state);
+    recordingEnabled && !!state && ALL_PARTY_CONSENT_STATES.has(state);
   const consentSay = needsConsent
     ? `\n  <Say voice="Polly.Joanna">This call may be recorded for quality and compliance purposes. By continuing, all parties consent to this recording.</Say>`
     : "";
@@ -71,7 +72,7 @@ function buildBridgeTwiml(
   // separately. recordingStatusCallback fires when Twilio finishes
   // processing the recording (after the call ends).
   let recordingAttrs = "";
-  if (RECORDING_ENABLED) {
+  if (recordingEnabled) {
     const cbBase = `${PORTAL_URL}/api/twilio/recording-webhook`;
     const cbUrl = logId
       ? `${cbBase}?logId=${encodeURIComponent(logId)}`
@@ -88,7 +89,10 @@ function buildBridgeTwiml(
 </Response>`;
 }
 
-function buildSoftphoneOutboundTwiml(toPhone: string): string {
+function buildSoftphoneOutboundTwiml(
+  toPhone: string,
+  recordingEnabled: boolean
+): string {
   // Browser softphone → partner dial. The admin is already connected
   // over WebRTC when this runs, so we only need to <Dial> the partner's
   // number. callerId is set explicitly to TWILIO_FROM_NUMBER so the
@@ -96,12 +100,30 @@ function buildSoftphoneOutboundTwiml(toPhone: string): string {
   const callerId = process.env.TWILIO_FROM_NUMBER || "";
   const safeNumber = escapeXml(toPhone);
   const callerAttr = callerId ? ` callerId="${escapeXml(callerId)}"` : "";
+
+  // Recording for softphone: uses CallSid-based lookup in the recording
+  // webhook since there's no logId for browser-initiated calls.
+  let recordingAttrs = "";
+  if (recordingEnabled) {
+    const cbUrl = `${PORTAL_URL}/api/twilio/recording-webhook`;
+    recordingAttrs =
+      ` record="record-from-answer-dual"` +
+      ` recordingStatusCallback="${escapeXml(cbUrl)}"` +
+      ` recordingStatusCallbackMethod="POST"`;
+  }
+
   return `<Response>
-  <Dial${callerAttr} timeout="25" answerOnBridge="true">${safeNumber}</Dial>
+  <Dial${callerAttr} timeout="25" answerOnBridge="true"${recordingAttrs}>${safeNumber}</Dial>
 </Response>`;
 }
 
 async function handle(req: NextRequest): Promise<NextResponse> {
+  // Read recording toggle from DB — single fast lookup on the settings singleton.
+  const settings = await prisma.portalSettings
+    .findUnique({ where: { id: "global" }, select: { callRecordingEnabled: true } })
+    .catch(() => null);
+  const recordingEnabled = settings?.callRecordingEnabled ?? false;
+
   // Bridged-call path: ?to=, ?logId=, ?state= set by initiateBridgedCall().
   const toQuery = req.nextUrl.searchParams.get("to") || "";
   if (toQuery) {
@@ -112,7 +134,7 @@ async function handle(req: NextRequest): Promise<NextResponse> {
     }
     const logId = req.nextUrl.searchParams.get("logId") || null;
     const state = req.nextUrl.searchParams.get("state") || null;
-    return twiml(buildBridgeTwiml(toQuery, state, logId));
+    return twiml(buildBridgeTwiml(toQuery, state, logId, recordingEnabled));
   }
 
   // Softphone outbound path: TwiML App POSTs form-encoded body with
@@ -122,7 +144,7 @@ async function handle(req: NextRequest): Promise<NextResponse> {
       const form = await req.formData();
       const toForm = String(form.get("To") || "");
       if (toForm && /^\+[1-9]\d{6,14}$/.test(toForm)) {
-        return twiml(buildSoftphoneOutboundTwiml(toForm));
+        return twiml(buildSoftphoneOutboundTwiml(toForm, recordingEnabled));
       }
     } catch {
       // fall through to error
