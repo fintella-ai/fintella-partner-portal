@@ -79,6 +79,7 @@ export default function PartnerDetailPage() {
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
+  const [inboundEmails, setInboundEmails] = useState<any[]>([]);
   const [smsLogs, setSmsLogs] = useState<any[]>([]);
   const [callLogs, setCallLogs] = useState<any[]>([]);
   const [callingPartner, setCallingPartner] = useState(false);
@@ -150,6 +151,7 @@ export default function PartnerDetailPage() {
       setSupportTickets(data.supportTickets || []);
       setNotifications(data.notifications || []);
       setEmailLogs(data.emailLogs || []);
+      setInboundEmails(data.inboundEmails || []);
       setSmsLogs(data.smsLogs || []);
       setCallLogs(data.callLogs || []);
       setEnterprisePartner(data.enterprisePartner || null);
@@ -1352,6 +1354,54 @@ export default function PartnerDetailPage() {
             <div className="font-body text-[11px] text-[var(--app-text-faint)] mt-1">
               Transactional sends (welcome, agreement, activation) appear here automatically.
             </div>
+          </div>
+        )}
+
+        {/* Inbound emails (SendGrid Inbound Parse) */}
+        {(commLogFilter === "all" || commLogFilter === "email") && inboundEmails.length > 0 && (
+          <div>
+            <div className="px-5 py-2.5 bg-[var(--app-card-bg)] border-b border-[var(--app-border)]">
+              <div className="font-body text-[10px] tracking-[1.5px] uppercase text-[var(--app-text-muted)]">
+                Inbound Emails ({inboundEmails.length})
+              </div>
+            </div>
+            {inboundEmails.map((e: any) => (
+              <div key={e.id} className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0">
+                <div className="flex items-start gap-3">
+                  <span className="text-base mt-0.5 shrink-0">📥</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-body text-[13px] font-medium text-[var(--app-text)] truncate">{e.subject}</span>
+                      <span className="inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase shrink-0 bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        inbound
+                      </span>
+                      {e.replied && (
+                        <span className="inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase shrink-0 bg-green-500/10 text-green-400 border border-green-500/20">
+                          replied
+                        </span>
+                      )}
+                      {!e.read && (
+                        <span className="inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase shrink-0 bg-brand-gold/10 text-brand-gold border border-brand-gold/20">
+                          unread
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5 truncate">
+                      From: {e.fromName ? `${e.fromName} <${e.fromEmail}>` : e.fromEmail} · to {e.toEmail}
+                    </div>
+                    {e.textBody && (
+                      <div className="font-body text-[11px] text-[var(--app-text-secondary)] mt-1 line-clamp-2 whitespace-pre-wrap">{e.textBody}</div>
+                    )}
+                    <div className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">
+                      {fmtDate(e.createdAt)}
+                      {e.supportTicketId && (
+                        <> · <a href={`/admin/support?ticket=${e.supportTicketId}`} target="_blank" rel="noopener noreferrer" className="text-brand-gold underline">linked ticket</a></>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
