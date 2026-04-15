@@ -23,13 +23,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const templateId = req.nextUrl.searchParams.get("id");
-  if (!templateId) {
+  const templateIdRaw = req.nextUrl.searchParams.get("id");
+  if (!templateIdRaw) {
     return NextResponse.json(
       { error: "Pass ?id=<template_id> in the query string." },
       { status: 400 }
     );
   }
+  // Strict allowlist validation — SignWell template IDs are UUIDs
+  // (8-4-4-4-12 hex). Reject anything that doesn't match so a user
+  // can't inject path segments or other URLs into the SignWell API
+  // call (CodeQL SSRF mitigation).
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(templateIdRaw)) {
+    return NextResponse.json(
+      { error: "Invalid template id format. Expected a UUID (e.g. 7594a34a-0a86-45b5-9d20-629215993230)." },
+      { status: 400 }
+    );
+  }
+  const templateId = templateIdRaw;
 
   const apiKey = process.env.SIGNWELL_API_KEY;
   if (!apiKey) {
