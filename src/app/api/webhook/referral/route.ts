@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeDealCommissions } from "@/lib/commission";
+import { sendDealStatusUpdateEmail } from "@/lib/sendgrid";
 
 /**
  * ═════════════════════════════════════════════════════════════════════════════
@@ -964,6 +965,33 @@ export async function PATCH(req: NextRequest) {
 
       return d;
     });
+
+    // Fire-and-forget deal status update email to the partner whenever
+    // the internal stage actually changed. Uses the deal_status_update
+    // template (editable by super admin in /admin/settings Communications).
+    // Wrapped in a catch so any email failure never blocks the webhook
+    // response — email is opportunistic, not load-bearing.
+    if (data.stage && data.stage !== deal.stage) {
+      (async () => {
+        try {
+          const partner = await prisma.partner.findFirst({
+            where: { partnerCode: updated.partnerCode },
+            select: { email: true, firstName: true, lastName: true },
+          });
+          if (partner?.email) {
+            await sendDealStatusUpdateEmail({
+              partnerEmail: partner.email,
+              partnerName: `${partner.firstName} ${partner.lastName}`,
+              partnerCode: updated.partnerCode,
+              dealName: updated.dealName,
+              newStage: data.stage,
+            });
+          }
+        } catch (e) {
+          console.warn("[webhook/referral] deal status email failed:", e);
+        }
+      })();
+    }
 
     return NextResponse.json({
       updated: true,

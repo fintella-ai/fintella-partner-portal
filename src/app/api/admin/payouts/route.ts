@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendCommissionPaidEmail } from "@/lib/sendgrid";
 
 /**
  * GET /api/admin/payouts
@@ -195,20 +196,82 @@ export async function POST(req: NextRequest) {
         data: { status: "processed", processedDate: new Date() },
       });
 
+      // Snapshot the commissions that are about to flip so we can email
+      // their partners after the write.
+      const toEmail = await prisma.commissionLedger.findMany({
+        where: { batchId: body.batchId, status: { not: "paid" } },
+        select: { partnerCode: true, dealName: true, amount: true },
+      });
+
       // Mark all commissions in batch as paid
       await prisma.commissionLedger.updateMany({
         where: { batchId: body.batchId },
         data: { status: "paid", payoutDate: new Date() },
       });
 
+      // Fire-and-forget partner emails. Each entry gets one email from the
+      // commission_payment_notification template. Wrapped in setImmediate
+      // so the HTTP response returns fast even if SendGrid is slow.
+      (async () => {
+        const byCode: Record<string, typeof toEmail> = {};
+        for (const e of toEmail) {
+          (byCode[e.partnerCode] ||= []).push(e);
+        }
+        for (const [partnerCode, entries] of Object.entries(byCode)) {
+          try {
+            const partner = await prisma.partner.findFirst({
+              where: { partnerCode },
+              select: { email: true, firstName: true, lastName: true },
+            });
+            if (!partner?.email) continue;
+            for (const e of entries) {
+              await sendCommissionPaidEmail({
+                partnerEmail: partner.email,
+                partnerName: `${partner.firstName} ${partner.lastName}`,
+                partnerCode,
+                amount: e.amount,
+                dealName: e.dealName || "(unnamed deal)",
+              });
+            }
+          } catch (err) {
+            console.warn("[payouts] commission paid email failed:", err);
+          }
+        }
+      })();
+
       return NextResponse.json({ batch });
     }
 
     if (body.action === "approve_single" && body.commissionId) {
+      const before = await prisma.commissionLedger.findUnique({
+        where: { id: body.commissionId },
+        select: { partnerCode: true, dealName: true, amount: true, status: true },
+      });
       const commission = await prisma.commissionLedger.update({
         where: { id: body.commissionId },
         data: { status: "paid", payoutDate: new Date() },
       });
+      if (before && before.status !== "paid") {
+        (async () => {
+          try {
+            const partner = await prisma.partner.findFirst({
+              where: { partnerCode: before.partnerCode },
+              select: { email: true, firstName: true, lastName: true },
+            });
+            if (partner?.email) {
+              await sendCommissionPaidEmail({
+                partnerEmail: partner.email,
+                partnerName: `${partner.firstName} ${partner.lastName}`,
+                partnerCode: before.partnerCode,
+                amount: before.amount,
+                dealName: before.dealName || "(unnamed deal)",
+              });
+            }
+          } catch (err) {
+            console.warn("[payouts] single commission paid email failed:", err);
+          }
+        })();
+      }
       return NextResponse.json({ commission });
     }
 

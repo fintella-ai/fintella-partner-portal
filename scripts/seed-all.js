@@ -366,9 +366,9 @@ async function main() {
       ctaLabel: "View deal",
       ctaUrl: "{portalUrl}/dashboard/deals",
       enabled: true,
-      isDraft: true,
+      isDraft: false,
       description:
-        "DRAFT — not yet wired to any code path. Future automation will fire this when /api/webhook/referral PATCH advances a deal stage. Track the wiring work in a follow-up PR.",
+        "Fires from /api/webhook/referral PATCH when a deal's internal stage changes. Notifies the submitting partner with the new stage label.",
       variables: JSON.stringify([
         "firstName",
         "lastName",
@@ -398,9 +398,9 @@ async function main() {
       ctaLabel: "View commissions",
       ctaUrl: "{portalUrl}/dashboard/commissions",
       enabled: true,
-      isDraft: true,
+      isDraft: false,
       description:
-        "DRAFT — not yet wired to any code path. Future automation will fire this when a CommissionLedger entry flips to status=paid via the payouts batch process. Currently deferred per CLAUDE.md (Phase 15a-followup).",
+        "Fires from /api/admin/payouts process_batch + approve_single actions whenever a CommissionLedger entry flips to status=paid. One email per commission row.",
       variables: JSON.stringify([
         "firstName",
         "lastName",
@@ -430,9 +430,9 @@ async function main() {
       ctaLabel: "Open dashboard",
       ctaUrl: "{portalUrl}/dashboard",
       enabled: true,
-      isDraft: true,
+      isDraft: false,
       description:
-        "DRAFT — not yet wired to any automation. A future PR will add a scheduled send (1st of each month) that fires this template to all active partners. For now, it's editable and persisted but only an admin manual trigger could send it.",
+        "Fires from a Vercel cron on the 1st of each month at 14:00 UTC (/api/cron/monthly-newsletter). Iterates every active partner and sends one email each. Edit the body here; the schedule lives in vercel.json.",
       variables: JSON.stringify([
         "firstName",
         "lastName",
@@ -450,7 +450,16 @@ async function main() {
       create: t,
     });
   }
-  console.log("✓ " + emailTemplates.length + " email templates seeded (4 wired + 3 drafts)");
+  console.log("✓ " + emailTemplates.length + " email templates seeded (all 7 wired)");
+
+  // Backfill: existing production rows that were seeded as drafts before
+  // the wiring PR need their isDraft flag flipped off. Upsert update:{} is
+  // a no-op for existing rows, so do it explicitly for the three keys.
+  const nowWiredKeys = ["deal_status_update", "commission_payment_notification", "monthly_newsletter"];
+  await prisma.emailTemplate.updateMany({
+    where: { key: { in: nowWiredKeys }, isDraft: true },
+    data: { isDraft: false },
+  });
 
   // ── Portal Settings ───────────────────────────────────────────────────
   await prisma.portalSettings.upsert({
