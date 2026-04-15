@@ -127,6 +127,14 @@ export default function AdminDealsPage() {
   const setClientField = (k: keyof ClientEdits) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setEditClient((prev) => ({ ...prev, [k]: e.target.value }));
 
+  // Editable financial fields. Stored as raw strings in UI so partial edits
+  // ("2000000" → "2,000,000") don't fight controlled inputs, parsed on save.
+  // firmFeeRatePct is the percentage form (0..100); converted to decimal
+  // (0..1) on save to match the DB schema convention.
+  const [editRefund, setEditRefund] = useState("");
+  const [editFirmFeeRatePct, setEditFirmFeeRatePct] = useState("");
+  const [editFirmFeeAmount, setEditFirmFeeAmount] = useState("");
+
   const fetchDeals = useCallback(async () => {
     try {
       const params = new URLSearchParams();
@@ -193,6 +201,11 @@ export default function AdminDealsPage() {
       setEditL1Status(deal.l1CommissionStatus);
       setEditL2Status(deal.l2CommissionStatus);
       setEditNotes(deal.notes || "");
+      setEditRefund(deal.estimatedRefundAmount ? String(deal.estimatedRefundAmount) : "");
+      setEditFirmFeeRatePct(
+        deal.firmFeeRate != null ? String(Math.round(deal.firmFeeRate * 10000) / 100) : ""
+      );
+      setEditFirmFeeAmount(deal.firmFeeAmount ? String(deal.firmFeeAmount) : "");
       setEditClient({
         clientFirstName: deal.clientFirstName || "",
         clientLastName: deal.clientLastName || "",
@@ -224,6 +237,19 @@ export default function AdminDealsPage() {
   };
 
   const handleUpdateDeal = async (dealId: string) => {
+    // Parse financial inputs: strip commas/$, convert rate percentage → decimal.
+    const parseNum = (s: string): number | null => {
+      const cleaned = s.replace(/[,$\s]/g, "");
+      if (cleaned === "") return null;
+      const n = parseFloat(cleaned);
+      return isNaN(n) ? null : n;
+    };
+    const refundParsed = parseNum(editRefund);
+    const feeAmountParsed = parseNum(editFirmFeeAmount);
+    const feeRatePctParsed = parseNum(editFirmFeeRatePct);
+    const feeRateDecimal =
+      feeRatePctParsed == null ? null : feeRatePctParsed > 1 ? feeRatePctParsed / 100 : feeRatePctParsed;
+
     try {
       await fetch(`/api/admin/deals/${dealId}`, {
         method: "PUT",
@@ -233,6 +259,9 @@ export default function AdminDealsPage() {
           l1CommissionStatus: editL1Status,
           l2CommissionStatus: editL2Status,
           notes: editNotes,
+          estimatedRefundAmount: refundParsed ?? 0,
+          firmFeeRate: feeRateDecimal,
+          firmFeeAmount: feeAmountParsed ?? 0,
           ...editClient,
           // Keep composite clientName in sync with first/last edits so legacy
           // consumers reading deal.clientName still show the corrected name.
@@ -520,7 +549,7 @@ export default function AdminDealsPage() {
 
                 {/* ── Deal Management ── */}
                 <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">Deal Management</div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                   <div>
                     <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Stage</label>
                     <select className={`${inputClass} w-full`} value={editStage} onChange={(e) => setEditStage(e.target.value)}>
@@ -545,13 +574,37 @@ export default function AdminDealsPage() {
                       ))}
                     </select>
                   </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <div>
-                    <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Financial</label>
-                    <div className="font-body text-[11px] text-[var(--app-text-muted)] space-y-0.5 mt-1">
-                      <div>Firm Fee Rate: {deal.firmFeeRate ? `${(deal.firmFeeRate * 100).toFixed(0)}%` : "—"}</div>
-                      <div>L2 Commission: {fmt$(deal.l2CommissionAmount)} · <StatusBadge status={deal.l2CommissionStatus} /></div>
-                      <div>Partner: {deal.partnerName} ({deal.partnerCode})</div>
-                    </div>
+                    <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Estimated Refund ($)</label>
+                    <input
+                      className={`${inputClass} w-full`}
+                      value={editRefund}
+                      onChange={(e) => setEditRefund(e.target.value)}
+                      placeholder="0"
+                      inputMode="decimal"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Firm Fee Rate (%)</label>
+                    <input
+                      className={`${inputClass} w-full`}
+                      value={editFirmFeeRatePct}
+                      onChange={(e) => setEditFirmFeeRatePct(e.target.value)}
+                      placeholder="e.g. 30"
+                      inputMode="decimal"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Firm Fee Amount ($)</label>
+                    <input
+                      className={`${inputClass} w-full`}
+                      value={editFirmFeeAmount}
+                      onChange={(e) => setEditFirmFeeAmount(e.target.value)}
+                      placeholder="0"
+                      inputMode="decimal"
+                    />
                   </div>
                 </div>
                 <div className="flex gap-2 mb-4 flex-wrap">
@@ -745,6 +798,38 @@ export default function AdminDealsPage() {
                         <option key={s} value={s} className="bg-[var(--app-bg)]">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div>
+                    <label className="font-body text-[9px] text-[var(--app-text-faint)] uppercase block mb-0.5">Refund ($)</label>
+                    <input
+                      className={`${inputClass} w-full !py-1.5 !text-[12px]`}
+                      value={editRefund}
+                      onChange={(e) => setEditRefund(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-body text-[9px] text-[var(--app-text-faint)] uppercase block mb-0.5">Fee %</label>
+                    <input
+                      className={`${inputClass} w-full !py-1.5 !text-[12px]`}
+                      value={editFirmFeeRatePct}
+                      onChange={(e) => setEditFirmFeeRatePct(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="e.g. 30"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-body text-[9px] text-[var(--app-text-faint)] uppercase block mb-0.5">Fee ($)</label>
+                    <input
+                      className={`${inputClass} w-full !py-1.5 !text-[12px]`}
+                      value={editFirmFeeAmount}
+                      onChange={(e) => setEditFirmFeeAmount(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="0"
+                    />
                   </div>
                 </div>
                 <textarea
