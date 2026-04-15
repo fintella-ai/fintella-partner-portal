@@ -112,6 +112,11 @@ export default function PartnerDetailPage() {
   const [mobileNumber, setMobileNumber] = useState("");
   const [tin, setTin] = useState("");
   const [sendingAgreement, setSendingAgreement] = useState(false);
+  // Rate the admin picks when sending the SignWell template. Defaults to
+  // whatever the partner record has, but admins can override to send a
+  // different template without first editing the partner.
+  const [sendAgreementRate, setSendAgreementRate] = useState<number>(0.25);
+  const [sendAgreementError, setSendAgreementError] = useState<string | null>(null);
   const [sendingW9, setSendingW9] = useState(false);
   const [uploadingAgreement, setUploadingAgreement] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -153,6 +158,11 @@ export default function PartnerDetailPage() {
       const p = data.partner;
       const prof = data.profile;
       setPartner(p);
+      // Pre-seed the Send Agreement rate picker with the partner's own
+      // commission rate so the default matches the partner record.
+      if (typeof p?.commissionRate === "number") {
+        setSendAgreementRate(p.commissionRate);
+      }
       setDownline(data.downline || []);
       setL3Partners(data.l3Partners || []);
       setDocuments(data.documents || []);
@@ -926,25 +936,52 @@ export default function PartnerDetailPage() {
         <div className="px-5 py-4 border-b border-[var(--app-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="font-body font-semibold text-sm text-center sm:text-left">Documents &amp; Agreement</div>
           <div className="flex gap-2 flex-wrap justify-center sm:justify-end">
-            <button
-              onClick={async () => {
-                setSendingAgreement(true);
-                try {
-                  await fetch(`/api/admin/agreement/${partner.partnerCode}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email, name: `${firstName} ${lastName}` }),
-                  });
-                  fetchPartner();
-                  setSaved(true);
-                  setTimeout(() => setSaved(false), 3000);
-                } catch {} finally { setSendingAgreement(false); }
-              }}
-              disabled={sendingAgreement}
-              className="font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-3 py-1.5 hover:bg-brand-gold/10 transition-colors disabled:opacity-50"
-            >
-              {sendingAgreement ? "Sending..." : "Send Agreement"}
-            </button>
+            <div className="flex items-center gap-2">
+              <select
+                value={sendAgreementRate}
+                onChange={(e) => setSendAgreementRate(parseFloat(e.target.value))}
+                title="Agreement template rate — controls which SignWell template is sent"
+                className="font-body text-[11px] bg-[var(--app-input-bg)] border border-brand-gold/20 text-brand-gold/80 rounded-lg px-2 py-1.5 outline-none focus:border-brand-gold/40"
+              >
+                <option value={0.25} className="bg-[var(--app-bg)]">25% L1</option>
+                <option value={0.20} className="bg-[var(--app-bg)]">20% L2/L3</option>
+                <option value={0.15} className="bg-[var(--app-bg)]">15% L2/L3</option>
+                <option value={0.10} className="bg-[var(--app-bg)]">10% L2/L3</option>
+              </select>
+              <button
+                onClick={async () => {
+                  setSendingAgreement(true);
+                  setSendAgreementError(null);
+                  try {
+                    const res = await fetch(`/api/admin/agreement/${partner.partnerCode}`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        email,
+                        name: `${firstName} ${lastName}`,
+                        rate: sendAgreementRate,
+                      }),
+                    });
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({}));
+                      setSendAgreementError(data.error || `Send failed (HTTP ${res.status}).`);
+                      return;
+                    }
+                    fetchPartner();
+                    setSaved(true);
+                    setTimeout(() => setSaved(false), 3000);
+                  } catch (e: any) {
+                    setSendAgreementError(e?.message || "Network error");
+                  } finally {
+                    setSendingAgreement(false);
+                  }
+                }}
+                disabled={sendingAgreement}
+                className="font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-3 py-1.5 hover:bg-brand-gold/10 transition-colors disabled:opacity-50"
+              >
+                {sendingAgreement ? "Sending..." : "Send Agreement"}
+              </button>
+            </div>
             <label className={`font-body text-[11px] text-green-400/70 border border-green-400/20 rounded-lg px-3 py-1.5 hover:bg-green-400/10 transition-colors cursor-pointer ${uploadingAgreement ? "opacity-50 pointer-events-none" : ""}`}>
               {uploadingAgreement ? "Uploading..." : "Upload Agreement"}
               <input
@@ -1082,6 +1119,12 @@ export default function PartnerDetailPage() {
             </label>
           </div>
         </div>
+
+        {sendAgreementError && (
+          <div className="px-5 py-2 border-b border-red-500/30 bg-red-500/10 font-body text-[11px] text-red-400">
+            {sendAgreementError}
+          </div>
+        )}
 
         {/* Agreement status */}
         <div className="px-5 py-3 border-b border-[var(--app-border)]">
