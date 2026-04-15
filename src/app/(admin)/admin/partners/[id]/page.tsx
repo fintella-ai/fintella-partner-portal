@@ -206,11 +206,32 @@ export default function PartnerDetailPage() {
 
   useEffect(() => { fetchPartner(); }, [fetchPartner]);
 
-  // Phase 15c — initiate a Twilio bridged voice call to the partner.
+  // Initiate a call to the partner. Prefers the in-browser WebRTC
+  // softphone (window.__fintellaSoftphone, mounted in the admin layout)
+  // when available; falls back to the legacy bridged-call API which
+  // dials the admin's mobile first.
   async function handleCallPartner() {
     if (!partner?.partnerCode) return;
     setCallingPartner(true);
     setCallMessage(null);
+
+    const softphone = typeof window !== "undefined" ? window.__fintellaSoftphone : undefined;
+    if (softphone && partner.mobilePhone) {
+      softphone.call(
+        partner.mobilePhone,
+        `${partner.firstName} ${partner.lastName}`.trim()
+      );
+      // Still write a CallLog row so the comms tab shows it.
+      fetch("/api/twilio/call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partnerCode: partner.partnerCode }),
+      }).catch(() => {});
+      setCallMessage("Softphone dialing — see the floating softphone panel.");
+      setCallingPartner(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/twilio/call", {
         method: "POST",
@@ -227,7 +248,6 @@ export default function PartnerDetailPage() {
       } else {
         setCallMessage(data.error || "Call failed.");
       }
-      // Refresh comm log so the new CallLog row appears.
       fetchPartner();
     } catch (err: any) {
       setCallMessage(err?.message || "Network error");

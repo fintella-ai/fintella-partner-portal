@@ -56,14 +56,48 @@ function buildBridgeTwiml(toPhone: string): string {
 </Response>`;
 }
 
-function handle(req: NextRequest): NextResponse {
-  const to = req.nextUrl.searchParams.get("to") || "";
-  if (!to || !/^\+[1-9]\d{6,14}$/.test(to)) {
-    return twiml(
-      `<Response><Say voice="Polly.Joanna">Invalid destination number. Goodbye.</Say><Hangup/></Response>`
-    );
+function buildSoftphoneOutboundTwiml(toPhone: string): string {
+  // Browser softphone → partner dial. The admin is already connected
+  // over WebRTC when this runs, so we only need to <Dial> the partner's
+  // number. callerId is set explicitly to TWILIO_FROM_NUMBER so the
+  // partner sees Fintella's verified number, not the softphone identity.
+  const callerId = process.env.TWILIO_FROM_NUMBER || "";
+  const safeNumber = escapeXml(toPhone);
+  const callerAttr = callerId ? ` callerId="${escapeXml(callerId)}"` : "";
+  return `<Response>
+  <Dial${callerAttr} timeout="25" answerOnBridge="true">${safeNumber}</Dial>
+</Response>`;
+}
+
+async function handle(req: NextRequest): Promise<NextResponse> {
+  // Bridged-call path: ?to= query param set by initiateBridgedCall().
+  const toQuery = req.nextUrl.searchParams.get("to") || "";
+  if (toQuery) {
+    if (!/^\+[1-9]\d{6,14}$/.test(toQuery)) {
+      return twiml(
+        `<Response><Say voice="Polly.Joanna">Invalid destination number. Goodbye.</Say><Hangup/></Response>`
+      );
+    }
+    return twiml(buildBridgeTwiml(toQuery));
   }
-  return twiml(buildBridgeTwiml(to));
+
+  // Softphone outbound path: TwiML App POSTs form-encoded body with
+  // a "To" field that the browser Device.connect() populated via params.
+  if (req.method === "POST") {
+    try {
+      const form = await req.formData();
+      const toForm = String(form.get("To") || "");
+      if (toForm && /^\+[1-9]\d{6,14}$/.test(toForm)) {
+        return twiml(buildSoftphoneOutboundTwiml(toForm));
+      }
+    } catch {
+      // fall through to error
+    }
+  }
+
+  return twiml(
+    `<Response><Say voice="Polly.Joanna">No destination provided. Goodbye.</Say><Hangup/></Response>`
+  );
 }
 
 export async function POST(req: NextRequest) {
