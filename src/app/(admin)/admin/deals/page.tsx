@@ -51,6 +51,7 @@ type Deal = {
   productType: string | null;
   importedProducts: string | null;
   estimatedRefundAmount: number;
+  actualRefundAmount: number | null;
   firmFeeRate: number | null;
   firmFeeAmount: number;
   l1CommissionRate: number | null;
@@ -132,6 +133,7 @@ export default function AdminDealsPage() {
   // firmFeeRatePct is the percentage form (0..100); converted to decimal
   // (0..1) on save to match the DB schema convention.
   const [editRefund, setEditRefund] = useState("");
+  const [editActualRefund, setEditActualRefund] = useState("");
   const [editFirmFeeRatePct, setEditFirmFeeRatePct] = useState("");
   const [editFirmFeeAmount, setEditFirmFeeAmount] = useState("");
 
@@ -202,6 +204,7 @@ export default function AdminDealsPage() {
       setEditL2Status(deal.l2CommissionStatus);
       setEditNotes(deal.notes || "");
       setEditRefund(deal.estimatedRefundAmount ? String(deal.estimatedRefundAmount) : "");
+      setEditActualRefund(deal.actualRefundAmount != null ? String(deal.actualRefundAmount) : "");
       setEditFirmFeeRatePct(
         deal.firmFeeRate != null ? String(Math.round(deal.firmFeeRate * 10000) / 100) : ""
       );
@@ -245,6 +248,7 @@ export default function AdminDealsPage() {
       return isNaN(n) ? null : n;
     };
     const refundParsed = parseNum(editRefund);
+    const actualRefundParsed = parseNum(editActualRefund);
     const feeAmountParsed = parseNum(editFirmFeeAmount);
     const feeRatePctParsed = parseNum(editFirmFeeRatePct);
     const feeRateDecimal =
@@ -260,6 +264,7 @@ export default function AdminDealsPage() {
           l2CommissionStatus: editL2Status,
           notes: editNotes,
           estimatedRefundAmount: refundParsed ?? 0,
+          actualRefundAmount: actualRefundParsed,
           firmFeeRate: feeRateDecimal,
           firmFeeAmount: feeAmountParsed ?? 0,
           ...editClient,
@@ -575,7 +580,7 @@ export default function AdminDealsPage() {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                   <div>
                     <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Estimated Refund ($)</label>
                     <input
@@ -584,6 +589,17 @@ export default function AdminDealsPage() {
                       onChange={(e) => setEditRefund(e.target.value)}
                       placeholder="0"
                       inputMode="decimal"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Actual Refund ($)</label>
+                    <input
+                      className={`${inputClass} w-full`}
+                      value={editActualRefund}
+                      onChange={(e) => setEditActualRefund(e.target.value)}
+                      placeholder="—"
+                      inputMode="decimal"
+                      title="Set once Frost Law confirms the refund check the client actually received"
                     />
                   </div>
                   <div>
@@ -800,15 +816,25 @@ export default function AdminDealsPage() {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-2 gap-2 mb-3">
                   <div>
-                    <label className="font-body text-[9px] text-[var(--app-text-faint)] uppercase block mb-0.5">Refund ($)</label>
+                    <label className="font-body text-[9px] text-[var(--app-text-faint)] uppercase block mb-0.5">Est. Refund ($)</label>
                     <input
                       className={`${inputClass} w-full !py-1.5 !text-[12px]`}
                       value={editRefund}
                       onChange={(e) => setEditRefund(e.target.value)}
                       inputMode="decimal"
                       placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-body text-[9px] text-[var(--app-text-faint)] uppercase block mb-0.5">Actual Refund ($)</label>
+                    <input
+                      className={`${inputClass} w-full !py-1.5 !text-[12px]`}
+                      value={editActualRefund}
+                      onChange={(e) => setEditActualRefund(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="—"
                     />
                   </div>
                   <div>
