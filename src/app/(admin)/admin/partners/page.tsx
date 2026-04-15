@@ -20,6 +20,20 @@ type Partner = {
   w9Status: string;
 };
 
+type Invite = {
+  id: string;
+  token: string;
+  invitedEmail: string | null;
+  invitedName: string | null;
+  commissionRate: number;
+  status: string;
+  targetTier: string;
+  expiresAt: string;
+  createdAt: string;
+};
+
+type TabType = "all" | "active" | "pending" | "invited" | "blocked";
+
 // Normalize a stored mobile number to E.164 for the softphone Device.
 // Accepts 10-digit US, 11-digit starting with 1, or already-E.164.
 function normalizeForSoftphone(raw: string | null | undefined): string | null {
@@ -49,13 +63,22 @@ const statusBadge: Record<string, string> = {
   pending: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
   inactive: "bg-[var(--app-input-bg)] text-[var(--app-text-secondary)] border border-[var(--app-border)]",
   blocked: "bg-red-500/10 text-red-400 border border-red-500/20",
+  invited: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+};
+
+const inviteStatusBadge: Record<string, string> = {
+  active: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+  used: "bg-green-500/10 text-green-400 border border-green-500/20",
+  expired: "bg-[var(--app-input-bg)] text-[var(--app-text-muted)] border border-[var(--app-border)]",
 };
 
 export default function AdminPartnersPage() {
   const router = useRouter();
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<TabType>("all");
   const [showForm, setShowForm] = useState(false);
 
   // Add partner form
@@ -92,7 +115,18 @@ export default function AdminPartnersPage() {
     }
   }, [search]);
 
+  const fetchInvites = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/invites");
+      if (res.ok) {
+        const data = await res.json();
+        setInvites(data.invites || []);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => { fetchPartners(); }, [fetchPartners]);
+  useEffect(() => { fetchInvites(); }, [fetchInvites]);
 
   const handleInvite = async () => {
     setInviteError("");
@@ -108,6 +142,7 @@ export default function AdminPartnersPage() {
       const data = await res.json();
       if (!res.ok) { setInviteError(data.error || "Failed to send invite"); return; }
       setInviteResult({ signupUrl: data.signupUrl });
+      fetchInvites();
     } catch {
       setInviteError("Connection error");
     } finally {
@@ -157,6 +192,30 @@ export default function AdminPartnersPage() {
   const active = partners.filter((p) => p.status === "active").length;
   const pending = partners.filter((p) => p.status === "pending").length;
   const blocked = partners.filter((p) => p.status === "blocked").length;
+  const invitedCount = invites.filter((inv) => inv.status === "active").length;
+
+  // Tab filter applied client-side (partners already search-filtered by API)
+  const filteredPartners = activeTab === "all" || activeTab === "invited"
+    ? partners
+    : partners.filter((p) => p.status === activeTab);
+
+  // Invite search filtered client-side
+  const filteredInvites = invites.filter((inv) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      inv.invitedEmail?.toLowerCase().includes(q) ||
+      inv.invitedName?.toLowerCase().includes(q)
+    );
+  });
+
+  const tabs: { key: TabType; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "active", label: "Active" },
+    { key: "pending", label: "Pending" },
+    { key: "invited", label: "Invited" },
+    { key: "blocked", label: "Blocked" },
+  ];
 
   const inputClass = "w-full bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-4 py-2.5 text-[var(--app-text)] font-body text-sm outline-none focus:border-brand-gold/40 transition-colors placeholder:text-[var(--app-text-muted)]";
 
@@ -178,11 +237,12 @@ export default function AdminPartnersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
         {[
           { label: "Total Partners", value: total, color: "text-[var(--app-text)]" },
           { label: "Active", value: active, color: "text-green-400" },
           { label: "Pending", value: pending, color: "text-yellow-400" },
+          { label: "Invited", value: invitedCount, color: "text-blue-400" },
           { label: "Blocked", value: blocked, color: "text-red-400" },
         ].map((s) => (
           <div key={s.label} className="card p-4">
@@ -258,77 +318,153 @@ export default function AdminPartnersPage() {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`shrink-0 px-4 rounded-lg font-body text-[12px] font-medium transition-colors min-h-[36px] ${
+              activeTab === tab.key
+                ? "bg-brand-gold text-black"
+                : "border border-[var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Search */}
       <div className="mb-4">
-        <input className={inputClass} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, email, or partner code..." />
+        <input
+          className={inputClass}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={activeTab === "invited" ? "Search by name or email..." : "Search by name, email, or partner code..."}
+        />
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="font-body text-sm text-[var(--app-text-muted)]">Loading partners...</div>
         </div>
+      ) : activeTab === "invited" ? (
+        <>
+          {/* Invited — Desktop Table */}
+          <div className="card hidden sm:block overflow-x-auto">
+            <div className="grid grid-cols-[2fr_0.6fr_0.7fr_1fr_1fr] gap-3 px-5 py-3 border-b border-[var(--app-border)]">
+              {["Invitee", "Rate", "Status", "Sent", "Expires"].map((h) => (
+                <div key={h} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider">{h}</div>
+              ))}
+            </div>
+            {filteredInvites.map((inv) => (
+              <div key={inv.id} className="grid grid-cols-[2fr_0.6fr_0.7fr_1fr_1fr] gap-3 px-5 py-3.5 border-b border-[var(--app-border)] last:border-b-0 items-center">
+                <div>
+                  <div className="font-body text-[13px] text-[var(--app-text)] font-medium">{inv.invitedName || "—"}</div>
+                  <div className="font-body text-[11px] text-[var(--app-text-muted)]">{inv.invitedEmail || "—"}</div>
+                </div>
+                <div className="font-body text-[13px] text-[var(--app-text-secondary)]">{Math.round(inv.commissionRate * 100)}%</div>
+                <div>
+                  <span className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${inviteStatusBadge[inv.status] || inviteStatusBadge.expired}`}>
+                    {inv.status}
+                  </span>
+                </div>
+                <div className="font-body text-[12px] text-[var(--app-text-muted)]">{fmtDate(inv.createdAt)}</div>
+                <div className="font-body text-[12px] text-[var(--app-text-muted)]">{fmtDate(inv.expiresAt)}</div>
+              </div>
+            ))}
+            {filteredInvites.length === 0 && (
+              <div className="px-5 py-10 text-center font-body text-[13px] text-[var(--app-text-muted)]">No invites found.</div>
+            )}
+          </div>
+
+          {/* Invited — Mobile Cards */}
+          <div className="sm:hidden space-y-3">
+            {filteredInvites.map((inv) => (
+              <div key={inv.id} className="card p-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <div className="font-body text-[13px] font-medium text-[var(--app-text)]">{inv.invitedName || "—"}</div>
+                    <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">{inv.invitedEmail || "—"}</div>
+                  </div>
+                  <span className={`shrink-0 inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${inviteStatusBadge[inv.status] || inviteStatusBadge.expired}`}>
+                    {inv.status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="font-body text-[11px] text-[var(--app-text-muted)]">Rate: {Math.round(inv.commissionRate * 100)}%</div>
+                  <div className="font-body text-[11px] text-[var(--app-text-muted)]">Expires {fmtDate(inv.expiresAt)}</div>
+                </div>
+              </div>
+            ))}
+            {filteredInvites.length === 0 && (
+              <div className="text-center py-10 font-body text-[13px] text-[var(--app-text-muted)]">No invites found.</div>
+            )}
+          </div>
+        </>
       ) : (
         <>
-          {/* Desktop Table */}
+          {/* Partners — Desktop Table */}
           <div className="card hidden sm:block overflow-x-auto">
             <div className="grid grid-cols-[1.5fr_1fr_0.9fr_1.2fr_0.7fr_0.6fr_0.8fr_0.5fr] gap-3 px-5 py-3 border-b border-[var(--app-border)]">
               {["Partner", "Code", "Phone", "Email", "Status", "W9", "Joined", ""].map((h) => (
                 <div key={h} className={`font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider ${h === "Status" || h === "W9" ? "text-center" : ""}`}>{h}</div>
               ))}
             </div>
-            {partners.map((p) => {
+            {filteredPartners.map((p) => {
               const e164 = normalizeForSoftphone(p.mobilePhone || p.phone);
               return (
-              <div
-                key={p.id}
-                className="grid grid-cols-[1.5fr_1fr_0.9fr_1.2fr_0.7fr_0.6fr_0.8fr_0.5fr] gap-3 px-5 py-3.5 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer"
-                onClick={() => router.push(`/admin/partners/${p.id}`)}
-              >
-                <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate">{p.firstName} {p.lastName}</div>
-                <div className="font-mono text-[12px] text-[var(--app-text-secondary)]">{p.partnerCode}</div>
-                <div className="font-mono text-[12px] truncate">
-                  {e164 ? (
-                    <button
-                      onClick={(evt) => {
-                        evt.stopPropagation();
-                        const sp = (window as any).__fintellaSoftphone;
-                        if (sp) sp.call(e164, `${p.firstName} ${p.lastName}`.trim());
-                      }}
-                      className="text-brand-gold hover:underline"
-                      title="Click to dial via softphone"
-                    >
-                      📞 {p.mobilePhone || p.phone}
-                    </button>
-                  ) : (
-                    <span className="text-[var(--app-text-muted)]">—</span>
-                  )}
+                <div
+                  key={p.id}
+                  className="grid grid-cols-[1.5fr_1fr_0.9fr_1.2fr_0.7fr_0.6fr_0.8fr_0.5fr] gap-3 px-5 py-3.5 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer"
+                  onClick={() => router.push(`/admin/partners/${p.id}`)}
+                >
+                  <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate">{p.firstName} {p.lastName}</div>
+                  <div className="font-mono text-[12px] text-[var(--app-text-secondary)]">{p.partnerCode}</div>
+                  <div className="font-mono text-[12px] truncate">
+                    {e164 ? (
+                      <button
+                        onClick={(evt) => {
+                          evt.stopPropagation();
+                          const sp = (window as any).__fintellaSoftphone;
+                          if (sp) sp.call(e164, `${p.firstName} ${p.lastName}`.trim());
+                        }}
+                        className="text-brand-gold hover:underline"
+                        title="Click to dial via softphone"
+                      >
+                        📞 {p.mobilePhone || p.phone}
+                      </button>
+                    ) : (
+                      <span className="text-[var(--app-text-muted)]">—</span>
+                    )}
+                  </div>
+                  <div className="font-body text-[12px] text-[var(--app-text-secondary)] truncate">{p.email}</div>
+                  <div className="text-center">
+                    <span className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[p.status] || statusBadge.active}`}>
+                      {p.status}
+                    </span>
+                  </div>
+                  <div className="text-center">
+                    <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${docBadge[p.w9Status] || docBadge.needed}`}>
+                      {p.w9Status === "under_review" ? "review" : p.w9Status}
+                    </span>
+                  </div>
+                  <div className="font-body text-[12px] text-[var(--app-text-muted)]">{fmtDate(p.signupDate)}</div>
+                  <div className="text-right">
+                    <span className="font-body text-[11px] text-brand-gold/60 hover:text-brand-gold transition-colors">View →</span>
+                  </div>
                 </div>
-                <div className="font-body text-[12px] text-[var(--app-text-secondary)] truncate">{p.email}</div>
-                <div className="text-center">
-                  <span className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[p.status] || statusBadge.active}`}>
-                    {p.status}
-                  </span>
-                </div>
-                <div className="text-center">
-                  <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${docBadge[p.w9Status] || docBadge.needed}`}>
-                    {p.w9Status === "under_review" ? "review" : p.w9Status}
-                  </span>
-                </div>
-                <div className="font-body text-[12px] text-[var(--app-text-muted)]">{fmtDate(p.signupDate)}</div>
-                <div className="text-right">
-                  <span className="font-body text-[11px] text-brand-gold/60 hover:text-brand-gold transition-colors">View →</span>
-                </div>
-              </div>
               );
             })}
-            {partners.length === 0 && (
+            {filteredPartners.length === 0 && (
               <div className="px-5 py-10 text-center font-body text-[13px] text-[var(--app-text-muted)]">No partners found.</div>
             )}
           </div>
 
-          {/* Mobile Cards */}
+          {/* Partners — Mobile Cards */}
           <div className="sm:hidden space-y-3">
-            {partners.map((p) => (
+            {filteredPartners.map((p) => (
               <div key={p.id} className="card p-4 cursor-pointer hover:bg-[var(--app-card-bg)] transition-colors" onClick={() => router.push(`/admin/partners/${p.id}`)}>
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
@@ -351,6 +487,9 @@ export default function AdminPartnersPage() {
                 </div>
               </div>
             ))}
+            {filteredPartners.length === 0 && (
+              <div className="text-center py-10 font-body text-[13px] text-[var(--app-text-muted)]">No partners found.</div>
+            )}
           </div>
         </>
       )}
