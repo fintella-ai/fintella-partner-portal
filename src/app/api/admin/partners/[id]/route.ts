@@ -21,7 +21,7 @@ export async function GET(
     if (!partner) return NextResponse.json({ error: "Partner not found" }, { status: 404 });
 
     // Parallel queries for related data
-    const [downlineCount, downline, agreement, profile, documents, adminNotes, codeHistory, supportTickets, notifications, enterprisePartner, emailLogs, smsLogs, callLogs] = await Promise.all([
+    const [downlineCount, downline, agreement, profile, documents, adminNotes, codeHistory, supportTickets, notifications, enterprisePartner, emailLogs, smsLogs, callLogs, inboundEmails] = await Promise.all([
       prisma.partner.count({
         where: { referredByPartnerCode: partner.partnerCode },
       }),
@@ -77,6 +77,21 @@ export async function GET(
         orderBy: { createdAt: "desc" },
         take: 50,
       }).catch(() => []),
+      // Inbound emails received via SendGrid Inbound Parse. Matched by
+      // partnerCode (resolved at webhook time) OR by the partner's primary
+      // email address — covers the case where a partner emails us from a
+      // secondary address we hadn't seen before but their main email is
+      // in the From header.
+      prisma.inboundEmail.findMany({
+        where: {
+          OR: [
+            { partnerCode: partner.partnerCode },
+            { fromEmail: partner.email.toLowerCase() },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }).catch(() => []),
     ]);
 
     // L3 downline (partners recruited by L2 partners)
@@ -103,7 +118,7 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ partner, downlineCount, downline, agreement: reconciledAgreement, profile, documents, l3Partners, adminNotes, codeHistory, supportTickets, notifications, enterprisePartner, emailLogs, smsLogs, callLogs });
+    return NextResponse.json({ partner, downlineCount, downline, agreement: reconciledAgreement, profile, documents, l3Partners, adminNotes, codeHistory, supportTickets, notifications, enterprisePartner, emailLogs, smsLogs, callLogs, inboundEmails });
   } catch {
     return NextResponse.json({ error: "Failed to fetch partner" }, { status: 500 });
   }
