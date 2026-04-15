@@ -670,6 +670,40 @@ model EmailLog {
   @@index([createdAt])
 }
 
+// ─── INBOUND EMAIL (SendGrid Inbound Parse) ─────────────────────────────────
+// Every email received at *@inbound.fintella.partners is POSTed by SendGrid's
+// Inbound Parse webhook to /api/webhook/inbound-email and persisted here.
+// The admin /communications Inbox tab reads from this table, and replies
+// (sent via SendGrid API) are logged to the existing EmailLog with a
+// threadKey link so the conversation is recomposable.
+//
+// Thread association: if the "to" address uses plus-addressing with a ticket
+// token (e.g. support+tkt_abc123@inbound.fintella.partners), we stash the
+// token in supportTicketId so the ticket view can pull the thread.
+model InboundEmail {
+  id                String   @id @default(cuid())
+  messageId         String?  @unique // RFC 5322 Message-ID header for dedup
+  fromEmail         String
+  fromName          String?
+  toEmail           String   // the *@inbound.fintella.partners address we received on
+  subject           String
+  textBody          String   // plain-text body (may be empty if sender only sent HTML)
+  htmlBody          String?  // HTML body when present
+  rawHeaders        String?  // full header block for audit / debugging
+  spamScore         Float?   // SendGrid's spam score (0..high number)
+  partnerCode       String?  // resolved from fromEmail → Partner.email if matched
+  supportTicketId   String?  // resolved from plus-addressing token if present
+  threadKey         String?  // normalized thread key (In-Reply-To / References) for grouping
+  read              Boolean  @default(false)
+  replied           Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([partnerCode])
+  @@index([supportTicketId])
+  @@index([threadKey])
+}
+
 // ─── SMS LOG (Phase 15b — Twilio Programmable Messaging) ─────────────────────
 // Mirrors EmailLog. Every outbound SMS lands here, including TCPA opt-out
 // short-circuits ("skipped_optout" status) so the audit trail captures both

@@ -10,13 +10,17 @@ import PartnerLink from "@/components/ui/PartnerLink";
 
 type Email = {
   id: string;
-  fromName: string;
+  fromName: string | null;
   fromEmail: string;
+  toEmail: string;
   subject: string;
-  preview: string;
-  date: string;
+  textBody: string;
+  htmlBody: string | null;
+  partnerCode: string | null;
+  supportTicketId: string | null;
   read: boolean;
   replied: boolean;
+  createdAt: string;
 };
 
 // EmailTemplate row shape (matches the Prisma model + the API response from
@@ -67,63 +71,7 @@ type SmsPartner = {
 /*  Demo data                                                          */
 /* ------------------------------------------------------------------ */
 
-const demoEmails: Email[] = [
-  {
-    id: "EM-001",
-    fromName: "Sarah Chen",
-    fromEmail: "sarah.chen@summitlegal.com",
-    subject: "Question about commission timing",
-    preview:
-      "Hi, I wanted to ask about the expected timeline for my March commissions. The dashboard shows pending but I was hoping to get clarity on when...",
-    date: "2026-03-24",
-    read: false,
-    replied: false,
-  },
-  {
-    id: "EM-002",
-    fromName: "Mike Torres",
-    fromEmail: "mike.torres@apextrade.com",
-    subject: "RE: W9 Form Submission",
-    preview:
-      "Thanks for confirming — I just uploaded the corrected W9. Let me know if there are any other documents you need from us.",
-    date: "2026-03-23",
-    read: true,
-    replied: true,
-  },
-  {
-    id: "EM-003",
-    fromName: "Lisa Park",
-    fromEmail: "lisa.park@pinnaclegroup.com",
-    subject: "New partner referral question",
-    preview:
-      "I have a colleague who is interested in joining the partner program. What is the best way for them to apply? Is there a direct link I can share?",
-    date: "2026-03-22",
-    read: false,
-    replied: false,
-  },
-  {
-    id: "EM-004",
-    fromName: "John Orlando",
-    fromEmail: "j.orlando@redstonellc.com",
-    subject: "Deal update — Acme Electronics",
-    preview:
-      "Wanted to let you know that Acme Electronics signed the engagement letter today. Please update the deal stage when you get a chance.",
-    date: "2026-03-21",
-    read: true,
-    replied: true,
-  },
-  {
-    id: "EM-005",
-    fromName: "David Kim",
-    fromEmail: "david.kim@libertytariff.com",
-    subject: "Banking info update request",
-    preview:
-      "Our company recently switched banks. Could you walk me through the process to update our direct deposit information for future commissions?",
-    date: "2026-03-20",
-    read: true,
-    replied: false,
-  },
-];
+// Inbox data is fetched live from /api/admin/inbox. See loadInbox() below.
 
 // (Templates are now fetched live from /api/admin/email-templates — see the
 // `templates` state + `loadTemplates()` effect in the component below. The
@@ -232,8 +180,72 @@ export default function CommunicationsPage() {
       .catch(() => {});
   }, []);
 
-  /* Inbox state */
+  /* Inbox state — real inbound emails from SendGrid Inbound Parse */
   const [inboxFilter, setInboxFilter] = useState<InboxFilter>("All");
+  const [inboxEmails, setInboxEmails] = useState<Email[]>([]);
+  const [inboxLoading, setInboxLoading] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [replyBody, setReplyBody] = useState("");
+  const [replySending, setReplySending] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
+
+  const loadInbox = useCallback(async () => {
+    setInboxLoading(true);
+    try {
+      const res = await fetch(`/api/admin/inbox?filter=${inboxFilter.toLowerCase()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setInboxEmails(data.emails || []);
+      }
+    } catch {} finally {
+      setInboxLoading(false);
+    }
+  }, [inboxFilter]);
+
+  useEffect(() => {
+    if (activeTab === "Inbox") loadInbox();
+  }, [activeTab, loadInbox]);
+
+  const openEmail = async (e: Email) => {
+    setSelectedEmail(e);
+    setReplyBody("");
+    setReplyError(null);
+    if (!e.read) {
+      await fetch("/api/admin/inbox", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: e.id, read: true }),
+      }).catch(() => {});
+      setInboxEmails((prev) => prev.map((x) => (x.id === e.id ? { ...x, read: true } : x)));
+    }
+  };
+
+  const sendReply = async () => {
+    if (!selectedEmail || !replyBody.trim()) return;
+    setReplySending(true);
+    setReplyError(null);
+    try {
+      const res = await fetch("/api/admin/inbox/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inboundEmailId: selectedEmail.id, body: replyBody }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setReplyError(data.error || "Failed to send");
+        return;
+      }
+      setInboxEmails((prev) =>
+        prev.map((x) => (x.id === selectedEmail.id ? { ...x, replied: true, read: true } : x))
+      );
+      setSelectedEmail(null);
+      setReplyBody("");
+    } catch (err: any) {
+      setReplyError(err?.message || "Failed to send");
+    } finally {
+      setReplySending(false);
+    }
+  };
 
   /* Compose state */
   const [composeTo, setComposeTo] = useState("");
@@ -401,8 +413,8 @@ export default function CommunicationsPage() {
   const [smsTo, setSmsTo] = useState("");
   const [smsMessage, setSmsMessage] = useState("");
 
-  /* ---- Filtered inbox ---- */
-  const filteredEmails = demoEmails.filter((e) => {
+  /* ---- Filtered inbox (server-side filter is primary, this is a fallback) ---- */
+  const filteredEmails = inboxEmails.filter((e) => {
     if (inboxFilter === "All") return true;
     if (inboxFilter === "Unread") return !e.read;
     if (inboxFilter === "Replied") return e.replied;
@@ -446,17 +458,20 @@ export default function CommunicationsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredEmails.map((e) => (
+              {filteredEmails.map((e) => {
+                const senderDisplay = e.fromName || e.fromEmail;
+                return (
                 <tr
                   key={e.id}
-                  className={`border-b border-[var(--app-border-subtle)] hover:bg-[var(--app-hover)] transition ${
+                  onClick={() => openEmail(e)}
+                  className={`border-b border-[var(--app-border-subtle)] hover:bg-[var(--app-hover)] transition cursor-pointer ${
                     !e.read ? "border-l-2 border-l-brand-gold" : ""
                   }`}
                 >
                   <td className="px-4 py-3">
-                    <PartnerLink partnerId={partnerIdMap[e.fromName] || null} className={`font-medium ${!e.read ? "text-[var(--app-text)]" : "text-[var(--app-text-secondary)]"}`}>
-                      {e.fromName}
-                    </PartnerLink>
+                    <div className={`font-medium ${!e.read ? "text-[var(--app-text)]" : "text-[var(--app-text-secondary)]"}`}>
+                      {senderDisplay}
+                    </div>
                     <div className="text-xs text-[var(--app-text-muted)]">{e.fromEmail}</div>
                   </td>
                   <td className="px-4 py-3">
@@ -464,11 +479,11 @@ export default function CommunicationsPage() {
                       {e.subject}
                     </div>
                     <div className="text-xs text-[var(--app-text-muted)] truncate max-w-[320px]">
-                      {e.preview}
+                      {e.textBody.slice(0, 160)}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-[var(--app-text-secondary)] whitespace-nowrap">
-                    {fmtDate(e.date)}
+                    {fmtDate(e.createdAt)}
                   </td>
                   <td className="px-4 py-3">
                     {!e.read && (
@@ -486,17 +501,29 @@ export default function CommunicationsPage() {
                         Read
                       </span>
                     )}
+                    {e.supportTicketId && (
+                      <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 ml-1" title="Linked to a support ticket">
+                        Ticket
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button className="text-xs px-3 py-1 rounded bg-brand-gold/20 text-brand-gold hover:bg-brand-gold/30 transition mr-1">
+                    <button
+                      onClick={(evt) => { evt.stopPropagation(); openEmail(e); }}
+                      className="text-xs px-3 py-1 rounded bg-brand-gold/20 text-brand-gold hover:bg-brand-gold/30 transition mr-1"
+                    >
                       Reply
                     </button>
-                    <button className="text-xs px-3 py-1 rounded bg-[var(--app-input-bg)] text-[var(--app-text-secondary)] hover:text-[var(--app-text-secondary)] transition">
+                    <button
+                      onClick={(evt) => { evt.stopPropagation(); openEmail(e); }}
+                      className="text-xs px-3 py-1 rounded bg-[var(--app-input-bg)] text-[var(--app-text-secondary)] hover:text-[var(--app-text-secondary)] transition"
+                    >
                       View
                     </button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {filteredEmails.length === 0 && (
@@ -508,30 +535,33 @@ export default function CommunicationsPage() {
 
         {/* Mobile cards */}
         <div className="md:hidden flex flex-col gap-3">
-          {filteredEmails.map((e) => (
+          {filteredEmails.map((e) => {
+            const senderDisplay = e.fromName || e.fromEmail;
+            return (
             <div
               key={e.id}
-              className={`card p-4 ${!e.read ? "border-l-2 border-l-brand-gold" : ""}`}
+              onClick={() => openEmail(e)}
+              className={`card p-4 cursor-pointer ${!e.read ? "border-l-2 border-l-brand-gold" : ""}`}
             >
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <PartnerLink partnerId={partnerIdMap[e.fromName] || null} className={`font-body text-sm font-medium ${!e.read ? "text-[var(--app-text)]" : "text-[var(--app-text-secondary)]"}`}>
-                    {e.fromName}
-                  </PartnerLink>
+                  <div className={`font-body text-sm font-medium ${!e.read ? "text-[var(--app-text)]" : "text-[var(--app-text-secondary)]"}`}>
+                    {senderDisplay}
+                  </div>
                   <div className="font-body text-xs text-[var(--app-text-muted)]">{e.fromEmail}</div>
                 </div>
                 <span className="font-body text-xs text-[var(--app-text-muted)] whitespace-nowrap">
-                  {fmtDate(e.date)}
+                  {fmtDate(e.createdAt)}
                 </span>
               </div>
               <div className={`font-body text-sm font-medium mb-1 ${!e.read ? "text-[var(--app-text)]" : "text-[var(--app-text-secondary)]"}`}>
                 {e.subject}
               </div>
               <p className="font-body text-xs text-[var(--app-text-muted)] line-clamp-2 mb-3">
-                {e.preview}
+                {e.textBody.slice(0, 160)}
               </p>
               <div className="flex items-center justify-between">
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
                   {!e.read && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-brand-gold/20 text-brand-gold">
                       Unread
@@ -547,24 +577,119 @@ export default function CommunicationsPage() {
                       Read
                     </span>
                   )}
+                  {e.supportTicketId && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
+                      Ticket
+                    </span>
+                  )}
                 </div>
                 <div className="flex gap-1">
-                  <button className="text-xs px-3 py-1 rounded bg-brand-gold/20 text-brand-gold hover:bg-brand-gold/30 transition">
+                  <button
+                    onClick={(evt) => { evt.stopPropagation(); openEmail(e); }}
+                    className="text-xs px-3 py-1 rounded bg-brand-gold/20 text-brand-gold hover:bg-brand-gold/30 transition"
+                  >
                     Reply
-                  </button>
-                  <button className="text-xs px-3 py-1 rounded bg-[var(--app-input-bg)] text-[var(--app-text-secondary)] hover:text-[var(--app-text-secondary)] transition">
-                    View
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
           {filteredEmails.length === 0 && (
             <p className="text-center text-[var(--app-text-muted)] font-body text-sm py-8">
-              No emails match this filter.
+              {inboxLoading
+                ? "Loading..."
+                : "No inbound emails yet. Messages sent to your inbound.fintella.partners addresses will land here."}
             </p>
           )}
         </div>
+
+        {/* Reply modal */}
+        {selectedEmail && (
+          <div
+            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+            onClick={() => setSelectedEmail(null)}
+          >
+            <div
+              className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="font-display text-lg font-bold">{selectedEmail.subject}</div>
+                  <div className="font-body text-xs text-[var(--app-text-muted)] mt-1">
+                    From <span className="text-[var(--app-text-secondary)]">{selectedEmail.fromName || selectedEmail.fromEmail}</span>{" "}
+                    &lt;{selectedEmail.fromEmail}&gt; · {fmtDate(selectedEmail.createdAt)}
+                  </div>
+                  <div className="font-body text-xs text-[var(--app-text-muted)] mt-0.5">
+                    To <span className="text-[var(--app-text-secondary)]">{selectedEmail.toEmail}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedEmail(null)}
+                  className="text-[var(--app-text-muted)] hover:text-[var(--app-text)] text-xl leading-none"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="border-t border-[var(--app-border)] pt-4 mb-4">
+                <div className="font-body text-sm text-[var(--app-text-secondary)] whitespace-pre-wrap max-h-72 overflow-y-auto">
+                  {selectedEmail.textBody || "(no text body)"}
+                </div>
+              </div>
+
+              {selectedEmail.supportTicketId && (
+                <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <div className="font-body text-xs text-blue-400">
+                    Linked to support ticket. Replies will also post as an admin
+                    message on{" "}
+                    <a
+                      href={`/admin/support?ticket=${selectedEmail.supportTicketId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      the ticket page
+                    </a>
+                    .
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-[var(--app-border)] pt-4">
+                <label className="block font-body text-xs text-[var(--app-text-muted)] mb-2">
+                  Reply
+                </label>
+                <textarea
+                  value={replyBody}
+                  onChange={(e) => setReplyBody(e.target.value)}
+                  rows={6}
+                  placeholder="Type your reply..."
+                  className="w-full bg-[var(--app-input-bg)] border border-[var(--app-border)] rounded px-3 py-2 text-[var(--app-text)] font-body text-sm placeholder:text-[var(--app-text-faint)] focus:outline-none focus:border-brand-gold/50 resize-y"
+                />
+                {replyError && (
+                  <div className="text-xs text-red-400 mt-2">{replyError}</div>
+                )}
+                <div className="flex justify-end gap-2 mt-3">
+                  <button
+                    onClick={() => setSelectedEmail(null)}
+                    className="text-sm px-4 py-2 rounded bg-[var(--app-input-bg)] text-[var(--app-text-secondary)]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={sendReply}
+                    disabled={!replyBody.trim() || replySending}
+                    className="btn-gold text-sm px-4 py-2 disabled:opacity-50"
+                  >
+                    {replySending ? "Sending..." : "Send Reply"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   }
