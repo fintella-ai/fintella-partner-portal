@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { FIRM_SHORT } from "@/lib/constants";
 import { useDevice } from "@/lib/useDevice";
 import NotificationBell from "@/components/ui/NotificationBell";
+import SoftPhone from "@/components/ui/SoftPhone";
 import { getVisibleNav, getPermissions, ROLE_LABELS, type AdminRole } from "@/lib/permissions";
 
 type NavLeaf = { id: string; href: string; icon: string; label: string };
@@ -341,6 +342,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         {children}
       </div>
+
+      {/* Floating WebRTC softphone — any admin page can trigger a call
+          via window.__fintellaSoftphone.call(phone, name). Docks in the
+          bottom-right until someone opens it. */}
+      <SoftPhone />
     </div>
   );
 }
