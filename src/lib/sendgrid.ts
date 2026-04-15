@@ -802,6 +802,55 @@ export async function sendCommissionPaidEmail(opts: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// L1 partner invite — fired by admin when they create a new L1 invite
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Admin-initiated invite email for prospective L1 partners.
+ * Sent the moment an admin creates an invite via /api/admin/invites.
+ */
+export async function sendL1InviteEmail(opts: {
+  toEmail: string;
+  toName: string | null;
+  signupUrl: string;
+}): Promise<SendEmailResult> {
+  const name = opts.toName || "there";
+  const heading = `You've been invited to join ${FIRM_SHORT}`;
+  const bodyHtml = `
+    <p>Hi ${escapeHtml(name)},</p>
+    <p>You've been invited to become a Partner with ${escapeHtml(FIRM_NAME)}. As a partner, you'll earn 25% of the firm fee on every client referral you send us.</p>
+    <p>Click the button below to create your account. The process takes about two minutes — you'll fill out a short form and sign your partnership agreement digitally.</p>
+    <p style="font-size:12px;color:#888;">This invitation link expires in 7 days.</p>`;
+  const bodyText = `Hi ${name},
+
+You've been invited to become a Partner with ${FIRM_NAME}. As a partner, you'll earn 25% of the firm fee on every client referral you send us.
+
+Use the link below to create your account and sign your partnership agreement (takes about two minutes):
+${opts.signupUrl}
+
+This invitation link expires in 7 days.`;
+
+  const { html, text } = emailShell({
+    preheader: `You've been invited to join ${FIRM_SHORT} as a Partner — earn 25% per deal.`,
+    heading,
+    bodyHtml,
+    bodyText,
+    ctaLabel: "Accept Invitation",
+    ctaUrl: opts.signupUrl,
+  });
+
+  return sendEmail({
+    to: opts.toEmail,
+    toName: opts.toName || undefined,
+    subject: `You're invited to join ${FIRM_SHORT} as a Partner`,
+    html,
+    text,
+    template: "l1_invite",
+    partnerCode: null,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Monthly newsletter — fired by Vercel cron on the 1st of each month,
 // iterates every active partner and sends one email each
 // ═══════════════════════════════════════════════════════════════════════════

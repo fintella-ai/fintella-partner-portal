@@ -12,13 +12,58 @@ function generatePartnerCode(): string {
 }
 
 /**
+ * GET /api/getstarted?token=XXX
+ * Validate an admin-generated L1 invite token before showing the signup form.
+ * Returns invite metadata (email, name) so the form can pre-fill.
+ */
+export async function GET(req: NextRequest) {
+  const token = req.nextUrl.searchParams.get("token");
+  if (!token) return NextResponse.json({ error: "No invite token provided" }, { status: 400 });
+
+  const invite = await prisma.recruitmentInvite.findUnique({ where: { token } });
+  if (!invite || invite.targetTier !== "l1") {
+    return NextResponse.json({ error: "Invalid invite link" }, { status: 404 });
+  }
+  if (invite.status !== "active") {
+    return NextResponse.json({ error: "This invite link has already been used" }, { status: 410 });
+  }
+  if (invite.expiresAt && invite.expiresAt < new Date()) {
+    return NextResponse.json({ error: "This invite link has expired" }, { status: 410 });
+  }
+
+  return NextResponse.json({
+    invite: {
+      invitedEmail: invite.invitedEmail,
+      invitedName: invite.invitedName,
+      commissionRate: invite.commissionRate,
+    },
+  });
+}
+
+/**
  * POST /api/getstarted
- * Direct L1 partner signup. Creates partner + sends 25% SignWell agreement.
+ * Admin-invited L1 partner signup. Requires a valid invite token.
+ * Creates partner + sends 25% SignWell agreement.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { firstName, lastName, email, phone, companyName, password, emailOptIn, smsOptIn } = body;
+    const { token, firstName, lastName, email, phone, mobilePhone, companyName, password, emailOptIn, smsOptIn } = body;
+
+    // Validate invite token
+    if (!token) {
+      return NextResponse.json({ error: "Invite token is required" }, { status: 400 });
+    }
+    const invite = await prisma.recruitmentInvite.findUnique({ where: { token } });
+    if (!invite || invite.targetTier !== "l1") {
+      return NextResponse.json({ error: "Invalid invite link" }, { status: 404 });
+    }
+    if (invite.status !== "active") {
+      return NextResponse.json({ error: "This invite link has already been used" }, { status: 410 });
+    }
+    if (invite.expiresAt && invite.expiresAt < new Date()) {
+      return NextResponse.json({ error: "This invite link has expired" }, { status: 410 });
+    }
 
     if (!firstName || !lastName || !email || !password) {
       return NextResponse.json({ error: "First name, last name, email, and password are required" }, { status: 400 });
@@ -47,13 +92,20 @@ export async function POST(req: NextRequest) {
         lastName: lastName.trim(),
         companyName: companyName?.trim() || null,
         phone: phone?.trim() || null,
+        mobilePhone: mobilePhone || null,
         status: "pending", // pending until agreement signed
         tier: "l1",
-        commissionRate: 0.25,
+        commissionRate: invite.commissionRate,
         emailOptIn: !!emailOptIn,
         smsOptIn: !!smsOptIn,
         optInDate: (emailOptIn || smsOptIn) ? new Date() : null,
       },
+    });
+
+    // Mark invite as used
+    await prisma.recruitmentInvite.update({
+      where: { id: invite.id },
+      data: { status: "used", usedByPartnerCode: partnerCode },
     });
 
     // Create profile
@@ -65,10 +117,7 @@ export async function POST(req: NextRequest) {
     const settings = await prisma.portalSettings.findUnique({ where: { id: "global" } });
     const templateId = settings?.agreementTemplate25 || undefined;
 
-    // Send 25% partnership agreement via SignWell — pre-fill the template
-    // with everything we captured on the signup form so the new partner
-    // doesn't have to retype name/email/company when they land in the
-    // embedded signing view.
+    // Send partnership agreement via SignWell
     const partnerName = `${firstName.trim()} ${lastName.trim()}`;
     const templateFields = buildPartnerTemplateFields({
       partnerCode,
@@ -78,7 +127,7 @@ export async function POST(req: NextRequest) {
       email: email.trim(),
       phone: phone?.trim(),
       companyName: companyName?.trim(),
-      commissionRate: 0.25,
+      commissionRate: invite.commissionRate,
     });
     const { documentId, embeddedSigningUrl } = await sendForSigning({
       name: `${FIRM_SHORT} Partnership Agreement — ${partnerName} (25%)`,
@@ -95,7 +144,7 @@ export async function POST(req: NextRequest) {
         version: 1,
         signwellDocumentId: documentId,
         embeddedSigningUrl: embeddedSigningUrl || null,
-        templateRate: 0.25,
+        templateRate: invite.commissionRate,
         templateId: templateId || null,
         status: "pending",
         sentDate: new Date(),

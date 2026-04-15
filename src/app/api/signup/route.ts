@@ -35,6 +35,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "This invite link has expired" }, { status: 400 });
     }
 
+    // L1 invites go through /api/getstarted, not here
+    if (invite.targetTier === "l1" || !invite.inviterCode) {
+      return NextResponse.json({ error: "Invalid invite type for this endpoint" }, { status: 400 });
+    }
+
     // Get inviter info
     const inviter = await prisma.partner.findUnique({
       where: { partnerCode: invite.inviterCode },
@@ -74,6 +79,10 @@ export async function POST(req: NextRequest) {
     const invite = await prisma.recruitmentInvite.findUnique({ where: { token } });
     if (!invite) return NextResponse.json({ error: "Invalid invite link" }, { status: 404 });
     if (invite.status !== "active") return NextResponse.json({ error: "This invite has already been used" }, { status: 400 });
+    // L1 invites go through /api/getstarted, not here
+    if (invite.targetTier === "l1" || !invite.inviterCode) {
+      return NextResponse.json({ error: "Invalid invite type for this endpoint" }, { status: 400 });
+    }
 
     // Check email not already registered
     const existing = await prisma.partner.findFirst({ where: { email } });
@@ -129,7 +138,7 @@ export async function POST(req: NextRequest) {
     await prisma.notification.create({
       data: {
         recipientType: "partner",
-        recipientId: invite.inviterCode,
+        recipientId: invite.inviterCode!, // non-null guard: checked above
         type: "deal_update",
         title: "New Partner Signed Up!",
         message: `${partnerName} has signed up as your ${invite.targetTier.toUpperCase()} partner at ${ratePercent}% commission. Please upload their signed partnership agreement from your Downline page.`,
@@ -159,7 +168,7 @@ export async function POST(req: NextRequest) {
 
     // 2) Notification email + SMS to the inviting L1 partner
     const inviter = await prisma.partner.findUnique({
-      where: { partnerCode: invite.inviterCode },
+      where: { partnerCode: invite.inviterCode! }, // non-null guard: checked above
       select: {
         email: true,
         firstName: true,

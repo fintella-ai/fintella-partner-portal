@@ -9,8 +9,6 @@ import { useDevice } from "@/lib/useDevice";
 import {
   FIRM_SHORT,
   DEFAULT_FIRM_FEE_RATE,
-  MAX_COMMISSION_RATE,
-  DEFAULT_L2_RATE,
 } from "@/lib/constants";
 
 export default function CommissionsPage() {
@@ -19,7 +17,7 @@ export default function CommissionsPage() {
   const router = useRouter();
 
   const [tier, setTier] = useState<string>("l1");
-  const [commissionRate, setCommissionRate] = useState<number>(MAX_COMMISSION_RATE);
+  const [commissionRate, setCommissionRate] = useState<number>(0.25);
   const [l3Enabled, setL3Enabled] = useState(false);
   const [directDeals, setDirectDeals] = useState<any[]>([]);
   const [downlineDeals, setDownlineDeals] = useState<any[]>([]);
@@ -78,14 +76,11 @@ export default function CommissionsPage() {
     .reduce((s, d) => s + Number(d.l2CommissionAmount || 0), 0);
   const totalL2Pending = totalL2Earned - totalL2Paid;
 
-  // directRate: what this partner earns on their own direct deals
-  // For L1 partners this is always MAX_COMMISSION_RATE (25%).
-  // For L2/L3 partners it is their assigned commissionRate.
-  const directRate = tier === "l1" ? MAX_COMMISSION_RATE : commissionRate;
+  // directRate: what this partner earns on their own direct deals (their assigned rate)
+  const directRate = commissionRate;
 
-  // L1 override rate: what an L1 partner earns on their L2 downline's deals.
-  // Varies per L2 (25% - L2's rate), so we use DEFAULT_L2_RATE as a display estimate.
-  const l1OverrideRate = MAX_COMMISSION_RATE - DEFAULT_L2_RATE;
+  // L1 override on downline deals varies per L2 partner (L1.rate − L2.rate).
+  // For projections we use the actual ledger amounts rather than estimating the spread.
 
   // Pipeline (not yet Closed Won) = projected but not payable
   const pipelineDirectDeals = directDeals.filter((d) => d.stage !== "closedwon");
@@ -96,8 +91,8 @@ export default function CommissionsPage() {
 
   const pipelineDownlineDeals = downlineDeals.filter((d) => d.stage !== "closedwon");
   const projectedL2 = pipelineDownlineDeals.reduce((s, d) => {
-    const refund = Number(d.estimatedRefundAmount || 0);
-    return s + refund * DEFAULT_FIRM_FEE_RATE * l1OverrideRate;
+    // Use actual l2CommissionAmount if available, otherwise skip — override varies per L2
+    return s + Number(d.l2CommissionAmount || 0);
   }, 0);
 
   // L3 projected — placeholder for when L3 deals exist
@@ -224,7 +219,7 @@ export default function CommissionsPage() {
         {hasDownline && (
           <div className={`${device.cardPadding} border border-purple-500/20 ${device.borderRadius} bg-purple-500/[0.03] text-center`}>
             <div className="font-body text-[10px] tracking-[2px] uppercase text-purple-400/80 mb-3">
-              Downline Override (L2) — up to {(l1OverrideRate * 100).toFixed(0)}% of fee
+              Downline Override (L2)
             </div>
             <div className={`font-display ${device.isMobile ? "text-[28px] leading-tight" : "text-[40px]"} font-bold text-purple-400 mb-0.5 break-words`}>
               {fmt$(totalL2Earned)}
@@ -327,7 +322,7 @@ export default function CommissionsPage() {
         </div>
         {hasDownline && (
           <div className="mt-3 p-3 bg-purple-500/[0.05] border border-purple-500/15 rounded-lg font-body text-[12px] text-[var(--app-text-secondary)] text-center">
-            L2 Override = up to {(l1OverrideRate * 100).toFixed(0)}% of {FIRM_SHORT}&apos;s fee (varies by your downline partner&apos;s assigned rate)
+            Your override = your rate minus your downline partner&apos;s rate (varies per recruit)
           </div>
         )}
         {hasL3 && (

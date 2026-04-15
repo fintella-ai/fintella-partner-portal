@@ -8,15 +8,40 @@ export const FIRM_PHONE = "(410) 497-5947";
 // Firm fee rate is per-deal (negotiated between firm and client).
 export const DEFAULT_FIRM_FEE_RATE = 0.20;
 
-// Waterfall commission system: total partner payout capped at MAX_COMMISSION_RATE of firm fee
-export const MAX_COMMISSION_RATE = 0.25;        // L1 direct deal rate (25% of firm fee)
-export const ALLOWED_L2_RATES = [0.10, 0.15, 0.20]; // L1 chooses for their L2 recruits
-export const ALLOWED_L3_RATES = [0.10, 0.15];       // L2 chooses for their L3 recruits
+// Waterfall commission system
+// - Admin assigns each L1 a rate from ALLOWED_L1_RATES (e.g., 10%, 15%, 20%, 25%)
+// - Total payout per deal always equals the L1's assigned rate (not a fixed 25%)
+// - Each tier keeps at least RATE_INCREMENT for themselves; the rest can go to downline
+// - L1 direct deal → L1 earns their full commissionRate
+// - L2 deal → L2 earns their rate, L1 earns (L1.commissionRate - L2.commissionRate)
+// - L3 deal → L3 earns their rate, L2 earns (L2.commissionRate - L3.commissionRate),
+//             L1 earns (L1.commissionRate - L2.commissionRate)
+export const MAX_COMMISSION_RATE = 0.25;          // absolute ceiling — no L1 can exceed this
+export const ALLOWED_L1_RATES = [0.10, 0.15, 0.20, 0.25]; // admin picks when inviting L1
+export const RATE_INCREMENT = 0.05;               // all rates are multiples of 5%
+export const MIN_KEEP_FOR_SELF = 0.05;            // min a partner retains when recruiting downline
 
-// Legacy defaults (kept for backward compatibility)
-export const DEFAULT_L1_RATE = 0.25; // 25% of firm fee
-export const DEFAULT_L2_RATE = 0.05; // legacy
-export const DEFAULT_L3_RATE = 0;    // off by default
+/**
+ * Returns the rates this partner can offer to their recruit.
+ * Range: [0.05 … inviterRate − 0.05] in 5% steps.
+ * An L2 at 0.05 returns [] — cannot recruit.
+ * An L2 at 0.10 returns [0.05] — can recruit L3 at 5% only.
+ */
+export function getAllowedDownlineRates(inviterRate: number): number[] {
+  const rates: number[] = [];
+  for (let r = RATE_INCREMENT; r <= inviterRate - RATE_INCREMENT + 1e-9; r += RATE_INCREMENT) {
+    rates.push(Math.round(r * 100) / 100);
+  }
+  return rates;
+}
+
+// Legacy — kept so older import sites don't break; use getAllowedDownlineRates() for new code
+export const ALLOWED_L2_RATES = [0.05, 0.10, 0.15, 0.20]; // L1 @ 25% can offer these to L2
+export const ALLOWED_L3_RATES = [0.05, 0.10, 0.15];        // L2 @ 20% can offer these to L3
+
+export const DEFAULT_L1_RATE = 0.25;
+export const DEFAULT_L2_RATE = 0.05;
+export const DEFAULT_L3_RATE = 0;
 
 // ─── DEAL STAGES ─────────────────────────────────────────────────────────────
 export const STAGE_LABELS: Record<string, { label: string; color: string }> = {

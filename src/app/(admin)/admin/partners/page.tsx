@@ -58,7 +58,7 @@ export default function AdminPartnersPage() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
 
-  // Add form
+  // Add partner form
   const [formFirst, setFormFirst] = useState("");
   const [formLast, setFormLast] = useState("");
   const [formEmail, setFormEmail] = useState("");
@@ -66,6 +66,18 @@ export default function AdminPartnersPage() {
   const [formCode, setFormCode] = useState("");
   const [formReferrer, setFormReferrer] = useState("");
   const [formError, setFormError] = useState("");
+
+  // Invite L1 partner modal
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteFirst, setInviteFirst] = useState("");
+  const [inviteLast, setInviteLast] = useState("");
+  const [inviteRate, setInviteRate] = useState<number | "">(0.25);
+  const [inviteError, setInviteError] = useState("");
+  const [inviteResult, setInviteResult] = useState<{ signupUrl: string } | null>(null);
+  const [inviteSending, setInviteSending] = useState(false);
+
+  const ALLOWED_L1_RATES = [0.10, 0.15, 0.20, 0.25];
 
   const fetchPartners = useCallback(async () => {
     try {
@@ -81,6 +93,33 @@ export default function AdminPartnersPage() {
   }, [search]);
 
   useEffect(() => { fetchPartners(); }, [fetchPartners]);
+
+  const handleInvite = async () => {
+    setInviteError("");
+    if (!inviteEmail.trim()) { setInviteError("Email is required."); return; }
+    if (!inviteRate) { setInviteError("Commission rate is required."); return; }
+    setInviteSending(true);
+    try {
+      const res = await fetch("/api/admin/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: inviteEmail.trim(), firstName: inviteFirst.trim(), lastName: inviteLast.trim(), commissionRate: inviteRate }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setInviteError(data.error || "Failed to send invite"); return; }
+      setInviteResult({ signupUrl: data.signupUrl });
+    } catch {
+      setInviteError("Connection error");
+    } finally {
+      setInviteSending(false);
+    }
+  };
+
+  const resetInvite = () => {
+    setShowInvite(false);
+    setInviteEmail(""); setInviteFirst(""); setInviteLast(""); setInviteRate(0.25);
+    setInviteError(""); setInviteResult(null);
+  };
 
   const handleAdd = async () => {
     setFormError("");
@@ -128,9 +167,14 @@ export default function AdminPartnersPage() {
           <h2 className="font-display text-xl font-bold">Partner Management</h2>
           <p className="font-body text-[13px] text-[var(--app-text-muted)] mt-1">View, add, and manage partners.</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn-gold text-[12px] px-4 py-2.5 self-start">
-          + Add Partner
-        </button>
+        <div className="flex gap-2 self-start">
+          <button onClick={() => { setShowInvite(true); setShowForm(false); }} className="btn-gold text-[12px] px-4 py-2.5">
+            + Invite Partner
+          </button>
+          <button onClick={() => { setShowForm(!showForm); setShowInvite(false); }} className="font-body text-[12px] px-4 py-2.5 border border-[var(--app-border)] rounded-lg theme-text-secondary hover:theme-text transition-colors">
+            + Add Directly
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -147,6 +191,52 @@ export default function AdminPartnersPage() {
           </div>
         ))}
       </div>
+
+      {/* Invite L1 Partner Modal */}
+      {showInvite && (
+        <div className="card p-5 mb-6">
+          <div className="font-body font-semibold text-sm mb-1">Invite L1 Partner</div>
+          <div className="font-body text-[12px] theme-text-muted mb-4">An invitation email with a signup link will be sent. The link expires in 7 days.</div>
+          {!inviteResult ? (
+            <>
+              {inviteError && <div className="mb-3 p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg font-body text-[12px] text-red-400">{inviteError}</div>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <input className={inputClass} value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="Email *" type="email" />
+                <select className={inputClass} value={inviteRate} onChange={(e) => setInviteRate(e.target.value ? parseFloat(e.target.value) : "")}>
+                  <option value="">Select commission rate *</option>
+                  {ALLOWED_L1_RATES.map((r) => (
+                    <option key={r} value={r}>{Math.round(r * 100)}% — L1 Partner</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input className={inputClass} value={inviteFirst} onChange={(e) => setInviteFirst(e.target.value)} placeholder="First Name (optional)" />
+                <input className={inputClass} value={inviteLast} onChange={(e) => setInviteLast(e.target.value)} placeholder="Last Name (optional)" />
+              </div>
+              {inviteRate && (
+                <div className="mt-3 p-3 rounded-lg bg-brand-gold/5 border border-brand-gold/20 font-body text-[12px] theme-text-muted">
+                  At <strong className="text-brand-gold">{Math.round(Number(inviteRate) * 100)}%</strong>, this partner can offer their recruits rates from <strong>5%</strong> up to <strong>{Math.round((Number(inviteRate) - 0.05) * 100)}%</strong>.
+                </div>
+              )}
+              <div className="flex gap-3 mt-4">
+                <button onClick={handleInvite} disabled={inviteSending} className="btn-gold text-[12px] px-5 py-2.5 disabled:opacity-50">{inviteSending ? "Sending..." : "Send Invite"}</button>
+                <button onClick={resetInvite} className="font-body text-[12px] theme-text-muted border border-[var(--app-border)] rounded-lg px-5 py-2.5 hover:theme-text-secondary transition-colors">Cancel</button>
+              </div>
+            </>
+          ) : (
+            <div>
+              <div className="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg font-body text-[12px] text-green-400">
+                Invite sent to <strong>{inviteEmail}</strong>. They will receive an email with their signup link.
+              </div>
+              <div className="mb-3 p-3 rounded-lg" style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}>
+                <div className="font-body text-[10px] theme-text-muted uppercase tracking-wider mb-1.5">Signup Link (share manually if needed)</div>
+                <div className="font-mono text-[11px] theme-text-secondary break-all">{inviteResult.signupUrl}</div>
+              </div>
+              <button onClick={resetInvite} className="btn-gold text-[12px] px-5 py-2.5">Done</button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Add Partner Form */}
       {showForm && (

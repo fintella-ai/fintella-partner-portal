@@ -108,16 +108,18 @@ model Document {
 
 // ─── RECRUITMENT INVITES ─────────────────────────────────────────────────────
 model RecruitmentInvite {
-  id              String    @id @default(cuid())
-  token           String    @unique       // URL-safe random token for the signup link
-  inviterCode     String                  // partnerCode of the inviting partner
-  targetTier      String                  // "l2" or "l3"
-  commissionRate  Float                   // 0.10, 0.15, or 0.20
-  status          String    @default("active") // active, used, expired
-  usedByPartnerCode String?               // filled when someone signs up with this invite
-  expiresAt       DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  token             String    @unique       // URL-safe random token for the signup link
+  inviterCode       String?                 // partnerCode of the inviting partner; null for admin-generated L1 invites
+  targetTier        String                  // "l1", "l2", or "l3"
+  commissionRate    Float                   // 0.25 for l1; 0.10/0.15/0.20 for l2; 0.10/0.15 for l3
+  status            String    @default("active") // active, used, expired
+  usedByPartnerCode String?                 // filled when someone signs up with this invite
+  invitedEmail      String?                 // email the admin invite was sent to (L1 only)
+  invitedName       String?                 // display name for the invite email (L1 only)
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([token])
   @@index([inviterCode])
