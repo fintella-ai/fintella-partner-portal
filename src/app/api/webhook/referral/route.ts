@@ -49,6 +49,68 @@ const ALLOWED_EVENTS = new Set([
   "referral.closed",
 ]);
 
+/**
+ * Canonical internal deal stage enum. Matches STAGE_LABELS in src/lib/constants.ts
+ * and the stage filter pills in /admin/deals + /dashboard/deals. Whatever string
+ * Frost Law sends as their external stage, if it normalizes to one of these
+ * values we also update `deal.stage` so the UI displays the correct badge.
+ * If the incoming string doesn't match any known internal value, the deal's
+ * internal stage stays at whatever it was (usually "new_lead" for fresh
+ * referrals), and only `externalStage` changes.
+ */
+const INTERNAL_STAGES = [
+  "new_lead",
+  "no_consultation",
+  "consultation_booked",
+  "client_no_show",
+  "client_engaged",
+  "in_process",
+  "closedwon",
+  "closedlost",
+] as const;
+
+/**
+ * Normalize an incoming stage string to look up against internal values.
+ * Lowercases, strips spaces/hyphens/underscores. So "Closed Won",
+ * "closed_won", "closed-won", "CLOSEDWON" all collapse to "closedwon"
+ * which maps to the internal "closedwon" value.
+ */
+function normalizeStage(s: string): string {
+  return String(s).toLowerCase().replace(/[\s\-_]/g, "");
+}
+
+/**
+ * Map from normalized external stage → internal enum value. Built once at
+ * module load so the PATCH path is a simple lookup.
+ */
+const STAGE_MAP: Record<string, string> = (() => {
+  const m: Record<string, string> = {};
+  for (const s of INTERNAL_STAGES) {
+    m[normalizeStage(s)] = s;
+  }
+  // Common synonyms Frost Law or CRM systems might send that don't match
+  // our internal names 1:1. Add more as we see them in real traffic.
+  m["won"] = "closedwon";
+  m["closed"] = "closedwon";
+  m["lost"] = "closedlost";
+  m["nocc"] = "no_consultation";
+  m["noconsult"] = "no_consultation";
+  m["ccbooked"] = "consultation_booked";
+  m["consultbooked"] = "consultation_booked";
+  m["noshow"] = "client_no_show";
+  m["engaged"] = "client_engaged";
+  m["inprogress"] = "in_process";
+  return m;
+})();
+
+/**
+ * Resolve an external stage string to an internal enum value, or null if
+ * no match. Exported via the closure — used only inside PATCH.
+ */
+function resolveInternalStage(external: string): string | null {
+  return STAGE_MAP[normalizeStage(external)] ?? null;
+}
+
 // ─── Shared in-memory rate-limit store (per serverless instance) ───────────
 
 type Timestamps = number[];
@@ -596,7 +658,14 @@ export async function PATCH(req: NextRequest) {
 
     const data: Record<string, any> = {};
 
-    // Deal stage — stored as-is per PR #12 architectural decision
+    // Deal stage — stored AS-IS in externalStage per PR #12 architectural
+    // decision (preserves Frost Law's audit-grade source of truth even for
+    // stages that don't match our internal enum). But we ALSO try to map
+    // the incoming string through STAGE_MAP and update the internal
+    // `deal.stage` field when we recognize it. That's what drives the
+    // StageBadge in the /admin/deals + /dashboard/deals tables, the
+    // filter pills, and the dashboard stats. Before this change, PATCH
+    // only updated externalStage so the UI always showed the old stage.
     const stage =
       body.dealstage ||
       body.deal_stage ||
@@ -604,7 +673,13 @@ export async function PATCH(req: NextRequest) {
       body.stage ||
       body.pipeline_stage ||
       body.status;
-    if (stage) data.externalStage = stage;
+    if (stage) {
+      data.externalStage = stage;
+      const internalStage = resolveInternalStage(String(stage));
+      if (internalStage) {
+        data.stage = internalStage;
+      }
+    }
 
     // Estimated refund amount
     const refundAmount =
@@ -667,17 +742,11 @@ export async function PATCH(req: NextRequest) {
       body.consultationTime;
     if (consultTime) data.consultBookedTime = String(consultTime).trim();
 
-    // Close date (if stage is closedwon or closedlost)
-    if (stage) {
-      const normalizedStage = String(stage)
-        .toLowerCase()
-        .replace(/[\s\-_]/g, "");
-      if (
-        normalizedStage === "closedwon" ||
-        normalizedStage === "closedlost"
-      ) {
-        if (!deal.closeDate) data.closeDate = new Date();
-      }
+    // Close date (if stage is closedwon or closedlost). Uses the internal
+    // stage value we just resolved via STAGE_MAP, so "Closed Won" /
+    // "closed-won" / "won" all stamp the close date correctly.
+    if (data.stage === "closedwon" || data.stage === "closedlost") {
+      if (!deal.closeDate) data.closeDate = new Date();
     }
 
     if (Object.keys(data).length === 0) {
@@ -695,18 +764,16 @@ export async function PATCH(req: NextRequest) {
     // "Mark Payment Received" on /admin/deals once the firm has wired
     // Fintella the override.
     //
-    // Guarded by: (a) the stage must be closed_won AND the deal's prior
-    // externalStage was NOT closed_won — so replays / repeat PATCHes
-    // don't duplicate; (b) the (dealId, partnerCode, tier) unique index
-    // on CommissionLedger as belt-and-suspender.
-    const stageNormalized = stage
-      ? String(stage).toLowerCase().replace(/[\s\-_]/g, "")
-      : "";
-    const priorStageNormalized = deal.externalStage
-      ? deal.externalStage.toLowerCase().replace(/[\s\-_]/g, "")
-      : "";
+    // Guarded by: (a) the new internal stage is closedwon AND the deal's
+    // prior internal stage was NOT already closedwon — so replays / repeat
+    // PATCHes don't duplicate ledger entries; (b) the (dealId, partnerCode,
+    // tier) unique index on CommissionLedger as belt-and-suspender.
+    //
+    // Uses the resolved internal stage (data.stage, set above via STAGE_MAP)
+    // instead of normalizing strings inline, so "Closed Won" / "closed-won"
+    // / "won" all trigger the transition correctly.
     const isClosedWonTransition =
-      stageNormalized === "closedwon" && priorStageNormalized !== "closedwon";
+      data.stage === "closedwon" && deal.stage !== "closedwon";
 
     // Compute ledger entries OUTSIDE the transaction so any DB read errors
     // surface before we start writing. Effective firm fee is the value
