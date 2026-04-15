@@ -698,3 +698,169 @@ Next step: upload their countersigned partnership agreement from your Downline p
     partnerCode: opts.inviterCode,
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Deal status update — fired from webhook/referral PATCH on stage change
+// ═══════════════════════════════════════════════════════════════════════════
+
+export async function sendDealStatusUpdateEmail(opts: {
+  partnerEmail: string;
+  partnerName: string;
+  partnerCode: string;
+  dealName: string;
+  newStage: string;
+}): Promise<SendEmailResult> {
+  const firstName = opts.partnerName.split(" ")[0] || opts.partnerName;
+  const vars: Record<string, string> = {
+    firstName,
+    lastName: opts.partnerName.split(" ").slice(1).join(" "),
+    partnerCode: opts.partnerCode,
+    dealName: opts.dealName,
+    newStage: opts.newStage,
+    portalUrl: PORTAL_URL,
+    firmShort: FIRM_SHORT,
+    firmName: FIRM_NAME,
+  };
+
+  const tpl = await loadTemplate("deal_status_update");
+  if (!tpl) {
+    // No DB template — skip the send. There's no hardcoded fallback for
+    // this template because it's admin-editable draft content; if the
+    // row is missing or disabled we prefer silence over surprising partners.
+    return { status: "demo", messageId: null };
+  }
+
+  const { html, text } = emailShell({
+    preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
+    heading: interpolate(tpl.heading, vars),
+    bodyHtml: interpolate(tpl.bodyHtml, vars, escapeHtml),
+    bodyText: interpolate(tpl.bodyText, vars),
+    ctaLabel: tpl.ctaLabel || undefined,
+    ctaUrl: tpl.ctaUrl ? interpolate(tpl.ctaUrl, vars) : undefined,
+  });
+  return sendEmail({
+    to: opts.partnerEmail,
+    toName: opts.partnerName,
+    subject: interpolate(tpl.subject, vars),
+    html,
+    text,
+    template: "deal_status_update",
+    partnerCode: opts.partnerCode,
+    replyTo: tpl.replyTo || undefined,
+    fromEmail: tpl.fromEmail || undefined,
+    fromName: tpl.fromName || undefined,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Commission payment notification — fired when payout batch flips a ledger
+// row to status=paid
+// ═══════════════════════════════════════════════════════════════════════════
+
+export async function sendCommissionPaidEmail(opts: {
+  partnerEmail: string;
+  partnerName: string;
+  partnerCode: string;
+  amount: number;
+  dealName: string;
+}): Promise<SendEmailResult> {
+  const firstName = opts.partnerName.split(" ")[0] || opts.partnerName;
+  const vars: Record<string, string> = {
+    firstName,
+    lastName: opts.partnerName.split(" ").slice(1).join(" "),
+    partnerCode: opts.partnerCode,
+    amount: `$${opts.amount.toFixed(2)}`,
+    dealName: opts.dealName,
+    portalUrl: PORTAL_URL,
+    firmShort: FIRM_SHORT,
+    firmName: FIRM_NAME,
+  };
+
+  const tpl = await loadTemplate("commission_payment_notification");
+  if (!tpl) return { status: "demo", messageId: null };
+
+  const { html, text } = emailShell({
+    preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
+    heading: interpolate(tpl.heading, vars),
+    bodyHtml: interpolate(tpl.bodyHtml, vars, escapeHtml),
+    bodyText: interpolate(tpl.bodyText, vars),
+    ctaLabel: tpl.ctaLabel || undefined,
+    ctaUrl: tpl.ctaUrl ? interpolate(tpl.ctaUrl, vars) : undefined,
+  });
+  return sendEmail({
+    to: opts.partnerEmail,
+    toName: opts.partnerName,
+    subject: interpolate(tpl.subject, vars),
+    html,
+    text,
+    template: "commission_payment_notification",
+    partnerCode: opts.partnerCode,
+    replyTo: tpl.replyTo || undefined,
+    fromEmail: tpl.fromEmail || undefined,
+    fromName: tpl.fromName || undefined,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Monthly newsletter — fired by Vercel cron on the 1st of each month,
+// iterates every active partner and sends one email each
+// ═══════════════════════════════════════════════════════════════════════════
+
+export async function sendMonthlyNewsletterToAllPartners(): Promise<{
+  sent: number;
+  failed: number;
+  skipped: number;
+}> {
+  const { prisma } = await import("@/lib/prisma");
+  const tpl = await loadTemplate("monthly_newsletter");
+  if (!tpl) return { sent: 0, failed: 0, skipped: 0 };
+
+  const activePartners = await prisma.partner.findMany({
+    where: { status: "active" },
+    select: { partnerCode: true, firstName: true, lastName: true, email: true },
+  });
+
+  const now = new Date();
+  const monthName = now.toLocaleString("en-US", { month: "long" });
+  const year = String(now.getFullYear());
+
+  let sent = 0;
+  let failed = 0;
+  let skipped = 0;
+  for (const p of activePartners) {
+    if (!p.email) { skipped++; continue; }
+    const vars: Record<string, string> = {
+      firstName: p.firstName,
+      lastName: p.lastName,
+      partnerCode: p.partnerCode,
+      month: monthName,
+      year,
+      portalUrl: PORTAL_URL,
+      firmShort: FIRM_SHORT,
+      firmName: FIRM_NAME,
+    };
+    const { html, text } = emailShell({
+      preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
+      heading: interpolate(tpl.heading, vars),
+      bodyHtml: interpolate(tpl.bodyHtml, vars, escapeHtml),
+      bodyText: interpolate(tpl.bodyText, vars),
+      ctaLabel: tpl.ctaLabel || undefined,
+      ctaUrl: tpl.ctaUrl ? interpolate(tpl.ctaUrl, vars) : undefined,
+    });
+    const result = await sendEmail({
+      to: p.email,
+      toName: `${p.firstName} ${p.lastName}`,
+      subject: interpolate(tpl.subject, vars),
+      html,
+      text,
+      template: "monthly_newsletter",
+      partnerCode: p.partnerCode,
+      replyTo: tpl.replyTo || undefined,
+      fromEmail: tpl.fromEmail || undefined,
+      fromName: tpl.fromName || undefined,
+    });
+    if (result.status === "sent" || result.status === "demo") sent++;
+    else failed++;
+  }
+  return { sent, failed, skipped };
+}

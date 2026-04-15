@@ -2,5 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "prisma generate && prisma db push --accept-data-loss && node scripts/seed-all.js && next build",
   "framework": "nextjs",
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "crons": [
+    {
+      "path": "/api/cron/monthly-newsletter",
+      "schedule": "0 14 1 * *"
+    }
+  ]
 }
