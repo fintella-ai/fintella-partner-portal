@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ALLOWED_L2_RATES, ALLOWED_L3_RATES, MAX_COMMISSION_RATE } from "@/lib/constants";
+import { MAX_COMMISSION_RATE, getAllowedDownlineRates } from "@/lib/constants";
 import crypto from "crypto";
 
 function generateToken(): string {
@@ -36,6 +36,7 @@ export async function GET() {
       partner: {
         tier: partner.tier,
         commissionRate: partner.commissionRate,
+        allowedDownlineRates: getAllowedDownlineRates(partner.commissionRate),
       },
       l3Enabled: settings?.l3Enabled || false,
       maxRate: MAX_COMMISSION_RATE,
@@ -64,11 +65,17 @@ export async function POST(req: NextRequest) {
     if (!partner) return NextResponse.json({ error: "Partner not found" }, { status: 404 });
 
     // Determine target tier and validate rate
+    // Rate must be in [0.05 … partner.commissionRate - 0.05] in 5% steps
     let targetTier: string;
+    const allowedRates = getAllowedDownlineRates(partner.commissionRate);
+
     if (partner.tier === "l1") {
       targetTier = "l2";
-      if (!ALLOWED_L2_RATES.includes(rate)) {
-        return NextResponse.json({ error: `Invalid L2 rate. Allowed: ${ALLOWED_L2_RATES.map((r) => `${r * 100}%`).join(", ")}` }, { status: 400 });
+      if (allowedRates.length === 0) {
+        return NextResponse.json({ error: "Your commission rate is too low to recruit partners" }, { status: 403 });
+      }
+      if (!allowedRates.some((r) => Math.abs(r - rate) < 0.001)) {
+        return NextResponse.json({ error: `Invalid L2 rate. Allowed: ${allowedRates.map((r) => `${Math.round(r * 100)}%`).join(", ")}` }, { status: 400 });
       }
     } else if (partner.tier === "l2") {
       // Check if L3 is enabled globally
@@ -76,13 +83,12 @@ export async function POST(req: NextRequest) {
       if (!settings?.l3Enabled) {
         return NextResponse.json({ error: "L3 recruitment is not enabled" }, { status: 403 });
       }
-      targetTier = "l3";
-      if (!ALLOWED_L3_RATES.includes(rate)) {
-        return NextResponse.json({ error: `Invalid L3 rate. Allowed: ${ALLOWED_L3_RATES.map((r) => `${r * 100}%`).join(", ")}` }, { status: 400 });
+      if (allowedRates.length === 0) {
+        return NextResponse.json({ error: "Your commission rate is too low to recruit L3 partners (minimum 10% required)" }, { status: 403 });
       }
-      // L3 rate must be less than L2's own rate
-      if (rate >= partner.commissionRate) {
-        return NextResponse.json({ error: "L3 rate must be less than your own rate" }, { status: 400 });
+      targetTier = "l3";
+      if (!allowedRates.some((r) => Math.abs(r - rate) < 0.001)) {
+        return NextResponse.json({ error: `Invalid L3 rate. Allowed: ${allowedRates.map((r) => `${Math.round(r * 100)}%`).join(", ")}` }, { status: 400 });
       }
     } else {
       return NextResponse.json({ error: "L3 partners cannot recruit" }, { status: 403 });

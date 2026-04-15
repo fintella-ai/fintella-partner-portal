@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
 import CopyButton from "@/components/ui/CopyButton";
-import { FIRM_SHORT, FIRM_PHONE, MAX_COMMISSION_RATE, ALLOWED_L2_RATES, ALLOWED_L3_RATES } from "@/lib/constants";
+import { FIRM_SHORT, FIRM_PHONE } from "@/lib/constants";
 
 interface Invite {
   id: string;
@@ -26,6 +26,7 @@ export default function ReferralLinksPage() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [partnerTier, setPartnerTier] = useState("l1");
   const [partnerRate, setPartnerRate] = useState(0.25);
+  const [allowedDownlineRates, setAllowedDownlineRates] = useState<number[]>([]);
   const [l3Enabled, setL3Enabled] = useState(false);
   const [copiedRate, setCopiedRate] = useState<number | null>(null);
   const [agreementSigned, setAgreementSigned] = useState<boolean | null>(null);
@@ -67,6 +68,7 @@ export default function ReferralLinksPage() {
         setInvites(data.invites || []);
         setPartnerTier(data.partner?.tier || "l1");
         setPartnerRate(data.partner?.commissionRate || 0.25);
+        setAllowedDownlineRates(data.partner?.allowedDownlineRates || []);
         setL3Enabled(data.l3Enabled || false);
       }
     } catch {}
@@ -89,11 +91,9 @@ export default function ReferralLinksPage() {
     await loadInvites();
   }, [invites, loadInvites]);
 
-  // Determine which rates this partner can offer
-  const canRecruit = partnerTier === "l1" || (partnerTier === "l2" && l3Enabled);
-  const availableRates = partnerTier === "l1"
-    ? ALLOWED_L2_RATES
-    : ALLOWED_L3_RATES.filter((r) => r < partnerRate);
+  // Determine which rates this partner can offer (comes from API, dynamic based on their own rate)
+  const canRecruit = (partnerTier === "l1" || (partnerTier === "l2" && l3Enabled)) && allowedDownlineRates.length > 0;
+  const availableRates = allowedDownlineRates;
   const targetTierLabel = partnerTier === "l1" ? "L2" : "L3";
 
   // Auto-generate invites once we know the rates
@@ -213,7 +213,7 @@ export default function ReferralLinksPage() {
               <div className="font-body font-semibold text-[15px]">Recruit {targetTierLabel} Partners</div>
             </div>
             <div className="font-body text-[12px] text-[var(--app-text-muted)] leading-relaxed">
-              Copy a recruitment link below. Each rate has its own pre-loaded template. You earn the override (difference between {Math.round(MAX_COMMISSION_RATE * 100)}% and their rate).
+              Copy a recruitment link below. Each rate has its own pre-loaded template. You earn the override — the difference between your {Math.round(partnerRate * 100)}% and their rate.
             </div>
           </div>
 
@@ -224,9 +224,7 @@ export default function ReferralLinksPage() {
             <div className="space-y-4">
               {availableRates.map((rate) => {
                 const pct = Math.round(rate * 100);
-                const overridePct = partnerTier === "l1"
-                  ? Math.round((MAX_COMMISSION_RATE - rate) * 100)
-                  : Math.round((partnerRate - rate) * 100);
+                const overridePct = Math.round((partnerRate - rate) * 100);
                 const inv = getInviteForRate(rate);
                 const link = inv ? `${baseUrl}/signup?token=${inv.token}` : "Generating...";
 
