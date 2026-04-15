@@ -221,12 +221,12 @@ function GetStartedContent() {
 
         {/* Invite info card */}
         <div className="card p-4 mb-5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3">
             <div>
               <div className="font-body text-[11px] theme-text-muted uppercase tracking-wider mb-1">You&apos;ve been invited by</div>
               <div className="font-body text-sm font-semibold">{FIRM_SHORT} Team</div>
             </div>
-            <div className="text-right">
+            <div className="xs:text-right">
               <div className="font-body text-[11px] theme-text-muted uppercase tracking-wider">Your Commission</div>
               <div className="font-display text-2xl font-bold text-brand-gold">{ratePercent}%</div>
               <div className="font-body text-[10px] theme-text-muted">of firm fee</div>

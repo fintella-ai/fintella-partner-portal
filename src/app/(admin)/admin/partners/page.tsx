@@ -167,11 +167,11 @@ export default function AdminPartnersPage() {
           <h2 className="font-display text-xl font-bold">Partner Management</h2>
           <p className="font-body text-[13px] text-[var(--app-text-muted)] mt-1">View, add, and manage partners.</p>
         </div>
-        <div className="flex gap-2 self-start">
-          <button onClick={() => { setShowInvite(true); setShowForm(false); }} className="btn-gold text-[12px] px-4 py-2.5">
+        <div className="flex flex-wrap gap-2 self-start">
+          <button onClick={() => { setShowInvite(true); setShowForm(false); }} className="btn-gold text-[12px] px-4 min-h-[44px]">
             + Invite Partner
           </button>
-          <button onClick={() => { setShowForm(!showForm); setShowInvite(false); }} className="font-body text-[12px] px-4 py-2.5 border border-[var(--app-border)] rounded-lg theme-text-secondary hover:theme-text transition-colors">
+          <button onClick={() => { setShowForm(!showForm); setShowInvite(false); }} className="font-body text-[12px] px-4 min-h-[44px] border border-[var(--app-border)] rounded-lg theme-text-secondary hover:theme-text transition-colors">
             + Add Directly
           </button>
         </div>
@@ -219,8 +219,8 @@ export default function AdminPartnersPage() {
                 </div>
               )}
               <div className="flex gap-3 mt-4">
-                <button onClick={handleInvite} disabled={inviteSending} className="btn-gold text-[12px] px-5 py-2.5 disabled:opacity-50">{inviteSending ? "Sending..." : "Send Invite"}</button>
-                <button onClick={resetInvite} className="font-body text-[12px] theme-text-muted border border-[var(--app-border)] rounded-lg px-5 py-2.5 hover:theme-text-secondary transition-colors">Cancel</button>
+                <button onClick={handleInvite} disabled={inviteSending} className="btn-gold text-[12px] px-5 min-h-[44px] disabled:opacity-50">{inviteSending ? "Sending..." : "Send Invite"}</button>
+                <button onClick={resetInvite} className="font-body text-[12px] theme-text-muted border border-[var(--app-border)] rounded-lg px-5 min-h-[44px] hover:theme-text-secondary transition-colors">Cancel</button>
               </div>
             </>
           ) : (
@@ -232,7 +232,7 @@ export default function AdminPartnersPage() {
                 <div className="font-body text-[10px] theme-text-muted uppercase tracking-wider mb-1.5">Signup Link (share manually if needed)</div>
                 <div className="font-mono text-[11px] theme-text-secondary break-all">{inviteResult.signupUrl}</div>
               </div>
-              <button onClick={resetInvite} className="btn-gold text-[12px] px-5 py-2.5">Done</button>
+              <button onClick={resetInvite} className="btn-gold text-[12px] px-5 min-h-[44px]">Done</button>
             </div>
           )}
         </div>
