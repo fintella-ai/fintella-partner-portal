@@ -69,6 +69,12 @@ export default function PartnerDetailPage() {
   const permissions = getPermissions((session?.user as any)?.role || "admin");
   const { id } = useParams();
   const router = useRouter();
+  // Tabs on the partner detail page. "info" (default) covers the main
+  // landing card — partner info, address, admin utilities. All the other
+  // long sections have been split into their own tabs so the page is no
+  // longer a giant vertical scroll.
+  type PartnerTab = "info" | "downline" | "commission" | "payout" | "documents" | "communications";
+  const [activeTab, setActiveTab] = useState<PartnerTab>("info");
   const [partner, setPartner] = useState<Partner | null>(null);
   const [downline, setDownline] = useState<Partner[]>([]);
   const [l3Partners, setL3Partners] = useState<Partner[]>([]);
@@ -360,6 +366,31 @@ export default function PartnerDetailPage() {
         </div>
       )}
 
+      {/* ─── TAB BAR ─────────────────────────────────────────────── */}
+      <div className="flex gap-1 mb-6 overflow-x-auto border-b border-[var(--app-border)]">
+        {([
+          { id: "info", label: "Info" },
+          { id: "downline", label: "Downline" },
+          { id: "commission", label: "Commission" },
+          { id: "payout", label: "Payout" },
+          { id: "documents", label: "Documents" },
+          { id: "communications", label: "Communications" },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={`font-body text-[13px] px-4 py-2.5 whitespace-nowrap transition-colors border-b-2 -mb-px ${
+              activeTab === t.id
+                ? "text-brand-gold border-brand-gold"
+                : "text-[var(--app-text-muted)] border-transparent hover:text-[var(--app-text-secondary)]"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "info" && (<>
       {/* ─── ADMIN NOTES (audit log) ──────────────────────────────── */}
       <div className="card mb-6">
         <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
@@ -604,6 +635,9 @@ export default function PartnerDetailPage() {
         </div>
       </div>
 
+      </>)}
+
+      {activeTab === "downline" && (<>
       {/* ─── DOWNLINE ─────────────────────────────────────────────── */}
       <div className="card mb-6">
         <div className="px-5 py-4 border-b border-[var(--app-border)] flex items-center justify-between flex-wrap gap-2">
@@ -689,6 +723,9 @@ export default function PartnerDetailPage() {
         )}
       </div>
 
+      </>)}
+
+      {activeTab === "commission" && (<>
       {/* ─── COMMISSION & TIER ────────────────────────────────────── */}
       <div className="card p-5 sm:p-6 mb-6">
         <div className="font-body font-semibold text-sm mb-4">Commission Structure</div>
@@ -779,6 +816,9 @@ export default function PartnerDetailPage() {
         )}
       </div>
 
+      </>)}
+
+      {activeTab === "payout" && (<>
       {/* ─── PAYOUT INFORMATION ─────────────────────────────────── */}
       <div className="card p-5 sm:p-6 mb-6">
         <div className="font-body font-semibold text-sm mb-4">Payout Information</div>
@@ -853,6 +893,9 @@ export default function PartnerDetailPage() {
         </div>
       </div>
 
+      </>)}
+
+      {activeTab === "documents" && (<>
       {/* ─── DOCUMENTS & AGREEMENT ─────────────────────────────── */}
       <div className="card mb-6">
         <div className="px-5 py-4 border-b border-[var(--app-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1185,6 +1228,9 @@ export default function PartnerDetailPage() {
         )}
       </div>
 
+      </>)}
+
+      {activeTab === "communications" && (<>
       {/* ═══ COMMUNICATION LOG ═══ */}
       <div className="card">
         <div className="px-5 py-4 border-b border-[var(--app-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1562,6 +1608,8 @@ export default function PartnerDetailPage() {
           </div>
         )}
       </div>
+
+      </>)}
 
       {/* Bottom save */}
       <div className="flex justify-end">
