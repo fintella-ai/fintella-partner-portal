@@ -164,6 +164,18 @@ export default function SettingsPage() {
   const [agreementTemplate20, setAgreementTemplate20] = useState("");
   const [agreementTemplate15, setAgreementTemplate15] = useState("");
   const [agreementTemplate10, setAgreementTemplate10] = useState("");
+
+  // Ad-hoc "Send Agreement" form — sits under the template config in
+  // the Agreements tab so admins can send an agreement to any existing
+  // partner without leaving Settings.
+  type PartnerOption = { partnerCode: string; firstName: string; lastName: string; email: string; commissionRate: number };
+  const [partnerOptions, setPartnerOptions] = useState<PartnerOption[]>([]);
+  const [sendPartnerCode, setSendPartnerCode] = useState("");
+  const [sendPartnerRate, setSendPartnerRate] = useState<number>(0.25);
+  const [sendPartnerName, setSendPartnerName] = useState("");
+  const [sendPartnerEmail, setSendPartnerEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [agreementTemplateEnterprise, setAgreementTemplateEnterprise] = useState("");
 
   // Navigation
@@ -239,6 +251,61 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
+
+  // Lazy-load partner options the first time the Agreements tab opens
+  // so the ad-hoc "Send Agreement" dropdown has something to pick from.
+  useEffect(() => {
+    if (tab !== "agreements" || partnerOptions.length > 0) return;
+    fetch("/api/admin/partners")
+      .then((r) => r.json())
+      .then((data) => {
+        const list = (data.partners || []).map((p: any) => ({
+          partnerCode: p.partnerCode,
+          firstName: p.firstName || "",
+          lastName: p.lastName || "",
+          email: p.email || "",
+          commissionRate: p.commissionRate ?? 0.25,
+        }));
+        setPartnerOptions(list);
+      })
+      .catch(() => {});
+  }, [tab, partnerOptions.length]);
+
+  const handleAdHocSendAgreement = async () => {
+    if (!sendPartnerCode) {
+      setSendResult({ ok: false, message: "Pick a partner first." });
+      return;
+    }
+    setSending(true);
+    setSendResult(null);
+    try {
+      const res = await fetch(`/api/admin/agreement/${sendPartnerCode}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rate: sendPartnerRate,
+          ...(sendPartnerName ? { name: sendPartnerName } : {}),
+          ...(sendPartnerEmail ? { email: sendPartnerEmail } : {}),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSendResult({ ok: false, message: data.error || `Send failed (HTTP ${res.status}).` });
+      } else {
+        setSendResult({
+          ok: true,
+          message: `Agreement sent to ${sendPartnerCode} at ${Math.round(sendPartnerRate * 100)}%. Partner will receive the SignWell link via email.`,
+        });
+        setSendPartnerCode("");
+        setSendPartnerName("");
+        setSendPartnerEmail("");
+      }
+    } catch (err: any) {
+      setSendResult({ ok: false, message: err?.message || "Network error" });
+    } finally {
+      setSending(false);
+    }
+  };
 
   // ── Save settings ─────────────────────────────────────────────────────
 
@@ -964,6 +1031,7 @@ export default function SettingsPage() {
 
       {/* ═══ AGREEMENTS TAB ═══ */}
       {tab === "agreements" && (
+        <div className="space-y-6">
         <div className="card p-5 sm:p-6">
           <div className="font-body font-semibold text-sm mb-1">Partnership Agreement Templates</div>
           <p className="font-body text-[12px] text-[var(--app-text-muted)] mb-5">
@@ -1003,6 +1071,95 @@ export default function SettingsPage() {
               <strong className="text-brand-gold">How it works:</strong> Upload 4 partnership agreement templates to SignWell (one per commission rate). Copy each template ID and paste it here. When partners sign up via recruitment links, the correct agreement is automatically sent based on the rate their recruiter chose.
             </p>
           </div>
+        </div>
+
+        {/* ─── Ad-hoc Send Agreement ─── */}
+        <div className="card p-5 sm:p-6">
+          <div className="font-body font-semibold text-sm mb-1">Send Agreement to a Partner</div>
+          <p className="font-body text-[12px] text-[var(--app-text-muted)] mb-5">
+            Pick an existing partner and a template rate, then click send. The matching SignWell template is used with partner data pre-filled, and the partner receives the signing link via email.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Partner</label>
+              <select
+                className={inputClass}
+                value={sendPartnerCode}
+                onChange={(e) => {
+                  const code = e.target.value;
+                  setSendPartnerCode(code);
+                  const p = partnerOptions.find((x) => x.partnerCode === code);
+                  if (p) {
+                    setSendPartnerRate(p.commissionRate || 0.25);
+                    setSendPartnerName("");
+                    setSendPartnerEmail("");
+                  }
+                }}
+              >
+                <option value="" className="bg-[var(--app-bg)]">— Select a partner —</option>
+                {partnerOptions.map((p) => (
+                  <option key={p.partnerCode} value={p.partnerCode} className="bg-[var(--app-bg)]">
+                    {p.firstName} {p.lastName} ({p.partnerCode}) · {Math.round(p.commissionRate * 100)}%
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Template Rate</label>
+              <select
+                className={inputClass}
+                value={sendPartnerRate}
+                onChange={(e) => setSendPartnerRate(parseFloat(e.target.value))}
+              >
+                <option value={0.25} className="bg-[var(--app-bg)]">25% — L1 Partner</option>
+                <option value={0.20} className="bg-[var(--app-bg)]">20% — L2/L3 Partner</option>
+                <option value={0.15} className="bg-[var(--app-bg)]">15% — L2/L3 Partner</option>
+                <option value={0.10} className="bg-[var(--app-bg)]">10% — L2/L3 Partner</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Name Override (optional)</label>
+              <input
+                className={inputClass}
+                value={sendPartnerName}
+                onChange={(e) => setSendPartnerName(e.target.value)}
+                placeholder="Leave blank to use the partner's stored name"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Email Override (optional)</label>
+              <input
+                className={inputClass}
+                type="email"
+                value={sendPartnerEmail}
+                onChange={(e) => setSendPartnerEmail(e.target.value)}
+                placeholder="Leave blank to use the partner's stored email"
+              />
+            </div>
+          </div>
+
+          {sendResult && (
+            <div
+              className={`mt-4 p-3 rounded-lg font-body text-[12px] ${
+                sendResult.ok
+                  ? "bg-green-500/10 border border-green-500/30 text-green-400"
+                  : "bg-red-500/10 border border-red-500/30 text-red-400"
+              }`}
+            >
+              {sendResult.message}
+            </div>
+          )}
+
+          <div className="mt-5 flex justify-end">
+            <button
+              onClick={handleAdHocSendAgreement}
+              disabled={sending || !sendPartnerCode}
+              className="btn-gold text-[12px] px-6 py-2.5 disabled:opacity-50"
+            >
+              {sending ? "Sending..." : "Send Agreement"}
+            </button>
+          </div>
+        </div>
         </div>
       )}
 
