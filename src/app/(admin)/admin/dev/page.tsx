@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = "links" | "errors" | "email" | "webhook" | "commits";
+type Tab = "links" | "errors" | "email" | "webhook" | "customapi" | "apilog" | "commits";
 
 type Commit = {
   sha: string;
@@ -464,7 +464,9 @@ function CommitsTab({ data }: { data: DevData | null }) {
   );
 }
 
-// ── API Log section (inside Webhook tab) ──
+// ── API Log Tab (standalone, All / Incoming / Outgoing filter) ──
+type LogFilter = "all" | "incoming" | "outgoing";
+
 function ApiLogSection() {
   const [logs, setLogs] = useState<ApiLog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -472,6 +474,7 @@ function ApiLogSection() {
   const [clearing, setClearing] = useState(false);
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [dirFilter, setDirFilter] = useState<LogFilter>("all");
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -500,6 +503,8 @@ function ApiLogSection() {
     }
     return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
   }, [autoRefresh]);
+
+  const filteredLogs = dirFilter === "all" ? logs : logs.filter((l) => l.direction === dirFilter);
 
   const methodBadge = (m: string) => {
     const colors: Record<string, string> = {
@@ -814,7 +819,7 @@ function CustomSenderSection() {
   );
 }
 
-// ── Webhook Test Tab (harness + custom sender + API log) ──
+// ── Webhook Test Tab (harness only — Custom API and API Log are separate tabs) ──
 function WebhookTab() {
   const router = useRouter();
   const [method, setMethod] = useState<Method>("POST");
@@ -973,16 +978,10 @@ function WebhookTab() {
           <ul className="font-body text-[12px] theme-text-secondary space-y-1.5 list-disc list-inside">
             <li>Payload is proxied through <code className="text-brand-gold">/api/admin/dev/webhook-test</code> (super_admin only) which injects <code>REFERRAL_WEBHOOK_SECRET</code> server-side.</li>
             <li>The proxy calls the real webhook at <code className="text-brand-gold">/api/webhook/referral</code> — same auth, same handlers, same DB writes.</li>
-            <li>Calls are recorded in the Incoming API Log section below.</li>
+            <li>Calls appear in the <strong>API Log</strong> tab.</li>
           </ul>
         </div>
       </div>
-
-      {/* ── Custom API Sender ── */}
-      <CustomSenderSection />
-
-      {/* ── Incoming API Log ── */}
-      <ApiLogSection />
     </div>
   );
 }
@@ -990,11 +989,13 @@ function WebhookTab() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "links",   label: "Quick Links",       icon: "🔗" },
-  { id: "errors",  label: "Recent Errors",     icon: "🚨" },
-  { id: "email",   label: "Send Test Email",   icon: "✉️" },
-  { id: "webhook", label: "Webhook Test",      icon: "🧪" },
-  { id: "commits", label: "Recent Commits",    icon: "📦" },
+  { id: "links",     label: "Quick Links",       icon: "🔗" },
+  { id: "errors",    label: "Recent Errors",     icon: "🚨" },
+  { id: "email",     label: "Send Test Email",   icon: "✉️" },
+  { id: "webhook",   label: "Webhook Test",      icon: "🧪" },
+  { id: "customapi", label: "Custom API",        icon: "🛰️" },
+  { id: "apilog",    label: "API Log",           icon: "📋" },
+  { id: "commits",   label: "Recent Commits",    icon: "📦" },
 ];
 
 export default function DevPage() {
@@ -1057,11 +1058,13 @@ export default function DevPage() {
       </div>
 
       {/* Tab content */}
-      {tab === "links"   && <QuickLinksTab data={data} />}
-      {tab === "errors"  && <ErrorsTab errors={errors} />}
-      {tab === "email"   && <EmailTab userEmail={userEmail} />}
-      {tab === "webhook" && <WebhookTab />}
-      {tab === "commits" && <CommitsTab data={data} />}
+      {tab === "links"     && <QuickLinksTab data={data} />}
+      {tab === "errors"    && <ErrorsTab errors={errors} />}
+      {tab === "email"     && <EmailTab userEmail={userEmail} />}
+      {tab === "webhook"   && <WebhookTab />}
+      {tab === "customapi" && <CustomSenderSection />}
+      {tab === "apilog"    && <ApiLogSection />}
+      {tab === "commits"   && <CommitsTab data={data} />}
     </div>
   );
 }
