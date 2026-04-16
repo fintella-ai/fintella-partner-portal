@@ -216,24 +216,14 @@ export default function DocumentsPage() {
                   Sent on {fmtDateTime(agreementData?.sentDate)}. Review and sign your partnership agreement to activate your account.
                 </p>
               </div>
-              {(() => {
-                const signingUrl = agreementData?.embeddedSigningUrl
-                  || (agreementData?.signwellDocumentId ? `https://www.signwell.com/sign/${agreementData.signwellDocumentId}/` : null);
-                return signingUrl ? (
-                  <button
-                    onClick={() => {
-                      if (agreementData?.embeddedSigningUrl) {
-                        handleOpenSigning();
-                      } else {
-                        window.open(signingUrl, "_blank");
-                      }
-                    }}
-                    className="shrink-0 btn-gold text-[12px] px-5 py-2.5 min-h-[44px]"
-                  >
-                    Sign Now
-                  </button>
-                ) : null;
-              })()}
+              {agreementData?.embeddedSigningUrl && (
+                <button
+                  onClick={handleOpenSigning}
+                  className="shrink-0 btn-gold text-[12px] px-5 py-2.5 min-h-[44px]"
+                >
+                  Sign Now
+                </button>
+              )}
             </div>
           </div>
         ) : (

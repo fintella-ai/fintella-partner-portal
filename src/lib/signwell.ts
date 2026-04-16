@@ -340,13 +340,22 @@ export async function sendForSigning(
     throw new Error(`SignWell API error (${res.status}): ${errText}`);
   }
 
-  const doc: SignWellDocumentResponse = await res.json();
+  const doc = await res.json();
 
-  // Extract embedded signing URL for the first recipient
+  // Log response keys to debug signing URL extraction
+  console.log("[signwell] Create response keys:", Object.keys(doc));
+  console.log("[signwell] embedded_signing_url:", doc.embedded_signing_url || "null");
+  console.log("[signwell] recipients:", JSON.stringify(doc.recipients || doc.signees || doc.recipients_with_urls || "none"));
+
+  // Extract embedded signing URL — try multiple response shapes
   const embeddedSigningUrl =
-    doc.recipients_with_urls?.[0]?.embedded_signing_url ||
     doc.embedded_signing_url ||
+    doc.recipients_with_urls?.[0]?.embedded_signing_url ||
+    doc.recipients?.[0]?.embedded_signing_url ||
+    doc.signees?.[0]?.embedded_signing_url ||
     null;
+
+  console.log("[signwell] Extracted embeddedSigningUrl:", embeddedSigningUrl || "null");
 
   return { documentId: doc.id, status: "pending", embeddedSigningUrl };
 }
