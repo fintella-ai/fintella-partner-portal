@@ -99,6 +99,25 @@ export default function AdminPartnersPage() {
   const [inviteResult, setInviteResult] = useState<{ signupUrl: string } | null>(null);
   const [inviteSending, setInviteSending] = useState(false);
 
+  // Sort state
+  type SortCol = "name" | "code" | "status" | "joined";
+  const [sortCol, setSortCol] = useState<SortCol>("joined");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (col: SortCol) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortCol }) => {
+    if (sortCol !== col) return <span className="ml-1 opacity-30 text-[10px]">↕</span>;
+    return <span className="ml-1 text-brand-gold text-[10px]">{sortDir === "asc" ? "↑" : "↓"}</span>;
+  };
+
   // Resend invite state
   const [selectedInviteIds, setSelectedInviteIds] = useState<string[]>([]);
   const [resendingId, setResendingId] = useState<string | null>(null);
@@ -247,9 +266,17 @@ export default function AdminPartnersPage() {
   const blocked = partners.filter((p) => p.status === "blocked").length;
   const invitedCount = invites.filter((inv) => inv.status === "active").length;
 
-  const filteredPartners = activeTab === "all" || activeTab === "invited"
+  const filteredPartners = (activeTab === "all" || activeTab === "invited"
     ? partners
-    : partners.filter((p) => p.status === activeTab);
+    : partners.filter((p) => p.status === activeTab)
+  ).slice().sort((a, b) => {
+    let va: string, vb: string;
+    if (sortCol === "name") { va = `${a.firstName} ${a.lastName}`.toLowerCase(); vb = `${b.firstName} ${b.lastName}`.toLowerCase(); }
+    else if (sortCol === "code") { va = a.partnerCode; vb = b.partnerCode; }
+    else if (sortCol === "status") { va = a.status; vb = b.status; }
+    else { va = a.signupDate; vb = b.signupDate; }
+    return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
 
   const filteredInvites = invites.filter((inv) => {
     if (!search) return true;
@@ -381,7 +408,7 @@ export default function AdminPartnersPage() {
           <button
             key={tab.key}
             onClick={() => { setActiveTab(tab.key); setSelectedInviteIds([]); setBulkResult(null); }}
-            className={`shrink-0 px-4 rounded-lg font-body text-[12px] font-medium transition-colors min-h-[36px] ${
+            className={`shrink-0 px-4 rounded-lg font-body text-[12px] font-medium transition-colors min-h-[44px] ${
               activeTab === tab.key
                 ? "bg-brand-gold text-black"
                 : "border border-[var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
@@ -425,13 +452,13 @@ export default function AdminPartnersPage() {
                   <button
                     onClick={handleBulkResend}
                     disabled={bulkResending}
-                    className="btn-gold text-[12px] px-4 min-h-[36px] disabled:opacity-50"
+                    className="btn-gold text-[12px] px-4 min-h-[44px] disabled:opacity-50"
                   >
                     {bulkResending ? "Sending..." : "Resend Selected"}
                   </button>
                   <button
                     onClick={() => setSelectedInviteIds([])}
-                    className="font-body text-[12px] theme-text-muted border border-[var(--app-border)] rounded-lg px-4 min-h-[36px] hover:theme-text-secondary transition-colors"
+                    className="font-body text-[12px] theme-text-muted border border-[var(--app-border)] rounded-lg px-4 min-h-[44px] hover:theme-text-secondary transition-colors"
                   >
                     Clear
                   </button>
@@ -560,7 +587,7 @@ export default function AdminPartnersPage() {
                     <button
                       onClick={() => handleResendInvite(inv.id)}
                       disabled={!isResendable || isResending || !!feedback}
-                      className={`font-body text-[11px] px-3 min-h-[36px] rounded-lg border transition-colors whitespace-nowrap disabled:cursor-not-allowed ${
+                      className={`font-body text-[11px] px-3 min-h-[44px] rounded-lg border transition-colors whitespace-nowrap disabled:cursor-not-allowed ${
                         feedback === "ok"
                           ? "text-green-400 border-green-500/20 bg-green-500/10"
                           : feedback === "error"
@@ -592,8 +619,27 @@ export default function AdminPartnersPage() {
           {/* Partners — Desktop Table */}
           <div className="card hidden sm:block overflow-x-auto">
             <div className="grid grid-cols-[1.5fr_1fr_0.9fr_1.2fr_0.7fr_0.6fr_0.8fr_0.5fr] gap-3 px-5 py-3 border-b border-[var(--app-border)]">
-              {["Partner", "Code", "Phone", "Email", "Status", "W9", "Joined", ""].map((h) => (
-                <div key={h} className={`font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider ${h === "Status" || h === "W9" ? "text-center" : ""}`}>{h}</div>
+              {([
+                { label: "Partner", col: "name" as SortCol },
+                { label: "Code", col: "code" as SortCol },
+                { label: "Phone", col: null },
+                { label: "Email", col: null },
+                { label: "Status", col: "status" as SortCol, center: true },
+                { label: "W9", col: null, center: true },
+                { label: "Joined", col: "joined" as SortCol },
+                { label: "", col: null },
+              ] as { label: string; col: SortCol | null; center?: boolean }[]).map((h) => (
+                h.col ? (
+                  <button
+                    key={h.label}
+                    onClick={() => handleSort(h.col!)}
+                    className={`font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider flex items-center gap-0.5 hover:text-[var(--app-text-secondary)] transition-colors ${h.center ? "justify-center" : ""}`}
+                  >
+                    {h.label}<SortIcon col={h.col} />
+                  </button>
+                ) : (
+                  <div key={h.label} className={`font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider ${h.center ? "text-center" : ""}`}>{h.label}</div>
+                )
               ))}
             </div>
             {filteredPartners.map((p) => {
