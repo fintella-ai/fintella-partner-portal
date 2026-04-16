@@ -1,48 +1,43 @@
 # Session State
 
-🕒 Last updated: 2026-04-15 — softphone fixed, Stripe env vars added
+🕒 Last updated: 2026-04-15 — PR #142 open, unified API log feature
 
 ## 🌿 Git state
-- **main HEAD:** `098c1d9` — chore(session): checkpoint (local only, 1 ahead of origin/main)
-- **origin/main HEAD:** `41bbaed` — feat(settings): DB-driven call recording toggle + softphone recording fix (#134)
-- **Working tree:** clean (`.env.local` and `.env.production` are gitignored)
+- **main HEAD:** `87cfba5` — Merge branch 'main' (PR #141 merged)
+- **origin/main HEAD:** `87cfba5` — in sync
+- **Feature branch:** `claude/api-log-unified-direction` → PR #142 open
+- **Working tree:** 5 uncommitted changes unrelated to PR #142 (globals.css, layout.tsx, ThemeProvider.tsx, .env.production, tsconfig.tsbuildinfo) — pre-existing
 
 ## ✅ What's done (this session)
-- **PR #135 — Phase 16 Stripe Connect** — merged to main, deployed ✓
-- **PR #134 — Phase 15c call recording toggle** — merged to main, deployed ✓
-  - DB-driven `callRecordingEnabled` toggle in admin Settings
-  - `partner-consent-webhook` for playing consent to called party
-  - Diagnostic endpoint at `/api/admin/dev/twilio-voice`
-- **Softphone root cause found and fixed:**
-  - Vercel had `TWILIO_PHONE_NUMBER` but code reads `TWILIO_FROM_NUMBER`
-  - Added `TWILIO_FROM_NUMBER=+17276108292` to all 3 Vercel environments
-  - Triggered production redeploy via Vercel CLI — live at fintella.partners
-  - Full diagnostic: ✅ All 7 env vars, ✅ TwiML App URL, ✅ Access Token
-- **Vercel project now properly linked:** `tariff-partner-portal-iwki` (was incorrectly linked to old `tariff-partner-portal`)
-- **Stripe env vars added to Vercel:** `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (added 17-19m ago by user)
+- **PR #141 — /admin/dev tabbed page + WebhookRequestLog + custom API sender** — merged to main ✓
+- **PR #142 — unified API log (incoming + outgoing)** — open, Vercel building
+  - `WebhookRequestLog` gains `direction` ("incoming"|"outgoing") + `targetUrl` + `@@index([direction])`
+  - `api-proxy` logs every outgoing request fire-and-forget with auth header redaction
+  - Dev page: "Incoming API Log" → "API Log" with `↓ in` / `↑ out` direction badges per row
 
 ## 🔄 What's in flight
-- Nothing — working tree is clean
+- **PR #142** — awaiting Vercel check + merge
+- **Unrelated working-tree changes** on `claude/api-log-unified-direction`: `globals.css`, `layout.tsx`, `ThemeProvider.tsx` — these were pre-existing before this session, need investigation
 
 ## 🎯 What's next
-1. **Smoke-test softphone** — make a test call from admin panel to confirm bridged call works now
-2. **Smoke-test Stripe Connect** — add Stripe webhook in Stripe dashboard pointing to `https://fintella.partners/api/stripe/webhook`, then test partner onboarding flow
-3. **Smoke-test invite flow** — create partner via invite link, sign agreement, verify status flips to `active`
-4. **HMAC enforcement on `/api/webhook/referral`** — flip from log-only to enforced when Frost Law is ready
+1. **Merge PR #142** once Vercel checks pass
+2. **Investigate working-tree changes** — globals.css + layout.tsx + ThemeProvider.tsx modified/added; determine intent and create separate PR if needed
+3. **Admin chat reply UI** — wire reply input to `/api/admin/chat` POST
+4. **HMAC enforcement on `/api/webhook/referral`** — flip log-only → hard-reject once Frost Law implements signing
 5. **Phase 18b** — Next.js 14→16 migration (dedicated session)
 
 ## 🧠 Context that matters for resuming
 - Vercel project name: `tariff-partner-portal-iwki` (NOT `tariff-partner-portal`)
 - Vercel team: `john-fflaw-projects`
-- `TWILIO_PHONE_NUMBER` is the old Vercel env var name; `TWILIO_FROM_NUMBER` is what the code reads
-- Stripe Connect is demo-gated — needs `STRIPE_SECRET_KEY` in Vercel (now set) and Stripe webhook configured
+- `DIRECT_URL` Neon env var is NOT available via `vercel env pull` — schema migrations apply on Vercel build (safe pre-launch)
 - All DB data is test/seed — safe to test against production
+- `TWILIO_FROM_NUMBER` is the correct env var name (not `TWILIO_PHONE_NUMBER`)
+- Stripe Connect: keys set, needs Stripe Dashboard webhook configured
 - Playwright: user said "im not worried about playwright" — not on roadmap
 
 ## 📂 Relevant files for the next task
-- `.claude/session-state.md` — this file
-- `src/lib/twilio-voice.ts` — bridged call initiation
-- `src/lib/twilio.ts` — SMS + demo-gate check (uses TWILIO_FROM_NUMBER)
-- `src/app/api/twilio/voice-webhook/route.ts` — TwiML response handler
-- `src/lib/stripe.ts` — Stripe raw fetch client
-- `src/app/api/stripe/webhook/route.ts` — account.updated handler
+- `prisma/schema.prisma` — WebhookRequestLog now has direction + targetUrl
+- `src/app/api/admin/dev/api-proxy/route.ts` — logs outgoing calls
+- `src/app/api/admin/dev/api-log/route.ts` — returns direction + targetUrl
+- `src/app/(admin)/admin/dev/page.tsx` — unified API log UI with direction badges
+- `src/app/globals.css` / `src/app/layout.tsx` / `src/components/layout/ThemeProvider.tsx` — modified/new, unrelated to PR #142, needs PR
