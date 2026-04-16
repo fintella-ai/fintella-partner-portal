@@ -262,8 +262,6 @@ export async function sendForSigning(
             validFieldApiIds.add(f.api_id);
           }
         }
-        console.log("[signwell] Placeholder map:", placeholderIdByName);
-        console.log("[signwell] Valid pre-fill api_ids:", Array.from(validFieldApiIds));
       } else {
         console.warn("[signwell] Failed to fetch template:", tplRes.status);
       }
@@ -311,7 +309,6 @@ export async function sendForSigning(
       if (filtered.length > 0) {
         body.template_fields = filtered;
       }
-      console.log("[signwell] Fields sent:", filtered.length, "of", options.templateFields.length);
     }
   } else if (options.fileUrl) {
     // Non-template send: attach file
@@ -329,10 +326,6 @@ export async function sendForSigning(
     ? `${SIGNWELL_API_BASE}/document_templates/documents`
     : `${SIGNWELL_API_BASE}/documents`;
 
-  // Log the full request for debugging (remove once stable)
-  console.log("[signwell] POST", url);
-  console.log("[signwell] Request body:", JSON.stringify(body, null, 2));
-
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -344,7 +337,6 @@ export async function sendForSigning(
 
   if (!res.ok) {
     const errText = await res.text();
-    console.error("[signwell] Error response:", errText);
     throw new Error(`SignWell API error (${res.status}): ${errText}`);
   }
 
