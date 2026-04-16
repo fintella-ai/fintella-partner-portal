@@ -22,8 +22,10 @@ export async function GET() {
     select: {
       id: true,
       createdAt: true,
+      direction: true,
       method: true,
       path: true,
+      targetUrl: true,
       sourceIp: true,
       headers: true,
       body: true,

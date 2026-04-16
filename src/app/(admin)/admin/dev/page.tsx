@@ -55,8 +55,10 @@ type ErrorsData = {
 type ApiLog = {
   id: string;
   createdAt: string;
+  direction: string; // "incoming" | "outgoing"
   method: string;
   path: string;
+  targetUrl: string | null;
   sourceIp: string | null;
   headers: string | null;
   body: string | null;
@@ -518,9 +520,9 @@ function ApiLogSection() {
     <div className="card overflow-hidden">
       <div className="px-5 py-4 border-b border-[var(--app-border)] flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <div className="font-body font-semibold text-sm">Incoming API Log</div>
+          <div className="font-body font-semibold text-sm">API Log</div>
           <div className="font-body text-[11px] theme-text-muted">
-            All requests to <code className="font-mono text-[10px] text-brand-gold">/api/webhook/referral</code> — auth values redacted
+            Incoming webhook traffic + outgoing proxy requests — auth values redacted
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -551,7 +553,7 @@ function ApiLogSection() {
         <div className="px-5 py-10 text-center">
           <div className="font-body text-sm theme-text-muted mb-1">No requests logged yet.</div>
           <div className="font-body text-[11px] theme-text-faint">
-            Every call to <code className="font-mono">/api/webhook/referral</code> will appear here — from Frost Law, the test harness, or anywhere else.
+            Incoming calls to <code className="font-mono">/api/webhook/referral</code> and outgoing requests from the Custom API sender will appear here.
           </div>
         </div>
       ) : (
@@ -566,15 +568,29 @@ function ApiLogSection() {
                   className="w-full text-left px-5 py-3 hover:bg-[var(--app-hover)] transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-wrap">
+                    {/* Direction badge */}
+                    <span className={`font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${
+                      log.direction === "outgoing"
+                        ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                        : "bg-sky-500/15 text-sky-400 border-sky-500/30"
+                    }`}>
+                      {log.direction === "outgoing" ? "↑ out" : "↓ in"}
+                    </span>
                     {methodBadge(log.method)}
                     <span className={`font-mono text-[12px] font-semibold ${statusColor(statusCode)}`}>
                       {statusCode ?? "ERR"}
                     </span>
+                    {/* Show target URL for outgoing, source IP for incoming */}
+                    {log.direction === "outgoing" && log.targetUrl ? (
+                      <span className="font-mono text-[11px] theme-text-muted truncate max-w-[200px] sm:max-w-xs"
+                        title={log.targetUrl}>
+                        {log.targetUrl.replace(/^https?:\/\//, "")}
+                      </span>
+                    ) : log.sourceIp ? (
+                      <span className="font-mono text-[11px] theme-text-muted">{log.sourceIp}</span>
+                    ) : null}
                     {log.durationMs != null && (
                       <span className="font-body text-[11px] theme-text-muted">{log.durationMs}ms</span>
-                    )}
-                    {log.sourceIp && (
-                      <span className="font-mono text-[11px] theme-text-muted">{log.sourceIp}</span>
                     )}
                     <span className="font-body text-[11px] theme-text-muted ml-auto">
                       {relativeTime(log.createdAt)}
@@ -594,7 +610,7 @@ function ApiLogSection() {
                 {isExpanded && (
                   <div className="px-5 pb-4 space-y-3 bg-[var(--app-bg-secondary)]">
                     <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted pt-2">
-                      {new Date(log.createdAt).toLocaleString()} · {log.path}
+                      {new Date(log.createdAt).toLocaleString()} · {log.direction === "outgoing" && log.targetUrl ? log.targetUrl : log.path}
                     </div>
 
                     {log.headers && (
