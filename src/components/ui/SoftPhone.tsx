@@ -317,10 +317,10 @@ export default function SoftPhone() {
         onPointerUp={onDragEnd}
         className={`px-4 pt-3 pb-2 border-b border-[var(--app-border)] bg-gradient-to-r from-brand-gold/10 to-transparent shrink-0 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
-        {/* Row 1: status left — branding center — number + close right */}
+        {/* Row 1: status left — branding center — close right */}
         <div className="flex items-center">
-          {/* Left: status indicator */}
-          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          {/* Left: status indicator — self-stretch so it fills the full header height, items-center vertically centers dot+label */}
+          <div className="flex items-center gap-1.5 flex-1 min-w-0 self-stretch">
             <span
               className="shrink-0 w-2.5 h-2.5 rounded-full shadow-sm"
               style={{
@@ -342,7 +342,7 @@ export default function SoftPhone() {
             </span>
           </div>
 
-          {/* Center: logo + Fintella + Softphone */}
+          {/* Center: logo + Fintella + Softphone + number */}
           <div className="flex flex-col items-center shrink-0 mx-2">
             {logoUrl ? (
               <img src={logoUrl} alt="Fintella" className="h-6 object-contain mb-0.5" />
@@ -351,11 +351,8 @@ export default function SoftPhone() {
             <div className="font-body text-[9px] uppercase tracking-[2px] text-[var(--app-text-muted)] mt-0.5">Softphone</div>
           </div>
 
-          {/* Right: office number + close */}
-          <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
-            <div className="text-right min-w-0">
-              <div className="font-mono text-[10px] text-brand-gold leading-none">{OFFICE_NUMBER_DISPLAY}</div>
-            </div>
+          {/* Right: close */}
+          <div className="flex flex-1 justify-end">
             <button
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => { if (inCall) hangup(); setOpen(false); }}
@@ -365,11 +362,6 @@ export default function SoftPhone() {
               ✕
             </button>
           </div>
-        </div>
-
-        {/* Drag hint */}
-        <div className="flex justify-center mt-1.5">
-          <span className="text-[var(--app-text-faint)] text-[10px] tracking-widest">⠿⠿⠿</span>
         </div>
       </div>
 
