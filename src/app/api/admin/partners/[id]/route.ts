@@ -104,9 +104,11 @@ export async function GET(
       : [];
 
     // Auto-reconcile: if there's an approved agreement document but the
-    // PartnershipAgreement record is still under_review, fix it now
+    // PartnershipAgreement record is still under_review, fix it now.
+    // Skip agreements sent via SignWell (have a signwellDocumentId) —
+    // those should only transition via the document_completed webhook.
     let reconciledAgreement = agreement;
-    if (agreement && (agreement.status === "under_review" || agreement.status === "pending")) {
+    if (agreement && !agreement.signwellDocumentId && (agreement.status === "under_review" || agreement.status === "pending")) {
       const hasApprovedDoc = (documents as any[]).some(
         (d: any) => d.docType === "agreement" && d.status === "approved"
       );
