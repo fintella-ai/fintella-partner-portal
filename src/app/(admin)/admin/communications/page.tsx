@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { fmtDate, fmtDateTime } from "@/lib/format";
+import { fmtDate, fmtDateTime, fmtPhone } from "@/lib/format";
 import PartnerLink from "@/components/ui/PartnerLink";
 
 /* ------------------------------------------------------------------ */
@@ -480,11 +480,11 @@ export default function CommunicationsPage() {
           <table className="w-full text-left font-body text-sm">
             <thead>
               <tr className="border-b border-[var(--app-border)] text-[var(--app-text-muted)] text-xs uppercase tracking-wider">
-                <th className="px-4 py-3">Sender</th>
-                <th className="px-4 py-3">Subject</th>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Action</th>
+                <th className="px-4 py-3 text-center">Sender</th>
+                <th className="px-4 py-3 text-center">Subject</th>
+                <th className="px-4 py-3 text-center">Date</th>
+                <th className="px-4 py-3 text-center">Status</th>
+                <th className="px-4 py-3 text-center">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -1446,10 +1446,10 @@ export default function CommunicationsPage() {
           <table className="w-full text-left font-body text-sm hidden sm:table">
             <thead>
               <tr className="border-b border-[var(--app-border)] text-[var(--app-text-muted)] text-xs uppercase tracking-wider">
-                <th className="px-4 py-3">Partner</th>
-                <th className="px-4 py-3">Phone</th>
-                <th className="px-4 py-3">Opt-In Date</th>
-                <th className="px-4 py-3">Messages Sent</th>
+                <th className="px-4 py-3 text-center">Partner</th>
+                <th className="px-4 py-3 text-center">Phone</th>
+                <th className="px-4 py-3 text-center">Opt-In Date</th>
+                <th className="px-4 py-3 text-center">Messages Sent</th>
               </tr>
             </thead>
             <tbody>
@@ -1460,7 +1460,7 @@ export default function CommunicationsPage() {
                 >
                   <td className="px-4 py-3 text-[var(--app-text)]">{p.name}</td>
                   <td className="px-4 py-3 text-[var(--app-text-secondary)] font-mono text-xs">
-                    {p.phone}
+                    {fmtPhone(p.phone)}
                   </td>
                   <td className="px-4 py-3 text-[var(--app-text-secondary)]">{fmtDate(p.optInDate)}</td>
                   <td className="px-4 py-3 text-[var(--app-text-secondary)]">{p.messagesSent}</td>
@@ -1475,7 +1475,7 @@ export default function CommunicationsPage() {
               <div key={p.id} className="px-4 py-3 border-b border-[var(--app-border-subtle)]">
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-body text-sm text-[var(--app-text)]">{p.name}</span>
-                  <span className="font-mono text-xs text-[var(--app-text-muted)]">{p.phone}</span>
+                  <span className="font-mono text-xs text-[var(--app-text-muted)]">{fmtPhone(p.phone)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-body text-xs text-[var(--app-text-muted)]">
@@ -1580,12 +1580,12 @@ export default function CommunicationsPage() {
           <table className="w-full text-left font-body text-sm">
             <thead>
               <tr className="border-b border-[var(--app-border)] text-[var(--app-text-muted)] text-xs uppercase tracking-wider">
-                <th className="px-4 py-3">When</th>
-                <th className="px-4 py-3">Partner</th>
-                <th className="px-4 py-3">Number</th>
-                <th className="px-4 py-3">Initiated By</th>
-                <th className="px-4 py-3">Duration</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-center">When</th>
+                <th className="px-4 py-3 text-center">Partner</th>
+                <th className="px-4 py-3 text-center">Number</th>
+                <th className="px-4 py-3 text-center">Initiated By</th>
+                <th className="px-4 py-3 text-center">Duration</th>
+                <th className="px-4 py-3 text-center">Status</th>
               </tr>
             </thead>
             <tbody>

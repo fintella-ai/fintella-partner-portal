@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, fmtPhone, normalizePhone } from "@/lib/format";
 
 type Partner = {
   id: string;
@@ -35,14 +35,10 @@ type Invite = {
 type TabType = "all" | "active" | "pending" | "invited" | "blocked";
 
 // Normalize a stored mobile number to E.164 for the softphone Device.
+// Uses normalizePhone from @/lib/format (imported above).
+// Wrapper kept to preserve null semantics for the softphone (must be valid E.164 or null).
 function normalizeForSoftphone(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  const trimmed = raw.trim();
-  if (trimmed.startsWith("+") && /^\+[1-9]\d{6,14}$/.test(trimmed)) return trimmed;
-  const digits = trimmed.replace(/\D/g, "");
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  return null;
+  return normalizePhone(raw);
 }
 
 const docBadge: Record<string, string> = {
@@ -624,21 +620,21 @@ export default function AdminPartnersPage() {
                 { label: "Code", col: "code" as SortCol },
                 { label: "Phone", col: null },
                 { label: "Email", col: null },
-                { label: "Status", col: "status" as SortCol, center: true },
-                { label: "W9", col: null, center: true },
+                { label: "Status", col: "status" as SortCol },
+                { label: "W9", col: null },
                 { label: "Joined", col: "joined" as SortCol },
                 { label: "", col: null },
-              ] as { label: string; col: SortCol | null; center?: boolean }[]).map((h) => (
+              ] as { label: string; col: SortCol | null }[]).map((h) => (
                 h.col ? (
                   <button
                     key={h.label}
                     onClick={() => handleSort(h.col!)}
-                    className={`font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider flex items-center gap-0.5 hover:text-[var(--app-text-secondary)] transition-colors ${h.center ? "justify-center" : ""}`}
+                    className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider flex items-center gap-0.5 hover:text-[var(--app-text-secondary)] transition-colors justify-center"
                   >
                     {h.label}<SortIcon col={h.col} />
                   </button>
                 ) : (
-                  <div key={h.label} className={`font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider ${h.center ? "text-center" : ""}`}>{h.label}</div>
+                  <div key={h.label} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center">{h.label}</div>
                 )
               ))}
             </div>
@@ -663,7 +659,7 @@ export default function AdminPartnersPage() {
                         className="text-brand-gold hover:underline"
                         title="Click to dial via softphone"
                       >
-                        📞 {p.mobilePhone || p.phone}
+                        📞 {fmtPhone(p.mobilePhone || p.phone)}
                       </button>
                     ) : (
                       <span className="text-[var(--app-text-muted)]">—</span>

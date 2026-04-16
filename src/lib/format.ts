@@ -37,6 +37,20 @@ export function fmtPercent(n: number): string {
 }
 
 /**
+ * Format a phone number for display as +1##########.
+ * Accepts any common US format and normalizes to E.164.
+ * Returns the original string if it can't be normalized.
+ */
+export function fmtPhone(raw: string | null | undefined): string {
+  if (!raw) return "—";
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  // Already in E.164 or unrecognizable — return as-is
+  return raw.trim() || "—";
+}
+
+/**
  * Normalize any US phone input to E.164 (+1##########).
  * Strips formatting, accepts 10-digit or 11-digit (leading 1) numbers.
  * Returns null for blank or unrecognizable input.

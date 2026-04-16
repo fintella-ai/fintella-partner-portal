@@ -359,13 +359,13 @@ export default function SupportTicketsPage() {
             <table className="w-full text-left font-body text-sm">
               <thead>
                 <tr className="border-b border-[var(--app-border)] text-[var(--app-text-muted)] text-xs uppercase tracking-wider">
-                  <th className="px-4 py-3">Subject</th>
-                  <th className="px-4 py-3">Partner</th>
-                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3 text-center">Subject</th>
+                  <th className="px-4 py-3 text-center">Partner</th>
+                  <th className="px-4 py-3 text-center">Category</th>
                   <th className="px-4 py-3 text-center">Priority</th>
                   <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3">Last Activity</th>
-                  <th className="px-4 py-3">Action</th>
+                  <th className="px-4 py-3 text-center">Last Activity</th>
+                  <th className="px-4 py-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
