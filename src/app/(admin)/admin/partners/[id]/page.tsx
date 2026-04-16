@@ -51,6 +51,8 @@ type Agreement = {
   version: number;
   sentDate: string | null;
   signedDate: string | null;
+  embeddedSigningUrl: string | null;
+  signwellDocumentId: string | null;
 };
 
 const statusOptions = ["active", "pending", "inactive", "blocked"];
@@ -1146,6 +1148,27 @@ export default function PartnerDetailPage() {
               {agreement?.status === "approved" ? "signed & approved" : agreement?.status?.replace("_", " ") || "none"}
             </span>
           </div>
+          {agreement?.status === "pending" && agreement.embeddedSigningUrl && (
+            <div className="mt-2">
+              <a
+                href={agreement.embeddedSigningUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 font-body text-[12px] text-brand-gold hover:text-brand-gold/80 underline underline-offset-2 transition-colors"
+              >
+                ✍️ Open Signing Link
+              </a>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(agreement.embeddedSigningUrl!);
+                  alert("Signing URL copied to clipboard");
+                }}
+                className="ml-3 font-body text-[11px] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors"
+              >
+                Copy URL
+              </button>
+            </div>
+          )}
         </div>
 
         {/* W9 status */}
