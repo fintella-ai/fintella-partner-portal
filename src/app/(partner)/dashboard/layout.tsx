@@ -7,6 +7,7 @@ import { FIRM_NAME, FIRM_SHORT as DEFAULT_FIRM_SHORT, FIRM_SLOGAN as DEFAULT_FIR
 import { useDevice } from "@/lib/useDevice";
 import NotificationBell from "@/components/ui/NotificationBell";
 import InstallPrompt from "@/components/ui/InstallPrompt";
+import { useTheme } from "@/components/layout/ThemeProvider";
 
 // ─── NAV STRUCTURE ───────────────────────────────────────────────────────────
 // Main nav items (top section of sidebar)
@@ -78,6 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const device = useDevice();
+  const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -277,6 +279,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </>
         )}
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="w-full font-body text-[11px] theme-text-muted rounded px-3 py-2 mb-2 transition-colors hover:opacity-80 flex items-center justify-center gap-2"
+          style={{ border: "1px solid var(--app-border)" }}
+        >
+          <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+          {!isCollapsed && <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>}
+        </button>
         <button
           onClick={() => navigate("/dashboard/settings")}
           title={isCollapsed ? "Account Settings" : undefined}

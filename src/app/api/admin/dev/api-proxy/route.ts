@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 /**
  * POST /api/admin/dev/api-proxy
  *
  * Super admin only. Proxies an arbitrary HTTP request to a given URL,
  * forwarding caller-supplied headers and body, then returns the response.
- * Used by the Custom API Sender panel in the developer page to let admins
- * send test requests to external endpoints (e.g. Frost Law staging, our
- * own webhook) without CORS restrictions.
+ * Every call is logged to WebhookRequestLog with direction="outgoing".
  *
  * Body: {
- *   url: string           — target URL (http:// or https://)
- *   method: string        — GET, POST, PATCH, PUT, DELETE
+ *   url: string                     — target URL (http:// or https://)
+ *   method: string                  — GET, POST, PATCH, PUT, DELETE
  *   headers: Record<string,string>  — forwarded verbatim
- *   body?: unknown        — serialised as JSON if present and method !== GET
+ *   body?: unknown                  — serialised as JSON if present and method !== GET
  * }
  */
 export async function POST(req: NextRequest) {
@@ -52,9 +51,6 @@ export async function POST(req: NextRequest) {
   }
 
   // Block private/loopback ranges to prevent SSRF pivoting to internal services.
-  // Even though this is super_admin only, defence-in-depth means we don't allow
-  // the admin panel to reach 169.254.x (cloud metadata), 127.x (loopback), or
-  // RFC-1918 private ranges.
   const hostname = parsedUrl.hostname.toLowerCase();
   const PRIVATE_PATTERNS = [
     /^localhost$/,
@@ -63,10 +59,10 @@ export async function POST(req: NextRequest) {
     /^10\./,
     /^172\.(1[6-9]|2[0-9]|3[01])\./,
     /^192\.168\./,
-    /^169\.254\./,    // link-local / cloud metadata (AWS IMDS, GCP, Azure)
-    /^::1$/,          // IPv6 loopback
-    /^fc00:/,         // IPv6 ULA
-    /^fe80:/,         // IPv6 link-local
+    /^169\.254\./,
+    /^::1$/,
+    /^fc00:/,
+    /^fe80:/,
   ];
   if (PRIVATE_PATTERNS.some((p) => p.test(hostname))) {
     return NextResponse.json(
@@ -76,31 +72,42 @@ export async function POST(req: NextRequest) {
   }
 
   const start = Date.now();
+  const targetUrl = parsedUrl.toString();
+
+  // Build request headers
+  const reqHeaders = new Headers();
+  if (!Object.keys(headers).some((k) => k.toLowerCase() === "content-type") && upperMethod !== "GET") {
+    reqHeaders.set("Content-Type", "application/json");
+  }
+  for (const [k, v] of Object.entries(headers)) {
+    if (k && v !== undefined) reqHeaders.set(k, String(v));
+  }
+
+  // Serialise outgoing body
+  let bodyStr: string | undefined;
+  if (upperMethod !== "GET" && body !== undefined) {
+    bodyStr = typeof body === "string" ? body : JSON.stringify(body);
+  }
+
+  // Capture outgoing headers for the log (redact auth values)
+  const REDACTED = new Set(["authorization", "x-fintella-api-key", "x-webhook-secret", "cookie"]);
+  const logHeaders: Record<string, string> = {};
+  reqHeaders.forEach((v, k) => { logHeaders[k] = REDACTED.has(k.toLowerCase()) ? "[REDACTED]" : v; });
+
+  const fetchInit: RequestInit = { method: upperMethod, headers: reqHeaders };
+  if (bodyStr !== undefined) fetchInit.body = bodyStr;
+
+  let responseStatus = 0;
+  let rawText = "";
+  let responseBody: unknown;
+  let errorMsg: string | undefined;
 
   try {
-    const reqHeaders = new Headers();
-    // Merge caller headers. Content-Type defaults to JSON.
-    if (!Object.keys(headers).some((k) => k.toLowerCase() === "content-type") && upperMethod !== "GET") {
-      reqHeaders.set("Content-Type", "application/json");
-    }
-    for (const [k, v] of Object.entries(headers)) {
-      if (k && v !== undefined) reqHeaders.set(k, String(v));
-    }
-
-    const fetchInit: RequestInit = {
-      method: upperMethod,
-      headers: reqHeaders,
-    };
-    if (upperMethod !== "GET" && body !== undefined) {
-      fetchInit.body = typeof body === "string" ? body : JSON.stringify(body);
-    }
-
-    const res = await fetch(parsedUrl.toString(), fetchInit);
+    const res = await fetch(targetUrl, fetchInit);
     const durationMs = Date.now() - start;
+    responseStatus = res.status;
 
     const contentType = res.headers.get("content-type") || "";
-    let responseBody: unknown;
-    let rawText = "";
     try {
       rawText = await res.text();
       responseBody = contentType.includes("json") ? JSON.parse(rawText) : rawText;
@@ -111,6 +118,21 @@ export async function POST(req: NextRequest) {
     const responseHeaders: Record<string, string> = {};
     res.headers.forEach((v, k) => { responseHeaders[k] = v; });
 
+    // Log outgoing call — fire-and-forget
+    prisma.webhookRequestLog.create({
+      data: {
+        direction: "outgoing",
+        method: upperMethod,
+        path: "/api/admin/dev/api-proxy",
+        targetUrl,
+        headers: JSON.stringify(logHeaders),
+        body: bodyStr ? bodyStr.slice(0, 10_000) : null,
+        responseStatus,
+        responseBody: rawText.slice(0, 4_000),
+        durationMs,
+      },
+    }).catch((e) => console.error("[api-log] outgoing write failed:", e));
+
     return NextResponse.json({
       status: res.status,
       statusText: res.statusText,
@@ -118,18 +140,35 @@ export async function POST(req: NextRequest) {
       headers: responseHeaders,
       body: responseBody,
       durationMs,
-      url: parsedUrl.toString(),
+      url: targetUrl,
       method: upperMethod,
     });
   } catch (err: any) {
+    errorMsg = err?.message || "Request failed";
+    const durationMs = Date.now() - start;
+
+    prisma.webhookRequestLog.create({
+      data: {
+        direction: "outgoing",
+        method: upperMethod,
+        path: "/api/admin/dev/api-proxy",
+        targetUrl,
+        headers: JSON.stringify(logHeaders),
+        body: bodyStr ? bodyStr.slice(0, 10_000) : null,
+        responseStatus: 0,
+        durationMs,
+        error: errorMsg,
+      },
+    }).catch(() => {});
+
     return NextResponse.json({
       status: 0,
       statusText: "Network error",
       ok: false,
       headers: {},
-      body: { error: err?.message || "Request failed" },
-      durationMs: Date.now() - start,
-      url: parsedUrl.toString(),
+      body: { error: errorMsg },
+      durationMs,
+      url: targetUrl,
       method: upperMethod,
     });
   }

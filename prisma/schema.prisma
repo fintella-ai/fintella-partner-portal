@@ -784,16 +784,18 @@ model CallLog {
 }
 
 // ─── WEBHOOK / API REQUEST LOG (Dev tools) ───────────────────────────────────
-// Captures every incoming HTTP request to /api/webhook/referral so
-// admins can inspect traffic in the developer panel. Auth header values
-// are redacted server-side before storage. Body + response capped at
-// 10 KB / 4 KB respectively to keep row sizes manageable.
+// Unified log for all API traffic visible in the developer panel:
+//   direction="incoming" — requests received at /api/webhook/referral
+//   direction="outgoing" — requests sent via the Custom API sender proxy
+// Auth header values are redacted before storage. Bodies capped at 10 KB / 4 KB.
 model WebhookRequestLog {
   id             String   @id @default(cuid())
   createdAt      DateTime @default(now())
-  method         String   // POST, PATCH, GET
-  path           String   @default("/api/webhook/referral")
-  sourceIp       String?
+  direction      String   @default("incoming") // "incoming" | "outgoing"
+  method         String   // GET, POST, PATCH, PUT, DELETE
+  path           String   @default("/api/webhook/referral") // local path for incoming
+  targetUrl      String?  // full URL for outgoing proxy calls
+  sourceIp       String?  // caller IP for incoming; null for outgoing
   headers        String?  // JSON string — auth values replaced with [REDACTED]
   body           String?  // JSON string of request body (capped at 10 KB)
   responseStatus Int?     // HTTP status code
@@ -802,5 +804,6 @@ model WebhookRequestLog {
   error          String?
 
   @@index([createdAt])
+  @@index([direction])
   @@index([responseStatus])
 }

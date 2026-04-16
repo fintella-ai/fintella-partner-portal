@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = "links" | "errors" | "email" | "webhook" | "commits";
+type Tab = "links" | "errors" | "email" | "webhook" | "customapi" | "apilog" | "commits";
 
 type Commit = {
   sha: string;
@@ -55,8 +55,10 @@ type ErrorsData = {
 type ApiLog = {
   id: string;
   createdAt: string;
+  direction: string; // "incoming" | "outgoing"
   method: string;
   path: string;
+  targetUrl: string | null;
   sourceIp: string | null;
   headers: string | null;
   body: string | null;
@@ -462,7 +464,9 @@ function CommitsTab({ data }: { data: DevData | null }) {
   );
 }
 
-// ── API Log section (inside Webhook tab) ──
+// ── API Log Tab (standalone, All / Incoming / Outgoing filter) ──
+type LogFilter = "all" | "incoming" | "outgoing";
+
 function ApiLogSection() {
   const [logs, setLogs] = useState<ApiLog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -470,6 +474,7 @@ function ApiLogSection() {
   const [clearing, setClearing] = useState(false);
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [dirFilter, setDirFilter] = useState<LogFilter>("all");
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -499,6 +504,8 @@ function ApiLogSection() {
     return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
   }, [autoRefresh]);
 
+  const filteredLogs = dirFilter === "all" ? logs : logs.filter((l) => l.direction === dirFilter);
+
   const methodBadge = (m: string) => {
     const colors: Record<string, string> = {
       POST: "bg-blue-500/15 text-blue-400 border-blue-500/30",
@@ -518,12 +525,28 @@ function ApiLogSection() {
     <div className="card overflow-hidden">
       <div className="px-5 py-4 border-b border-[var(--app-border)] flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <div className="font-body font-semibold text-sm">Incoming API Log</div>
+          <div className="font-body font-semibold text-sm">API Log</div>
           <div className="font-body text-[11px] theme-text-muted">
-            All requests to <code className="font-mono text-[10px] text-brand-gold">/api/webhook/referral</code> — auth values redacted
+            Incoming webhook traffic + outgoing proxy requests — auth values redacted
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Direction filter pills */}
+          {(["all", "incoming", "outgoing"] as LogFilter[]).map((f) => (
+            <button key={f} onClick={() => setDirFilter(f)}
+              className={`font-body text-[10px] font-semibold uppercase tracking-wider border rounded-full px-3 py-1 min-h-[28px] transition-colors ${
+                dirFilter === f
+                  ? f === "outgoing"
+                    ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
+                    : f === "incoming"
+                      ? "bg-sky-500/15 border-sky-500/30 text-sky-400"
+                      : "bg-brand-gold/10 border-brand-gold/30 text-brand-gold"
+                  : "border-[var(--app-border)] theme-text-muted hover:border-brand-gold/20"
+              }`}>
+              {f}
+            </button>
+          ))}
+          <div className="w-px h-5 bg-[var(--app-border)]" />
           <button
             onClick={() => setAutoRefresh((p) => !p)}
             className={`font-body text-[11px] border rounded-lg px-3 py-1.5 min-h-[36px] transition-colors ${
@@ -547,16 +570,16 @@ function ApiLogSection() {
         </div>
       </div>
 
-      {logs.length === 0 ? (
+      {filteredLogs.length === 0 ? (
         <div className="px-5 py-10 text-center">
-          <div className="font-body text-sm theme-text-muted mb-1">No requests logged yet.</div>
+          <div className="font-body text-sm theme-text-muted mb-1">No {dirFilter === "all" ? "" : dirFilter + " "}requests logged yet.</div>
           <div className="font-body text-[11px] theme-text-faint">
-            Every call to <code className="font-mono">/api/webhook/referral</code> will appear here — from Frost Law, the test harness, or anywhere else.
+            Incoming calls to <code className="font-mono">/api/webhook/referral</code> and outgoing requests from the Custom API sender will appear here.
           </div>
         </div>
       ) : (
         <div>
-          {logs.map((log) => {
+          {filteredLogs.map((log) => {
             const isExpanded = expandedId === log.id;
             const statusCode = log.responseStatus;
             return (
@@ -566,15 +589,31 @@ function ApiLogSection() {
                   className="w-full text-left px-5 py-3 hover:bg-[var(--app-hover)] transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-wrap">
+                    {/* Direction badge */}
+                    <span className={`font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${
+                      log.direction === "outgoing"
+                        ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                        : "bg-sky-500/15 text-sky-400 border-sky-500/30"
+                    }`}>
+                      {log.direction === "outgoing" ? "↑ out" : "↓ in"}
+                    </span>
                     {methodBadge(log.method)}
                     <span className={`font-mono text-[12px] font-semibold ${statusColor(statusCode)}`}>
                       {statusCode ?? "ERR"}
                     </span>
+                    {/* Show target URL for outgoing, path + sourceIp for incoming */}
+                    {log.direction === "outgoing" && log.targetUrl ? (
+                      <span className="font-mono text-[11px] theme-text-muted truncate max-w-[200px] sm:max-w-xs"
+                        title={log.targetUrl}>
+                        {log.targetUrl.replace(/^https?:\/\//, "")}
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[11px] theme-text-muted truncate max-w-[200px] sm:max-w-xs">
+                        {log.path}{log.sourceIp ? ` · ${log.sourceIp}` : ""}
+                      </span>
+                    )}
                     {log.durationMs != null && (
                       <span className="font-body text-[11px] theme-text-muted">{log.durationMs}ms</span>
-                    )}
-                    {log.sourceIp && (
-                      <span className="font-mono text-[11px] theme-text-muted">{log.sourceIp}</span>
                     )}
                     <span className="font-body text-[11px] theme-text-muted ml-auto">
                       {relativeTime(log.createdAt)}
@@ -594,7 +633,7 @@ function ApiLogSection() {
                 {isExpanded && (
                   <div className="px-5 pb-4 space-y-3 bg-[var(--app-bg-secondary)]">
                     <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted pt-2">
-                      {new Date(log.createdAt).toLocaleString()} · {log.path}
+                      {new Date(log.createdAt).toLocaleString()} · {log.direction === "outgoing" && log.targetUrl ? log.targetUrl : log.path}
                     </div>
 
                     {log.headers && (
@@ -798,7 +837,7 @@ function CustomSenderSection() {
   );
 }
 
-// ── Webhook Test Tab (harness + custom sender + API log) ──
+// ── Webhook Test Tab (harness only — Custom API and API Log are separate tabs) ──
 function WebhookTab() {
   const router = useRouter();
   const [method, setMethod] = useState<Method>("POST");
@@ -957,16 +996,10 @@ function WebhookTab() {
           <ul className="font-body text-[12px] theme-text-secondary space-y-1.5 list-disc list-inside">
             <li>Payload is proxied through <code className="text-brand-gold">/api/admin/dev/webhook-test</code> (super_admin only) which injects <code>REFERRAL_WEBHOOK_SECRET</code> server-side.</li>
             <li>The proxy calls the real webhook at <code className="text-brand-gold">/api/webhook/referral</code> — same auth, same handlers, same DB writes.</li>
-            <li>Calls are recorded in the Incoming API Log section below.</li>
+            <li>Calls appear in the <strong>API Log</strong> tab.</li>
           </ul>
         </div>
       </div>
-
-      {/* ── Custom API Sender ── */}
-      <CustomSenderSection />
-
-      {/* ── Incoming API Log ── */}
-      <ApiLogSection />
     </div>
   );
 }
@@ -974,11 +1007,13 @@ function WebhookTab() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "links",   label: "Quick Links",       icon: "🔗" },
-  { id: "errors",  label: "Recent Errors",     icon: "🚨" },
-  { id: "email",   label: "Send Test Email",   icon: "✉️" },
-  { id: "webhook", label: "Webhook Test",      icon: "🧪" },
-  { id: "commits", label: "Recent Commits",    icon: "📦" },
+  { id: "links",     label: "Quick Links",       icon: "🔗" },
+  { id: "errors",    label: "Recent Errors",     icon: "🚨" },
+  { id: "email",     label: "Send Test Email",   icon: "✉️" },
+  { id: "webhook",   label: "Webhook Test",      icon: "🧪" },
+  { id: "customapi", label: "Custom API",        icon: "🛰️" },
+  { id: "apilog",    label: "API Log",           icon: "📋" },
+  { id: "commits",   label: "Recent Commits",    icon: "📦" },
 ];
 
 export default function DevPage() {
@@ -1041,11 +1076,13 @@ export default function DevPage() {
       </div>
 
       {/* Tab content */}
-      {tab === "links"   && <QuickLinksTab data={data} />}
-      {tab === "errors"  && <ErrorsTab errors={errors} />}
-      {tab === "email"   && <EmailTab userEmail={userEmail} />}
-      {tab === "webhook" && <WebhookTab />}
-      {tab === "commits" && <CommitsTab data={data} />}
+      {tab === "links"     && <QuickLinksTab data={data} />}
+      {tab === "errors"    && <ErrorsTab errors={errors} />}
+      {tab === "email"     && <EmailTab userEmail={userEmail} />}
+      {tab === "webhook"   && <WebhookTab />}
+      {tab === "customapi" && <CustomSenderSection />}
+      {tab === "apilog"    && <ApiLogSection />}
+      {tab === "commits"   && <CommitsTab data={data} />}
     </div>
   );
 }
