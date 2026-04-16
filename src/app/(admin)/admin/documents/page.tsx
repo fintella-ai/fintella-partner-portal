@@ -134,12 +134,12 @@ export default function DocumentTrackingPage() {
         <table className="w-full text-left font-body text-sm">
           <thead>
             <tr className="border-b border-[var(--app-border)] text-[var(--app-text-muted)] text-xs uppercase tracking-wider">
-              <th className="px-4 py-3">Partner</th>
-              <th className="px-4 py-3">Document Type</th>
-              <th className="px-4 py-3">File Name</th>
+              <th className="px-4 py-3 text-center">Partner</th>
+              <th className="px-4 py-3 text-center">Document Type</th>
+              <th className="px-4 py-3 text-center">File Name</th>
               <th className="px-4 py-3 text-center">Status</th>
-              <th className="px-4 py-3">Upload Date</th>
-              <th className="px-4 py-3">Actions</th>
+              <th className="px-4 py-3 text-center">Upload Date</th>
+              <th className="px-4 py-3 text-center">Actions</th>
             </tr>
           </thead>
           <tbody>

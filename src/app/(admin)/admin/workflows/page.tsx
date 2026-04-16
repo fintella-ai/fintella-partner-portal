@@ -566,7 +566,7 @@ function AutomationsTab() {
             <thead>
               <tr style={{ borderBottom: "1px solid var(--app-border)" }}>
                 {["Name", "Trigger", "Actions", "Last Run", "Enabled", ""].map((h) => (
-                  <th key={h} className="font-body text-[11px] theme-text-muted uppercase tracking-wide text-left px-4 py-3">{h}</th>
+                  <th key={h} className="font-body text-[11px] theme-text-muted uppercase tracking-wide text-center px-4 py-3">{h}</th>
                 ))}
               </tr>
             </thead>

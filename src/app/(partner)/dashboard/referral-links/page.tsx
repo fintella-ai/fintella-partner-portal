@@ -340,12 +340,12 @@ export default function ReferralLinksPage() {
             <table className="w-full text-left font-body text-sm">
               <thead>
                 <tr className="border-b border-[var(--app-border)] text-[var(--app-text-muted)] text-xs uppercase tracking-wider">
-                  <th className="px-4 py-3">Rate</th>
-                  <th className="px-4 py-3">Tier</th>
+                  <th className="px-4 py-3 text-center">Rate</th>
+                  <th className="px-4 py-3 text-center">Tier</th>
                   <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3">Created</th>
-                  <th className="px-4 py-3">Used By</th>
-                  <th className="px-4 py-3 text-right">Action</th>
+                  <th className="px-4 py-3 text-center">Created</th>
+                  <th className="px-4 py-3 text-center">Used By</th>
+                  <th className="px-4 py-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
