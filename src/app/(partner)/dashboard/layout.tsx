@@ -214,11 +214,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className={`${isCollapsed ? "px-1" : "px-2"} mb-6 text-center`}>
         {isCollapsed ? (
           <div className="font-display text-xs font-bold text-brand-gold">
-            {logoUrl ? <img src={logoUrl} alt={firmShort} className="max-h-8 mx-auto object-contain" /> : firmShort.charAt(0)}
+            {logoUrl ? <img src={logoUrl} alt={firmShort} className="max-h-10 mx-auto object-contain" /> : firmShort.charAt(0)}
           </div>
         ) : logoUrl ? (
           <div className="mb-2">
-            <img src={logoUrl} alt={firmShort} className="max-h-10 mx-auto object-contain" />
+            <img src={logoUrl} alt={firmShort} className="max-h-14 mx-auto object-contain" />
           </div>
         ) : (
           <div className="font-display text-sm font-bold text-brand-gold tracking-[1px]">
@@ -227,7 +227,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
         {!isCollapsed && (
           <div className="font-body text-[10px] theme-text-muted mt-1 italic leading-tight text-center">
-            {firmSlogan}
+            {firmSlogan.includes(",")
+              ? <>
+                  {firmSlogan.split(",")[0]},<br />
+                  {firmSlogan.split(",").slice(1).join(",").trim()}
+                </>
+              : firmSlogan}
           </div>
         )}
       </div>
@@ -405,14 +410,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       )}
 
-      {/* ── FLOATING NOTIFICATION BELL ── */}
+      {/* ── FLOATING TOP-RIGHT BUTTONS ── */}
       <div
-        className="fixed z-[902]"
+        className="fixed z-[902] flex items-center gap-2"
         style={{
           top: device.isMobile ? "calc(env(safe-area-inset-top, 12px) + 56px)" : "20px",
           right: device.isMobile ? "16px" : "24px",
         }}
       >
+        <a
+          href="/dashboard/support"
+          className="relative font-body text-sm border rounded-lg px-3 py-2 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 backdrop-blur-sm bg-yellow-400 border-yellow-500 text-black hover:bg-yellow-300"
+          title="Support"
+        >
+          🎫<span className="hidden lg:inline font-medium">Support</span>
+        </a>
         <NotificationBell draggable />
       </div>
 
