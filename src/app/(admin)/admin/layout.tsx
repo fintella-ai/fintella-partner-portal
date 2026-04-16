@@ -8,6 +8,7 @@ import { useDevice } from "@/lib/useDevice";
 import NotificationBell from "@/components/ui/NotificationBell";
 import SoftPhone from "@/components/ui/SoftPhone";
 import { getVisibleNav, getPermissions, ROLE_LABELS, type AdminRole } from "@/lib/permissions";
+import { useTheme } from "@/components/layout/ThemeProvider";
 
 type NavLeaf = { id: string; href: string; icon: string; label: string };
 type NavGroup = { id: string; icon: string; label: string; children: NavLeaf[] };
@@ -49,6 +50,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const device = useDevice();
+  const { theme, toggleTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState("");
@@ -260,6 +262,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </>
         )}
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="w-full font-body text-[11px] theme-text-muted rounded px-3 py-2 mb-2 transition-colors hover:opacity-80 flex items-center justify-center gap-2"
+          style={{ border: "1px solid var(--app-border)" }}
+        >
+          <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+          {!collapsed && <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>}
+        </button>
         <button
           onClick={() => navigate("/admin/account")}
           title={collapsed ? "Account Settings" : undefined}

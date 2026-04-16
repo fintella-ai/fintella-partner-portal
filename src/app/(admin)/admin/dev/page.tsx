@@ -531,6 +531,22 @@ function ApiLogSection() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Direction filter pills */}
+          {(["all", "incoming", "outgoing"] as LogFilter[]).map((f) => (
+            <button key={f} onClick={() => setDirFilter(f)}
+              className={`font-body text-[10px] font-semibold uppercase tracking-wider border rounded-full px-3 py-1 min-h-[28px] transition-colors ${
+                dirFilter === f
+                  ? f === "outgoing"
+                    ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
+                    : f === "incoming"
+                      ? "bg-sky-500/15 border-sky-500/30 text-sky-400"
+                      : "bg-brand-gold/10 border-brand-gold/30 text-brand-gold"
+                  : "border-[var(--app-border)] theme-text-muted hover:border-brand-gold/20"
+              }`}>
+              {f}
+            </button>
+          ))}
+          <div className="w-px h-5 bg-[var(--app-border)]" />
           <button
             onClick={() => setAutoRefresh((p) => !p)}
             className={`font-body text-[11px] border rounded-lg px-3 py-1.5 min-h-[36px] transition-colors ${
@@ -554,16 +570,16 @@ function ApiLogSection() {
         </div>
       </div>
 
-      {logs.length === 0 ? (
+      {filteredLogs.length === 0 ? (
         <div className="px-5 py-10 text-center">
-          <div className="font-body text-sm theme-text-muted mb-1">No requests logged yet.</div>
+          <div className="font-body text-sm theme-text-muted mb-1">No {dirFilter === "all" ? "" : dirFilter + " "}requests logged yet.</div>
           <div className="font-body text-[11px] theme-text-faint">
             Incoming calls to <code className="font-mono">/api/webhook/referral</code> and outgoing requests from the Custom API sender will appear here.
           </div>
         </div>
       ) : (
         <div>
-          {logs.map((log) => {
+          {filteredLogs.map((log) => {
             const isExpanded = expandedId === log.id;
             const statusCode = log.responseStatus;
             return (
@@ -585,15 +601,17 @@ function ApiLogSection() {
                     <span className={`font-mono text-[12px] font-semibold ${statusColor(statusCode)}`}>
                       {statusCode ?? "ERR"}
                     </span>
-                    {/* Show target URL for outgoing, source IP for incoming */}
+                    {/* Show target URL for outgoing, path + sourceIp for incoming */}
                     {log.direction === "outgoing" && log.targetUrl ? (
                       <span className="font-mono text-[11px] theme-text-muted truncate max-w-[200px] sm:max-w-xs"
                         title={log.targetUrl}>
                         {log.targetUrl.replace(/^https?:\/\//, "")}
                       </span>
-                    ) : log.sourceIp ? (
-                      <span className="font-mono text-[11px] theme-text-muted">{log.sourceIp}</span>
-                    ) : null}
+                    ) : (
+                      <span className="font-mono text-[11px] theme-text-muted truncate max-w-[200px] sm:max-w-xs">
+                        {log.path}{log.sourceIp ? ` · ${log.sourceIp}` : ""}
+                      </span>
+                    )}
                     {log.durationMs != null && (
                       <span className="font-body text-[11px] theme-text-muted">{log.durationMs}ms</span>
                     )}
