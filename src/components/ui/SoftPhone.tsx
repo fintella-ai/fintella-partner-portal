@@ -36,6 +36,8 @@ type PartnerOption = {
   companyName: string | null;
 };
 
+const OFFICE_NUMBER_DISPLAY = "+1 (727) 610-8292";
+
 export default function SoftPhone() {
   const [state, setState] = useState<CallState>("idle");
   const [open, setOpen] = useState(false);
@@ -45,6 +47,7 @@ export default function SoftPhone() {
   const [muted, setMuted] = useState(false);
   const [durationSec, setDurationSec] = useState(0);
   const [missing, setMissing] = useState<string[]>([]);
+  const [logoUrl, setLogoUrl] = useState("");
   // Dialer UI state
   const [dialDigits, setDialDigits] = useState("");
   const [partnerSearch, setPartnerSearch] = useState("");
@@ -199,6 +202,16 @@ export default function SoftPhone() {
     };
   }, [call, hangup, state]);
 
+  // ── Logo fetch ─────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!open || logoUrl) return;
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.settings?.logoUrl) setLogoUrl(d.settings.logoUrl); })
+      .catch(() => {});
+  }, [open, logoUrl]);
+
   // ── Partner directory ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -302,28 +315,62 @@ export default function SoftPhone() {
         onPointerDown={onDragStart}
         onPointerMove={onDragMove}
         onPointerUp={onDragEnd}
-        className={`flex items-center justify-between px-4 py-3 border-b border-[var(--app-border)] bg-gradient-to-r from-brand-gold/10 to-transparent shrink-0 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`px-4 pt-3 pb-2 border-b border-[var(--app-border)] bg-gradient-to-r from-brand-gold/10 to-transparent shrink-0 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
-        <div>
-          <div className="font-body text-[11px] uppercase tracking-[1.5px] text-brand-gold flex items-center gap-1.5">
-            <span className="text-[var(--app-text-muted)] text-[10px]">⠿</span>
-            Softphone
+        {/* Row 1: status left — branding center — number + close right */}
+        <div className="flex items-center">
+          {/* Left: status indicator */}
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <span
+              className="shrink-0 w-2.5 h-2.5 rounded-full shadow-sm"
+              style={{
+                background: state === "ready" || state === "in-call" || state === "ringing" || state === "connecting"
+                  ? "#22c55e"
+                  : state === "registering"
+                  ? "#f59e0b"
+                  : "#ef4444",
+                boxShadow: state === "ready" || state === "in-call"
+                  ? "0 0 6px 2px rgba(34,197,94,0.45)"
+                  : state === "registering"
+                  ? "0 0 6px 2px rgba(245,158,11,0.4)"
+                  : "0 0 6px 2px rgba(239,68,68,0.4)",
+              }}
+            />
+            <span className="font-body text-[11px] font-semibold uppercase tracking-wide truncate"
+              style={{ color: state === "ready" || state === "in-call" ? "#22c55e" : state === "registering" ? "#f59e0b" : "#ef4444" }}>
+              {state === "ready" ? "Ready" : state === "demo" ? "Demo" : state === "registering" ? "Connecting…" : state === "in-call" ? "In Call" : state === "ringing" ? "Ringing" : state === "connecting" ? "Dialing" : state === "ended" ? "Ended" : "Offline"}
+            </span>
           </div>
-          <div className="font-body text-[10px] text-[var(--app-text-muted)] mt-0.5">
-            {state === "demo" ? "Demo mode — not configured" : state.replace("-", " ")}
+
+          {/* Center: logo + Fintella + Softphone */}
+          <div className="flex flex-col items-center shrink-0 mx-2">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Fintella" className="h-6 object-contain mb-0.5" />
+            ) : null}
+            <div className="font-display text-[15px] font-bold text-brand-gold leading-none">Fintella</div>
+            <div className="font-body text-[9px] uppercase tracking-[2px] text-[var(--app-text-muted)] mt-0.5">Softphone</div>
+          </div>
+
+          {/* Right: office number + close */}
+          <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+            <div className="text-right min-w-0">
+              <div className="font-mono text-[10px] text-brand-gold leading-none">{OFFICE_NUMBER_DISPLAY}</div>
+            </div>
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => { if (inCall) hangup(); setOpen(false); }}
+              className="shrink-0 text-[var(--app-text-muted)] hover:text-[var(--app-text)] text-sm w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--app-input-bg)] transition-colors"
+              title="Close"
+            >
+              ✕
+            </button>
           </div>
         </div>
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => {
-            if (inCall) hangup();
-            setOpen(false);
-          }}
-          className="text-[var(--app-text-muted)] hover:text-[var(--app-text)] text-lg w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--app-input-bg)] transition-colors"
-          title="Close"
-        >
-          ✕
-        </button>
+
+        {/* Drag hint */}
+        <div className="flex justify-center mt-1.5">
+          <span className="text-[var(--app-text-faint)] text-[10px] tracking-widest">⠿⠿⠿</span>
+        </div>
       </div>
 
       {/* ── Body ── */}
@@ -389,6 +436,11 @@ export default function SoftPhone() {
                 placeholder="(555) 555-5555 or +14155550100"
                 className="w-full bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-3 py-3 text-center font-mono text-[16px] text-[var(--app-text)] outline-none focus:border-brand-gold/40"
               />
+              {/* Call From line */}
+              <div className="flex items-center justify-center gap-1.5 mt-1.5">
+                <span className="font-body text-[10px] text-[var(--app-text-muted)]">Call From:</span>
+                <span className="font-mono text-[11px] font-semibold text-brand-gold">{OFFICE_NUMBER_DISPLAY}</span>
+              </div>
               {errorMsg && state !== "error" && (
                 <div className="font-body text-[10px] text-red-400 mt-1 text-center">{errorMsg}</div>
               )}

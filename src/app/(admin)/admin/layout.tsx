@@ -16,27 +16,32 @@ type NavItem = NavLeaf | NavGroup;
 
 const isGroup = (n: NavItem): n is NavGroup => (n as NavGroup).children !== undefined;
 
-const ADMIN_NAV_ITEMS: NavItem[] = [
-  { id: "partners", href: "/admin/partners", icon: "\u{1F465}", label: "Partners" },
-  { id: "deals", href: "/admin/deals", icon: "\u{1F4BC}", label: "Deals" },
-  { id: "communications", href: "/admin/communications", icon: "\u{1F4E7}", label: "Communications" },
-  { id: "training", href: "/admin/training", icon: "\u{1F393}", label: "Training" },
-  { id: "conference", href: "/admin/conference", icon: "\u{1F4F9}", label: "Live Weekly" },
-  { id: "documents", href: "/admin/documents", icon: "\u{1F4C4}", label: "Documents" },
-  { id: "support", href: "/admin/support", icon: "\u{1F3AB}", label: "Support" },
-  { id: "chat", href: "/admin/chat", icon: "\u{1F4AC}", label: "Live Chat" },
-  // Reporting is a single nav entry that lands on /admin/reports. The three
-  // finance pages (Reports / Revenue / Payouts) share a ReportingTabs bar
-  // rendered at the top of each page so the user can switch between them
-  // once they're in the reporting area. This replaces the earlier nested
-  // group that expanded inline in the sidebar — simpler nav, same pages.
-  { id: "reporting", href: "/admin/reports", icon: "\u{1F4CA}", label: "Reporting" },
-  { id: "settings", href: "/admin/settings", icon: "\u2699\uFE0F", label: "Settings" },
-  { id: "users", href: "/admin/users", icon: "\u{1F6E1}\uFE0F", label: "Admin Users" },
-  { id: "dev", href: "/admin/dev", icon: "\u{1F6E0}\uFE0F", label: "Development" },
-  { id: "features", href: "/admin/features", icon: "\u{2728}", label: "Feature Requests" },
-  { id: "workflows", href: "/admin/workflows", icon: "\u26A1", label: "Workflows" },
+// Default display order — can be reordered via Settings → Navigation drag-and-drop.
+// IDs here must match ADMIN_NAV_ITEMS map below.
+const ADMIN_NAV_IDS_DEFAULT = [
+  "partners", "deals", "communications", "training", "conference", "documents",
+  "reporting", "settings", "users", "dev", "workflows", "features", "support", "chat",
 ];
+
+const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
+  partners:     { id: "partners", href: "/admin/partners", icon: "\u{1F465}", label: "Partners" },
+  deals:        { id: "deals", href: "/admin/deals", icon: "\u{1F4BC}", label: "Deals" },
+  communications: { id: "communications", href: "/admin/communications", icon: "\u{1F4E7}", label: "Communications" },
+  training:     { id: "training", href: "/admin/training", icon: "\u{1F393}", label: "Training" },
+  conference:   { id: "conference", href: "/admin/conference", icon: "\u{1F4F9}", label: "Live Weekly" },
+  documents:    { id: "documents", href: "/admin/documents", icon: "\u{1F4C4}", label: "Documents" },
+  // "reporting" is a synthetic umbrella for Reports / Revenue / Payouts.
+  // The three finance pages share a ReportingTabs bar rendered at the top
+  // of each page so the user can switch between them in-context.
+  reporting:    { id: "reporting", href: "/admin/reports", icon: "\u{1F4CA}", label: "Reporting" },
+  settings:     { id: "settings", href: "/admin/settings", icon: "\u2699\uFE0F", label: "Settings" },
+  users:        { id: "users", href: "/admin/users", icon: "\u{1F6E1}\uFE0F", label: "Admin Users" },
+  dev:          { id: "dev", href: "/admin/dev", icon: "\u{1F6E0}\uFE0F", label: "Development" },
+  workflows:    { id: "workflows", href: "/admin/workflows", icon: "\u26A1", label: "Workflows" },
+  features:     { id: "features", href: "/admin/features", icon: "\u2728", label: "Feature Requests" },
+  support:      { id: "support", href: "/admin/support", icon: "\u{1F3AB}", label: "Support" },
+  chat:         { id: "chat", href: "/admin/chat", icon: "\u{1F4AC}", label: "Live Chat" },
+};
 
 function CollapseIcon({ collapsed }: { collapsed: boolean }) {
   return (
@@ -60,15 +65,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // "admin.<itemId>". See PortalSettings.navLabels / navIcons.
   const [navLabels, setNavLabels] = useState<Record<string, string>>({});
   const [navIcons, setNavIcons] = useState<Record<string, string>>({});
+  // Custom admin nav order from settings (empty = use default)
+  const [adminNavOrder, setAdminNavOrder] = useState<string[]>([]);
 
   const user = session?.user as any;
   const userRole = (user?.role || "admin") as AdminRole;
   const visibleNavIds = getVisibleNav(userRole);
   const permissions = getPermissions(userRole);
 
+  // Build ordered nav list: respect settings-saved order when available,
+  // fall back to ADMIN_NAV_IDS_DEFAULT. Any IDs in the saved order that
+  // no longer exist in the map are dropped; any new IDs not in the saved
+  // order are appended at the end.
+  const orderedIds = adminNavOrder.length > 0
+    ? [
+        ...adminNavOrder.filter((id) => id in ADMIN_NAV_ITEMS_MAP),
+        ...ADMIN_NAV_IDS_DEFAULT.filter((id) => !adminNavOrder.includes(id)),
+      ]
+    : ADMIN_NAV_IDS_DEFAULT;
+
+  const orderedNavItems = orderedIds
+    .map((id) => ADMIN_NAV_ITEMS_MAP[id])
+    .filter(Boolean) as NavItem[];
+
   // Filter nav by role. For groups, keep the group if at least one child is
   // visible, and narrow the children to just the visible ones.
-  const filteredNav: NavItem[] = ADMIN_NAV_ITEMS.flatMap((item): NavItem[] => {
+  const filteredNav: NavItem[] = orderedNavItems.flatMap((item): NavItem[] => {
     if (isGroup(item)) {
       const visibleChildren = item.children.filter((c) => visibleNavIds.includes(c.id));
       if (visibleChildren.length === 0) return [];
@@ -109,6 +131,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (settings.logoUrl) setLogoUrl(settings.logoUrl);
         try { setNavLabels(JSON.parse(settings.navLabels || "{}")); } catch {}
         try { setNavIcons(JSON.parse(settings.navIcons || "{}")); } catch {}
+        try {
+          const order = JSON.parse(settings.adminNavOrder || "[]");
+          if (Array.isArray(order) && order.length > 0) setAdminNavOrder(order);
+        } catch {}
       })
       .catch(() => {});
     // Fetch current admin name from account API
@@ -127,23 +153,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const sidebarContent = (
     <>
-      <div className={`${collapsed ? "px-1 text-center" : "pl-2"} mb-1`}>
+      {/* ── Logo + subheading ─────────────────────────────────────── */}
+      <div className="flex flex-col items-center text-center mb-5 px-1">
         {collapsed ? (
           logoUrl
-            ? <img src={logoUrl} alt={FIRM_SHORT} className="max-h-7 mx-auto object-contain" />
-            : <div className="font-display text-xs font-bold text-brand-gold">{FIRM_SHORT.charAt(0)}</div>
+            ? <img src={logoUrl} alt={FIRM_SHORT} className="h-10 w-10 mx-auto object-contain" />
+            : <div className="font-display text-lg font-bold text-brand-gold leading-none">{FIRM_SHORT.charAt(0)}</div>
         ) : logoUrl ? (
-          <img src={logoUrl} alt={FIRM_SHORT} className="max-h-10 max-w-[180px] object-contain" />
+          <img src={logoUrl} alt={FIRM_SHORT} className="max-h-16 max-w-[200px] w-full object-contain mb-2" />
         ) : (
-          <div className="font-display text-sm font-bold text-brand-gold tracking-[1px]">{FIRM_SHORT}</div>
+          <div className="font-display text-xl font-bold text-brand-gold tracking-[1px] mb-1">{FIRM_SHORT}</div>
+        )}
+        {!collapsed && (
+          <div className="font-body text-[10px] theme-text-muted tracking-[3px] uppercase">
+            Admin Panel
+          </div>
         )}
       </div>
-      {!collapsed && (
-        <div className="font-body text-[10px] theme-text-muted tracking-[2px] uppercase mb-5 pl-2">
-          Admin Panel
-        </div>
-      )}
-      {collapsed && <div className="mb-3" />}
 
       {filteredNav.map((item) => {
         // Resolve custom label + icon for this item (admin scope).
@@ -252,17 +278,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </button>
       )}
 
-      <div className="pt-4 px-2 mt-2" style={{ borderTop: "1px solid var(--app-border)" }}>
-        {!collapsed && (
-          <>
-            <div className="font-body text-xs theme-text-secondary mb-1">
-              {adminName || user?.name || "Admin"}
-            </div>
-            <div className="font-body text-[11px] theme-text-muted tracking-[1px] mb-3">
+      <div className="pt-4 px-2 mt-2 text-center" style={{ borderTop: "1px solid var(--app-border)" }}>
+        {/* Name + role — always center-aligned */}
+        <div className="mb-3">
+          <div className="font-body text-sm font-medium theme-text-secondary truncate">
+            {collapsed
+              ? (adminName || user?.name || "A").charAt(0).toUpperCase()
+              : (adminName || user?.name || "Admin")}
+          </div>
+          {!collapsed && (
+            <div className="font-body text-[11px] theme-text-muted tracking-[1px] mt-0.5">
               {ROLE_LABELS[userRole] || "Administrator"}
             </div>
-          </>
-        )}
+          )}
+        </div>
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
@@ -287,10 +316,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </button>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className={`w-full font-body text-[11px] theme-text-muted rounded px-3 py-2 transition-colors hover:opacity-80 ${collapsed ? "text-center" : ""}`}
+          className="w-full font-body text-[11px] theme-text-muted rounded px-3 py-2 transition-colors hover:opacity-80"
           style={{ border: "1px solid var(--app-border)" }}
         >
-          {collapsed ? "Exit" : "Sign Out"}
+          {collapsed ? "↩" : "Sign Out"}
         </button>
       </div>
     </>
@@ -309,12 +338,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {!device.isDesktop && mobileOpen && (
         <>
           <div className="fixed inset-0 bg-black/60 z-[998] backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <div className="fixed left-0 top-0 bottom-0 w-[280px] max-w-[85vw] theme-sidebar border-r z-[999] overflow-y-auto p-4 pt-safe pb-safe pl-safe flex flex-col gap-1" style={{ animation: "slideIn .25s ease" }}>
+          <div className="fixed left-0 top-0 bottom-0 w-[280px] max-w-[85vw] theme-sidebar border-r z-[999] overflow-y-auto p-4 pb-safe pl-safe flex flex-col gap-1" style={{ animation: "slideIn .25s ease", paddingTop: "calc(env(safe-area-inset-top, 44px) + 1rem)" }}>
             {/* Close button */}
             <button
               onClick={() => setMobileOpen(false)}
               className="absolute right-3 w-11 h-11 flex items-center justify-center rounded-lg theme-text-muted hover:bg-brand-gold/10 transition-colors"
-              style={{ top: "calc(0.75rem + var(--safe-top))" }}
+              style={{ top: "calc(env(safe-area-inset-top, 44px) + 0.5rem)" }}
               aria-label="Close menu"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -330,8 +359,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {!device.isDesktop && !mobileOpen && (
         <button
           onClick={() => setMobileOpen(true)}
-          className="fixed left-4 z-[901] rounded-lg w-11 h-11 flex items-center justify-center cursor-pointer text-brand-gold text-xl backdrop-blur-lg"
-          style={{ top: "calc(1rem + var(--safe-top))", background: "var(--app-bg-secondary)", border: "1px solid var(--app-sidebar-border)" }}
+          className="fixed left-4 z-[901] rounded-lg w-12 h-12 flex items-center justify-center cursor-pointer text-brand-gold text-xl backdrop-blur-lg"
+          style={{ top: "calc(env(safe-area-inset-top, 44px) + 1.25rem)", background: "var(--app-bg-secondary)", border: "1px solid var(--app-sidebar-border)" }}
           aria-label="Open menu"
         >
           ☰
@@ -339,7 +368,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:px-10 lg:py-9" style={{ paddingTop: !device.isDesktop ? 72 : undefined }}>
+      <div
+        className="flex-1 overflow-y-auto p-4 sm:p-6 lg:px-10 lg:py-9"
+        style={{
+          paddingTop: !device.isDesktop ? "calc(env(safe-area-inset-top, 44px) + 5.5rem)" : undefined,
+          paddingBottom: !device.isDesktop ? "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)" : undefined,
+        }}
+      >
         <div className="mb-5 sm:mb-8">
           <div className="flex items-start justify-between">
             <div>
