@@ -41,6 +41,8 @@
   --app-gold-text: #9a7b30;
   --app-code-bg: #f0f0f5;
   --app-scrollbar: rgba(196, 160, 80, 0.3);
+  --brand-gold: #c4a050;
+  --brand-gold-muted: rgba(196, 160, 80, 0.12);
 }
 
 /* Dark theme — [data-theme="dark"] is set by ThemeProvider (JS, before first paint).
@@ -68,6 +70,8 @@
   --app-gold-text: #c4a050;
   --app-code-bg: rgba(255, 255, 255, 0.1);
   --app-scrollbar: rgba(196, 160, 80, 0.2);
+  --brand-gold: #c4a050;
+  --brand-gold-muted: rgba(196, 160, 80, 0.12);
   color-scheme: dark;
 }
 

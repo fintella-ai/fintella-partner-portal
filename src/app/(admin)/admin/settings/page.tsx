@@ -58,6 +58,7 @@ const ALL_NAV_ITEMS = [
 // Mirror of ADMIN_NAV_ITEMS in src/app/(admin)/admin/layout.tsx. Update
 // here whenever the admin sidebar gains or loses an item. Used by the
 // Admin Navigation editor in the settings page.
+// Default order mirrors ADMIN_NAV_IDS_DEFAULT in admin/layout.tsx
 const ALL_ADMIN_NAV_ITEMS = [
   { id: "partners", label: "Partners", icon: "👥" },
   { id: "deals", label: "Deals", icon: "💼" },
@@ -65,15 +66,16 @@ const ALL_ADMIN_NAV_ITEMS = [
   { id: "training", label: "Training", icon: "🎓" },
   { id: "conference", label: "Live Weekly", icon: "📹" },
   { id: "documents", label: "Documents", icon: "📄" },
-  { id: "support", label: "Support", icon: "🎫" },
-  { id: "chat", label: "Live Chat", icon: "💬" },
   { id: "reports", label: "Reports", icon: "📈" },
   { id: "revenue", label: "Revenue", icon: "💵" },
   { id: "payouts", label: "Payouts", icon: "💳" },
   { id: "settings", label: "Settings", icon: "⚙️" },
   { id: "users", label: "Admin Users", icon: "🛡️" },
   { id: "dev", label: "Development", icon: "🛠️" },
+  { id: "workflows", label: "Workflows", icon: "⚡" },
   { id: "features", label: "Feature Requests", icon: "✨" },
+  { id: "support", label: "Support", icon: "🎫" },
+  { id: "chat", label: "Live Chat", icon: "💬" },
 ];
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -184,7 +186,9 @@ export default function SettingsPage() {
   // Navigation
   const [hiddenNavItems, setHiddenNavItems] = useState<string[]>([]);
   const [navOrder, setNavOrder] = useState<string[]>(ALL_NAV_ITEMS.map((n) => n.id));
+  const [adminNavOrder, setAdminNavOrder] = useState<string[]>(ALL_ADMIN_NAV_ITEMS.map((n) => n.id));
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [adminDragIdx, setAdminDragIdx] = useState<number | null>(null);
   // Per-item label + icon overrides keyed by `<scope>.<itemId>`.
   // Scope is either "partner" or "admin". Icons are base64 data URLs.
   const [navLabels, setNavLabels] = useState<Record<string, string>>({});
@@ -235,6 +239,10 @@ export default function SettingsPage() {
       try {
         const order = JSON.parse(settings.navOrder || "[]");
         if (order.length > 0) setNavOrder(order);
+      } catch {}
+      try {
+        const aOrder = JSON.parse(settings.adminNavOrder || "[]");
+        if (Array.isArray(aOrder) && aOrder.length > 0) setAdminNavOrder(aOrder);
       } catch {}
       try {
         const ann = JSON.parse(settings.announcements || "[]");
@@ -330,6 +338,7 @@ export default function SettingsPage() {
         l3Enabled,
         hiddenNavItems: JSON.stringify(hiddenNavItems),
         navOrder: JSON.stringify(navOrder),
+        adminNavOrder: JSON.stringify(adminNavOrder),
         navLabels: JSON.stringify(navLabels),
         navIcons: JSON.stringify(navIcons),
         announcements: JSON.stringify(announcements),
@@ -400,6 +409,34 @@ export default function SettingsPage() {
   const orderedNavItems = navOrder
     .map((id) => ALL_NAV_ITEMS.find((n) => n.id === id))
     .filter(Boolean) as typeof ALL_NAV_ITEMS;
+
+  // ── Admin nav drag reorder ─────────────────────────────────────────────
+
+  const handleAdminDragStart = (idx: number) => setAdminDragIdx(idx);
+
+  const handleAdminDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (adminDragIdx === null || adminDragIdx === idx) return;
+    const newOrder = [...adminNavOrder];
+    const [moved] = newOrder.splice(adminDragIdx, 1);
+    newOrder.splice(idx, 0, moved);
+    setAdminNavOrder(newOrder);
+    setAdminDragIdx(idx);
+  };
+
+  const handleAdminDragEnd = () => setAdminDragIdx(null);
+
+  const moveAdminNav = (idx: number, dir: -1 | 1) => {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= adminNavOrder.length) return;
+    const newOrder = [...adminNavOrder];
+    [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
+    setAdminNavOrder(newOrder);
+  };
+
+  const orderedAdminNavItems = adminNavOrder
+    .map((id) => ALL_ADMIN_NAV_ITEMS.find((n) => n.id === id))
+    .filter(Boolean) as typeof ALL_ADMIN_NAV_ITEMS;
 
   // ── Announcement CRUD ─────────────────────────────────────────────────
 
@@ -758,22 +795,44 @@ export default function SettingsPage() {
             <div className="card p-5 sm:p-6">
               <div className="font-body font-semibold text-sm mb-1">Admin Navigation</div>
               <p className="font-body text-[12px] text-[var(--app-text-muted)] mb-5">
-                Rename admin sidebar items or upload custom icons. Affects the admin panel sidebar for everyone with admin access.
+                Drag to reorder, edit labels, or upload custom icons. Changes sync to the admin sidebar for everyone with admin access.
               </p>
               <div className="space-y-3">
-                {ALL_ADMIN_NAV_ITEMS.map((item) => {
+                {orderedAdminNavItems.map((item, idx) => {
+                  const isDragging = adminDragIdx === idx;
                   const key = `admin.${item.id}`;
                   const currentLabel = navLabels[key] ?? "";
                   const currentIcon = navIcons[key] ?? "";
                   return (
-                    <div key={item.id} className="p-3 border border-[var(--app-border)] rounded-lg bg-[var(--app-card-bg)]">
-                      <div className="flex items-center gap-3 mb-3">
+                    <div
+                      key={item.id}
+                      draggable
+                      onDragStart={() => handleAdminDragStart(idx)}
+                      onDragOver={(e) => handleAdminDragOver(e, idx)}
+                      onDragEnd={handleAdminDragEnd}
+                      className={`p-3 border rounded-lg transition-all ${
+                        isDragging
+                          ? "bg-brand-gold/10 border-brand-gold/30 scale-[1.02] shadow-lg"
+                          : "bg-[var(--app-card-bg)] border-[var(--app-border)]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-3 cursor-grab active:cursor-grabbing">
+                        <div className="flex flex-col gap-[2px] shrink-0">
+                          <div className="w-4 h-[2px] bg-[var(--app-input-bg)] rounded" />
+                          <div className="w-4 h-[2px] bg-[var(--app-input-bg)] rounded" />
+                          <div className="w-4 h-[2px] bg-[var(--app-input-bg)] rounded" />
+                        </div>
+                        <span className="font-body text-[12px] text-[var(--app-text-muted)] w-5 text-center">{idx + 1}</span>
                         {currentIcon ? (
                           <img src={currentIcon} alt="" className="w-6 h-6 object-contain" />
                         ) : (
                           <span className="text-lg">{item.icon}</span>
                         )}
                         <span className="font-body text-sm text-[var(--app-text)] flex-1">{currentLabel || item.label}</span>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => moveAdminNav(idx, -1)} disabled={idx === 0} className="w-7 h-7 flex items-center justify-center rounded bg-[var(--app-card-bg)] text-[var(--app-text-muted)] disabled:opacity-20 text-[11px]">▲</button>
+                          <button onClick={() => moveAdminNav(idx, 1)} disabled={idx === orderedAdminNavItems.length - 1} className="w-7 h-7 flex items-center justify-center rounded bg-[var(--app-card-bg)] text-[var(--app-text-muted)] disabled:opacity-20 text-[11px]">▼</button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
                         <div>
