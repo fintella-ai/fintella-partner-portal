@@ -317,7 +317,7 @@ export default function SoftPhone() {
         onPointerUp={onDragEnd}
         className={`px-4 pt-3 pb-2 border-b border-[var(--app-border)] bg-gradient-to-r from-brand-gold/10 to-transparent shrink-0 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
-        {/* Row 1: status left — branding center — number + close right */}
+        {/* Row 1: status left — branding center — close right */}
         <div className="flex items-center">
           {/* Left: status indicator */}
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -342,20 +342,18 @@ export default function SoftPhone() {
             </span>
           </div>
 
-          {/* Center: logo + Fintella + Softphone */}
+          {/* Center: logo + Fintella + Softphone + number */}
           <div className="flex flex-col items-center shrink-0 mx-2">
             {logoUrl ? (
               <img src={logoUrl} alt="Fintella" className="h-6 object-contain mb-0.5" />
             ) : null}
             <div className="font-display text-[15px] font-bold text-brand-gold leading-none">Fintella</div>
             <div className="font-body text-[9px] uppercase tracking-[2px] text-[var(--app-text-muted)] mt-0.5">Softphone</div>
+            <div className="font-mono text-[10px] text-brand-gold mt-0.5 leading-none">{OFFICE_NUMBER_DISPLAY}</div>
           </div>
 
-          {/* Right: office number + close */}
-          <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
-            <div className="text-right min-w-0">
-              <div className="font-mono text-[10px] text-brand-gold leading-none">{OFFICE_NUMBER_DISPLAY}</div>
-            </div>
+          {/* Right: close */}
+          <div className="flex flex-1 justify-end">
             <button
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => { if (inCall) hangup(); setOpen(false); }}
@@ -365,11 +363,6 @@ export default function SoftPhone() {
               ✕
             </button>
           </div>
-        </div>
-
-        {/* Drag hint */}
-        <div className="flex justify-center mt-1.5">
-          <span className="text-[var(--app-text-faint)] text-[10px] tracking-widest">⠿⠿⠿</span>
         </div>
       </div>
 
