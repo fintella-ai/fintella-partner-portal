@@ -228,6 +228,33 @@ function CommissionsPageContent() {
       </div>
 
       {pageTab === "overview" && (<>
+      {/* ═══ HOW COMMISSIONS WORK (first section) ═══ */}
+      <div className={`${device.cardPadding} ${device.borderRadius} border border-[var(--app-border)] bg-[var(--app-card-bg)] mb-6`}>
+        <div className="font-body font-semibold text-sm mb-4">How Commissions Work</div>
+        <div className={`grid ${device.isMobile ? "grid-cols-1" : "grid-cols-3"} gap-3`}>
+          {[
+            { label: "Client Refund", formula: "e.g. $100,000", color: "text-[var(--app-text-secondary)]" },
+            { label: `${FIRM_SHORT} Fee (${(DEFAULT_FIRM_FEE_RATE * 100).toFixed(0)}%)`, formula: "= $20,000", color: "text-[var(--app-text-secondary)]" },
+            { label: `Your Cut (${(directRate * 100).toFixed(0)}% of fee)`, formula: `= ${fmt$(100000 * DEFAULT_FIRM_FEE_RATE * directRate)}`, color: "text-brand-gold" },
+          ].map((r) => (
+            <div key={r.label} className="p-3 sm:p-4 border border-[var(--app-border)] rounded-lg text-center">
+              <div className="font-body text-[10px] text-[var(--app-text-muted)] mb-1.5 tracking-wider">{r.label}</div>
+              <div className={`font-display text-base sm:text-lg font-bold ${r.color}`}>{r.formula}</div>
+            </div>
+          ))}
+        </div>
+        {hasDownline && (
+          <div className="mt-3 p-3 bg-purple-500/[0.05] border border-purple-500/15 rounded-lg font-body text-[12px] text-[var(--app-text-secondary)] text-center">
+            Your override = your rate minus your downline partner&apos;s rate (varies per recruit)
+          </div>
+        )}
+        {hasL3 && (
+          <div className="mt-2 p-3 bg-cyan-500/[0.05] border border-cyan-500/15 rounded-lg font-body text-[12px] text-[var(--app-text-secondary)] text-center">
+            L3 (2nd-Level Downline) — rate set when your downline recruits their sub-partners
+          </div>
+        )}
+      </div>
+
       {/* ═══ STRIPE CONNECT CARD ═══ */}
       {(() => {
         const isActive = stripe?.status === "active" && stripe?.payoutsEnabled;
@@ -470,32 +497,6 @@ function CommissionsPageContent() {
         </div>
       )}
 
-      {/* ═══ HOW COMMISSIONS WORK ═══ */}
-      <div className={`${device.cardPadding} ${device.borderRadius} border border-[var(--app-border)] bg-[var(--app-card-bg)] mb-6`}>
-        <div className="font-body font-semibold text-sm mb-4">How Commissions Work</div>
-        <div className={`grid ${device.isMobile ? "grid-cols-1" : "grid-cols-3"} gap-3`}>
-          {[
-            { label: "Client Refund", formula: "e.g. $100,000", color: "text-[var(--app-text-secondary)]" },
-            { label: `${FIRM_SHORT} Fee (${(DEFAULT_FIRM_FEE_RATE * 100).toFixed(0)}%)`, formula: "= $20,000", color: "text-[var(--app-text-secondary)]" },
-            { label: `Your Cut (${(directRate * 100).toFixed(0)}% of fee)`, formula: `= ${fmt$(100000 * DEFAULT_FIRM_FEE_RATE * directRate)}`, color: "text-brand-gold" },
-          ].map((r) => (
-            <div key={r.label} className="p-3 sm:p-4 border border-[var(--app-border)] rounded-lg text-center">
-              <div className="font-body text-[10px] text-[var(--app-text-muted)] mb-1.5 tracking-wider">{r.label}</div>
-              <div className={`font-display text-base sm:text-lg font-bold ${r.color}`}>{r.formula}</div>
-            </div>
-          ))}
-        </div>
-        {hasDownline && (
-          <div className="mt-3 p-3 bg-purple-500/[0.05] border border-purple-500/15 rounded-lg font-body text-[12px] text-[var(--app-text-secondary)] text-center">
-            Your override = your rate minus your downline partner&apos;s rate (varies per recruit)
-          </div>
-        )}
-        {hasL3 && (
-          <div className="mt-2 p-3 bg-cyan-500/[0.05] border border-cyan-500/15 rounded-lg font-body text-[12px] text-[var(--app-text-secondary)] text-center">
-            L3 (2nd-Level Downline) — rate set when your downline recruits their sub-partners
-          </div>
-        )}
-      </div>
       </>)}
 
       {pageTab === "history" && (<>
