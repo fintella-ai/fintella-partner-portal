@@ -48,8 +48,12 @@ export async function POST(req: NextRequest) {
       if (password.length < 6) {
         return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
       }
-      if (!["admin", "accounting", "partner_support"].includes(userRole)) {
-        return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+      const isMasterAdmin = session.user.email === "admin@fintella.partners";
+      const allowedRoles = isMasterAdmin
+        ? ["super_admin", "admin", "accounting", "partner_support"]
+        : ["admin", "accounting", "partner_support"];
+      if (!allowedRoles.includes(userRole)) {
+        return NextResponse.json({ error: isMasterAdmin ? "Invalid role" : "Only admin@fintella.partners can assign super_admin role" }, { status: 400 });
       }
 
       const existing = await prisma.user.findUnique({ where: { email } });
@@ -83,9 +87,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "You cannot change your own role" }, { status: 400 });
       }
 
-      // Prevent creating another super_admin (only system-level)
-      if (userRole === "super_admin") {
-        return NextResponse.json({ error: "Cannot assign super_admin role through the portal" }, { status: 400 });
+      // Only admin@fintella.partners can assign super_admin
+      if (userRole === "super_admin" && session.user.email !== "admin@fintella.partners") {
+        return NextResponse.json({ error: "Only admin@fintella.partners can assign super_admin role" }, { status: 400 });
       }
 
       const user = await prisma.user.update({
