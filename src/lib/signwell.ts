@@ -114,7 +114,7 @@ export function buildPartnerTemplateFields(
     "";
   const ratePct =
     typeof ctx.commissionRate === "number"
-      ? `${Math.round(ctx.commissionRate * 100)}%`
+      ? `${Math.round(ctx.commissionRate * 100)}`
       : "";
   const today = new Date();
   const todayStr = today.toLocaleDateString("en-US", {
