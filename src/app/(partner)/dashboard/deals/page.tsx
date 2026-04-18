@@ -15,8 +15,10 @@ export default function DealsPage() {
   const device = useDevice();
   const router = useRouter();
   const [deals, setDeals] = useState<any[]>([]);
+  const [downlineDeals, setDownlineDeals] = useState<any[]>([]);
   const [me, setMe] = useState<{ commissionRate: number; tier: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dealsTab, setDealsTab] = useState<"my-deals" | "downline">("my-deals");
   // Deep link: auto-expand a deal from URL ?deal=xxx
   const [expandedId, setExpandedId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -31,6 +33,7 @@ export default function DealsPage() {
       if (res.ok) {
         const data = await res.json();
         setDeals(data.directDeals || []);
+        setDownlineDeals(data.downlineDeals || []);
         setMe(data.me || null);
       }
     } catch {}
@@ -84,14 +87,33 @@ export default function DealsPage() {
     <PullToRefresh onRefresh={loadData} disabled={!device.isMobile}>
     <div>
       <h2 className="font-display text-xl sm:text-2xl font-bold mb-2">
-        My Direct Deals
+        Deals
       </h2>
       <p className="font-body text-sm text-[var(--app-text-muted)] mb-6">
-        Clients you referred directly. Tap a deal to view details.
+        Your direct referrals and downline partner deals.
       </p>
 
       <div className="card">
-        {deals.length === 0 ? (
+        <div className="flex gap-1 px-4 sm:px-6 pt-4 sm:pt-5 border-b border-[var(--app-border)]">
+          {([
+            { id: "my-deals" as const, label: "My Direct Deals" },
+            { id: "downline" as const, label: "Downline Deals" },
+          ]).map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setDealsTab(t.id)}
+              className={`font-body text-[13px] px-4 py-2.5 whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                dealsTab === t.id
+                  ? "text-brand-gold border-brand-gold"
+                  : "text-[var(--app-text-muted)] border-transparent hover:text-[var(--app-text-secondary)]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {dealsTab === "my-deals" && (deals.length === 0 ? (
           <div className="p-12 text-center font-body text-sm text-[var(--app-text-muted)]">
             No deals yet. Share your referral link to start earning commissions.
           </div>
@@ -191,7 +213,39 @@ export default function DealsPage() {
             })}
             </div>
           </div>
-        )}
+        ))}
+
+        {dealsTab === "downline" && (downlineDeals.length === 0 ? (
+          <div className="p-12 text-center font-body text-sm text-[var(--app-text-muted)]">
+            No downline deals yet. Recruit partners to build your team.
+          </div>
+        ) : (
+          <div>
+            {downlineDeals.map((deal, idx) => (
+              <div
+                key={deal.id}
+                className={`px-4 sm:px-6 py-4 border-b border-[var(--app-border)] last:border-b-0 ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="font-body text-[13px] font-medium text-[var(--app-text)] truncate flex-1">{deal.dealName}</div>
+                  <StageBadge stage={deal.stage} />
+                </div>
+                <div className="font-body text-[11px] text-[var(--app-text-muted)] mb-2">
+                  Via {deal.submittingPartnerName || deal.partnerCode} · {fmtDate(deal.createdAt)}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="font-body text-[12px] text-[var(--app-text-muted)]">
+                    Refund: {fmt$(deal.estimatedRefundAmount)}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="font-display text-[14px] font-semibold text-brand-gold">{fmt$(deal.l2CommissionAmount)}</div>
+                    <StatusBadge status={deal.l2CommissionStatus} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
     </PullToRefresh>
