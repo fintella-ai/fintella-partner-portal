@@ -21,6 +21,7 @@ export default function DownlinePage() {
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [partnerView, setPartnerView] = useState<PartnerView>("list");
+  const [downlineTab, setDownlineTab] = useState<"partners" | "deals">("partners");
 
   const loadData = useCallback(async () => {
     try {
@@ -86,8 +87,28 @@ export default function DownlinePage() {
         commissions on their closed deals.
       </p>
 
-      {/* ═══ YOUR PARTNERS ═══ */}
+      {/* ═══ TABS ═══ */}
       <div className="card mb-6">
+        <div className="flex gap-1 px-4 sm:px-6 pt-4 sm:pt-5 border-b border-[var(--app-border)]">
+          {([
+            { id: "partners" as const, label: "Your Partners" },
+            { id: "deals" as const, label: "Downline Deals" },
+          ]).map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setDownlineTab(t.id)}
+              className={`font-body text-[13px] px-4 py-2.5 whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                downlineTab === t.id
+                  ? "text-brand-gold border-brand-gold"
+                  : "text-[var(--app-text-muted)] border-transparent hover:text-[var(--app-text-secondary)]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {downlineTab === "partners" && (<>
         <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-[var(--app-border)] flex items-center justify-between flex-wrap gap-2">
           <div className="font-body font-semibold text-sm sm:text-[15px]">
             Your Partners
@@ -300,10 +321,9 @@ export default function DownlinePage() {
             </div>
           </div>
         )}
-      </div>
+        </>)}
 
-      {/* ═══ DOWNLINE DEALS ═══ */}
-      <div className="card">
+        {downlineTab === "deals" && (<>
         <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-[var(--app-border)]">
           <div className="font-body font-semibold text-sm sm:text-[15px]">
             Downline Deals
@@ -429,6 +449,7 @@ export default function DownlinePage() {
             ))}
           </div>
         )}
+        </>)}
       </div>
     </div>
     </PullToRefresh>
