@@ -185,16 +185,16 @@ export default async function WebhookGuidePage() {
           {/* Header — logo with black background between dividers */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ height: 1, background: "var(--doc-border)", margin: "0 -20px" }} />
-            <div style={{ background: "#000", padding: "20px 0", margin: "0 -20px", display: "flex", justifyContent: "center" }}>
+            <div style={{ background: "#000", padding: "32px 0", margin: "0 -20px", display: "flex", justifyContent: "center" }}>
               {logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={logoUrl}
                   alt="Fintella"
-                  style={{ maxHeight: 80, objectFit: "contain" }}
+                  style={{ maxHeight: 160, objectFit: "contain" }}
                 />
               ) : (
-                <div style={{ fontSize: 24, fontWeight: 700, color: "var(--doc-gold)", letterSpacing: 2 }}>FINTELLA</div>
+                <div style={{ fontSize: 36, fontWeight: 700, color: "var(--doc-gold)", letterSpacing: 3 }}>FINTELLA</div>
               )}
             </div>
             <div style={{ height: 1, background: "var(--doc-border)", margin: "0 -20px 16px" }} />
