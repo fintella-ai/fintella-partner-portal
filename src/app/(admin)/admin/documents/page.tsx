@@ -36,7 +36,7 @@ function fmtDate(d: string | null) {
 
 export default function DocumentTrackingPage() {
   const router = useRouter();
-  const { columnWidths: docColWidths, getResizeHandler: getDocResizeHandler } = useResizableColumns([150, 150, 200, 100, 130, 100]);
+  const { columnWidths: docColWidths, getResizeHandler: getDocResizeHandler } = useResizableColumns([150, 150, 200, 100, 130, 100], { storageKey: "documents" });
   const [tab, setTab] = useState<Tab>("All");
   const [documents, setDocuments] = useState<DocEntry[]>([]);
   const [loading, setLoading] = useState(true);

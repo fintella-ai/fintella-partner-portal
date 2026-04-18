@@ -72,7 +72,8 @@ export default function AdminPartnersPage() {
   const router = useRouter();
   // 8 columns: Partner, Code, Phone, Email, Status, W9, Joined, Action
   const { columnWidths: partnerCols, getResizeHandler: partnerResize } = useResizableColumns(
-    [180, 120, 140, 180, 90, 80, 110, 70]
+    [180, 120, 140, 180, 90, 80, 110, 70],
+    { storageKey: "partners" }
   );
   const partnerGridCols = partnerCols.map((w) => `${w}px`).join(" ");
 

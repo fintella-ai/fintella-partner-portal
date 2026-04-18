@@ -147,9 +147,9 @@ const VIEW_TABS: { id: ViewTab; label: string }[] = [
 
 export default function AdminTrainingPage() {
   // Resizable column hooks
-  const { columnWidths: moduleCols, getResizeHandler: moduleResize } = useResizableColumns([250, 120, 100, 100, 80, 100]);
-  const { columnWidths: resourceCols, getResizeHandler: resourceResize } = useResizableColumns([250, 120, 100, 100, 100]);
-  const { columnWidths: faqCols, getResizeHandler: faqResize } = useResizableColumns([300, 120, 100, 80, 100]);
+  const { columnWidths: moduleCols, getResizeHandler: moduleResize } = useResizableColumns([250, 120, 100, 100, 80, 100], { storageKey: "training-modules" });
+  const { columnWidths: resourceCols, getResizeHandler: resourceResize } = useResizableColumns([250, 120, 100, 100, 100], { storageKey: "training-resources" });
+  const { columnWidths: faqCols, getResizeHandler: faqResize } = useResizableColumns([300, 120, 100, 80, 100], { storageKey: "training-faq" });
 
   // Active view tab
   const [view, setView] = useState<ViewTab>("modules");

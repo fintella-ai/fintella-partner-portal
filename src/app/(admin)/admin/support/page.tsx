@@ -108,7 +108,7 @@ const statusLabel: Record<string, string> = {
 const fmtDate = fmtDateTime;
 
 export default function SupportTicketsPage() {
-  const { columnWidths: ticketColWidths, getResizeHandler: getTicketResizeHandler } = useResizableColumns([200, 150, 120, 100, 100, 150, 80]);
+  const { columnWidths: ticketColWidths, getResizeHandler: getTicketResizeHandler } = useResizableColumns([200, 150, 120, 100, 100, 150, 80], { storageKey: "support-tickets" });
   const [tab, setTab] = useState<Tab>("All");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, open: 0, inProgress: 0, resolved: 0 });

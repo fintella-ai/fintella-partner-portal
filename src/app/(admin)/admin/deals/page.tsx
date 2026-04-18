@@ -75,7 +75,8 @@ type SortField = "dealName" | "estimatedRefundAmount" | "firmFeeAmount" | "l1Com
 export default function AdminDealsPage() {
   // 9 columns: Deal, Partner, Stage, Refund, Fee%, Firm Fee, Comm%, Commission, Date
   const { columnWidths: dealCols, getResizeHandler: dealResize } = useResizableColumns(
-    [200, 140, 120, 120, 70, 110, 70, 110, 100]
+    [200, 140, 120, 120, 70, 110, 70, 110, 100],
+    { storageKey: "deals" }
   );
   const dealGridCols = dealCols.map((w) => `${w}px`).join(" ");
 

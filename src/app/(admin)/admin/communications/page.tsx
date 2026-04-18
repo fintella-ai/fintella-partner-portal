@@ -168,9 +168,9 @@ export default function CommunicationsPage() {
   const [partnerIdMap, setPartnerIdMap] = useState<Record<string, string>>({});
 
   // Resizable column hooks
-  const { columnWidths: inboxColWidths, getResizeHandler: getInboxResizeHandler } = useResizableColumns([250, 300, 150, 100, 100]);
-  const { columnWidths: smsColWidths, getResizeHandler: getSmsResizeHandler } = useResizableColumns([200, 180, 150, 120]);
-  const { columnWidths: phoneColWidths, getResizeHandler: getPhoneResizeHandler } = useResizableColumns([180, 180, 160, 150, 100, 150]);
+  const { columnWidths: inboxColWidths, getResizeHandler: getInboxResizeHandler } = useResizableColumns([250, 300, 150, 100, 100], { storageKey: "comms-inbox" });
+  const { columnWidths: smsColWidths, getResizeHandler: getSmsResizeHandler } = useResizableColumns([200, 180, 150, 120], { storageKey: "comms-sms" });
+  const { columnWidths: phoneColWidths, getResizeHandler: getPhoneResizeHandler } = useResizableColumns([180, 180, 160, 150, 100, 150], { storageKey: "comms-phone" });
 
   // Fetch partner name→id map for clickable links
   useEffect(() => {

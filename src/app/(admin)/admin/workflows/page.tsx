@@ -509,7 +509,7 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Automations tab ──────────────────────────────────────────────────────────
 
 function AutomationsTab() {
-  const { columnWidths: autoCols, getResizeHandler: autoResize } = useResizableColumns([200, 150, 150, 150, 80, 80]);
+  const { columnWidths: autoCols, getResizeHandler: autoResize } = useResizableColumns([200, 150, 150, 150, 80, 80], { storageKey: "workflows" });
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [panelOpen, setPanelOpen] = useState(false);
