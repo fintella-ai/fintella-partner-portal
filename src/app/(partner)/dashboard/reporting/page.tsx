@@ -256,6 +256,8 @@ export default function PartnerReportingPage() {
                       <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Source</th>
                       <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Stage</th>
                       <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Refund</th>
+                      <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Fee %</th>
+                      <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Comm %</th>
                       <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Commission</th>
                       <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Status</th>
                     </tr>
@@ -265,6 +267,8 @@ export default function PartnerReportingPage() {
                       const commAmt = deal.source === "direct" ? deal.l1CommissionAmount : (deal.l2CommissionAmount || 0);
                       const commStatus = deal.source === "direct" ? deal.l1CommissionStatus : (deal.l2CommissionStatus || "pending");
                       const partnerName = deal.source === "downline" ? (deal.submittingPartnerName || partnerNameMap[deal.partnerCode || ""] || deal.partnerCode) : null;
+                      const feeRate = deal.firmFeeRate ? `${Math.round(deal.firmFeeRate * 100)}%` : "—";
+                      const commRate = deal.source === "direct" ? (commissionRate ? `${Math.round(commissionRate * 100)}%` : "—") : "—";
                       return (<React.Fragment key={deal.id + deal.source}>
                         <tr onClick={() => setExpandedDealId(expandedDealId === deal.id ? null : deal.id)} className={`border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
                           <td className="px-4 sm:px-6 py-3.5">
@@ -277,11 +281,13 @@ export default function PartnerReportingPage() {
                           </td>
                           <td className="px-3 py-3.5 text-center"><StageBadge stage={deal.stage} /></td>
                           <td className="px-3 py-3.5 text-center font-body text-[13px] text-[var(--app-text)]">{fmt$(deal.estimatedRefundAmount)}</td>
+                          <td className="px-3 py-3.5 text-center font-body text-[12px] text-[var(--app-text-muted)]">{feeRate}</td>
+                          <td className="px-3 py-3.5 text-center font-body text-[12px] text-[var(--app-text-muted)]">{commRate}</td>
                           <td className="px-3 py-3.5 text-center font-display text-[14px] font-semibold text-brand-gold">{fmt$(commAmt)}</td>
                           <td className="px-3 py-3.5 text-center"><StatusBadge status={commStatus} /></td>
                         </tr>
                         {expandedDealId === deal.id && (
-                          <tr><td colSpan={7} className="p-0"><DealDetailPanel deal={deal} /></td></tr>
+                          <tr><td colSpan={9} className="p-0"><DealDetailPanel deal={deal} /></td></tr>
                         )}
                         </React.Fragment>);
                     })}
@@ -333,6 +339,8 @@ export default function PartnerReportingPage() {
                         <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Date</th>
                         <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Stage</th>
                         <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Refund</th>
+                        <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Fee %</th>
+                        <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Comm %</th>
                         <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Commission</th>
                         <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Status</th>
                       </tr>
@@ -342,6 +350,8 @@ export default function PartnerReportingPage() {
                         const commAmt = isDownline ? (deal.l2CommissionAmount || 0) : deal.l1CommissionAmount;
                         const commStatus = isDownline ? (deal.l2CommissionStatus || "pending") : deal.l1CommissionStatus;
                         const partner = isDownline ? (deal.submittingPartnerName || partnerNameMap[deal.partnerCode] || deal.partnerCode) : null;
+                        const feeRate = deal.firmFeeRate ? `${Math.round(deal.firmFeeRate * 100)}%` : "—";
+                        const dealCommRate = commissionRate ? `${Math.round(commissionRate * 100)}%` : "—";
                         return (<React.Fragment key={deal.id}>
                           <tr onClick={() => setExpandedDealId(expandedDealId === deal.id ? null : deal.id)} className={`border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
                             <td className="px-4 sm:px-6 py-3.5">
@@ -351,11 +361,13 @@ export default function PartnerReportingPage() {
                             <td className="px-3 py-3.5 text-center font-body text-[12px] text-[var(--app-text-muted)]">{fmtDate(deal.createdAt)}</td>
                             <td className="px-3 py-3.5 text-center"><StageBadge stage={deal.stage} /></td>
                             <td className="px-3 py-3.5 text-center font-body text-[13px] text-[var(--app-text)]">{fmt$(deal.estimatedRefundAmount)}</td>
+                            <td className="px-3 py-3.5 text-center font-body text-[12px] text-[var(--app-text-muted)]">{feeRate}</td>
+                            <td className="px-3 py-3.5 text-center font-body text-[12px] text-[var(--app-text-muted)]">{dealCommRate}</td>
                             <td className="px-3 py-3.5 text-center font-display text-[14px] font-semibold text-brand-gold">{fmt$(commAmt)}</td>
                             <td className="px-3 py-3.5 text-center"><StatusBadge status={commStatus} /></td>
                           </tr>
                           {expandedDealId === deal.id && (
-                            <tr><td colSpan={6} className="p-0"><DealDetailPanel deal={deal} /></td></tr>
+                            <tr><td colSpan={8} className="p-0"><DealDetailPanel deal={deal} /></td></tr>
                           )}
                         </React.Fragment>);
                       })}
@@ -498,6 +510,7 @@ export default function PartnerReportingPage() {
                         <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Date</th>
                         <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Stage</th>
                         <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Refund</th>
+                        <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Fee %</th>
                         <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Commission</th>
                         <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Status</th>
                       </tr>
@@ -510,6 +523,7 @@ export default function PartnerReportingPage() {
                           <td className="px-3 py-3.5 text-center font-body text-[12px] text-[var(--app-text-muted)]">{fmtDate(deal.createdAt)}</td>
                           <td className="px-3 py-3.5 text-center"><StageBadge stage={deal.stage} /></td>
                           <td className="px-3 py-3.5 text-center font-body text-[13px] text-[var(--app-text)]">{fmt$(deal.estimatedRefundAmount)}</td>
+                          <td className="px-3 py-3.5 text-center font-body text-[12px] text-[var(--app-text-muted)]">{deal.firmFeeRate ? `${Math.round(deal.firmFeeRate * 100)}%` : "—"}</td>
                           <td className="px-3 py-3.5 text-center font-display text-[14px] font-semibold text-brand-gold">{fmt$(deal.l2CommissionAmount)}</td>
                           <td className="px-3 py-3.5 text-center"><StatusBadge status={deal.l2CommissionStatus} /></td>
                         </tr>
