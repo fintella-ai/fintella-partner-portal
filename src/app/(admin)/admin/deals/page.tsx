@@ -480,9 +480,18 @@ export default function AdminDealsPage() {
                 <div className="font-body text-[11px] text-[var(--app-text-muted)] truncate">{deal.clientName || deal.clientEmail || "—"}</div>
               </div>
               <div className="text-center">
-                <PartnerLink partnerId={deal.partnerId} className="font-body text-[12px] text-[var(--app-text-secondary)] truncate inline-block max-w-full">{deal.partnerName}</PartnerLink>
-                {deal.partnerName !== deal.partnerCode && (
-                  <div className="font-mono text-[10px] text-[var(--app-text-muted)] mt-0.5 truncate">{deal.partnerCode}</div>
+                {deal.partnerId ? (
+                  <>
+                    <PartnerLink partnerId={deal.partnerId} className="font-body text-[12px] text-[var(--app-text-secondary)] truncate inline-block max-w-full">{deal.partnerName}</PartnerLink>
+                    {deal.partnerName !== deal.partnerCode && (
+                      <div className="font-mono text-[10px] text-[var(--app-text-muted)] mt-0.5 truncate">{deal.partnerCode}</div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="font-body text-[12px] text-[var(--app-text-muted)] italic truncate inline-block max-w-full">Unknown</span>
+                    <div className="font-mono text-[10px] text-[var(--app-text-muted)] mt-0.5 truncate">{deal.partnerCode}</div>
+                  </>
                 )}
               </div>
               <div className="text-center"><StageBadge stage={deal.stage} /></div>
@@ -770,8 +779,17 @@ export default function AdminDealsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="font-body text-[13px] font-medium text-[var(--app-text)] truncate">{deal.dealName}</div>
                   <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">
-                    <PartnerLink partnerId={deal.partnerId} className="text-[var(--app-text-muted)]">{deal.partnerName}</PartnerLink>
-                    {deal.partnerName !== deal.partnerCode && <span className="font-mono ml-1">· {deal.partnerCode}</span>}
+                    {deal.partnerId ? (
+                      <>
+                        <PartnerLink partnerId={deal.partnerId} className="text-[var(--app-text-muted)]">{deal.partnerName}</PartnerLink>
+                        {deal.partnerName !== deal.partnerCode && <span className="font-mono ml-1">· {deal.partnerCode}</span>}
+                      </>
+                    ) : (
+                      <>
+                        <span className="italic">Unknown</span>
+                        <span className="font-mono ml-1">· {deal.partnerCode}</span>
+                      </>
+                    )}
                     <span className="ml-1">· {fmtDateTime(deal.createdAt)}</span>
                   </div>
                 </div>
