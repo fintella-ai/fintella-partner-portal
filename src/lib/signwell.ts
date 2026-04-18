@@ -293,7 +293,10 @@ export async function sendForSigning(
     recipients,
     reminders: true,
     apply_signing_order: options.recipients.length > 1,
-    embedded_signing: false,
+    // embedded_signing: true tells SignWell to generate a signing URL.
+    // We NEVER use it in an iframe — always window.open() in a new tab.
+    // Without this flag, SignWell doesn't return a signing URL at all.
+    embedded_signing: true,
   };
 
   if (usingTemplate) {
