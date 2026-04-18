@@ -1,64 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { getCompletedPdfUrl } from "@/lib/signwell";
 
-const ALLOWED_HOSTS = new Set([
-  "signwell.com",
-  "www.signwell.com",
-  "app.signwell.com",
-  "api.signwell.com",
-]);
-
-function isAllowedSignwellUrl(raw: string): URL | null {
-  let parsed: URL;
-  try {
-    parsed = new URL(raw);
-  } catch {
-    return null;
-  }
-  if (parsed.protocol !== "https:") return null;
-  const host = parsed.hostname.toLowerCase();
-  if (ALLOWED_HOSTS.has(host)) return parsed;
-  if (host.endsWith(".signwell.com")) return parsed;
-  return null;
-}
+const DOC_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
 /**
- * GET /api/signwell/document?url=<signwell-pdf-url>
- * Proxies a SignWell document PDF through our server so admins/partners
- * can view/download without needing SignWell API credentials.
+ * GET /api/signwell/document?docId=<signwell-document-id>
+ *
+ * Given a SignWell document ID, resolves the pre-signed S3 `file_url` for
+ * the completed (fully-signed) PDF via the server-side SignWell API key,
+ * then 302-redirects the browser to it. The pre-signed URL works without
+ * auth, so the browser can stream/download the PDF directly from S3
+ * without ever seeing the SignWell API key.
+ *
+ * Security notes:
+ * - Session-gated (401 for unauthenticated).
+ * - The SignWell request URL is constructed server-side from a strict
+ *   docId pattern, so there is no user-controlled URL in any outbound
+ *   fetch (no SSRF surface).
  */
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const raw = req.nextUrl.searchParams.get("url");
-  const target = raw ? isAllowedSignwellUrl(raw) : null;
-  if (!target) {
-    return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  const docId = req.nextUrl.searchParams.get("docId");
+  if (!docId || !DOC_ID_PATTERN.test(docId)) {
+    return NextResponse.json({ error: "Invalid docId" }, { status: 400 });
   }
 
-  const apiKey = process.env.SIGNWELL_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "SignWell not configured" }, { status: 500 });
-
-  try {
-    const res = await fetch(target.toString(), {
-      headers: { "X-Api-Key": apiKey },
-      redirect: "manual",
-    });
-
-    if (!res.ok) return NextResponse.json({ error: `SignWell returned ${res.status}` }, { status: 502 });
-
-    const contentType = res.headers.get("content-type") || "application/pdf";
-    const body = await res.arrayBuffer();
-
-    return new NextResponse(body, {
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": "inline",
-        "Cache-Control": "private, max-age=3600",
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: "Failed to fetch document" }, { status: 500 });
+  const fileUrl = await getCompletedPdfUrl(docId);
+  if (!fileUrl) {
+    return NextResponse.json({ error: "Document not available" }, { status: 404 });
   }
+
+  return NextResponse.redirect(fileUrl, 302);
 }
