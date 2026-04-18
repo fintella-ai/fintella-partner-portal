@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useResizableColumns } from "@/components/ui/ResizableTable";
 import { fmt$, fmtDate, fmtDateTime } from "@/lib/format";
 import { resolveDealFinancials, formatRate } from "@/lib/dealCalc";
 import StageBadge from "@/components/ui/StageBadge";
@@ -72,6 +73,12 @@ type Deal = {
 type SortField = "dealName" | "estimatedRefundAmount" | "firmFeeAmount" | "l1CommissionAmount" | "createdAt" | "stage";
 
 export default function AdminDealsPage() {
+  // 9 columns: Deal, Partner, Stage, Refund, Fee%, Firm Fee, Comm%, Commission, Date
+  const { columnWidths: dealCols, getResizeHandler: dealResize } = useResizableColumns(
+    [200, 140, 120, 120, 70, 110, 70, 110, 100]
+  );
+  const dealGridCols = dealCols.map((w) => `${w}px`).join(" ");
+
   const [deals, setDeals] = useState<Deal[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -425,31 +432,31 @@ export default function AdminDealsPage() {
             All center-aligned except Deal (left, long name) and Date (right,
             terse trailing metadata). gap-6 + min-w-[1320px] (was 1040) to
             absorb the two new columns. */}
-        <div className="grid grid-cols-[1.5fr_1fr_0.9fr_0.9fr_0.5fr_0.8fr_0.5fr_0.8fr_0.7fr] gap-6 px-5 py-3 border-b border-[var(--app-border)]">
-          <button onClick={() => toggleSort("dealName")} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-left hover:text-[var(--app-text-secondary)]">
-            Deal{sortIcon("dealName")}
+        <div className="grid gap-6 px-5 py-3 border-b border-[var(--app-border)]" style={{ gridTemplateColumns: dealGridCols }}>
+          <button onClick={() => toggleSort("dealName")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-left hover:text-[var(--app-text-secondary)]">
+            Deal{sortIcon("dealName")}<span {...dealResize(0)} />
           </button>
-          <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center">Partner</div>
-          <button onClick={() => toggleSort("stage")} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Stage{sortIcon("stage")}
+          <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center">Partner<span {...dealResize(1)} /></div>
+          <button onClick={() => toggleSort("stage")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
+            Stage{sortIcon("stage")}<span {...dealResize(2)} />
           </button>
-          <button onClick={() => toggleSort("estimatedRefundAmount")} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Refund{sortIcon("estimatedRefundAmount")}
+          <button onClick={() => toggleSort("estimatedRefundAmount")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
+            Refund{sortIcon("estimatedRefundAmount")}<span {...dealResize(3)} />
           </button>
-          <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center" title="Firm fee rate as a percentage of the deal refund">
-            Fee %
+          <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center" title="Firm fee rate as a percentage of the deal refund">
+            Fee %<span {...dealResize(4)} />
           </div>
-          <button onClick={() => toggleSort("firmFeeAmount")} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Firm Fee{sortIcon("firmFeeAmount")}
+          <button onClick={() => toggleSort("firmFeeAmount")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
+            Firm Fee{sortIcon("firmFeeAmount")}<span {...dealResize(5)} />
           </button>
-          <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center" title="Commission rate as a percentage of the firm fee (per the partner's tier)">
-            Comm %
+          <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center" title="Commission rate as a percentage of the firm fee (per the partner's tier)">
+            Comm %<span {...dealResize(6)} />
           </div>
-          <button onClick={() => toggleSort("l1CommissionAmount")} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Commission{sortIcon("l1CommissionAmount")}
+          <button onClick={() => toggleSort("l1CommissionAmount")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
+            Commission{sortIcon("l1CommissionAmount")}<span {...dealResize(7)} />
           </button>
-          <button onClick={() => toggleSort("createdAt")} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-right hover:text-[var(--app-text-secondary)]">
-            Date{sortIcon("createdAt")}
+          <button onClick={() => toggleSort("createdAt")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-right hover:text-[var(--app-text-secondary)]">
+            Date{sortIcon("createdAt")}<span {...dealResize(8)} />
           </button>
         </div>
 
@@ -463,7 +470,8 @@ export default function AdminDealsPage() {
           return (
           <div key={deal.id} id={`deal-${deal.id}`}>
             <div
-              className={`grid grid-cols-[1.5fr_1fr_0.9fr_0.9fr_0.5fr_0.8fr_0.5fr_0.8fr_0.7fr] gap-6 px-5 py-3.5 border-b border-[var(--app-border)] hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
+              className={`grid gap-6 px-5 py-3.5 border-b border-[var(--app-border)] hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
+              style={{ gridTemplateColumns: dealGridCols }}
               onClick={() => toggleExpand(deal)}
             >
               <div>
