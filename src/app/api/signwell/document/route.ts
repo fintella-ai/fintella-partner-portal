@@ -1,6 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
+const ALLOWED_HOSTS = new Set([
+  "signwell.com",
+  "www.signwell.com",
+  "app.signwell.com",
+  "api.signwell.com",
+]);
+
+function isAllowedSignwellUrl(raw: string): URL | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:") return null;
+  const host = parsed.hostname.toLowerCase();
+  if (ALLOWED_HOSTS.has(host)) return parsed;
+  if (host.endsWith(".signwell.com")) return parsed;
+  return null;
+}
+
 /**
  * GET /api/signwell/document?url=<signwell-pdf-url>
  * Proxies a SignWell document PDF through our server so admins/partners
@@ -10,8 +31,9 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const pdfUrl = req.nextUrl.searchParams.get("url");
-  if (!pdfUrl || !pdfUrl.includes("signwell.com")) {
+  const raw = req.nextUrl.searchParams.get("url");
+  const target = raw ? isAllowedSignwellUrl(raw) : null;
+  if (!target) {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
 
@@ -19,8 +41,9 @@ export async function GET(req: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: "SignWell not configured" }, { status: 500 });
 
   try {
-    const res = await fetch(pdfUrl, {
+    const res = await fetch(target.toString(), {
       headers: { "X-Api-Key": apiKey },
+      redirect: "manual",
     });
 
     if (!res.ok) return NextResponse.json({ error: `SignWell returned ${res.status}` }, { status: 502 });
