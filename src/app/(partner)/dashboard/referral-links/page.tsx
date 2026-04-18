@@ -19,7 +19,7 @@ interface Invite {
 }
 
 export default function ReferralLinksPage() {
-  const { columnWidths: inviteCols, getResizeHandler: inviteResize } = useResizableColumns([80, 80, 100, 130, 150, 100]);
+  const { columnWidths: inviteCols, getResizeHandler: inviteResize } = useResizableColumns([80, 80, 100, 130, 150, 100], { storageKey: "referral-links" });
   const { data: session } = useSession();
   const device = useDevice();
   const router = useRouter();

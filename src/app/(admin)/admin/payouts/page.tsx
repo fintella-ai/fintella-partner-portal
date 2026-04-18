@@ -62,7 +62,7 @@ function fmtMonth(d: string) {
 }
 
 export default function PayoutManagementPage() {
-  const { columnWidths: payoutColWidths, getResizeHandler: getPayoutResizeHandler } = useResizableColumns([150, 120, 80, 100, 120, 100, 100, 100]);
+  const { columnWidths: payoutColWidths, getResizeHandler: getPayoutResizeHandler } = useResizableColumns([150, 120, 80, 100, 120, 100, 100, 100], { storageKey: "payouts" });
   const [tab, setTab] = useState<Tab>("Due");
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [stats, setStats] = useState<PayoutStats>({ totalDue: 0, totalPending: 0, totalPaid: 0, partnersToPay: 0 });
