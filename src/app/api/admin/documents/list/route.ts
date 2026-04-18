@@ -16,14 +16,23 @@ export async function GET() {
   }
 
   try {
+    // Fetch uploaded documents
     const documents = await prisma.document.findMany({
       orderBy: { createdAt: "desc" },
     });
 
-    // Get partner names
-    const partnerCodes = Array.from(new Set(documents.map((d: any) => d.partnerCode)));
+    // Fetch partnership agreements (SignWell-sent)
+    const agreements = await prisma.partnershipAgreement.findMany({
+      orderBy: { sentDate: "desc" },
+    });
+
+    // Get partner names for both
+    const allCodes = Array.from(new Set([
+      ...documents.map((d: any) => d.partnerCode),
+      ...agreements.map((a: any) => a.partnerCode),
+    ]));
     const partners = await prisma.partner.findMany({
-      where: { partnerCode: { in: partnerCodes } },
+      where: { partnerCode: { in: allCodes } },
       select: { id: true, partnerCode: true, firstName: true, lastName: true },
     });
 
@@ -32,13 +41,33 @@ export async function GET() {
       infoMap[p.partnerCode] = { name: `${p.firstName} ${p.lastName}`, id: p.id };
     });
 
-    const enriched = documents.map((d: any) => ({
+    const enrichedDocs = documents.map((d: any) => ({
       ...d,
       partnerName: infoMap[d.partnerCode]?.name || d.partnerCode,
       partnerId: infoMap[d.partnerCode]?.id || null,
     }));
 
-    return NextResponse.json({ documents: enriched });
+    // Convert agreements to document-like entries
+    const agreementDocs = agreements.map((a: any) => ({
+      id: `agreement-${a.id}`,
+      partnerCode: a.partnerCode,
+      partnerName: infoMap[a.partnerCode]?.name || a.partnerCode,
+      partnerId: infoMap[a.partnerCode]?.id || null,
+      docType: "agreement",
+      fileName: `Partnership Agreement v${a.version}`,
+      fileUrl: a.documentUrl || "",
+      status: a.status === "signed" || a.status === "approved" ? "approved"
+        : a.status === "partner_signed" ? "under_review"
+        : a.status === "pending" ? "uploaded"
+        : a.status,
+      uploadedBy: "SignWell",
+      createdAt: a.sentDate || a.createdAt,
+      signwellDocumentId: a.signwellDocumentId,
+      agreementVersion: a.version,
+      agreementStatus: a.status,
+    }));
+
+    return NextResponse.json({ documents: [...agreementDocs, ...enrichedDocs] });
   } catch {
     return NextResponse.json({ error: "Failed to fetch documents" }, { status: 500 });
   }
