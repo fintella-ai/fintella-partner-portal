@@ -22,6 +22,7 @@ const TYPE_ICONS: Record<string, string> = {
   partner_joined: "👤",
   payout_processed: "💳",
   system: "🔔",
+  admin_mention: "👋",
 };
 
 export default function NotificationBell({ draggable = false }: { draggable?: boolean } = {}) {

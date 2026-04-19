@@ -318,8 +318,10 @@ model DealNote {
   authorEmail String
   isPinned    Boolean  @default(false)
   createdAt   DateTime @default(now())
+  sourceChatMessageId String?  // when DealNote was mirrored from an AdminChatMessage
 
   @@index([dealId])
+  @@index([sourceChatMessageId])
 }
 
 // ─── IMPERSONATION TOKENS ───────────────────────────────────────────────────
@@ -550,6 +552,68 @@ model ChatMessage {
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
+}
+
+// ─── ADMIN TEAM CHAT (internal, admin-only collaboration) ───────────────────
+
+model AdminChatThread {
+  id            String   @id @default(cuid())
+  type          String   // "global" | "deal"
+  dealId        String?  @unique
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  messages   AdminChatMessage[]
+  readStates AdminChatReadState[]
+
+  @@index([type])
+  @@index([lastMessageAt])
+}
+
+model AdminChatMessage {
+  id              String    @id @default(cuid())
+  threadId        String
+  senderEmail     String
+  senderName      String
+  content         String
+  parentMessageId String?
+  editedAt        DateTime?
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  thread   AdminChatThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  mentions AdminChatMention[]
+
+  @@index([threadId, createdAt])
+  @@index([parentMessageId])
+}
+
+model AdminChatMention {
+  id                  String    @id @default(cuid())
+  messageId           String
+  mentionedAdminEmail String
+  notifiedAt          DateTime?
+  acknowledgedAt      DateTime?
+  createdAt           DateTime  @default(now())
+
+  message AdminChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([mentionedAdminEmail])
+  @@index([messageId])
+}
+
+model AdminChatReadState {
+  id                String   @id @default(cuid())
+  threadId          String
+  adminEmail        String
+  lastReadMessageId String?
+  lastReadAt        DateTime @default(now())
+
+  thread AdminChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, adminEmail])
+  @@index([adminEmail])
 }
 
 // ─── FEATURE REQUESTS ───────────────────────────────────────────────────────
