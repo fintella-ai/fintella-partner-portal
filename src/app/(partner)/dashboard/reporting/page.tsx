@@ -159,6 +159,18 @@ export default function PartnerReportingPage() {
     [downlinePartners, downlinePartnersSort, downlinePartnersDir, downlinePartnersAccessors]
   );
 
+  const downlineDealsAccessors = useMemo(() => ({
+    submittingPartner: (d: any) => d.submittingPartnerName || partnerNameMap[d.partnerCode || ""] || d.partnerCode || "",
+    commission: (d: any) => d.l2CommissionAmount || 0,
+    status: (d: any) => d.l2CommissionStatus || "pending",
+    createdAt: (d: any) => d.createdAt,
+  }), [partnerNameMap]);
+
+  const sortedDownlineDeals = useMemo(
+    () => [...downlineDeals].sort((a, b) => compareRows(a, b, downlineDealsSort, downlineDealsDir, downlineDealsAccessors)),
+    [downlineDeals, downlineDealsSort, downlineDealsDir, downlineDealsAccessors]
+  );
+
   // Metrics
   const totalL1 = directDeals.reduce((s, d) => s + Number(d.l1CommissionAmount || 0), 0);
   const totalL2 = downlineDeals.reduce((s, d) => s + Number(d.l2CommissionAmount || 0), 0);
@@ -618,18 +630,32 @@ export default function PartnerReportingPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-[var(--app-border)]">
-                        <th className="px-4 sm:px-6 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-left">Deal</th>
-                        <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Partner</th>
-                        <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Date</th>
-                        <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Stage</th>
-                        <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Refund</th>
-                        <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Fee %</th>
-                        <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Status</th>
-                        <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Commission</th>
+                        {(() => {
+                          const on = (k: string) => cycleSort(k, downlineDealsSort, downlineDealsDir, setDownlineDealsSort, setDownlineDealsDir);
+                          const H = (props: { label: string; k: string; className?: string; sortable?: boolean }) => (
+                            <th className={props.className || "px-3 py-3 text-center"}>
+                              {props.sortable === false ? (
+                                <span className="font-body text-[10px] tracking-[1px] uppercase theme-text-muted">{props.label}</span>
+                              ) : (
+                                <SortHeader label={props.label} sortKey={props.k} currentSort={downlineDealsSort} currentDir={downlineDealsDir} onSort={on} />
+                              )}
+                            </th>
+                          );
+                          return (<>
+                            <H label="Deal" k="dealName" className="px-4 sm:px-6 py-3 text-left" />
+                            <H label="Partner" k="submittingPartner" />
+                            <H label="Date" k="createdAt" />
+                            <H label="Stage" k="stage" />
+                            <H label="Refund" k="estimatedRefundAmount" />
+                            <H label="Fee %" k="firmFeeRate" />
+                            <H label="Status" k="status" />
+                            <H label="Commission" k="commission" />
+                          </>);
+                        })()}
                       </tr>
                     </thead>
                     <tbody>
-                      {downlineDeals.map((deal, idx) => (
+                      {sortedDownlineDeals.map((deal, idx) => (
                         <tr key={deal.id} className={`border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
                           <td className="px-4 sm:px-6 py-3.5 font-body text-[13px] text-[var(--app-text)] truncate">{deal.dealName}</td>
                           <td className="px-3 py-3.5 text-center font-body text-[12px] text-[var(--app-text-secondary)]">{deal.submittingPartnerName || partnerNameMap[deal.partnerCode] || deal.partnerCode}</td>
