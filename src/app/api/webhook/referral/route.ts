@@ -588,39 +588,45 @@ async function postHandler(req: NextRequest): Promise<Response> {
         : null;
 
     // Create Deal record
-    const deal = await prisma.deal.create({
-      data: {
-        dealName,
-        partnerCode: partnerCode || "UNATTRIBUTED",
-        stage: initialStage,
-        externalStage: externalStage || null,
-        externalDealId: externalDealId,
-        rawPayload: rawBody.slice(0, 20_000),
-        closedLostReason: initialClosedLostReason,
-        clientFirstName: firstName || null,
-        clientLastName: lastName || null,
-        clientName:
-          firstName && lastName ? `${firstName} ${lastName}` : null,
-        clientEmail: email || null,
-        clientPhone: normalizePhone(phone),
-        clientTitle: clientTitle || null,
-        serviceOfInterest: serviceOfInterest || null,
-        legalEntityName: legalEntityName || null,
-        businessCity: businessCity || null,
-        businessState: businessState || null,
-        importsGoods: importsGoods || null,
-        importCountries: importCountries || null,
-        annualImportValue: annualImportValue || null,
-        importerOfRecord: importerOfRecord || null,
-        affiliateNotes: affiliateNotes || null,
-        consultBookedDate: consultBookedDate || null,
-        consultBookedTime: consultBookedTime || null,
-        l1CommissionRate: l1RateSnapshot,
-        idempotencyKey: idempotencyKey || null,
-        notes: `Source: Frost Law Referral Form | Partner: ${
-          partnerCode || "none"
-        }${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
-      },
+    const deal = await prisma.$transaction(async (tx) => {
+      const d = await tx.deal.create({
+        data: {
+          dealName,
+          partnerCode: partnerCode || "UNATTRIBUTED",
+          stage: initialStage,
+          externalStage: externalStage || null,
+          externalDealId: externalDealId,
+          rawPayload: rawBody.slice(0, 20_000),
+          closedLostReason: initialClosedLostReason,
+          clientFirstName: firstName || null,
+          clientLastName: lastName || null,
+          clientName:
+            firstName && lastName ? `${firstName} ${lastName}` : null,
+          clientEmail: email || null,
+          clientPhone: normalizePhone(phone),
+          clientTitle: clientTitle || null,
+          serviceOfInterest: serviceOfInterest || null,
+          legalEntityName: legalEntityName || null,
+          businessCity: businessCity || null,
+          businessState: businessState || null,
+          importsGoods: importsGoods || null,
+          importCountries: importCountries || null,
+          annualImportValue: annualImportValue || null,
+          importerOfRecord: importerOfRecord || null,
+          affiliateNotes: affiliateNotes || null,
+          consultBookedDate: consultBookedDate || null,
+          consultBookedTime: consultBookedTime || null,
+          l1CommissionRate: l1RateSnapshot,
+          idempotencyKey: idempotencyKey || null,
+          notes: `Source: Frost Law Referral Form | Partner: ${
+            partnerCode || "none"
+          }${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
+        },
+      });
+      // Additive: create the admin-chat deal thread eagerly.
+      const { getOrCreateDealThread } = await import("@/lib/adminChatThread");
+      await getOrCreateDealThread(tx, d.id);
+      return d;
     });
 
     // Fire workflow trigger (fire-and-forget)
