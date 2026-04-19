@@ -32,6 +32,20 @@ export function fmtDateTime(d: string | Date | null | undefined): string {
   });
 }
 
+/**
+ * Time-of-day portion only (no date). Example: "2:47 PM". Pairs with
+ * fmtDate() for two-line date/time cells where the date sits on top
+ * and the time stacks underneath.
+ */
+export function fmtTime(d: string | Date | null | undefined): string {
+  if (!d) return "—";
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function fmtPercent(n: number): string {
   return `${(n * 100).toFixed(0)}%`;
 }
