@@ -9,6 +9,8 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { fmt$, fmtDate, fmtDateTime } from "@/lib/format";
 import { FIRM_SHORT, DEFAULT_FIRM_FEE_RATE } from "@/lib/constants";
 import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
+import SortHeader, { type SortDir } from "@/components/ui/SortHeader";
+import { compareRows } from "@/lib/sortRows";
 
 type PageTab = "overview" | "deals" | "downline" | "commissions";
 
@@ -40,6 +42,29 @@ export default function PartnerReportingPage() {
   const [stageFilter, setStageFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // ── Sort state (one pair per table) ──
+  const [overviewSort, setOverviewSort] = useState<string>("createdAt");
+  const [overviewDir, setOverviewDir] = useState<SortDir>("desc");
+  const [myDealsSort, setMyDealsSort] = useState<string>("createdAt");
+  const [myDealsDir, setMyDealsDir] = useState<SortDir>("desc");
+  const [downlinePartnersSort, setDownlinePartnersSort] = useState<string>("firstName");
+  const [downlinePartnersDir, setDownlinePartnersDir] = useState<SortDir>("asc");
+  const [downlineDealsSort, setDownlineDealsSort] = useState<string>("createdAt");
+  const [downlineDealsDir, setDownlineDealsDir] = useState<SortDir>("desc");
+  const [commSort, setCommSort] = useState<string>("createdAt");
+  const [commDir, setCommDir] = useState<SortDir>("desc");
+
+  const cycleSort = (
+    key: string,
+    current: string,
+    dir: SortDir,
+    setKey: (k: string) => void,
+    setDir: (d: SortDir) => void
+  ) => {
+    if (current === key) setDir(dir === "asc" ? "desc" : "asc");
+    else { setKey(key); setDir("asc"); }
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -101,6 +126,17 @@ export default function PartnerReportingPage() {
     }
     return result;
   }, [allDeals, sourceFilter, stageFilter, statusFilter, searchQuery, partnerNameMap]);
+
+  const overviewAccessors = useMemo(() => ({
+    commission: (d: any) => (d.source === "direct" ? d.l1CommissionAmount : (d.l2CommissionAmount || 0)),
+    status: (d: any) => (d.source === "direct" ? d.l1CommissionStatus : (d.l2CommissionStatus || "pending")),
+    createdAt: (d: any) => d.createdAt,
+  }), []);
+
+  const sortedFiltered = useMemo(
+    () => [...filtered].sort((a, b) => compareRows(a, b, overviewSort, overviewDir, overviewAccessors)),
+    [filtered, overviewSort, overviewDir, overviewAccessors]
+  );
 
   // Metrics
   const totalL1 = directDeals.reduce((s, d) => s + Number(d.l1CommissionAmount || 0), 0);
@@ -251,19 +287,33 @@ export default function PartnerReportingPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-[var(--app-border)]">
-                      <th className="px-4 sm:px-6 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-left">Deal</th>
-                      <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Date</th>
-                      <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Source</th>
-                      <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Stage</th>
-                      <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Refund</th>
-                      <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Fee %</th>
-                      <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Comm %</th>
-                      <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Status</th>
-                      <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Commission</th>
+                      {(() => {
+                        const on = (k: string) => cycleSort(k, overviewSort, overviewDir, setOverviewSort, setOverviewDir);
+                        const H = (props: { label: string; k: string; className?: string; sortable?: boolean }) => (
+                          <th className={props.className || "px-3 py-3 text-center"}>
+                            {props.sortable === false ? (
+                              <span className="font-body text-[10px] tracking-[1px] uppercase theme-text-muted">{props.label}</span>
+                            ) : (
+                              <SortHeader label={props.label} sortKey={props.k} currentSort={overviewSort} currentDir={overviewDir} onSort={on} />
+                            )}
+                          </th>
+                        );
+                        return (<>
+                          <H label="Deal" k="dealName" className="px-4 sm:px-6 py-3 text-left" />
+                          <H label="Date" k="createdAt" />
+                          <H label="Source" k="source" />
+                          <H label="Stage" k="stage" />
+                          <H label="Refund" k="estimatedRefundAmount" />
+                          <H label="Fee %" k="firmFeeRate" />
+                          <H label="Comm %" k="commRate" sortable={false} />
+                          <H label="Status" k="status" />
+                          <H label="Commission" k="commission" />
+                        </>);
+                      })()}
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((deal, idx) => {
+                    {sortedFiltered.map((deal, idx) => {
                       const commAmt = deal.source === "direct" ? deal.l1CommissionAmount : (deal.l2CommissionAmount || 0);
                       const commStatus = deal.source === "direct" ? deal.l1CommissionStatus : (deal.l2CommissionStatus || "pending");
                       const partnerName = deal.source === "downline" ? (deal.submittingPartnerName || partnerNameMap[deal.partnerCode || ""] || deal.partnerCode) : null;
