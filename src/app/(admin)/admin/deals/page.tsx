@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useResizableColumns } from "@/components/ui/ResizableTable";
-import { fmt$, fmtDate, fmtDateTime } from "@/lib/format";
+import { fmt$, fmtDate, fmtDateTime, fmtTime } from "@/lib/format";
 import { resolveDealFinancials, formatRate } from "@/lib/dealCalc";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -504,7 +504,10 @@ export default function AdminDealsPage() {
                 {formatRate(fin.commissionRate)}
               </div>
               <div className="font-display text-[14px] font-semibold text-brand-gold text-center">{fmt$(fin.commissionAmount)}</div>
-              <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">{fmtDateTime(deal.createdAt)}</div>
+              <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">
+                <div>{fmtDate(deal.createdAt)}</div>
+                <div className="text-[11px] text-[var(--app-text-faint)] mt-0.5">{fmtTime(deal.createdAt)}</div>
+              </div>
             </div>
 
             {/* Expanded detail + edit panel */}
