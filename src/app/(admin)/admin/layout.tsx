@@ -9,6 +9,7 @@ import NotificationBell from "@/components/ui/NotificationBell";
 import SoftPhone from "@/components/ui/SoftPhone";
 import { getVisibleNav, getPermissions, ROLE_LABELS, type AdminRole } from "@/lib/permissions";
 import { useTheme } from "@/components/layout/ThemeProvider";
+import { reconcileNavOrder } from "@/lib/reconcileNavOrder";
 
 type NavLeaf = { id: string; href: string; icon: string; label: string };
 type NavGroup = { id: string; icon: string; label: string; children: NavLeaf[] };
@@ -19,32 +20,50 @@ const isGroup = (n: NavItem): n is NavGroup => (n as NavGroup).children !== unde
 // Default display order — can be reordered via Settings → Navigation drag-and-drop.
 // IDs here must match ADMIN_NAV_ITEMS map below.
 const ADMIN_NAV_IDS_DEFAULT = [
-  "partners", "deals", "communications", "training", "conference", "documents",
-  "reporting", "settings", "users", "dev", "workflows", "features", "support", "chat", "teamChat", "channels", "partnerDmFlags",
+  "partners", "deals", "reporting",
+  "communications", "partnerSupport",
+  "training", "conference", "documents",
+  "settings", "users", "features", "dev",
 ];
 
 const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
   partners:     { id: "partners", href: "/admin/partners", icon: "👥", label: "Partners" },
   deals:        { id: "deals", href: "/admin/deals", icon: "📋", label: "Deals" },
-  communications: { id: "communications", href: "/admin/communications", icon: "💬", label: "Communications" },
-  training:     { id: "training", href: "/admin/training", icon: "📖", label: "Training" },
-  conference:   { id: "conference", href: "/admin/conference", icon: "📹", label: "Live Weekly" },
-  documents:    { id: "documents", href: "/admin/documents", icon: "📁", label: "Documents" },
   // "reporting" is a synthetic umbrella for Reports / Revenue /
   // Custom Commissions / Payouts. The finance pages share a ReportingTabs
   // bar rendered at the top of each page so the user can switch between
   // them in-context.
   reporting:    { id: "reporting", href: "/admin/reports", icon: "📈", label: "Reporting" },
+  communications: {
+    id: "communications",
+    icon: "💬",
+    label: "Communications",
+    children: [
+      { id: "communications:email",       href: "/admin/communications?tab=email",       icon: "📧", label: "Email" },
+      { id: "communications:sms",         href: "/admin/communications?tab=sms",         icon: "📱", label: "SMS" },
+      { id: "communications:phone",       href: "/admin/communications?tab=phone",       icon: "📞", label: "Phone" },
+      { id: "communications:automations", href: "/admin/communications?tab=automations", icon: "⚡", label: "Automations" },
+      { id: "communications:team-chat",   href: "/admin/team-chat",                      icon: "💬", label: "Team Chat" },
+      { id: "communications:channels",    href: "/admin/channels",                       icon: "📣", label: "Channels" },
+    ],
+  },
+  partnerSupport: {
+    id: "partnerSupport",
+    icon: "🎧",
+    label: "Partner Support",
+    children: [
+      { id: "partnerSupport:tickets",  href: "/admin/support?tab=tickets",  icon: "📩", label: "Support Tickets" },
+      { id: "partnerSupport:livechat", href: "/admin/support?tab=livechat", icon: "💬", label: "Live Chat Support" },
+      { id: "partnerSupport:dmflags",  href: "/admin/support?tab=dmflags",  icon: "🚩", label: "DM Flags" },
+    ],
+  },
+  training:     { id: "training", href: "/admin/training", icon: "📖", label: "Training" },
+  conference:   { id: "conference", href: "/admin/conference", icon: "📹", label: "Live Weekly" },
+  documents:    { id: "documents", href: "/admin/documents", icon: "📁", label: "Documents" },
   settings:     { id: "settings", href: "/admin/settings", icon: "⚙️", label: "Settings" },
   users:        { id: "users", href: "/admin/users", icon: "🔐", label: "Admin Users" },
   dev:          { id: "dev", href: "/admin/dev", icon: "🛠️", label: "Development" },
-  workflows:    { id: "workflows", href: "/admin/workflows", icon: "⚡", label: "Workflows" },
   features:     { id: "features", href: "/admin/features", icon: "💡", label: "Feature Requests" },
-  support:      { id: "support", href: "/admin/support", icon: "📩", label: "Support" },
-  chat:         { id: "chat", href: "/admin/chat", icon: "💬", label: "Live Chat" },
-  teamChat:     { id: "teamChat", href: "/admin/team-chat", icon: "💬", label: "Team Chat" },
-  channels:     { id: "channels", href: "/admin/channels", icon: "📣", label: "Channels" },
-  partnerDmFlags: { id: "partnerDmFlags", href: "/admin/partner-dm-flags", icon: "🚩", label: "DM Flags" },
 };
 
 function CollapseIcon({ collapsed }: { collapsed: boolean }) {
@@ -170,8 +189,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 order.splice(insertAt >= 0 && insertAt < order.length ? insertAt : order.length, 0, "reporting");
               }
             }
-            // Drop unknown IDs, keep only valid ones
-            order = order.filter((id: string) => id in ADMIN_NAV_ITEMS_MAP);
+            // Reconcile against current registry — drops stale IDs
+            // (workflows, chat, support, teamChat, channels, partnerDmFlags
+            // after consolidation) and appends new group IDs (communications,
+            // partnerSupport) if missing.
+            order = reconcileNavOrder(order, ADMIN_NAV_IDS_DEFAULT);
             setAdminNavOrder(order);
           }
         } catch {}
