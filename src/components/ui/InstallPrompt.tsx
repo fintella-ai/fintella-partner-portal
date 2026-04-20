@@ -26,15 +26,7 @@ function PlusSquareIcon() {
 export default function InstallPrompt() {
   const { isIOS, isAndroid, isSafari, canPromptNatively, promptInstall, dismiss, shouldShow } = useInstallPrompt();
   const [copied, setCopied] = useState(false);
-  const [showSkip, setShowSkip] = useState(false);
   const [logoUrl, setLogoUrl] = useState("");
-
-  // Delay showing the skip button
-  useEffect(() => {
-    if (!shouldShow) return;
-    const timer = setTimeout(() => setShowSkip(true), 5000);
-    return () => clearTimeout(timer);
-  }, [shouldShow]);
 
   // Fetch logo
   useEffect(() => {
@@ -59,10 +51,10 @@ export default function InstallPrompt() {
         {/* Logo */}
         <div className="mb-8">
           {logoUrl ? (
-            <img src={logoUrl} alt="Fintella" className="max-h-16 mx-auto object-contain" />
+            <img src={logoUrl} alt="Fintella" className="max-h-48 mx-auto object-contain" />
           ) : (
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#c4a050] to-[#e8c060] flex items-center justify-center mx-auto">
-              <span className="text-3xl font-bold text-white font-display">F</span>
+            <div className="w-60 h-60 rounded-2xl bg-gradient-to-br from-[#c4a050] to-[#e8c060] flex items-center justify-center mx-auto">
+              <span className="text-8xl font-bold text-white font-display">F</span>
             </div>
           )}
         </div>
@@ -166,12 +158,40 @@ export default function InstallPrompt() {
                 </p>
               </>
             ) : (
-              <div className="p-5 rounded-xl border border-white/10 bg-white/5">
+              <div className="p-5 rounded-xl border border-white/10 bg-white/5 mb-6">
                 <p className="font-body text-sm text-white/70 leading-relaxed">
                   For the best experience, visit <span className="text-[#c4a050] font-semibold">fintella.partners</span> on your phone and add it to your home screen.
                 </p>
               </div>
             )}
+
+            {/* Always-visible platform instructions (both iPhone + Android) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+              <div className="p-4 rounded-xl border border-[#c4a050]/20 bg-[#c4a050]/[0.04]">
+                <div className="font-display text-sm font-bold text-white mb-3 flex items-center gap-2">
+                  <span className="text-[#c4a050]">iPhone</span>
+                  <span className="text-white/40 font-body text-xs font-normal">(Safari required)</span>
+                </div>
+                <ol className="font-body text-[13px] text-white/75 leading-relaxed space-y-1.5 list-decimal list-inside">
+                  <li>Open <span className="text-[#c4a050]">fintella.partners</span> in Safari</li>
+                  <li>Tap the Share button (square + up arrow) at the bottom</li>
+                  <li>Scroll down and tap &quot;Add to Home Screen&quot;</li>
+                  <li>Tap &quot;Add&quot; in the top-right corner</li>
+                </ol>
+              </div>
+              <div className="p-4 rounded-xl border border-[#c4a050]/20 bg-[#c4a050]/[0.04]">
+                <div className="font-display text-sm font-bold text-white mb-3 flex items-center gap-2">
+                  <span className="text-[#c4a050]">Android</span>
+                  <span className="text-white/40 font-body text-xs font-normal">(Chrome recommended)</span>
+                </div>
+                <ol className="font-body text-[13px] text-white/75 leading-relaxed space-y-1.5 list-decimal list-inside">
+                  <li>Open <span className="text-[#c4a050]">fintella.partners</span> in Chrome</li>
+                  <li>Tap the menu icon (⋮) in the top-right</li>
+                  <li>Tap &quot;Add to Home Screen&quot; or &quot;Install app&quot;</li>
+                  <li>Tap &quot;Add&quot; or &quot;Install&quot; to confirm</li>
+                </ol>
+              </div>
+            </div>
           </div>
         )}
 
@@ -187,12 +207,11 @@ export default function InstallPrompt() {
           </span>
         </div>
 
-        {/* Skip button (appears after delay) */}
-        <div style={{ opacity: showSkip ? 1 : 0, transition: "opacity 0.5s ease" }}>
+        {/* Continue to Portal — visible immediately, prominent */}
+        <div>
           <button
             onClick={dismiss}
-            className="font-body text-xs text-white/25 hover:text-white/40 transition-colors py-2 px-4"
-            disabled={!showSkip}
+            className="font-body text-lg sm:text-xl font-semibold text-white/80 hover:text-[#c4a050] transition-colors py-3 px-6"
           >
             Continue to Portal &rarr;
           </button>
