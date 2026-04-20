@@ -7,10 +7,8 @@ import EmailTemplatesTab from "./EmailTemplatesTab";
 import SmsTab from "./SmsTab";
 import PhoneTab from "./PhoneTab";
 import WorkflowsPanel from "../workflows/WorkflowsPanel";
-import TeamChatPanel from "../team-chat/TeamChatPanel";
-import ChannelsListPanel from "../channels/ChannelsListPanel";
 
-type Tab = "email" | "sms" | "phone" | "automations" | "team-chat" | "channels";
+type Tab = "email" | "sms" | "phone" | "automations";
 type EmailView = "inbox" | "compose" | "templates";
 
 const TABS: { id: Tab; label: string }[] = [
@@ -18,8 +16,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "sms",         label: "SMS" },
   { id: "phone",       label: "Phone" },
   { id: "automations", label: "Automations" },
-  { id: "team-chat",   label: "Team Chat" },
-  { id: "channels",    label: "Channels" },
 ];
 
 const EMAIL_VIEWS: { id: EmailView; label: string }[] = [
@@ -79,8 +75,6 @@ function CommunicationsHostInner() {
       {tab === "sms"         && <SmsTab />}
       {tab === "phone"       && <PhoneTab />}
       {tab === "automations" && <WorkflowsPanel />}
-      {tab === "team-chat"   && <TeamChatPanel />}
-      {tab === "channels"    && <ChannelsListPanel />}
     </div>
   );
 }

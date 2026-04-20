@@ -1,27 +1,28 @@
 "use client";
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import SupportTicketsPanel from "./SupportTicketsPanel";
-import LiveChatPanel from "../chat/LiveChatPanel";
+import TeamChatPanel from "../team-chat/TeamChatPanel";
+import ChannelsListPanel from "../channels/ChannelsListPanel";
+import DmFlagsListPanel from "../partner-dm-flags/DmFlagsListPanel";
 
-type Tab = "tickets" | "livechat";
+type Tab = "team-chat" | "channels" | "dmflags";
 const TABS: { id: Tab; label: string }[] = [
-  { id: "tickets",  label: "Support Tickets" },
-  { id: "livechat", label: "Live Chat Support" },
+  { id: "team-chat", label: "Team Chat" },
+  { id: "channels",  label: "Channels" },
+  { id: "dmflags",   label: "DM Flags" },
 ];
 
-function SupportHostInner() {
+function InternalChatsHostInner() {
   const params = useSearchParams();
   const router = useRouter();
   const urlTab = params?.get("tab");
-  const initial: Tab = (TABS.some((t) => t.id === urlTab) ? (urlTab as Tab) : "tickets");
-  const [tab, setTab] = useState<Tab>(initial);
+  const [tab, setTab] = useState<Tab>((TABS.some((t) => t.id === urlTab) ? urlTab : "team-chat") as Tab);
 
   const onSelect = (t: Tab) => {
     setTab(t);
     const qs = new URLSearchParams(params?.toString() || "");
     qs.set("tab", t);
-    router.replace(`/admin/support?${qs.toString()}`);
+    router.replace(`/admin/internal-chats?${qs.toString()}`);
   };
 
   return (
@@ -34,12 +35,13 @@ function SupportHostInner() {
             }`}>{t.label}</button>
         ))}
       </div>
-      {tab === "tickets"  && <SupportTicketsPanel />}
-      {tab === "livechat" && <LiveChatPanel />}
+      {tab === "team-chat" && <TeamChatPanel />}
+      {tab === "channels"  && <ChannelsListPanel />}
+      {tab === "dmflags"   && <DmFlagsListPanel />}
     </div>
   );
 }
 
 export default function Page() {
-  return <Suspense><SupportHostInner /></Suspense>;
+  return <Suspense><InternalChatsHostInner /></Suspense>;
 }
