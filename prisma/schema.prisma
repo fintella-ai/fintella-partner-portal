@@ -941,3 +941,86 @@ model WebhookSource {
   @@index([slug])
   @@index([enabled])
 }
+
+model AnnouncementChannel {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  createdByEmail String
+  segmentRule    String?  // JSON: { filters: [{field, op, value}, ...] }
+  archivedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  memberships ChannelMembership[]
+  messages    ChannelMessage[]
+  threads     ChannelReplyThread[]
+
+  @@index([createdByEmail])
+  @@index([archivedAt])
+}
+
+model ChannelMembership {
+  id           String    @id @default(cuid())
+  channelId    String
+  partnerCode  String
+  source       String    // "manual" | "segment"
+  addedByEmail String
+  removedAt    DateTime? // soft remove; sticky across segment re-eval
+  createdAt    DateTime  @default(now())
+
+  channel AnnouncementChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, partnerCode])
+  @@index([partnerCode])
+  @@index([channelId, removedAt])
+}
+
+model ChannelMessage {
+  id          String    @id @default(cuid())
+  channelId   String
+  authorEmail String
+  authorName  String
+  content     String
+  messageType String    // "text" | "call_link"
+  callMeta    String?   // JSON: {url, title, startsAt?, durationMins?, provider?}
+  editedAt    DateTime?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  channel AnnouncementChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+}
+
+model ChannelReplyThread {
+  id            String   @id @default(cuid())
+  channelId     String
+  partnerCode   String
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  channel  AnnouncementChannel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  messages ChannelReplyMessage[]
+
+  @@unique([channelId, partnerCode])
+  @@index([lastMessageAt])
+}
+
+model ChannelReplyMessage {
+  id            String    @id @default(cuid())
+  threadId      String
+  senderType    String    // "admin" | "partner"
+  senderEmail   String?   // admin email when senderType="admin"
+  senderName    String
+  content       String
+  editedAt      DateTime?
+  deletedAt     DateTime?
+  readByAdmin   Boolean   @default(false)
+  readByPartner Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  thread ChannelReplyThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
