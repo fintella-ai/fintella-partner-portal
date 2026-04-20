@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  if (!email || !/.+@.+\..+/.test(email)) {
+  // Structural email check — avoid regex backtracking risk.
+  const atIdx = email.indexOf("@");
+  const dotIdx = email.lastIndexOf(".");
+  if (!email || email.length > 254 || atIdx < 1 || dotIdx < atIdx + 2 || dotIdx >= email.length - 1) {
     return NextResponse.json({ ok: true });
   }
 
