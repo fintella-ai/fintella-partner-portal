@@ -15,9 +15,11 @@ export type AdminRole = "super_admin" | "admin" | "accounting" | "partner_suppor
 // Which sidebar nav items each role can see.
 //
 // Notes on consolidation (2026-04-20):
-//   - `communications` is now a group containing Email/SMS/Phone/Automations/
-//     Team Chat/Channels children (those child IDs are `communications:*`).
-//   - `partnerSupport` is a group containing Support Tickets/Live Chat/DM Flags
+//   - `communications` is now a group containing Email/SMS/Phone/Automations
+//     children (those child IDs are `communications:*`).
+//   - `internalChats` is a group containing Team Chat / Channels / DM Flags
+//     children (child IDs are `internalChats:*`). Accounting is excluded.
+//   - `partnerSupport` is a group containing Support Tickets / Live Chat
 //     children (child IDs are `partnerSupport:*`).
 //   - Legacy top-level IDs (workflows, chat, support, teamChat, channels,
 //     partnerDmFlags) are no longer in the registry; the layout's
@@ -28,16 +30,18 @@ export type AdminRole = "super_admin" | "admin" | "accounting" | "partner_suppor
 export const ROLE_VISIBLE_NAV: Record<AdminRole, string[]> = {
   super_admin: [
     "partners", "deals",
-    "communications", "communications:email", "communications:sms", "communications:phone", "communications:automations", "communications:team-chat", "communications:channels",
-    "partnerSupport", "partnerSupport:tickets", "partnerSupport:livechat", "partnerSupport:dmflags",
+    "communications", "communications:email", "communications:sms", "communications:phone", "communications:automations",
+    "internalChats", "internalChats:team-chat", "internalChats:channels", "internalChats:dmflags",
+    "partnerSupport", "partnerSupport:tickets", "partnerSupport:livechat",
     "training", "conference", "documents",
     "payouts", "revenue", "reports",
     "settings", "users", "dev", "features",
   ],
   admin: [
     "partners", "deals",
-    "communications", "communications:email", "communications:sms", "communications:phone", "communications:automations", "communications:team-chat", "communications:channels",
-    "partnerSupport", "partnerSupport:tickets", "partnerSupport:livechat", "partnerSupport:dmflags",
+    "communications", "communications:email", "communications:sms", "communications:phone", "communications:automations",
+    "internalChats", "internalChats:team-chat", "internalChats:channels", "internalChats:dmflags",
+    "partnerSupport", "partnerSupport:tickets", "partnerSupport:livechat",
     "training", "conference", "documents",
     "payouts", "reports",
     "settings",
@@ -45,12 +49,13 @@ export const ROLE_VISIBLE_NAV: Record<AdminRole, string[]> = {
   accounting: [
     "deals", "documents",
     "payouts", "revenue", "reports",
-    "communications", "communications:team-chat", "communications:channels",
+    "communications",
   ],
   partner_support: [
     "partners", "deals",
-    "communications", "communications:email", "communications:sms", "communications:phone", "communications:automations", "communications:team-chat", "communications:channels",
-    "partnerSupport", "partnerSupport:tickets", "partnerSupport:livechat", "partnerSupport:dmflags",
+    "communications", "communications:email", "communications:sms", "communications:phone", "communications:automations",
+    "internalChats", "internalChats:team-chat", "internalChats:channels", "internalChats:dmflags",
+    "partnerSupport", "partnerSupport:tickets", "partnerSupport:livechat",
     "training", "conference", "documents",
     "payouts",
     "settings",
