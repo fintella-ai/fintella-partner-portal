@@ -47,7 +47,7 @@ export default function InstallPrompt() {
       className="fixed inset-0 z-[9999] flex items-center justify-center"
       style={{ background: "#000000" }}
     >
-      <div className="w-full max-w-md mx-auto px-6 py-10 text-center">
+      <div className="w-full max-w-3xl mx-auto px-6 py-10 text-center">
         {/* Logo */}
         <div className="mb-8">
           {logoUrl ? (
@@ -166,13 +166,13 @@ export default function InstallPrompt() {
             )}
 
             {/* Always-visible platform instructions (both iPhone + Android) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-5 rounded-xl border border-[#c4a050]/30 bg-[#c4a050]/[0.06]">
-                <div className="font-display text-lg font-bold text-white mb-3 flex items-center gap-2 flex-wrap">
-                  <span className="text-[#c4a050]">iPhone</span>
-                  <span className="text-white font-body text-sm font-semibold">(Safari required)</span>
+                <div className="text-center mb-4">
+                  <div className="font-display text-xl font-bold text-[#c4a050]">iPhone</div>
+                  <div className="font-body text-sm font-semibold text-white mt-1">(Safari required)</div>
                 </div>
-                <ol className="font-body text-base text-white font-medium leading-relaxed space-y-2 list-decimal list-inside">
+                <ol className="font-body text-base text-white font-medium leading-relaxed space-y-2 list-decimal list-inside text-left">
                   <li>Open <span className="text-[#c4a050] font-bold">https://fintella.partners</span> in Safari</li>
                   <li>Tap the Share button (square + up arrow) at the bottom</li>
                   <li>Scroll down and tap &quot;Add to Home Screen&quot;</li>
@@ -180,11 +180,11 @@ export default function InstallPrompt() {
                 </ol>
               </div>
               <div className="p-5 rounded-xl border border-[#c4a050]/30 bg-[#c4a050]/[0.06]">
-                <div className="font-display text-lg font-bold text-white mb-3 flex items-center gap-2 flex-wrap">
-                  <span className="text-[#c4a050]">Android</span>
-                  <span className="text-white font-body text-sm font-semibold">(Chrome recommended)</span>
+                <div className="text-center mb-4">
+                  <div className="font-display text-xl font-bold text-[#c4a050]">Android</div>
+                  <div className="font-body text-sm font-semibold text-white mt-1">(Chrome recommended)</div>
                 </div>
-                <ol className="font-body text-base text-white font-medium leading-relaxed space-y-2 list-decimal list-inside">
+                <ol className="font-body text-base text-white font-medium leading-relaxed space-y-2 list-decimal list-inside text-left">
                   <li>Open <span className="text-[#c4a050] font-bold">https://fintella.partners</span> in Chrome</li>
                   <li>Tap the menu icon (⋮) in the top-right</li>
                   <li>Tap &quot;Add to Home Screen&quot; or &quot;Install app&quot;</li>
