@@ -1024,3 +1024,73 @@ model ChannelReplyMessage {
 
   @@index([threadId, createdAt])
 }
+
+// ─── PARTNER-TO-DOWNLINE DIRECT MESSAGING (Task 1) ───────────────────────────
+model PartnerDmThread {
+  id             String   @id @default(cuid())
+  participantA   String   // partnerCode, lex-sorted so (A, B) is canonical (A < B)
+  participantB   String
+  lastMessageAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  messages   PartnerDmMessage[]
+  readStates PartnerDmReadState[]
+
+  @@unique([participantA, participantB])
+  @@index([participantA])
+  @@index([participantB])
+  @@index([lastMessageAt])
+}
+
+model PartnerDmMessage {
+  id                String    @id @default(cuid())
+  threadId          String
+  senderPartnerCode String
+  content           String
+  editedAt          DateTime?
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+
+  thread PartnerDmThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  flags  PartnerDmFlag[]
+
+  @@index([threadId, createdAt])
+  @@index([senderPartnerCode])
+}
+
+model PartnerDmFlag {
+  id                   String    @id @default(cuid())
+  messageId            String
+  flaggerPartnerCode   String
+  reason               String?
+  reviewedAt           DateTime?
+  reviewedByAdminEmail String?
+  verdict              String?   // "dismissed" | "confirmed"
+  createdAt            DateTime  @default(now())
+
+  message PartnerDmMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([reviewedAt])
+  @@index([flaggerPartnerCode])
+  @@index([messageId])
+}
+
+model PartnerDmThrottle {
+  id            String    @id @default(cuid())
+  partnerCode   String    @unique      // one active throttle record per sender
+  state         String    // "throttled" | "suspended"
+  reasonFlagId  String?                // which flag triggered this state
+  startedAt     DateTime  @default(now())
+  liftedAt      DateTime?              // null = active
+}
+
+model PartnerDmReadState {
+  id          String   @id @default(cuid())
+  threadId    String
+  partnerCode String
+  lastReadAt  DateTime @default(now())
+
+  thread PartnerDmThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, partnerCode])
+}
