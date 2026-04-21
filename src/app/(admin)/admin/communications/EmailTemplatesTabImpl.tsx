@@ -306,7 +306,14 @@ export default function EmailTemplatesTabImpl() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-display text-sm font-bold">{t.name}</h4>
-                    {t.isDraft ? (
+                    {!t.enabled ? (
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded font-mono uppercase tracking-wider bg-red-500/15 text-red-400 border border-red-500/30"
+                        title="Disabled — automated sends skip this template. Transactional emails fall back to hardcoded copy; newsletter / campaign sends are suppressed entirely."
+                      >
+                        Disabled
+                      </span>
+                    ) : t.isDraft ? (
                       <span
                         className="text-[10px] px-1.5 py-0.5 rounded font-mono uppercase tracking-wider bg-amber-500/15 text-amber-400 border border-amber-500/30"
                         title="Draft — not yet wired to any code path. Editing has no effect on real partner emails until a future PR connects this template to an event."
@@ -319,11 +326,6 @@ export default function EmailTemplatesTabImpl() {
                         title="Live — wired to a real trigger. Edits here change what partners actually receive on the next matching event."
                       >
                         Live
-                      </span>
-                    )}
-                    {!t.enabled && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono uppercase tracking-wider bg-red-500/15 text-red-400 border border-red-500/30">
-                        Disabled
                       </span>
                     )}
                   </div>
