@@ -16,20 +16,29 @@ export const DEFAULT_FIRM_FEE_RATE = 0.20;
 // - L2 deal → L2 earns their rate, L1 earns (L1.commissionRate - L2.commissionRate)
 // - L3 deal → L3 earns their rate, L2 earns (L2.commissionRate - L3.commissionRate),
 //             L1 earns (L1.commissionRate - L2.commissionRate)
-export const MAX_COMMISSION_RATE = 0.25;          // absolute ceiling — no L1 can exceed this
-export const ALLOWED_L1_RATES = [0.10, 0.15, 0.20, 0.25]; // admin picks when inviting L1
+export const MAX_COMMISSION_RATE = 0.25;          // firm-wide ceiling on downline (L2/L3) rates. Custom L1 rates may exceed this; downline is still clamped here.
+export const ALLOWED_L1_RATES = [0.10, 0.15, 0.20, 0.25]; // standard L1 bands — admin may also pick a custom rate up to 50%
 export const RATE_INCREMENT = 0.05;               // all rates are multiples of 5%
-export const MIN_KEEP_FOR_SELF = 0.05;            // min a partner retains when recruiting downline
+export const MIN_KEEP_FOR_SELF = 0.05;            // min a partner retains when recruiting downline (standard case)
 
 /**
  * Returns the rates this partner can offer to their recruit.
- * Range: [0.05 … inviterRate − 0.05] in 5% steps.
- * An L2 at 0.05 returns [] — cannot recruit.
- * An L2 at 0.10 returns [0.05] — can recruit L3 at 5% only.
+ * Range: [0.05 … downlineCeiling] in 5% steps, where:
+ *   - standard case: downlineCeiling = inviterRate − 0.05 (leaves 5%+ for the inviter)
+ *   - inviter above 25% (custom L1): downlineCeiling = 0.25 (firm cap)
+ *
+ * Examples:
+ *   inviter 0.10 → [0.05]
+ *   inviter 0.25 → [0.05, 0.10, 0.15, 0.20]                (unchanged)
+ *   inviter 0.28 → [0.05, 0.10, 0.15, 0.20, 0.25]          (+25% option, firm cap)
+ *   inviter 0.50 → [0.05, 0.10, 0.15, 0.20, 0.25]          (firm cap)
  */
 export function getAllowedDownlineRates(inviterRate: number): number[] {
   const rates: number[] = [];
-  for (let r = RATE_INCREMENT; r <= inviterRate - RATE_INCREMENT + 1e-9; r += RATE_INCREMENT) {
+  const ceiling = inviterRate > MAX_COMMISSION_RATE
+    ? MAX_COMMISSION_RATE
+    : inviterRate - RATE_INCREMENT;
+  for (let r = RATE_INCREMENT; r <= ceiling + 1e-9; r += RATE_INCREMENT) {
     rates.push(Math.round(r * 100) / 100);
   }
   return rates;
