@@ -14,6 +14,7 @@ export const FIRM_PHONE = "(410) 497-5947";
 export const ALLOWED_SENDER_EMAILS: ReadonlyArray<string> = [
   "noreply@fintella.partners",
   "support@fintella.partners",
+  "admin@fintella.partners",
 ];
 
 // ─── COMMISSION DEFAULTS ─────────────────────────────────────────────────────
