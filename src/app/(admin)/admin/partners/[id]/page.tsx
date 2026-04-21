@@ -7,6 +7,7 @@ import { fmtDate, fmtDateTime } from "@/lib/format";
 import { getPermissions } from "@/lib/permissions";
 import CountryCodeSelect, { parseMobilePhone, buildMobilePhone } from "@/components/ui/CountryCodeSelect";
 import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
+import ComposeEmailForm from "@/components/admin/ComposeEmailForm";
 
 type Partner = {
   id: string;
@@ -98,6 +99,7 @@ export default function PartnerDetailPage() {
   const [callLogs, setCallLogs] = useState<any[]>([]);
   const [callingPartner, setCallingPartner] = useState(false);
   const [callMessage, setCallMessage] = useState<string | null>(null);
+  const [showComposeEmail, setShowComposeEmail] = useState(false);
   const [enterprisePartner, setEnterprisePartner] = useState<any>(null);
   const [commLogFilter, setCommLogFilter] = useState<"all" | "support" | "email" | "sms" | "chat" | "phone">("all");
   // Inline row expand for the comms feed. Key is "<type>-<id>" so rows
@@ -1463,18 +1465,47 @@ export default function PartnerDetailPage() {
             <div className="font-body font-semibold text-sm">Communication Log</div>
             <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">All communications with this partner across all channels.</div>
           </div>
-          {partner?.mobilePhone && (
-            <button
-              onClick={handleCallPartner}
-              disabled={callingPartner}
-              className="font-body text-[11px] text-brand-gold border border-brand-gold/30 rounded-lg px-3 py-2 min-h-[40px] hover:bg-brand-gold/10 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0"
-              title="Initiate a Twilio bridged voice call to this partner"
-            >
-              <span>📞</span>
-              <span>{callingPartner ? "Initiating..." : "Call Partner"}</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {partner?.email && (
+              <button
+                onClick={() => setShowComposeEmail((v) => !v)}
+                className={`font-body text-[11px] rounded-lg px-3 py-2 min-h-[40px] active:scale-95 transition-all flex items-center gap-1.5 ${
+                  showComposeEmail
+                    ? "text-black bg-brand-gold border border-brand-gold hover:bg-brand-gold/90"
+                    : "text-brand-gold border border-brand-gold/30 hover:bg-brand-gold/10"
+                }`}
+                title="Compose and send an email to this partner"
+              >
+                <span>✉️</span>
+                <span>{showComposeEmail ? "Close Email" : "Send Email"}</span>
+              </button>
+            )}
+            {partner?.mobilePhone && (
+              <button
+                onClick={handleCallPartner}
+                disabled={callingPartner}
+                className="font-body text-[11px] text-brand-gold border border-brand-gold/30 rounded-lg px-3 py-2 min-h-[40px] hover:bg-brand-gold/10 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                title="Initiate a Twilio bridged voice call to this partner"
+              >
+                <span>📞</span>
+                <span>{callingPartner ? "Initiating..." : "Call Partner"}</span>
+              </button>
+            )}
+          </div>
         </div>
+        {showComposeEmail && partner?.email && (
+          <div className="px-5 py-4 border-b border-[var(--app-border)] bg-[var(--app-card-bg)]">
+            <ComposeEmailForm
+              lockTo
+              initialToEmail={partner.email}
+              initialToName={`${partner.firstName} ${partner.lastName}`.trim()}
+              initialPartnerCode={partner.partnerCode}
+              onSent={() => {
+                void fetchPartner();
+              }}
+            />
+          </div>
+        )}
         {callMessage && (
           <div className="px-5 py-2.5 bg-[var(--app-card-bg)] border-b border-[var(--app-border)] font-body text-[11px] text-[var(--app-text-secondary)]">
             {callMessage}
