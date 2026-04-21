@@ -109,6 +109,10 @@ export default function PartnerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [newPw, setNewPw] = useState("");
+  const [newPwVisible, setNewPwVisible] = useState(false);
+  const [sendingResetLink, setSendingResetLink] = useState(false);
+  const [resetLinkSent, setResetLinkSent] = useState(false);
 
   // Editable fields
   const [firstName, setFirstName] = useState("");
@@ -555,26 +559,50 @@ export default function PartnerDetailPage() {
         <div>
           <div className="font-body text-[12px] text-[var(--app-text-secondary)] mb-2">Set / Reset Password</div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              id="partnerNewPassword"
-              type="password"
-              className={inputClass + " flex-1"}
-              placeholder="Enter new password (min 6 characters)"
-            />
+            <div className="relative flex-1">
+              <input
+                id="partnerNewPassword"
+                type={newPwVisible ? "text" : "password"}
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                className={inputClass + " w-full pr-10"}
+                placeholder="Enter new password (min 6 characters)"
+              />
+              <button
+                type="button"
+                onClick={() => setNewPwVisible((v) => !v)}
+                aria-label={newPwVisible ? "Hide password" : "Show password"}
+                title={newPwVisible ? "Hide password" : "Show password"}
+                className="absolute inset-y-0 right-0 px-3 flex items-center text-[var(--app-text-muted)] hover:text-brand-gold transition-colors"
+              >
+                {newPwVisible ? (
+                  // eye-off
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  // eye
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
             <button
               onClick={async () => {
-                const input = document.getElementById("partnerNewPassword") as HTMLInputElement;
-                const pw = input?.value;
-                if (!pw || pw.length < 6) { alert("Password must be at least 6 characters."); return; }
+                if (!newPw || newPw.length < 6) { alert("Password must be at least 6 characters."); return; }
                 if (!confirm(`Set a new password for ${partner.firstName} ${partner.lastName}?`)) return;
                 try {
                   const res = await fetch(`/api/admin/partners/${id}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ newPassword: pw }),
+                    body: JSON.stringify({ newPassword: newPw }),
                   });
                   if (res.ok) {
-                    input.value = "";
+                    setNewPw("");
+                    setNewPwVisible(false);
                     setSaved(true);
                     setTimeout(() => setSaved(false), 3000);
                   } else {
@@ -589,6 +617,45 @@ export default function PartnerDetailPage() {
             </button>
           </div>
           <p className="font-body text-[10px] text-[var(--app-text-muted)] mt-1.5">Partner will log in with their email + this password.</p>
+        </div>
+
+        {/* Send Reset Password email — triggers the standard forgot-password
+            flow against the partner's email so they can set their own
+            password via the 1-hour single-use link. */}
+        <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--app-border)" }}>
+          <div className="font-body text-[12px] text-[var(--app-text-secondary)] mb-2">Send Reset Password Email</div>
+          <div className="flex flex-col sm:flex-row gap-3 items-start">
+            <div className="flex-1">
+              <p className="font-body text-[11px] text-[var(--app-text-muted)] leading-relaxed">
+                Emails <span className="font-mono text-[var(--app-text-secondary)]">{partner.email}</span> a single-use reset link (expires in 1 hour). The partner sets their own password — admin never sees it.
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                if (!partner.email) { alert("Partner has no email on file."); return; }
+                if (!confirm(`Send a password reset link to ${partner.email}?`)) return;
+                setSendingResetLink(true);
+                try {
+                  const res = await fetch("/api/auth/forgot-password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: partner.email }),
+                  });
+                  if (res.ok) {
+                    setResetLinkSent(true);
+                    setTimeout(() => setResetLinkSent(false), 4000);
+                  } else {
+                    alert("Failed to send reset email.");
+                  }
+                } catch { alert("Network error"); }
+                finally { setSendingResetLink(false); }
+              }}
+              disabled={sendingResetLink || !partner.email}
+              className="font-body text-[12px] text-blue-400/80 border border-blue-400/20 rounded-lg px-4 py-2.5 hover:bg-blue-400/10 transition-colors shrink-0 disabled:opacity-50"
+            >
+              {sendingResetLink ? "Sending…" : resetLinkSent ? "Sent ✓" : "Send Reset Link"}
+            </button>
+          </div>
         </div>
       </div>
 

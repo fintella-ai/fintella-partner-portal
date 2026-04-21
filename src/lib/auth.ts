@@ -18,8 +18,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!email || !password) return null;
 
+        // Case-insensitive email lookup. Historically partner rows may have
+        // been saved with mixed-case emails (signup doesn't normalize), so a
+        // literal equality check would miss a row when the admin typed
+        // "Jane@acme.com" during creation and the partner later tries to log
+        // in with "jane@acme.com".
         const partner = await prisma.partner.findFirst({
-          where: { email: email.trim() },
+          where: { email: { equals: email.trim(), mode: "insensitive" } },
         });
 
         if (!partner) return null;
@@ -86,7 +91,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!email || !password) return null;
 
-        const user = await prisma.user.findUnique({ where: { email: email.trim() } });
+        // Case-insensitive lookup — same reasoning as the partner provider.
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: email.trim(), mode: "insensitive" } },
+        });
         if (!user) return null;
 
         const valid = await compare(password, user.passwordHash);
