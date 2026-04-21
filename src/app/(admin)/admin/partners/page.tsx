@@ -14,6 +14,7 @@ type Partner = {
   phone: string | null;
   mobilePhone: string | null;
   status: string;
+  tier: string;
   referredByPartnerCode: string | null;
   notes: string | null;
   signupDate: string;
@@ -70,10 +71,12 @@ const inviteStatusBadge: Record<string, string> = {
 
 export default function AdminPartnersPage() {
   const router = useRouter();
-  // 8 columns: Partner, Code, Phone, Email, Status, W9, Joined, Action
+  // 9 columns: Partner, Level, Code, Phone, Email, Status, W9, Joined, Action
+  // Bumped storageKey so anyone with a persisted 8-col width map doesn't see
+  // the new Level column collapse to 0 before they resize manually.
   const { columnWidths: partnerCols, getResizeHandler: partnerResize } = useResizableColumns(
-    [180, 120, 140, 180, 90, 80, 110, 70],
-    { storageKey: "partners" }
+    [180, 70, 120, 140, 180, 90, 80, 110, 70],
+    { storageKey: "partners-v2" }
   );
   const partnerGridCols = partnerCols.map((w) => `${w}px`).join(" ");
 
@@ -761,6 +764,7 @@ export default function AdminPartnersPage() {
             <div className="grid gap-3 px-5 py-3 border-b border-[var(--app-border)]" style={{ gridTemplateColumns: partnerGridCols }}>
               {([
                 { label: "Partner", col: "name" as SortCol },
+                { label: "Level", col: null },
                 { label: "Code", col: "code" as SortCol },
                 { label: "Phone", col: null },
                 { label: "Email", col: null },
@@ -792,6 +796,11 @@ export default function AdminPartnersPage() {
                   onClick={() => router.push(`/admin/partners/${p.id}`)}
                 >
                   <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate text-center">{p.firstName} {p.lastName}</div>
+                  <div className="text-center">
+                    <span className="font-mono text-[11px] text-[var(--app-text-secondary)] bg-[var(--app-input-bg)] border border-[var(--app-border)] rounded px-2 py-0.5">
+                      {(p.tier || "l1").toUpperCase()}
+                    </span>
+                  </div>
                   <div className="font-mono text-[12px] text-[var(--app-text-secondary)] text-center">{p.partnerCode}</div>
                   <div className="font-mono text-[12px] truncate text-center">
                     {e164 ? (
@@ -840,7 +849,12 @@ export default function AdminPartnersPage() {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
                     <div className="font-body text-[13px] font-medium text-[var(--app-text)]">{p.firstName} {p.lastName}</div>
-                    <div className="font-mono text-[11px] text-[var(--app-text-muted)] mt-0.5">{p.partnerCode}</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="font-mono text-[10px] text-[var(--app-text-secondary)] bg-[var(--app-input-bg)] border border-[var(--app-border)] rounded px-1.5 py-0.5">
+                        {(p.tier || "l1").toUpperCase()}
+                      </span>
+                      <span className="font-mono text-[11px] text-[var(--app-text-muted)]">{p.partnerCode}</span>
+                    </div>
                   </div>
                   <span className={`shrink-0 inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[p.status] || statusBadge.active}`}>
                     {p.status}
