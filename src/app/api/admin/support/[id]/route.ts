@@ -84,6 +84,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (ticket?.status === "open") {
         await prisma.supportTicket.update({ where: { id }, data: { status: "in_progress" } });
       }
+
+      // Notify the partner their ticket got a response.
+      if (ticket) {
+        await prisma.notification.create({
+          data: {
+            recipientType: "partner",
+            recipientId: ticket.partnerCode,
+            type: "ticket_response",
+            title: "Support team replied",
+            message: `You have a new reply on “${ticket.subject}”.`,
+            link: `/dashboard/support?ticketId=${id}`,
+          },
+        }).catch(() => {});
+      }
     }
 
     const updated = await prisma.supportTicket.findUnique({

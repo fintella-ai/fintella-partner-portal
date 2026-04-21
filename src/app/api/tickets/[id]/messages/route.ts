@@ -70,6 +70,34 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await prisma.supportTicket.update({ where: { id }, data: { status: "open" } });
     }
 
+    // Fan out a bell notification to every admin who handles support tickets.
+    const partner = await prisma.partner.findUnique({
+      where: { partnerCode },
+      select: { firstName: true, lastName: true },
+    }).catch(() => null);
+    const partnerName = partner
+      ? `${partner.firstName} ${partner.lastName}`.trim() || partnerCode
+      : partnerCode;
+
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ["super_admin", "admin", "partner_support"] } },
+      select: { email: true },
+    }).catch(() => []);
+    await Promise.all(
+      admins.map((a) =>
+        prisma.notification.create({
+          data: {
+            recipientType: "admin",
+            recipientId: a.email,
+            type: "ticket_reply",
+            title: "Partner replied to support ticket",
+            message: `${partnerName} replied on “${ticket.subject}”.`,
+            link: `/admin/support?ticketId=${id}`,
+          },
+        }).catch(() => {})
+      )
+    );
+
     return NextResponse.json({ message: msg }, { status: 201 });
   } catch (e) {
     console.error("Ticket reply error:", e);

@@ -85,6 +85,35 @@ export async function POST(req: NextRequest) {
       include: { messages: true },
     });
 
+    // Fan out a bell notification to every admin who handles support tickets.
+    // accounting is intentionally excluded — they don't work the support queue.
+    const partner = await prisma.partner.findUnique({
+      where: { partnerCode },
+      select: { firstName: true, lastName: true },
+    }).catch(() => null);
+    const partnerName = partner
+      ? `${partner.firstName} ${partner.lastName}`.trim() || partnerCode
+      : partnerCode;
+
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ["super_admin", "admin", "partner_support"] } },
+      select: { email: true },
+    }).catch(() => []);
+    await Promise.all(
+      admins.map((a) =>
+        prisma.notification.create({
+          data: {
+            recipientType: "admin",
+            recipientId: a.email,
+            type: "ticket_new",
+            title: "New Support Ticket",
+            message: `${partnerName} opened “${ticket.subject}” (${ticket.category}).`,
+            link: `/admin/support?ticketId=${ticket.id}`,
+          },
+        }).catch(() => {})
+      )
+    );
+
     return NextResponse.json({ ticket }, { status: 201 });
   } catch (e) {
     console.error("Ticket creation error:", e);
