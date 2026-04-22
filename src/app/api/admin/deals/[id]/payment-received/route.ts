@@ -96,6 +96,9 @@ export async function POST(
             l2CommissionStatus: existingPending.some((e) => e.tier === "l2")
               ? "due"
               : deal.l2CommissionStatus,
+            l3CommissionStatus: existingPending.some((e) => e.tier === "l3")
+              ? "due"
+              : deal.l3CommissionStatus,
           },
         });
 
@@ -166,6 +169,9 @@ export async function POST(
             l2CommissionStatus: computed.entries.some((e) => e.tier === "l2")
               ? "due"
               : deal.l2CommissionStatus,
+            l3CommissionStatus: computed.entries.some((e) => e.tier === "l3")
+              ? "due"
+              : deal.l3CommissionStatus,
           },
         });
 

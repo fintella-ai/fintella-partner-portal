@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/format";
-import { computeDealCommissions, getL1CommissionRateSnapshot } from "@/lib/commission";
+import { computeDealCommissions, getL1CommissionRateSnapshot, roundCents } from "@/lib/commission";
 import { sendDealStatusUpdateEmail } from "@/lib/sendgrid";
 import { appendDealPayload } from "@/lib/appendDealPayload";
 
@@ -1006,6 +1006,11 @@ async function patchHandler(req: NextRequest): Promise<Response> {
     // surface before we start writing. Effective firm fee is the value
     // in this PATCH if provided, else the existing deal row.
     let entriesToCreate: Array<{ partnerCode: string; tier: string; amount: number }> = [];
+    // Full waterfall amounts (unrounded) — used to write Deal.l{1,2,3}CommissionAmount
+    // snapshots that stay true to the tier-by-tier breakdown EVEN in Disabled mode,
+    // where `entriesToCreate` collapses to a single L1 row. These snapshots power
+    // the partner-side Downline Accounting view for Disabled L1s (spec §6).
+    let waterfallSnapshot: { l1Amount: number; l2Amount: number; l3Amount: number } = { l1Amount: 0, l2Amount: 0, l3Amount: 0 };
     let ledgerSkipReason: string | null = null;
     let effectiveFirmFee = 0;
 
@@ -1029,6 +1034,11 @@ async function patchHandler(req: NextRequest): Promise<Response> {
             firmFeeAmount: effectiveFirmFee,
           });
           entriesToCreate = computed.entries;
+          waterfallSnapshot = {
+            l1Amount: computed.waterfall.l1Amount,
+            l2Amount: computed.waterfall.l2Amount,
+            l3Amount: computed.waterfall.l3Amount,
+          };
           if (entriesToCreate.length === 0) {
             ledgerSkipReason = "waterfall_returned_zero_entries";
           }
@@ -1055,21 +1065,27 @@ async function patchHandler(req: NextRequest): Promise<Response> {
           });
         }
 
-        // Mirror computed amounts onto the Deal row so admin views stay in
-        // sync with the ledger. Only overwrite the fields we actually have
-        // data for (don't clobber a non-zero existing value with 0).
-        const l1Amount =
-          entriesToCreate.find((e) => e.tier === "l1")?.amount || 0;
-        const l2Amount =
-          entriesToCreate.find((e) => e.tier === "l2")?.amount || 0;
+        // Mirror the full waterfall amounts onto Deal.l{1,2,3}CommissionAmount
+        // as a per-tier snapshot. In Enabled mode these match the ledger rows;
+        // in Disabled mode the ledger has a single collapsed L1 row but the
+        // snapshots still capture what each downline tier "would have earned"
+        // so the partner-side Downline Accounting view can show what L1 owes.
+        // Status fields track ledger presence — only the tier that actually
+        // has a ledger row in the current mode gets its status flipped to
+        // "pending". Guards prevent clobbering a non-zero existing value with 0.
         const dealFieldUpdate: Record<string, any> = {};
-        if (l1Amount > 0) {
-          dealFieldUpdate.l1CommissionAmount = l1Amount;
-          dealFieldUpdate.l1CommissionStatus = "pending";
+        const hasLedgerTier = (t: string) => entriesToCreate.some((e) => e.tier === t);
+        if (waterfallSnapshot.l1Amount > 0) {
+          dealFieldUpdate.l1CommissionAmount = roundCents(waterfallSnapshot.l1Amount);
+          if (hasLedgerTier("l1")) dealFieldUpdate.l1CommissionStatus = "pending";
         }
-        if (l2Amount > 0) {
-          dealFieldUpdate.l2CommissionAmount = l2Amount;
-          dealFieldUpdate.l2CommissionStatus = "pending";
+        if (waterfallSnapshot.l2Amount > 0) {
+          dealFieldUpdate.l2CommissionAmount = roundCents(waterfallSnapshot.l2Amount);
+          if (hasLedgerTier("l2")) dealFieldUpdate.l2CommissionStatus = "pending";
+        }
+        if (waterfallSnapshot.l3Amount > 0) {
+          dealFieldUpdate.l3CommissionAmount = roundCents(waterfallSnapshot.l3Amount);
+          if (hasLedgerTier("l3")) dealFieldUpdate.l3CommissionStatus = "pending";
         }
         if (Object.keys(dealFieldUpdate).length > 0) {
           await tx.deal.update({

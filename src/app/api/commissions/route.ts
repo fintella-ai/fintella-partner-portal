@@ -69,6 +69,7 @@ export async function GET(req: NextRequest) {
       submitterRate: number;
       l1CommissionAmount: number;
       l2CommissionAmount: number;
+      l3CommissionAmount: number;
     }> = [];
 
     if (partner?.tier === "l1") {
@@ -91,7 +92,7 @@ export async function GET(req: NextRequest) {
           where: { partnerCode: { in: allDownlineCodes }, stage: "closedwon" },
           select: {
             id: true, dealName: true, firmFeeAmount: true, partnerCode: true,
-            l1CommissionAmount: true, l2CommissionAmount: true,
+            l1CommissionAmount: true, l2CommissionAmount: true, l3CommissionAmount: true,
           },
         });
         const byCode = Object.fromEntries(allDownlinePartners.map((p) => [p.partnerCode, p]));
@@ -107,6 +108,7 @@ export async function GET(req: NextRequest) {
             submitterRate: submitter?.commissionRate ?? 0,
             l1CommissionAmount: d.l1CommissionAmount ?? 0,
             l2CommissionAmount: d.l2CommissionAmount ?? 0,
+            l3CommissionAmount: d.l3CommissionAmount ?? 0,
           };
         });
       }

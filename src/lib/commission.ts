@@ -125,6 +125,7 @@ export interface DealCommissionComputation {
   entries: ComputedLedgerEntry[];
   chain: PartnerChainNode[];
   totalAmount: number;
+  waterfall: WaterfallResult;
 }
 
 /**
@@ -189,13 +190,13 @@ export async function computeDealCommissions(
   deal: { partnerCode: string; firmFeeAmount: number }
 ): Promise<DealCommissionComputation> {
   if (!deal.firmFeeAmount || deal.firmFeeAmount <= 0) {
-    return { entries: [], chain: [], totalAmount: 0 };
+    return { entries: [], chain: [], totalAmount: 0, waterfall: { l1Amount: 0, l1Rate: 0, l2Amount: 0, l2Rate: 0, l3Amount: 0, l3Rate: 0, totalRate: 0 } };
   }
 
   const submitter = await db.partner.findUnique({
     where: { partnerCode: deal.partnerCode },
   });
-  if (!submitter) return { entries: [], chain: [], totalAmount: 0 };
+  if (!submitter) return { entries: [], chain: [], totalAmount: 0, waterfall: { l1Amount: 0, l1Rate: 0, l2Amount: 0, l2Rate: 0, l3Amount: 0, l3Rate: 0, totalRate: 0 } };
 
   const chain: PartnerChainNode[] = [
     {
@@ -265,7 +266,7 @@ export async function computeDealCommissions(
   const entries = buildLedgerEntries(waterfall, chain, { payoutDownlineEnabled });
 
   const totalAmount = entries.reduce((s, e) => s + e.amount, 0);
-  return { entries, chain, totalAmount };
+  return { entries, chain, totalAmount, waterfall };
 }
 
 // ─── Ledger Entry Builder ────────────────────────────────────────────────
@@ -281,9 +282,11 @@ export interface BuildLedgerOptions {
 /** Round to the nearest cent to eliminate IEEE-754 float artifacts from
  *  rate subtraction (e.g. 0.25 − 0.20 = 0.04999…). All ledger dollar
  *  amounts are stored as integers (cents × 100) so sub-cent precision
- *  is meaningless and causes strict-equality test failures.
+ *  is meaningless and causes strict-equality test failures. Exported so
+ *  callers that write Deal.l{1,2,3}CommissionAmount snapshots can apply
+ *  the same rounding.
  */
-function roundCents(amount: number): number {
+export function roundCents(amount: number): number {
   return Math.round(amount * 100) / 100;
 }
 

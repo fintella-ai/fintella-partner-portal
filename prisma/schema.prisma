@@ -509,6 +509,8 @@ model Deal {
   l1CommissionStatus    String    @default("pending")
   l2CommissionAmount    Float     @default(0)
   l2CommissionStatus    String    @default("pending")
+  l3CommissionAmount    Float     @default(0)
+  l3CommissionStatus    String    @default("pending")
   // Notes
   notes                 String?
   closedLostReason      String?   // reason if stage moved to closedlost

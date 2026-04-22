@@ -845,8 +845,8 @@ export default function PartnerReportingPage() {
 
               <div className="space-y-2">
                 {commDownlineDeals.map((d) => {
-                  const l1Received = d.l1CommissionAmount + d.l2CommissionAmount;
-                  const owedToDownline = d.l2CommissionAmount;
+                  const l1Received = d.l1CommissionAmount + d.l2CommissionAmount + d.l3CommissionAmount;
+                  const owedToDownline = d.l2CommissionAmount + d.l3CommissionAmount;
                   const kept = l1Received - owedToDownline;
                   return (
                     <div key={d.dealId} className="rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-3 py-2.5">
@@ -873,8 +873,8 @@ export default function PartnerReportingPage() {
 
               <div className="mt-4 pt-3 border-t border-[var(--app-border)]">
                 {(() => {
-                  const totalReceived = commDownlineDeals.reduce((s, d) => s + d.l1CommissionAmount + d.l2CommissionAmount, 0);
-                  const totalOwed = commDownlineDeals.reduce((s, d) => s + d.l2CommissionAmount, 0);
+                  const totalReceived = commDownlineDeals.reduce((s, d) => s + d.l1CommissionAmount + d.l2CommissionAmount + d.l3CommissionAmount, 0);
+                  const totalOwed = commDownlineDeals.reduce((s, d) => s + d.l2CommissionAmount + d.l3CommissionAmount, 0);
                   const totalKept = totalReceived - totalOwed;
                   return (
                     <div className="font-body text-[12px] grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
