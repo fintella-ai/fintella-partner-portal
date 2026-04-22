@@ -470,6 +470,17 @@ model PortalSettings {
   // Keeps data intact (admin can re-enable later) rather than forcing
   // a destructive delete when they want to temporarily hide a section.
   homeHiddenModules      String @default("[]")
+  // Order of Home-page modules as laid out by the admin. JSON array of
+  // module IDs (same IDs as homeHiddenModules). Unknown IDs tolerated
+  // for forward-compat; missing IDs from a future release fall back to
+  // the default tail order.
+  homeModuleOrder        String @default("[\"video\",\"events\",\"announcements\",\"leaderboard\",\"opportunities\"]")
+  // Per-module layout config for the partner Home page. JSON map of
+  // { moduleId: { columns: 1|2|3, alignment: "left"|"center" } }.
+  // - columns applies to card-grid modules (events, announcements, opportunities)
+  // - alignment applies to every module (center uses max-w-4xl mx-auto, left is full-width)
+  // Missing keys fall back to sensible defaults in the render layer.
+  homeModuleLayout       String @default("{}")
   liveChatEnabled        Boolean @default(false) // live support chat on/off
   callRecordingEnabled   Boolean @default(false) // record outbound voice calls (requires Twilio)
   // Timestamps
