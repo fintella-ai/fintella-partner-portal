@@ -463,25 +463,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       )}
 
-      {/* ── FLOATING TOP-RIGHT BUTTONS (desktop/tablet only — mobile has them inline in header) ── */}
-      {!device.isMobile && (
-      <div
-        className="fixed z-[902] flex items-center gap-2"
-        style={{
-          top: "calc(20px + var(--safe-top))",
-          right: "calc(24px + var(--safe-right))",
-        }}
-      >
-        <a
-          href="/dashboard/support"
-          className="relative font-body text-sm border rounded-lg px-3 py-2 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 backdrop-blur-sm bg-yellow-400 border-yellow-500 text-black hover:bg-yellow-300"
-          title="Support"
-        >
-          📩<span className="hidden lg:inline font-medium">Support</span>
-        </a>
-        <NotificationBell draggable />
-      </div>
-      )}
+      {/* Floating top-right Support + NotificationBell have been moved
+          inline into the sticky top bar's right side (below). Mobile
+          still shows them inline in the header's logo section. */}
 
       {/* ══ MAIN CONTENT ══ */}
       <div
@@ -498,27 +482,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div
           className={`sticky top-0 z-40 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8 py-3 mb-5 bg-[var(--app-bg)]/85 backdrop-blur-md border-b border-[var(--app-border)] ${device.isMobile ? "hidden" : ""}`}
         >
-          <div className="flex items-center justify-start gap-2 sm:gap-3">
-            <button
-              onClick={() => navigate("/dashboard/submit-client")}
-              className={`flex-1 sm:flex-none font-body text-[12px] sm:text-[13px] font-semibold tracking-wider border rounded-lg px-4 sm:px-5 py-2.5 transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
-                isActive("/dashboard/submit-client")
-                  ? "bg-brand-gold/15 border-brand-gold/40 text-brand-gold"
-                  : "bg-brand-gold/[0.06] border-brand-gold/20 text-brand-gold hover:bg-brand-gold/10"
-              }`}
-            >
-              ✅ Submit Client
-            </button>
-            <button
-              onClick={() => navigate("/dashboard/referral-links")}
-              className={`flex-1 sm:flex-none font-body text-[12px] sm:text-[13px] font-semibold tracking-wider border rounded-lg px-4 sm:px-5 py-2.5 transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
-                isActive("/dashboard/referral-links")
-                  ? "bg-purple-500/15 border-purple-500/40 text-purple-400"
-                  : "bg-purple-500/[0.06] border-purple-500/20 text-purple-400 hover:bg-purple-500/10"
-              }`}
-            >
-              👥 Referral Links
-            </button>
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
+            {/* Left: Submit Client + Referral Links */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={() => navigate("/dashboard/submit-client")}
+                className={`font-body text-[12px] sm:text-[13px] font-semibold tracking-wider border rounded-lg px-4 sm:px-5 py-2.5 transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
+                  isActive("/dashboard/submit-client")
+                    ? "bg-brand-gold/15 border-brand-gold/40 text-brand-gold"
+                    : "bg-brand-gold/[0.06] border-brand-gold/20 text-brand-gold hover:bg-brand-gold/10"
+                }`}
+              >
+                ✅ Submit Client
+              </button>
+              <button
+                onClick={() => navigate("/dashboard/referral-links")}
+                className={`font-body text-[12px] sm:text-[13px] font-semibold tracking-wider border rounded-lg px-4 sm:px-5 py-2.5 transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
+                  isActive("/dashboard/referral-links")
+                    ? "bg-purple-500/15 border-purple-500/40 text-purple-400"
+                    : "bg-purple-500/[0.06] border-purple-500/20 text-purple-400 hover:bg-purple-500/10"
+                }`}
+              >
+                👥 Referral Links
+              </button>
+            </div>
+            {/* Right: Support + NotificationBell (moved out of floating fixed corner) */}
+            <div className="flex items-center gap-2">
+              <a
+                href="/dashboard/support"
+                className="relative font-body text-sm border rounded-lg px-3 py-2 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 backdrop-blur-sm bg-yellow-400 border-yellow-500 text-black hover:bg-yellow-300"
+                title="Support"
+              >
+                📩<span className="hidden lg:inline font-medium">Support</span>
+              </a>
+              <NotificationBell />
+            </div>
           </div>
         </div>
 
@@ -612,7 +610,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             Sits below the page body on every partner dashboard route.
             Shows the configured favicon (falls back to firm initial
             when no favicon is uploaded) above the copyright line. */}
-        <footer className="mt-12 sm:mt-16 pt-6 pb-4 border-t border-[var(--app-border)] text-center">
+        <footer className="mt-24 sm:mt-32 pt-8 pb-6 border-t border-[var(--app-border)] text-center">
           {faviconUrl ? (
             <img src={faviconUrl} alt={firmShort} className="mx-auto h-8 w-8 object-contain mb-2 opacity-80" />
           ) : (
