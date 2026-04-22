@@ -199,7 +199,7 @@ export default function HomePage() {
           {upcomingEvents.map((e, i) => (
             <div
               key={`${e.title}-${i}`}
-              className={`${device.cardPadding} ${device.borderRadius} border flex flex-col ${
+              className={`${device.cardPadding} ${device.borderRadius} border flex flex-col text-center ${
                 e.highlighted
                   ? "border-brand-gold/25 bg-brand-gold/[0.04]"
                   : "border-[var(--app-border)] bg-[var(--app-card-bg)]"
@@ -243,16 +243,14 @@ export default function HomePage() {
                     : "border-l-brand-gold"
                 }`}
               >
-                <div className="px-4 sm:px-6 py-4 sm:py-5">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className={`font-body text-sm font-semibold leading-snug ${a.highlighted ? "text-brand-gold" : "text-[var(--app-text)]"}`}>
-                      {a.title}
-                    </div>
-                    {a.badge && (
-                      <span className={`${badge.bg} ${badge.border} ${badge.text} border rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase shrink-0`}>
-                        {a.badge}
-                      </span>
-                    )}
+                <div className="px-4 sm:px-6 py-4 sm:py-5 text-center">
+                  {a.badge && (
+                    <span className={`${badge.bg} ${badge.border} ${badge.text} inline-block border rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase mb-2`}>
+                      {a.badge}
+                    </span>
+                  )}
+                  <div className={`font-body text-sm font-semibold leading-snug mb-2 ${a.highlighted ? "text-brand-gold" : "text-[var(--app-text)]"}`}>
+                    {a.title}
                   </div>
                   <p className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-2">{a.body}</p>
                   {a.date && <div className="font-body text-[11px] text-[var(--app-text-faint)]">{a.date}</div>}
@@ -278,7 +276,7 @@ export default function HomePage() {
           {referralOpps.map((r, i) => (
             <div
               key={`${r.title}-${i}`}
-              className={`${device.cardPadding} ${device.borderRadius} border flex flex-col ${
+              className={`${device.cardPadding} ${device.borderRadius} border flex flex-col text-center ${
                 r.highlighted ? "border-brand-gold/25 bg-brand-gold/[0.04]" : "border-[var(--app-border)] bg-[var(--app-card-bg)]"
               }`}
             >
