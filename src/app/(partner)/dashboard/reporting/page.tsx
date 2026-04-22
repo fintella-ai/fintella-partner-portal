@@ -27,6 +27,9 @@ export default function PartnerReportingPage() {
   const [ledger, setLedger] = useState<any[]>([]);
   const [commissionRate, setCommissionRate] = useState(0.25);
   const [tier, setTier] = useState("l1");
+  const [payoutDownlineEnabled, setPayoutDownlineEnabled] = useState(false);
+  const [topL1PayoutDownlineEnabled, setTopL1PayoutDownlineEnabled] = useState<boolean | null>(null);
+  const [commDownlineDeals, setCommDownlineDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [pageTab, setPageTab] = useState<PageTab>("overview");
@@ -84,6 +87,9 @@ export default function PartnerReportingPage() {
         if (data.tier) setTier(data.tier);
         if (typeof data.commissionRate === "number") setCommissionRate(data.commissionRate);
         if (data.ledger) setLedger(data.ledger);
+        if (typeof data.payoutDownlineEnabled === "boolean") setPayoutDownlineEnabled(data.payoutDownlineEnabled);
+        if (data.topL1PayoutDownlineEnabled !== undefined) setTopL1PayoutDownlineEnabled(data.topL1PayoutDownlineEnabled);
+        if (Array.isArray(data.downlineDeals)) setCommDownlineDeals(data.downlineDeals);
       }
     } catch {}
     setLoading(false);
@@ -679,6 +685,23 @@ export default function PartnerReportingPage() {
       {/* ═══════════════ COMMISSIONS TAB ═══════════════ */}
       {pageTab === "commissions" && (
         <>
+          {/* Task 11: Enabled badge for L1s with payoutDownlineEnabled=true */}
+          {tier === "l1" && payoutDownlineEnabled && (
+            <div className="mb-4 rounded-lg border border-brand-gold/30 bg-brand-gold/5 px-4 py-3">
+              <div className="flex items-start gap-2">
+                <span className="text-brand-gold text-[14px] leading-none mt-0.5">★</span>
+                <div>
+                  <div className="font-body text-[12px] font-semibold text-[var(--app-text)]">
+                    Payout Downline Partners: Enabled
+                  </div>
+                  <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">
+                    Fintella is paying your L2/L3 downline directly. You receive the override portion for downline deals.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* How it works */}
           <div className={`${device.cardPadding} ${device.borderRadius} border border-[var(--app-border)] bg-[var(--app-card-bg)] mb-6`}>
             <div className="font-body font-semibold text-sm mb-4">How Commissions Work</div>
@@ -807,6 +830,7 @@ export default function PartnerReportingPage() {
               );
             })()}
           </div>
+
         </>
       )}
     </div>
