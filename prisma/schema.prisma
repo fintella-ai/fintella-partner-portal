@@ -298,13 +298,21 @@ model PartnerCodeHistory {
 
 // ─── ADMIN NOTES (immutable audit log) ───────────────────────────────────────
 model AdminNote {
-  id          String   @id @default(cuid())
-  partnerCode String
-  content     String
-  authorName  String   // admin who posted the note
-  authorEmail String
-  isPinned    Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id             String   @id @default(cuid())
+  partnerCode    String
+  content        String
+  authorName     String   // admin who posted the note
+  authorEmail    String
+  isPinned       Boolean  @default(false)
+  // Optional single attachment (screenshot, CSV, PDF, etc.). Stored as a
+  // base64 data URL in attachmentUrl — same pattern as the Document model
+  // so we don't need object storage for infrequent note attachments. One
+  // attachment per note; post another note for additional files.
+  attachmentName String?
+  attachmentUrl  String?
+  attachmentType String?
+  attachmentSize Int?
+  createdAt      DateTime @default(now())
 
   @@index([partnerCode])
 }
