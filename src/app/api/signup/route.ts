@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
         emailOptIn: !!emailOptIn,
         smsOptIn: !!smsOptIn,
         optInDate: (emailOptIn || smsOptIn) ? new Date() : null,
+        payoutDownlineEnabled: invite.payoutDownlineEnabled,
       },
     });
 
