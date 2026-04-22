@@ -26,6 +26,12 @@
 
 export interface DealFinancialsInput {
   estimatedRefundAmount: number;
+  /** Actual refund received after closing. Preferred over estimated once the
+   * deal is closed_won — see `effectiveRefund` logic below. */
+  actualRefundAmount?: number | null;
+  /** Deal stage string. When "closedwon" with a non-zero actualRefundAmount,
+   * commissions and firm-fee computations use the actual refund. */
+  stage?: string | null;
   firmFeeRate: number | null;
   firmFeeAmount: number;
   /** Stored per-deal commission rate — usually null unless a custom rate was negotiated. */
@@ -62,7 +68,18 @@ export function resolveDealFinancials(
   deal: DealFinancialsInput,
   partnerRate?: number | null
 ): DealFinancialsOutput {
-  const refund = deal.estimatedRefundAmount || 0;
+  // Refund base for firm-fee + commission math. Once a deal is closed_won
+  // with an actual refund recorded, the actual supersedes the estimate so
+  // firm fee and commissions track reality, not the opening ticket. When
+  // this happens any stored firmFeeAmount / l1CommissionAmount from earlier
+  // (estimated-based) is treated as stale and recomputed below.
+  const usingActualRefund =
+    deal.stage === "closedwon" &&
+    typeof deal.actualRefundAmount === "number" &&
+    deal.actualRefundAmount > 0;
+  const refund = usingActualRefund
+    ? (deal.actualRefundAmount as number)
+    : deal.estimatedRefundAmount || 0;
 
   // ── Firm fee ──
   let firmFeeRate: number | null = deal.firmFeeRate;
@@ -70,8 +87,11 @@ export function resolveDealFinancials(
   let firmFeeRateComputed = false;
   let firmFeeAmountComputed = false;
 
-  // If amount is missing (0 or null) but we have rate + refund, compute amount
-  if (firmFeeAmount <= 0 && firmFeeRate != null && refund > 0) {
+  // If amount is missing (0 or null) OR we're overriding with the actual
+  // refund post-close, recompute from rate + effective refund. The override
+  // case ensures a stale stored amount (written when the deal was based on
+  // estimated) gets refreshed once the actual lands.
+  if ((firmFeeAmount <= 0 || usingActualRefund) && firmFeeRate != null && refund > 0) {
     firmFeeAmount = refund * firmFeeRate;
     firmFeeAmountComputed = true;
   }
@@ -95,8 +115,9 @@ export function resolveDealFinancials(
   let commissionRateComputed = false;
   let commissionAmountComputed = false;
 
-  // If amount is missing but we have rate + firm fee, compute amount
-  if (commissionAmount <= 0 && commissionRate != null && firmFeeAmount > 0) {
+  // If amount is missing OR we're overriding with actual-refund-based firm
+  // fee, recompute commission. Same staleness guard as firm fee above.
+  if ((commissionAmount <= 0 || usingActualRefund) && commissionRate != null && firmFeeAmount > 0) {
     commissionAmount = firmFeeAmount * commissionRate;
     commissionAmountComputed = true;
   }
