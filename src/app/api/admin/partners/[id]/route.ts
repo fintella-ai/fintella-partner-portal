@@ -49,6 +49,7 @@ export async function GET(
       prisma.adminNote.findMany({
         where: { partnerCode: partner.partnerCode },
         orderBy: { createdAt: "desc" },
+        include: { attachments: true },
       }).catch(() => []),
       prisma.partnerCodeHistory.findMany({
         where: { partnerId: partner.id },

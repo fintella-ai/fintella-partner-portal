@@ -18,9 +18,26 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { dealId, content } = body;
+    const attachments: any[] = Array.isArray(body.attachments) ? body.attachments : [];
 
-    if (!dealId || !content?.trim()) {
-      return NextResponse.json({ error: "dealId and content are required" }, { status: 400 });
+    const trimmedContent = typeof content === "string" ? content.trim() : "";
+    if (!dealId || (!trimmedContent && attachments.length === 0)) {
+      return NextResponse.json({ error: "dealId and either content or an attachment are required" }, { status: 400 });
+    }
+
+    // Same per-attachment (~4MB) + combined (~11MB) cap pattern as /api/admin/notes.
+    let total = 0;
+    for (const a of attachments) {
+      if (typeof a?.url !== "string" || !a.url) {
+        return NextResponse.json({ error: "Each attachment requires a data url" }, { status: 400 });
+      }
+      if (a.url.length > 5_500_000) {
+        return NextResponse.json({ error: `Attachment ${a.name || ""} too large (max ~4MB each)` }, { status: 413 });
+      }
+      total += a.url.length;
+    }
+    if (total > 15_000_000) {
+      return NextResponse.json({ error: "Combined attachment size too large (max ~11MB)" }, { status: 413 });
     }
 
     let authorName = session.user.name || "Admin";
@@ -38,10 +55,21 @@ export async function POST(req: NextRequest) {
     const note = await prisma.dealNote.create({
       data: {
         dealId,
-        content: content.trim(),
+        content: trimmedContent,
         authorName,
         authorEmail,
+        ...(attachments.length > 0 ? {
+          attachments: {
+            create: attachments.map((a: any) => ({
+              name: typeof a.name === "string" ? a.name.slice(0, 255) : "attachment",
+              url: a.url,
+              type: typeof a.type === "string" ? a.type.slice(0, 128) : null,
+              size: typeof a.size === "number" && isFinite(a.size) ? Math.round(a.size) : null,
+            })),
+          },
+        } : {}),
       },
+      include: { attachments: true },
     });
 
     return NextResponse.json({ note }, { status: 201 });

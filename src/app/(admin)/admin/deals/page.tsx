@@ -118,6 +118,8 @@ export default function AdminDealsPage() {
   const [editL2Status, setEditL2Status] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [dealNotes, setDealNotes] = useState<Record<string, any[]>>({});
+  const [dealNoteFiles, setDealNoteFiles] = useState<Record<string, File[]>>({});
+  const [dealNotePosting, setDealNotePosting] = useState<Record<string, boolean>>({});
 
   // Editable client-submission fields (super_admin / admin / partner_support
   // may need to correct these manually when the referral form came in with
@@ -833,31 +835,95 @@ export default function AdminDealsPage() {
                 {/* ── Admin Notes (audit log) ── */}
                 <div className="border-t border-[var(--app-border)] pt-4">
                   <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-2">Admin Notes</div>
-                  <div className="flex gap-2 mb-3">
+                  <div className="flex flex-col gap-2 mb-3">
                     <textarea
                       id={`dealNote-${deal.id}`}
-                      className={`${inputClass} w-full resize-none flex-1`}
+                      className={`${inputClass} w-full resize-none`}
                       rows={2}
                       placeholder="Add a note about this deal..."
                     />
-                    <button
-                      onClick={async () => {
-                        const textarea = document.getElementById(`dealNote-${deal.id}`) as HTMLTextAreaElement;
-                        const content = textarea?.value;
-                        if (!content?.trim()) return;
-                        try {
-                          const res = await fetch("/api/admin/deal-notes", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ dealId: deal.id, content }),
-                          });
-                          if (res.ok) { textarea.value = ""; fetchDealNotes(deal.id); }
-                        } catch {}
-                      }}
-                      className="self-end font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-3 py-2 hover:bg-brand-gold/10 transition-colors shrink-0"
-                    >
-                      Post
-                    </button>
+                    {(dealNoteFiles[deal.id]?.length || 0) > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {(dealNoteFiles[deal.id] || []).map((f, i) => (
+                          <span key={`${f.name}-${i}`} className="inline-flex items-center gap-1.5 font-body text-[10px] text-[var(--app-text-secondary)] bg-[var(--app-input-bg)] border border-[var(--app-border)] rounded-full px-2 py-0.5">
+                            <span>📎 {f.name}</span>
+                            <span className="text-[var(--app-text-muted)]">{(f.size / 1024).toFixed(0)}KB</span>
+                            <button
+                              onClick={() => setDealNoteFiles((prev) => ({
+                                ...prev,
+                                [deal.id]: (prev[deal.id] || []).filter((_, j) => j !== i),
+                              }))}
+                              className="text-[var(--app-text-muted)] hover:text-red-400 transition-colors"
+                              aria-label={`Remove ${f.name}`}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <label className="font-body text-[11px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-3 py-1.5 cursor-pointer hover:text-[var(--app-text-secondary)] transition-colors">
+                        <span>{(dealNoteFiles[deal.id]?.length || 0) > 0 ? "Add more files" : "Attach files (optional)"}</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,application/pdf,.doc,.docx,.csv,.xls,.xlsx,.txt"
+                          className="hidden"
+                          onChange={(e) => {
+                            const picked = e.target.files ? Array.from(e.target.files) : [];
+                            if (picked.length) setDealNoteFiles((prev) => ({
+                              ...prev,
+                              [deal.id]: [...(prev[deal.id] || []), ...picked],
+                            }));
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                      <button
+                        disabled={!!dealNotePosting[deal.id]}
+                        onClick={async () => {
+                          const textarea = document.getElementById(`dealNote-${deal.id}`) as HTMLTextAreaElement;
+                          const content = textarea?.value || "";
+                          const files = dealNoteFiles[deal.id] || [];
+                          if (!content.trim() && files.length === 0) return;
+                          setDealNotePosting((p) => ({ ...p, [deal.id]: true }));
+                          try {
+                            const attachments = await Promise.all(
+                              files.map((f) => new Promise<any>((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => resolve({
+                                  name: f.name,
+                                  url: String(reader.result || ""),
+                                  type: f.type || null,
+                                  size: f.size,
+                                });
+                                reader.onerror = reject;
+                                reader.readAsDataURL(f);
+                              }))
+                            );
+                            const res = await fetch("/api/admin/deal-notes", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ dealId: deal.id, content, attachments }),
+                            });
+                            if (res.ok) {
+                              textarea.value = "";
+                              setDealNoteFiles((prev) => ({ ...prev, [deal.id]: [] }));
+                              fetchDealNotes(deal.id);
+                            } else {
+                              const err = await res.json().catch(() => ({}));
+                              alert(err.error || "Failed to add note");
+                            }
+                          } catch { alert("Network error"); } finally {
+                            setDealNotePosting((p) => ({ ...p, [deal.id]: false }));
+                          }
+                        }}
+                        className="font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-3 py-1.5 hover:bg-brand-gold/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {dealNotePosting[deal.id] ? "Posting..." : "Post"}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Pinned notes first, then unpinned */}
@@ -869,7 +935,10 @@ export default function AdminDealsPage() {
 
                     return allSorted.length > 0 ? (
                       <div className="space-y-0">
-                        {allSorted.map((n: any) => (
+                        {allSorted.map((n: any) => {
+                          const atts: Array<{ id?: string; name: string; url: string; type?: string | null; size?: number | null }> =
+                            Array.isArray(n.attachments) ? n.attachments : [];
+                          return (
                           <div key={n.id} className={`py-2.5 ${n.isPinned ? "bg-brand-gold/[0.04] rounded-lg px-3 mb-1" : ""}`} style={{ borderBottom: !n.isPinned ? "1px solid var(--app-border)" : undefined }}>
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-2">
@@ -893,9 +962,39 @@ export default function AdminDealsPage() {
                                 {n.isPinned ? "Unpin" : "Pin"}
                               </button>
                             </div>
-                            <div className="font-body text-[12px] text-[var(--app-text-secondary)] mt-1 whitespace-pre-wrap">{n.content}</div>
+                            {n.content && (
+                              <div className="font-body text-[12px] text-[var(--app-text-secondary)] mt-1 whitespace-pre-wrap">{n.content}</div>
+                            )}
+                            {atts.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {atts.map((a, i) => {
+                                  const isImage = typeof a.type === "string" && a.type.startsWith("image/");
+                                  return isImage ? (
+                                    <a key={a.id || i} href={a.url} target="_blank" rel="noopener noreferrer" className="inline-block">
+                                      <img src={a.url} alt={a.name} className="max-h-36 rounded-lg border border-[var(--app-border)] object-contain bg-[var(--app-input-bg)]" />
+                                    </a>
+                                  ) : (
+                                    <a
+                                      key={a.id || i}
+                                      href={a.url}
+                                      download={a.name}
+                                      className="inline-flex items-center gap-2 font-body text-[11px] text-brand-gold/80 hover:text-brand-gold border border-[var(--app-border)] rounded-lg px-2.5 py-1.5 transition-colors"
+                                    >
+                                      <span>📎</span>
+                                      <span>{a.name}</span>
+                                      {typeof a.size === "number" && (
+                                        <span className="text-[10px] text-[var(--app-text-muted)]">
+                                          {(a.size / 1024).toFixed(0)} KB
+                                        </span>
+                                      )}
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="font-body text-[12px] text-[var(--app-text-muted)] py-2">No notes yet.</div>
