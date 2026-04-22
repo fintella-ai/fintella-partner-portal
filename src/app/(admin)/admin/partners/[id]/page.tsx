@@ -77,8 +77,8 @@ export default function PartnerDetailPage() {
   // landing card — partner info, address, admin utilities. All the other
   // long sections have been split into their own tabs so the page is no
   // longer a giant vertical scroll.
-  type PartnerTab = "info" | "downline" | "commission" | "payout" | "documents" | "communications";
-  const PARTNER_TABS: PartnerTab[] = ["info", "downline", "commission", "payout", "documents", "communications"];
+  type PartnerTab = "info" | "notes" | "downline" | "commission" | "payout" | "documents" | "communications";
+  const PARTNER_TABS: PartnerTab[] = ["info", "notes", "downline", "commission", "payout", "documents", "communications"];
   // Honor ?tab=<name> so notification deep-links open the right section.
   const initialTab: PartnerTab = (() => {
     const t = searchParams?.get("tab");
@@ -101,6 +101,9 @@ export default function PartnerDetailPage() {
   const [callingPartner, setCallingPartner] = useState(false);
   const [callMessage, setCallMessage] = useState<string | null>(null);
   const [showComposeEmail, setShowComposeEmail] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteFile, setNoteFile] = useState<File | null>(null);
+  const [postingNote, setPostingNote] = useState(false);
   const [enterprisePartner, setEnterprisePartner] = useState<any>(null);
   const [commLogFilter, setCommLogFilter] = useState<"all" | "support" | "email" | "sms" | "chat" | "phone">("all");
   // Inline row expand for the comms feed. Key is "<type>-<id>" so rows
@@ -419,6 +422,7 @@ export default function PartnerDetailPage() {
       <div className="flex gap-1 mb-6 overflow-x-auto border-b border-[var(--app-border)]">
         {([
           { id: "info", label: "Info" },
+          { id: "notes", label: "Notes" },
           { id: "communications", label: "Communications" },
           { id: "downline", label: "Downline" },
           { id: "commission", label: "Commission" },
@@ -439,46 +443,92 @@ export default function PartnerDetailPage() {
         ))}
       </div>
 
-      {activeTab === "info" && (<>
-      {/* ─── ADMIN NOTES (audit log) ──────────────────────────────── */}
+      {activeTab === "notes" && (
       <div className="card mb-6">
         <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
-          <div className="font-body font-semibold text-sm mb-3">Admin Notes</div>
-          <div className="flex gap-2">
+          <div className="font-body font-semibold text-sm mb-1">Admin Notes</div>
+          <div className="font-body text-[11px] text-[var(--app-text-muted)] mb-3">
+            Internal audit log. Attach a screenshot, PDF, or CSV if useful. One file per note.
+          </div>
+          <div className="flex flex-col gap-2">
             <textarea
-              id="newAdminNote"
-              className={`${inputClass} resize-none flex-1`}
-              rows={2}
+              className={`${inputClass} resize-none`}
+              rows={3}
               placeholder="Add a note about this partner..."
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
             />
-            <button
-              onClick={async () => {
-                const textarea = document.getElementById("newAdminNote") as HTMLTextAreaElement;
-                const content = textarea?.value;
-                if (!content?.trim()) return;
-                try {
-                  const res = await fetch("/api/admin/notes", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ partnerCode: partner.partnerCode, content }),
-                  });
-                  if (res.ok) {
-                    textarea.value = "";
-                    fetchPartner();
-                  } else {
-                    const err = await res.json().catch(() => ({}));
-                    alert(err.error || "Failed to add note");
-                  }
-                } catch { alert("Network error"); }
-              }}
-              className="self-end font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-4 py-2.5 hover:bg-brand-gold/10 transition-colors shrink-0"
-            >
-              Post Note
-            </button>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <label className="font-body text-[11px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-3 py-2 cursor-pointer hover:text-[var(--app-text-secondary)] transition-colors">
+                <span>{noteFile ? `📎 ${noteFile.name}` : "Attach file (optional)"}</span>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf,.doc,.docx,.csv,.xls,.xlsx,.txt"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setNoteFile(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <div className="flex items-center gap-2">
+                {noteFile && (
+                  <button
+                    onClick={() => setNoteFile(null)}
+                    className="font-body text-[10px] text-[var(--app-text-muted)] hover:text-red-400 transition-colors"
+                  >
+                    Clear file
+                  </button>
+                )}
+                <button
+                  disabled={postingNote || (!noteDraft.trim() && !noteFile)}
+                  onClick={async () => {
+                    if (!partner) return;
+                    setPostingNote(true);
+                    try {
+                      let payload: any = { partnerCode: partner.partnerCode, content: noteDraft };
+                      if (noteFile) {
+                        const dataUrl = await new Promise<string>((resolve, reject) => {
+                          const reader = new FileReader();
+                          reader.onload = () => resolve(String(reader.result || ""));
+                          reader.onerror = reject;
+                          reader.readAsDataURL(noteFile);
+                        });
+                        payload = {
+                          ...payload,
+                          attachmentName: noteFile.name,
+                          attachmentUrl: dataUrl,
+                          attachmentType: noteFile.type || null,
+                          attachmentSize: noteFile.size,
+                        };
+                      }
+                      const res = await fetch("/api/admin/notes", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                      });
+                      if (res.ok) {
+                        setNoteDraft("");
+                        setNoteFile(null);
+                        fetchPartner();
+                      } else {
+                        const err = await res.json().catch(() => ({}));
+                        alert(err.error || "Failed to add note");
+                      }
+                    } catch { alert("Network error"); } finally {
+                      setPostingNote(false);
+                    }
+                  }}
+                  className="font-body text-[11px] text-brand-gold/70 border border-brand-gold/20 rounded-lg px-4 py-2.5 hover:bg-brand-gold/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {postingNote ? "Posting..." : "Post Note"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Notes audit log — pinned first, then newest first */}
         {(() => {
           const pinned = adminNotes.filter((n: any) => n.isPinned);
           const unpinned = adminNotes.filter((n: any) => !n.isPinned);
@@ -486,10 +536,12 @@ export default function PartnerDetailPage() {
 
           return allSorted.length > 0 ? (
             <div>
-              {allSorted.map((n: any) => (
+              {allSorted.map((n: any) => {
+                const isImage = typeof n.attachmentType === "string" && n.attachmentType.startsWith("image/");
+                return (
                 <div key={n.id} className={`px-5 py-3 ${n.isPinned ? "bg-brand-gold/[0.04]" : ""}`} style={{ borderBottom: "1px solid var(--app-border)" }}>
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {n.isPinned && <span className="text-[10px] text-brand-gold">&#128204;</span>}
                       <div className="font-body text-[12px] font-semibold text-[var(--app-text-secondary)]">{n.authorName}</div>
                       <div className="font-body text-[10px] text-[var(--app-text-muted)]">
@@ -512,16 +564,48 @@ export default function PartnerDetailPage() {
                       {n.isPinned ? "Unpin" : "Pin"}
                     </button>
                   </div>
-                  <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed whitespace-pre-wrap">{n.content}</div>
+                  {n.content && (
+                    <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed whitespace-pre-wrap">{n.content}</div>
+                  )}
+                  {n.attachmentUrl && (
+                    <div className="mt-2">
+                      {isImage ? (
+                        <a href={n.attachmentUrl} target="_blank" rel="noopener noreferrer" className="inline-block">
+                          <img
+                            src={n.attachmentUrl}
+                            alt={n.attachmentName || "attachment"}
+                            className="max-h-48 rounded-lg border border-[var(--app-border)] object-contain bg-[var(--app-input-bg)]"
+                          />
+                        </a>
+                      ) : (
+                        <a
+                          href={n.attachmentUrl}
+                          download={n.attachmentName || "attachment"}
+                          className="inline-flex items-center gap-2 font-body text-[12px] text-brand-gold/80 hover:text-brand-gold border border-[var(--app-border)] rounded-lg px-3 py-2 transition-colors"
+                        >
+                          <span>📎</span>
+                          <span>{n.attachmentName || "Download"}</span>
+                          {typeof n.attachmentSize === "number" && (
+                            <span className="text-[10px] text-[var(--app-text-muted)]">
+                              {(n.attachmentSize / 1024).toFixed(0)} KB
+                            </span>
+                          )}
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="px-5 py-6 text-center font-body text-[13px] text-[var(--app-text-muted)]">No notes yet.</div>
           );
         })()}
       </div>
+      )}
 
+      {activeTab === "info" && (<>
       {/* ─── LOGIN CREDENTIALS ──────────────────────────────────── */}
       <div className="card p-5 sm:p-6 mb-6">
         <div className="font-body font-semibold text-sm mb-4">Login Credentials</div>

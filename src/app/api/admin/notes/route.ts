@@ -18,10 +18,21 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { partnerCode, content } = body;
+    const { partnerCode, content, attachmentName, attachmentUrl, attachmentType, attachmentSize } = body;
 
-    if (!partnerCode || !content?.trim()) {
-      return NextResponse.json({ error: "Partner code and note content are required" }, { status: 400 });
+    // Allow empty content when an attachment is provided — "here's the doc"
+    // is a legitimate note on its own. Either a text note OR an attachment
+    // is required.
+    const hasAttachment = typeof attachmentUrl === "string" && attachmentUrl.length > 0;
+    const trimmedContent = typeof content === "string" ? content.trim() : "";
+    if (!partnerCode || (!trimmedContent && !hasAttachment)) {
+      return NextResponse.json({ error: "Partner code and either note content or an attachment are required" }, { status: 400 });
+    }
+
+    // Cap attachment size at ~5MB base64 (~3.7MB raw). The DB text column
+    // can hold more but we don't want to balloon notes payloads.
+    if (hasAttachment && attachmentUrl.length > 5_500_000) {
+      return NextResponse.json({ error: "Attachment too large (max ~4MB)" }, { status: 413 });
     }
 
     // Get admin name from account
@@ -40,9 +51,15 @@ export async function POST(req: NextRequest) {
     const note = await prisma.adminNote.create({
       data: {
         partnerCode,
-        content: content.trim(),
+        content: trimmedContent,
         authorName,
         authorEmail,
+        ...(hasAttachment ? {
+          attachmentName: typeof attachmentName === "string" ? attachmentName.slice(0, 255) : null,
+          attachmentUrl,
+          attachmentType: typeof attachmentType === "string" ? attachmentType.slice(0, 128) : null,
+          attachmentSize: typeof attachmentSize === "number" && isFinite(attachmentSize) ? Math.round(attachmentSize) : null,
+        } : {}),
       },
     });
 
