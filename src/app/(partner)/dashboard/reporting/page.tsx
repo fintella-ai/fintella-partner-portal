@@ -891,6 +891,17 @@ export default function PartnerReportingPage() {
             </div>
           )}
 
+          {/* Task 13: "Paid by upline" note for L2/L3 under a Disabled L1 with no ledger entries */}
+          {tier !== "l1" && topL1PayoutDownlineEnabled === false && ledger.length === 0 && (
+            <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-bg-secondary)] px-4 py-3 my-3">
+              <div className="font-body text-[12px] text-[var(--app-text-secondary)]">
+                Your commissions are paid by your upline partner. Contact them for details.
+              </div>
+              <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-1">
+                Fintella is not responsible for paying you directly under your upline&rsquo;s current configuration.
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
