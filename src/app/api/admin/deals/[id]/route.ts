@@ -80,6 +80,8 @@ export async function PUT(
     if (body.l1CommissionStatus !== undefined) data.l1CommissionStatus = body.l1CommissionStatus;
     if (body.l2CommissionAmount !== undefined) data.l2CommissionAmount = parseFloat(body.l2CommissionAmount) || 0;
     if (body.l2CommissionStatus !== undefined) data.l2CommissionStatus = body.l2CommissionStatus;
+    if (body.l3CommissionAmount !== undefined) data.l3CommissionAmount = parseFloat(body.l3CommissionAmount) || 0;
+    if (body.l3CommissionStatus !== undefined) data.l3CommissionStatus = body.l3CommissionStatus;
     if (body.notes !== undefined) data.notes = body.notes || null;
     if (body.closeDate !== undefined) data.closeDate = body.closeDate ? new Date(body.closeDate) : null;
 

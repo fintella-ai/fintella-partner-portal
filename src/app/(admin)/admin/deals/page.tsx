@@ -68,6 +68,8 @@ type Deal = {
   l1CommissionStatus: string;
   l2CommissionAmount: number;
   l2CommissionStatus: string;
+  l3CommissionAmount: number;
+  l3CommissionStatus: string;
   notes: string | null;
   paymentReceivedAt: string | null;
   paymentReceivedBy: string | null;
@@ -118,6 +120,7 @@ export default function AdminDealsPage() {
   const [editStage, setEditStage] = useState("");
   const [editL1Status, setEditL1Status] = useState("");
   const [editL2Status, setEditL2Status] = useState("");
+  const [editL3Status, setEditL3Status] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [dealNotes, setDealNotes] = useState<Record<string, any[]>>({});
   const [dealNoteFiles, setDealNoteFiles] = useState<Record<string, File[]>>({});
@@ -238,6 +241,7 @@ export default function AdminDealsPage() {
       setEditStage(deal.stage);
       setEditL1Status(deal.l1CommissionStatus);
       setEditL2Status(deal.l2CommissionStatus);
+      setEditL3Status(deal.l3CommissionStatus);
       setEditNotes(deal.notes || "");
       setEditRefund(deal.estimatedRefundAmount ? String(deal.estimatedRefundAmount) : "");
       setEditActualRefund(deal.actualRefundAmount != null ? String(deal.actualRefundAmount) : "");
@@ -315,6 +319,7 @@ export default function AdminDealsPage() {
           stage: editStage,
           l1CommissionStatus: editL1Status,
           l2CommissionStatus: editL2Status,
+          l3CommissionStatus: editL3Status,
           notes: editNotes,
           estimatedRefundAmount: refundParsed ?? 0,
           actualRefundAmount: actualRefundParsed,
@@ -365,6 +370,16 @@ export default function AdminDealsPage() {
         `${data.ledgerCount} commission ${data.ledgerCount === 1 ? "entry" : "entries"} ` +
         `queued for payout, totaling $${(data.totalCommission || 0).toFixed(2)}.`
       );
+      // Re-seed open form state from the server's fresh Deal row so the
+      // L1/L2/L3 status dropdowns reflect the "due" flip the backend just
+      // performed. Without this, the form retains the stale "pending" state
+      // it was initialized with, and a subsequent Save would overwrite the
+      // server's "due" with the stale "pending".
+      if (data.deal && expandedId === dealId) {
+        if (typeof data.deal.l1CommissionStatus === "string") setEditL1Status(data.deal.l1CommissionStatus);
+        if (typeof data.deal.l2CommissionStatus === "string") setEditL2Status(data.deal.l2CommissionStatus);
+        if (typeof data.deal.l3CommissionStatus === "string") setEditL3Status(data.deal.l3CommissionStatus);
+      }
       fetchDeals();
       fetchDealNotes(dealId);
     } catch {
@@ -778,6 +793,16 @@ export default function AdminDealsPage() {
                       ))}
                     </select>
                   </div>
+                  {deal.l3CommissionAmount > 0 && (
+                    <div>
+                      <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">L3 Commission Status</label>
+                      <select className={`${inputClass} w-full`} value={editL3Status} onChange={(e) => setEditL3Status(e.target.value)}>
+                        {COMMISSION_STATUSES.map((s) => (
+                          <option key={s} value={s} className="bg-[var(--app-bg)]">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                   <div>
