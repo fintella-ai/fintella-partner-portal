@@ -244,7 +244,16 @@ export default function AdminDealsPage() {
       setEditFirmFeeRatePct(
         deal.firmFeeRate != null ? String(Math.round(deal.firmFeeRate * 10000) / 100) : ""
       );
-      setEditFirmFeeAmount(deal.firmFeeAmount ? String(deal.firmFeeAmount) : "");
+      // Seed firm fee from resolved value (stage-aware: uses actual refund
+      // × rate when closed_won) so the form matches the row display when
+      // the DB column is still 0 but rate + refund are set. Preserves admin
+      // ability to override on save.
+      {
+        const resolved = resolveDealFinancials(deal);
+        setEditFirmFeeAmount(
+          resolved.firmFeeAmount > 0 ? String(Math.round(resolved.firmFeeAmount * 100) / 100) : ""
+        );
+      }
       setEditClient({
         clientFirstName: deal.clientFirstName || "",
         clientLastName: deal.clientLastName || "",

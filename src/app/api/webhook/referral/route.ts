@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/format";
 import { computeDealCommissions, getL1CommissionRateSnapshot, roundCents } from "@/lib/commission";
+import { resolveDealFinancials } from "@/lib/dealCalc";
 import { sendDealStatusUpdateEmail } from "@/lib/sendgrid";
 import { appendDealPayload } from "@/lib/appendDealPayload";
 
@@ -1015,10 +1016,51 @@ async function patchHandler(req: NextRequest): Promise<Response> {
     let effectiveFirmFee = 0;
 
     if (isClosedWonTransition) {
-      effectiveFirmFee =
+      // Resolve the effective firm fee through the canonical resolver so this
+      // path honors the same rules the display surfaces use:
+      //  - stored firmFeeAmount wins when present and the deal isn't closed_won
+      //    with an updated actual refund,
+      //  - otherwise compute rate × refund, where the refund prefers the
+      //    actual (post-close truth) over the estimated (opening ticket).
+      // The webhook payload's firmFeeAmount (when Frost Law sends it) still
+      // takes highest priority — that's their authoritative value for the deal.
+      const projectedEstimated =
+        typeof data.estimatedRefundAmount === "number"
+          ? data.estimatedRefundAmount
+          : deal.estimatedRefundAmount;
+      const projectedActual =
+        typeof data.actualRefundAmount === "number"
+          ? data.actualRefundAmount
+          : deal.actualRefundAmount ?? null;
+      const projectedFirmFeeRate =
+        typeof data.firmFeeRate === "number"
+          ? data.firmFeeRate
+          : deal.firmFeeRate;
+      const projectedFirmFeeAmount =
         typeof data.firmFeeAmount === "number" && data.firmFeeAmount > 0
           ? data.firmFeeAmount
           : deal.firmFeeAmount || 0;
+      const fin = resolveDealFinancials({
+        estimatedRefundAmount: projectedEstimated,
+        actualRefundAmount: projectedActual,
+        stage: "closedwon",
+        firmFeeRate: projectedFirmFeeRate,
+        firmFeeAmount: projectedFirmFeeAmount,
+        l1CommissionRate: deal.l1CommissionRate,
+        l1CommissionAmount: 0,
+      });
+      effectiveFirmFee = fin.firmFeeAmount;
+
+      // If we derived a firm fee (no stored value, but rate × refund available),
+      // persist it to Deal.firmFeeAmount so the admin form + downstream reads
+      // see the true cached value instead of 0.
+      if (
+        fin.firmFeeAmountComputed &&
+        fin.firmFeeAmount > 0 &&
+        (!data.firmFeeAmount || data.firmFeeAmount <= 0)
+      ) {
+        data.firmFeeAmount = roundCents(fin.firmFeeAmount);
+      }
 
       if (effectiveFirmFee <= 0) {
         ledgerSkipReason = "no_firm_fee_on_deal_or_in_payload";

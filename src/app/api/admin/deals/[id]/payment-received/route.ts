@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { computeDealCommissions } from "@/lib/commission";
+import { resolveDealFinancials } from "@/lib/dealCalc";
 
 /**
  * POST /api/admin/deals/[id]/payment-received
@@ -142,9 +143,24 @@ export async function POST(
       });
     } else {
       // ── Path 2 — fallback: create fresh with status="due" ──
+      // Resolve the effective firm fee through the canonical resolver so a
+      // deal that reached closed_won without its firm fee being persisted
+      // (stored firmFeeAmount = 0, but rate + refund are known) still gets
+      // a correct ledger. When an actual refund is set post-close, the
+      // resolver also honors actual over estimated.
+      const fin = resolveDealFinancials({
+        estimatedRefundAmount: deal.estimatedRefundAmount,
+        actualRefundAmount: deal.actualRefundAmount,
+        stage: deal.stage,
+        firmFeeRate: deal.firmFeeRate,
+        firmFeeAmount: deal.firmFeeAmount,
+        l1CommissionRate: deal.l1CommissionRate,
+        l1CommissionAmount: 0,
+      });
+      const effectiveFirmFee = fin.firmFeeAmount;
       const computed = await computeDealCommissions(prisma, {
         partnerCode: deal.partnerCode,
-        firmFeeAmount: deal.firmFeeAmount,
+        firmFeeAmount: effectiveFirmFee,
       });
 
       if (computed.entries.length === 0) {
@@ -158,21 +174,28 @@ export async function POST(
       }
 
       result = await prisma.$transaction(async (tx) => {
+        // Base deal update — statuses + paymentReceived. If the resolver had
+        // to derive firmFeeAmount (stored was 0 but rate + refund were
+        // known), persist the derived value so future reads match the ledger.
+        const dealUpdate: Record<string, any> = {
+          paymentReceivedAt: new Date(),
+          paymentReceivedBy: adminEmail,
+          l1CommissionStatus: computed.entries.some((e) => e.tier === "l1")
+            ? "due"
+            : deal.l1CommissionStatus,
+          l2CommissionStatus: computed.entries.some((e) => e.tier === "l2")
+            ? "due"
+            : deal.l2CommissionStatus,
+          l3CommissionStatus: computed.entries.some((e) => e.tier === "l3")
+            ? "due"
+            : deal.l3CommissionStatus,
+        };
+        if (fin.firmFeeAmountComputed && effectiveFirmFee > 0 && (!deal.firmFeeAmount || deal.firmFeeAmount <= 0)) {
+          dealUpdate.firmFeeAmount = effectiveFirmFee;
+        }
         const updatedDeal = await tx.deal.update({
           where: { id: params.id },
-          data: {
-            paymentReceivedAt: new Date(),
-            paymentReceivedBy: adminEmail,
-            l1CommissionStatus: computed.entries.some((e) => e.tier === "l1")
-              ? "due"
-              : deal.l1CommissionStatus,
-            l2CommissionStatus: computed.entries.some((e) => e.tier === "l2")
-              ? "due"
-              : deal.l2CommissionStatus,
-            l3CommissionStatus: computed.entries.some((e) => e.tier === "l3")
-              ? "due"
-              : deal.l3CommissionStatus,
-          },
+          data: dealUpdate,
         });
 
         const createdLedger = await Promise.all(
