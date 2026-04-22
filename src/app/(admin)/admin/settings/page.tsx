@@ -43,6 +43,9 @@ function compressImage(file: File, maxDim: number, quality: number): Promise<str
 
 // ─── NAV ITEMS (must match partner layout) ──────────────────────────────────
 
+// Must stay in sync with MAIN_NAV in src/app/(partner)/dashboard/layout.tsx.
+// Any item present there but missing here is rendered on the partner
+// sidebar but is NOT reorderable / hide-able from the admin editor.
 const ALL_NAV_ITEMS = [
   { id: "home", label: "Home", icon: "🏠" },
   { id: "overview", label: "Overview", icon: "📊" },
@@ -55,6 +58,8 @@ const ALL_NAV_ITEMS = [
   { id: "referral-links", label: "Referral Links", icon: "🔗" },
   { id: "documents", label: "Documents", icon: "📁" },
   { id: "support", label: "Support", icon: "📩" },
+  { id: "announcements", label: "Announcements", icon: "📣" },
+  { id: "messages", label: "Messages", icon: "💬" },
   { id: "conference", label: "Live Weekly Call!", icon: "📹" },
   { id: "ai-assistant", label: "PartnerOS AI", icon: "🤖" },
   { id: "feature-request", label: "Feature Requests", icon: "💡" },
