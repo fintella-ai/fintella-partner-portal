@@ -105,13 +105,30 @@ export interface TriggerVariable {
 
 export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
   "deal.created": [
+    { token: "{deal.id}",                    description: "Fintella deal ID (unique identifier — use for later PATCH updates)", example: "cmoabkqqi000e14ab8ybk8bv4" },
     { token: "{deal.dealName}",              description: "Deal name",                              example: "ACME Corp — Tariff Refund" },
     { token: "{deal.partnerCode}",           description: "Submitting partner's code",              example: "PTNJD8K3F" },
+    { token: "{deal.epLevel1}",              description: "Enterprise Partner's internal L1 code (from utm_medium)", example: "EA-ACME-042" },
+    { token: "{deal.externalDealId}",        description: "Upstream source's deal ID (e.g. HubSpot ID from Frost)",     example: "462693304018" },
     { token: "{deal.clientName}",            description: "Client display name",                    example: "Jane Doe" },
-    { token: "{deal.clientEmail}",           description: "Client email",                           example: "jane@acme.com" },
+    { token: "{deal.clientFirstName}",       description: "Client first name",                      example: "Jane" },
+    { token: "{deal.clientLastName}",        description: "Client last name",                       example: "Smith" },
+    { token: "{deal.clientEmail}",           description: "Client email",                           example: "jane@acmeimports.com" },
+    { token: "{deal.clientPhone}",           description: "Client phone",                           example: "+15551234567" },
+    { token: "{deal.clientTitle}",           description: "Client business title",                  example: "CFO" },
+    { token: "{deal.legalEntityName}",       description: "Client's legal entity name",             example: "Acme Imports LLC" },
+    { token: "{deal.serviceOfInterest}",     description: "Service the client is interested in",    example: "Tariff Refund Support" },
+    { token: "{deal.businessCity}",          description: "Client business city",                   example: "Phoenix" },
+    { token: "{deal.businessState}",         description: "Client business state",                  example: "AZ" },
+    { token: "{deal.importsGoods}",          description: "Does the client import goods? (Yes/No)", example: "Yes" },
+    { token: "{deal.importCountries}",       description: "Countries client imports from",          example: "China, Vietnam" },
+    { token: "{deal.annualImportValue}",     description: "Annual import value band",               example: "$1M - $5M" },
+    { token: "{deal.importerOfRecord}",      description: "Importer of record",                     example: "Acme Imports LLC" },
+    { token: "{deal.consultBookedDate}",     description: "Consultation date (yyyy-mm-dd) if scheduled", example: "2026-04-15" },
+    { token: "{deal.consultBookedTime}",     description: "Consultation time (HH:MM 24h) if scheduled",  example: "14:00" },
     { token: "{deal.stage}",                 description: "Internal stage",                         example: "new_lead" },
     { token: "{deal.estimatedRefundAmount}", description: "Estimated refund (number)",              example: "250000" },
-    { token: "{deal.epLevel1}",              description: "Enterprise Partner's internal L1 code (from utm_medium)", example: "EA-ACME-042" },
+    { token: "{deal.affiliateNotes}",        description: "Affiliate notes attached to the deal",   example: "Referred by CPA network" },
   ],
   "deal.stage_changed": [
     { token: "{deal.dealName}",    description: "Deal name",                  example: "ACME Corp — Tariff Refund" },
@@ -241,11 +258,28 @@ async function executeAction(
         const url = String(config.url || "");
         if (!url) throw new Error("webhook.post: url is required");
 
+        // Headers: default to application/json, then apply admin-provided
+        // overrides. Tokens are substituted on values so the admin can
+        // write e.g. Authorization: Bearer {env.SOME_KEY} when we add env
+        // vars, or embed payload values like a deal id into a custom header.
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (config.headers && typeof config.headers === "object") {
           for (const [k, v] of Object.entries(config.headers as Record<string, string>)) {
-            if (k) headers[k] = String(v);
+            if (k) headers[k] = interpolate(String(v), payload);
           }
+        }
+
+        // Body: if the admin provided a body template, interpolate tokens
+        // and try to parse as JSON (if the declared content-type is JSON).
+        // If there's no body template, fall back to sending the raw trigger
+        // payload as JSON — matches historical behavior for workflows that
+        // predate the body-template UI.
+        let bodyString: string;
+        const rawBody = typeof config.body === "string" ? config.body : "";
+        if (rawBody.trim().length > 0) {
+          bodyString = interpolate(rawBody, payload);
+        } else {
+          bodyString = JSON.stringify(payload);
         }
 
         const controller = new AbortController();
@@ -254,7 +288,7 @@ async function executeAction(
           await fetch(url, {
             method: "POST",
             headers,
-            body: JSON.stringify(payload),
+            body: bodyString,
             signal: controller.signal,
           });
         } finally {
