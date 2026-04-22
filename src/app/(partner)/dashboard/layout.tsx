@@ -597,8 +597,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </span>
                 )}
               </div>
+              <p className="font-body text-[13px] text-[var(--app-text-muted)] mt-2">
+                {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+              </p>
             </div>
           </div>
+          {/* Full-bleed divider below the header — breaks out of the content padding. */}
+          <div className="-mx-4 sm:-mx-6 md:-mx-8 border-b border-[var(--app-border)] mt-5" />
         </div>
 
         {children}

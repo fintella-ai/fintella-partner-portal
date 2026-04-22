@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, Fragment } from "react";
-import { useSession } from "next-auth/react";
 import { useDevice } from "@/lib/useDevice";
 import { FIRM_SHORT } from "@/lib/constants";
 import { fmt$ } from "@/lib/format";
@@ -86,24 +85,12 @@ function rankBadgeCls(rank: number) {
   return "bg-[var(--app-input-bg)] text-[var(--app-text-muted)] border-[var(--app-border)]";
 }
 
-function formatDateHeading() {
-  return new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
    PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function HomePage() {
-  const { data: session } = useSession();
   const device = useDevice();
-  const user = session?.user as any;
-  const firstName = user?.name?.split(" ")[0] || "Partner";
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(true);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
@@ -403,15 +390,8 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* ══════════════════ WELCOME HEADER ══════════════════ */}
-      <div className="mb-6 sm:mb-8 animate-fade-up text-center">
-        <h1 className={`font-display ${device.headingSize} font-bold text-[var(--app-text)] mb-1`}>
-          Welcome Back, {firstName}
-        </h1>
-        <p className="font-body text-[13px] text-[var(--app-text-muted)]">{formatDateHeading()}</p>
-      </div>
-
-      {/* Render modules in admin-configured order. */}
+      {/* Welcome header + date now live in the shared dashboard layout.
+          The home page renders only its admin-ordered module body. */}
       {moduleOrder.map((id) => {
         const node = dispatchModule(id);
         return node ? <Fragment key={id}>{node}</Fragment> : null;
