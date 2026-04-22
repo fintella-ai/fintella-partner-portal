@@ -105,7 +105,7 @@ function getDesignTokens(type: DeviceInfo["type"], os: DeviceInfo["os"], brand: 
 
   if (type === "tablet") {
     return {
-      padding: "px-6 py-5",
+      padding: "px-10 py-5",
       gap: "gap-4",
       cardPadding: "p-5",
       headingSize: "text-2xl",
@@ -117,7 +117,7 @@ function getDesignTokens(type: DeviceInfo["type"], os: DeviceInfo["os"], brand: 
 
   // Desktop
   return {
-    padding: "px-14 py-9",
+    padding: "px-24 py-9",
     gap: "gap-5",
     cardPadding: "p-6",
     headingSize: "text-[28px]",
@@ -141,7 +141,7 @@ const DEFAULT_DEVICE: DeviceInfo = {
   osVersion: "",
   brand: "unknown",
   browser: "unknown",
-  padding: "px-14 py-9",
+  padding: "px-24 py-9",
   gap: "gap-5",
   cardPadding: "p-6",
   headingSize: "text-[28px]",
