@@ -479,7 +479,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             NotificationBell still floating in its top-right fixed
             corner. Shown on both mobile and desktop. */}
         <div
-          className={`sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-14 px-4 sm:px-6 lg:px-14 py-3 mb-5 bg-[var(--app-bg)]/85 backdrop-blur-md border-b border-[var(--app-border)] ${device.isMobile ? "hidden" : ""}`}
+          className={`sticky top-0 z-40 -mx-4 sm:-mx-10 lg:-mx-24 px-4 sm:px-10 lg:px-24 py-3 mb-5 bg-[var(--app-bg)]/85 backdrop-blur-md border-b border-[var(--app-border)] ${device.isMobile ? "hidden" : ""}`}
         >
           <div className="flex items-center justify-between gap-2 sm:gap-3">
             {/* Left: Submit Client + Referral Links */}
@@ -600,7 +600,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           {/* Full-bleed divider below the header — breaks out of the content padding. */}
-          <div className="-mx-4 sm:-mx-6 lg:-mx-14 border-b border-[var(--app-border)] mt-5" />
+          <div className="-mx-4 sm:-mx-10 lg:-mx-24 border-b border-[var(--app-border)] mt-5" />
         </div>
 
         {children}
