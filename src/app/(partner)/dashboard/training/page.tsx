@@ -29,6 +29,10 @@ interface Resource {
   fileUrl: string;
   fileType: string;
   fileSize: string | null;
+  // moduleId is populated when the resource is attached to a specific
+  // training module. Used to surface attached resources inline on the
+  // module card (Modules tab) in addition to the Resources tab.
+  moduleId: string | null;
 }
 
 interface FAQItem {
@@ -67,11 +71,11 @@ const DEMO_MODULES: Module[] = [
 ];
 
 const DEMO_RESOURCES: Resource[] = [
-  { id: "tr-quickstart", title: "IEEPA Tariff Recovery — Partner Quick Start Guide", description: "Everything you need to know to get started as a Fintella partner.", fileUrl: "#", fileType: "pdf", fileSize: "2.4 MB" },
-  { id: "tr-checklist", title: "Qualified Importer Checklist", description: "Use this checklist to quickly assess if a potential client qualifies.", fileUrl: "#", fileType: "checklist", fileSize: "340 KB" },
-  { id: "tr-ratecard", title: "Commission Rate Card", description: "Overview of L1, L2, and L3 commission rates and payment schedules.", fileUrl: "#", fileType: "pdf", fileSize: "180 KB" },
-  { id: "tr-script", title: "Client Conversation Script", description: "Talking points for your first conversation with a potential client.", fileUrl: "#", fileType: "guide", fileSize: "520 KB" },
-  { id: "tr-section301", title: "Section 301 Duties — Reference Sheet", description: "Quick reference for Section 301 tariff categories and recovery eligibility.", fileUrl: "#", fileType: "pdf", fileSize: "890 KB" },
+  { id: "tr-quickstart", title: "IEEPA Tariff Recovery — Partner Quick Start Guide", description: "Everything you need to know to get started as a Fintella partner.", fileUrl: "#", fileType: "pdf", fileSize: "2.4 MB", moduleId: null },
+  { id: "tr-checklist", title: "Qualified Importer Checklist", description: "Use this checklist to quickly assess if a potential client qualifies.", fileUrl: "#", fileType: "checklist", fileSize: "340 KB", moduleId: null },
+  { id: "tr-ratecard", title: "Commission Rate Card", description: "Overview of L1, L2, and L3 commission rates and payment schedules.", fileUrl: "#", fileType: "pdf", fileSize: "180 KB", moduleId: null },
+  { id: "tr-script", title: "Client Conversation Script", description: "Talking points for your first conversation with a potential client.", fileUrl: "#", fileType: "guide", fileSize: "520 KB", moduleId: null },
+  { id: "tr-section301", title: "Section 301 Duties — Reference Sheet", description: "Quick reference for Section 301 tariff categories and recovery eligibility.", fileUrl: "#", fileType: "pdf", fileSize: "890 KB", moduleId: null },
 ];
 
 const DEMO_FAQS: FAQItem[] = [
@@ -382,72 +386,86 @@ export default function TrainingPage() {
           <div className={`flex flex-col ${device.gap}`}>
             {filteredModules.map((m) => {
               const isExpanded = expandedModules.has(m.id);
+              const moduleResources = resources.filter((r) => r.moduleId === m.id);
+              const hasExpandable = !!m.content || moduleResources.length > 0;
 
               return (
                 <div
                   key={m.id}
-                  className={`card ${device.cardPadding} transition-all ${m.completed ? "opacity-70" : ""}`}
+                  className={`card p-5 sm:p-6 transition-all ${m.completed ? "opacity-70" : ""}`}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-4">
                     {/* Checkbox */}
                     <button
                       onClick={() => toggleComplete(m.id)}
-                      className={`w-6 h-6 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                      className={`w-6 h-6 rounded-full border-2 shrink-0 mt-1 flex items-center justify-center transition-colors ${
                         m.completed
                           ? "bg-green-500/20 border-green-500/40 text-green-400"
                           : "border-[var(--app-border)] hover:border-brand-gold/40"
                       }`}
+                      aria-label={m.completed ? "Mark incomplete" : "Mark complete"}
                     >
                       {m.completed && <span className="text-xs">{"\u2713"}</span>}
                     </button>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div
-                          className={`font-body text-sm font-medium ${
-                            m.completed ? "text-[var(--app-text-secondary)] line-through" : "text-[var(--app-text)]"
-                          }`}
-                        >
-                          {m.title}
-                        </div>
-                        <span className="font-body text-[10px] text-[var(--app-text-faint)] shrink-0 bg-[var(--app-input-bg)] border border-[var(--app-border)] rounded px-2 py-0.5">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        {m.videoUrl ? (
+                          <button
+                            onClick={() => openVideo(m.videoUrl!, m.title)}
+                            className={`font-body text-[17px] font-semibold text-left leading-snug ${
+                              m.completed ? "text-[var(--app-text-secondary)] line-through" : "text-[var(--app-text)]"
+                            } hover:text-brand-gold transition-colors`}
+                            title="Play video"
+                          >
+                            {m.title}
+                          </button>
+                        ) : (
+                          <div
+                            className={`font-body text-[17px] font-semibold leading-snug ${
+                              m.completed ? "text-[var(--app-text-secondary)] line-through" : "text-[var(--app-text)]"
+                            }`}
+                          >
+                            {m.title}
+                          </div>
+                        )}
+                        <span className="font-body text-[10px] text-[var(--app-text-faint)] shrink-0 bg-[var(--app-input-bg)] border border-[var(--app-border)] rounded px-2 py-0.5 uppercase tracking-wider">
                           {m.category}
                         </span>
                       </div>
 
-                      <p className="font-body text-[12px] text-[var(--app-text-muted)] mt-1 leading-relaxed">
+                      <p className="font-body text-[13px] text-[var(--app-text-muted)] mt-1.5 leading-relaxed">
                         {m.description}
                       </p>
 
-                      {/* Action row: duration, video, expand toggle */}
-                      <div className="flex items-center gap-3 mt-2.5">
+                      {/* Action row: duration, prominent Watch Video, details toggle */}
+                      <div className="flex items-center flex-wrap gap-3 mt-4">
                         {m.duration && (
-                          <span className="font-body text-[10px] text-[var(--app-text-faint)]">
+                          <span className="font-body text-[12px] text-[var(--app-text-faint)] inline-flex items-center gap-1">
                             {"\u23F1"} {m.duration}
                           </span>
                         )}
 
-                        {m.videoUrl && (
+                        {m.videoUrl ? (
                           <button
                             onClick={() => openVideo(m.videoUrl!, m.title)}
-                            className="font-body text-[11px] text-brand-gold/70 hover:text-brand-gold transition-colors"
+                            className="font-body text-[14px] font-semibold text-brand-gold bg-brand-gold/10 border border-brand-gold/30 rounded-lg px-4 py-2 hover:bg-brand-gold/20 hover:border-brand-gold/50 transition-colors inline-flex items-center gap-2"
                           >
-                            {"\u25B6"} Watch Video
+                            <span className="text-[16px]">{"\u25B6"}</span>
+                            Watch Video
                           </button>
-                        )}
-
-                        {!m.videoUrl && (
-                          <span className="font-body text-[11px] text-[var(--app-text-faint)]">
+                        ) : (
+                          <span className="font-body text-[13px] text-[var(--app-text-faint)] italic">
                             {"\u25B6"} Video coming soon
                           </span>
                         )}
 
-                        {m.content && (
+                        {hasExpandable && (
                           <button
                             onClick={() => toggleExpand(m.id)}
-                            className="font-body text-[11px] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors ml-auto flex items-center gap-1"
+                            className="font-body text-[12px] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors ml-auto flex items-center gap-1"
                           >
-                            {isExpanded ? "Hide Details" : "Details"}
+                            {isExpanded ? "Hide Details" : `Details${moduleResources.length > 0 ? ` (${moduleResources.length} resource${moduleResources.length === 1 ? "" : "s"})` : ""}`}
                             <svg
                               width="12"
                               height="12"
@@ -463,12 +481,61 @@ export default function TrainingPage() {
                         )}
                       </div>
 
-                      {/* Expanded content */}
-                      {isExpanded && m.content && (
-                        <div className="mt-3 pt-3 border-t border-[var(--app-border)]">
-                          <p className="font-body text-[12px] text-[var(--app-text-muted)] leading-relaxed whitespace-pre-line">
-                            {m.content}
-                          </p>
+                      {/* Expanded content + attached resources */}
+                      {isExpanded && (m.content || moduleResources.length > 0) && (
+                        <div className="mt-4 pt-4 border-t border-[var(--app-border)] space-y-4">
+                          {m.content && (
+                            <p className="font-body text-[13px] text-[var(--app-text-muted)] leading-relaxed whitespace-pre-line">
+                              {m.content}
+                            </p>
+                          )}
+                          {moduleResources.length > 0 && (
+                            <div>
+                              <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-2">
+                                Attached Resources ({moduleResources.length})
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                {moduleResources.map((r) => (
+                                  <div
+                                    key={r.id}
+                                    className="flex items-start gap-3 p-3 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg-secondary)]"
+                                  >
+                                    <span className="text-xl shrink-0 mt-0.5">{fileTypeIcon(r.fileType)}</span>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-body text-[13px] font-medium text-[var(--app-text)]">{r.title}</div>
+                                      {r.description && (
+                                        <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">{r.description}</div>
+                                      )}
+                                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                        {r.fileSize && (
+                                          <span className="text-[10px] text-[var(--app-text-faint)] bg-[var(--app-input-bg)] rounded px-2 py-0.5">
+                                            {r.fileSize}
+                                          </span>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => setViewingResource(r)}
+                                          disabled={!r.fileUrl || r.fileUrl === "#"}
+                                          className="font-body text-[11px] text-brand-gold/80 hover:text-brand-gold border border-brand-gold/30 rounded-lg px-3 py-1 hover:bg-brand-gold/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                          title={!r.fileUrl || r.fileUrl === "#" ? "Preview unavailable" : "Open embedded viewer"}
+                                        >
+                                          View
+                                        </button>
+                                        <a
+                                          href={r.fileUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="font-body text-[11px] text-brand-gold/70 hover:text-brand-gold border border-brand-gold/20 rounded-lg px-3 py-1 hover:bg-brand-gold/10 transition-colors"
+                                        >
+                                          Download
+                                        </a>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
