@@ -22,6 +22,7 @@ export async function GET(
     const dealNotes = await prisma.dealNote.findMany({
       where: { dealId: params.id },
       orderBy: { createdAt: "desc" },
+      include: { attachments: true },
     });
 
     return NextResponse.json({ deal, dealNotes });

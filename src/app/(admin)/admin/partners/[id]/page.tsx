@@ -102,7 +102,7 @@ export default function PartnerDetailPage() {
   const [callMessage, setCallMessage] = useState<string | null>(null);
   const [showComposeEmail, setShowComposeEmail] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
-  const [noteFile, setNoteFile] = useState<File | null>(null);
+  const [noteFiles, setNoteFiles] = useState<File[]>([]);
   const [postingNote, setPostingNote] = useState(false);
   const [enterprisePartner, setEnterprisePartner] = useState<any>(null);
   const [commLogFilter, setCommLogFilter] = useState<"all" | "support" | "email" | "sms" | "chat" | "phone">("all");
@@ -458,59 +458,77 @@ export default function PartnerDetailPage() {
               value={noteDraft}
               onChange={(e) => setNoteDraft(e.target.value)}
             />
+            {noteFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {noteFiles.map((f, i) => (
+                  <span
+                    key={`${f.name}-${i}`}
+                    className="inline-flex items-center gap-1.5 font-body text-[10px] text-[var(--app-text-secondary)] bg-[var(--app-input-bg)] border border-[var(--app-border)] rounded-full px-2.5 py-1"
+                  >
+                    <span>📎 {f.name}</span>
+                    <span className="text-[var(--app-text-muted)]">{(f.size / 1024).toFixed(0)}KB</span>
+                    <button
+                      onClick={() => setNoteFiles((prev) => prev.filter((_, j) => j !== i))}
+                      className="text-[var(--app-text-muted)] hover:text-red-400 transition-colors"
+                      aria-label={`Remove ${f.name}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <label className="font-body text-[11px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-3 py-2 cursor-pointer hover:text-[var(--app-text-secondary)] transition-colors">
-                <span>{noteFile ? `📎 ${noteFile.name}` : "Attach file (optional)"}</span>
+                <span>{noteFiles.length > 0 ? "Add more files" : "Attach files (optional)"}</span>
                 <input
                   type="file"
+                  multiple
                   accept="image/*,application/pdf,.doc,.docx,.csv,.xls,.xlsx,.txt"
                   className="hidden"
                   onChange={(e) => {
-                    const f = e.target.files?.[0] || null;
-                    setNoteFile(f);
+                    const picked = e.target.files ? Array.from(e.target.files) : [];
+                    if (picked.length) setNoteFiles((prev) => [...prev, ...picked]);
                     e.target.value = "";
                   }}
                 />
               </label>
               <div className="flex items-center gap-2">
-                {noteFile && (
+                {noteFiles.length > 0 && (
                   <button
-                    onClick={() => setNoteFile(null)}
+                    onClick={() => setNoteFiles([])}
                     className="font-body text-[10px] text-[var(--app-text-muted)] hover:text-red-400 transition-colors"
                   >
-                    Clear file
+                    Clear all
                   </button>
                 )}
                 <button
-                  disabled={postingNote || (!noteDraft.trim() && !noteFile)}
+                  disabled={postingNote || (!noteDraft.trim() && noteFiles.length === 0)}
                   onClick={async () => {
                     if (!partner) return;
                     setPostingNote(true);
                     try {
-                      let payload: any = { partnerCode: partner.partnerCode, content: noteDraft };
-                      if (noteFile) {
-                        const dataUrl = await new Promise<string>((resolve, reject) => {
+                      const attachments = await Promise.all(
+                        noteFiles.map((f) => new Promise<any>((resolve, reject) => {
                           const reader = new FileReader();
-                          reader.onload = () => resolve(String(reader.result || ""));
+                          reader.onload = () => resolve({
+                            name: f.name,
+                            url: String(reader.result || ""),
+                            type: f.type || null,
+                            size: f.size,
+                          });
                           reader.onerror = reject;
-                          reader.readAsDataURL(noteFile);
-                        });
-                        payload = {
-                          ...payload,
-                          attachmentName: noteFile.name,
-                          attachmentUrl: dataUrl,
-                          attachmentType: noteFile.type || null,
-                          attachmentSize: noteFile.size,
-                        };
-                      }
+                          reader.readAsDataURL(f);
+                        }))
+                      );
                       const res = await fetch("/api/admin/notes", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload),
+                        body: JSON.stringify({ partnerCode: partner.partnerCode, content: noteDraft, attachments }),
                       });
                       if (res.ok) {
                         setNoteDraft("");
-                        setNoteFile(null);
+                        setNoteFiles([]);
                         fetchPartner();
                       } else {
                         const err = await res.json().catch(() => ({}));
@@ -537,7 +555,20 @@ export default function PartnerDetailPage() {
           return allSorted.length > 0 ? (
             <div>
               {allSorted.map((n: any) => {
-                const isImage = typeof n.attachmentType === "string" && n.attachmentType.startsWith("image/");
+                // Union the new child-table attachments with the legacy
+                // single-attachment columns from PR #356 so older notes
+                // still render. Dedup trivially — legacy rows never have
+                // a child attachment with the same id.
+                const atts: Array<{ id?: string; name: string; url: string; type?: string | null; size?: number | null }> = [];
+                if (Array.isArray(n.attachments)) atts.push(...n.attachments);
+                if (n.attachmentUrl && atts.length === 0) {
+                  atts.push({
+                    name: n.attachmentName || "attachment",
+                    url: n.attachmentUrl,
+                    type: n.attachmentType,
+                    size: n.attachmentSize,
+                  });
+                }
                 return (
                 <div key={n.id} className={`px-5 py-3 ${n.isPinned ? "bg-brand-gold/[0.04]" : ""}`} style={{ borderBottom: "1px solid var(--app-border)" }}>
                   <div className="flex items-start justify-between gap-2 mb-1">
@@ -567,31 +598,35 @@ export default function PartnerDetailPage() {
                   {n.content && (
                     <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed whitespace-pre-wrap">{n.content}</div>
                   )}
-                  {n.attachmentUrl && (
-                    <div className="mt-2">
-                      {isImage ? (
-                        <a href={n.attachmentUrl} target="_blank" rel="noopener noreferrer" className="inline-block">
-                          <img
-                            src={n.attachmentUrl}
-                            alt={n.attachmentName || "attachment"}
-                            className="max-h-48 rounded-lg border border-[var(--app-border)] object-contain bg-[var(--app-input-bg)]"
-                          />
-                        </a>
-                      ) : (
-                        <a
-                          href={n.attachmentUrl}
-                          download={n.attachmentName || "attachment"}
-                          className="inline-flex items-center gap-2 font-body text-[12px] text-brand-gold/80 hover:text-brand-gold border border-[var(--app-border)] rounded-lg px-3 py-2 transition-colors"
-                        >
-                          <span>📎</span>
-                          <span>{n.attachmentName || "Download"}</span>
-                          {typeof n.attachmentSize === "number" && (
-                            <span className="text-[10px] text-[var(--app-text-muted)]">
-                              {(n.attachmentSize / 1024).toFixed(0)} KB
-                            </span>
-                          )}
-                        </a>
-                      )}
+                  {atts.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {atts.map((a, i) => {
+                        const isImage = typeof a.type === "string" && a.type.startsWith("image/");
+                        return isImage ? (
+                          <a key={a.id || i} href={a.url} target="_blank" rel="noopener noreferrer" className="inline-block">
+                            <img
+                              src={a.url}
+                              alt={a.name}
+                              className="max-h-40 rounded-lg border border-[var(--app-border)] object-contain bg-[var(--app-input-bg)]"
+                            />
+                          </a>
+                        ) : (
+                          <a
+                            key={a.id || i}
+                            href={a.url}
+                            download={a.name}
+                            className="inline-flex items-center gap-2 font-body text-[12px] text-brand-gold/80 hover:text-brand-gold border border-[var(--app-border)] rounded-lg px-3 py-2 transition-colors"
+                          >
+                            <span>📎</span>
+                            <span>{a.name}</span>
+                            {typeof a.size === "number" && (
+                              <span className="text-[10px] text-[var(--app-text-muted)]">
+                                {(a.size / 1024).toFixed(0)} KB
+                              </span>
+                            )}
+                          </a>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

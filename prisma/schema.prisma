@@ -304,15 +304,16 @@ model AdminNote {
   authorName     String   // admin who posted the note
   authorEmail    String
   isPinned       Boolean  @default(false)
-  // Optional single attachment (screenshot, CSV, PDF, etc.). Stored as a
-  // base64 data URL in attachmentUrl — same pattern as the Document model
-  // so we don't need object storage for infrequent note attachments. One
-  // attachment per note; post another note for additional files.
+  // Legacy single-attachment columns (PR #356). Superseded by the
+  // NoteAttachment child table but retained for historical rows + as a
+  // fallback read path. Don't write here for new notes.
   attachmentName String?
   attachmentUrl  String?
   attachmentType String?
   attachmentSize Int?
   createdAt      DateTime @default(now())
+
+  attachments    NoteAttachment[]
 
   @@index([partnerCode])
 }
@@ -328,8 +329,33 @@ model DealNote {
   createdAt   DateTime @default(now())
   sourceChatMessageId String?  // when DealNote was mirrored from an AdminChatMessage
 
+  attachments NoteAttachment[]
+
   @@index([dealId])
   @@index([sourceChatMessageId])
+}
+
+// Polymorphic attachment shared by AdminNote + DealNote. Exactly one of
+// `adminNoteId` or `dealNoteId` is set per row — NOT enforced in the
+// schema, enforced by the API route that always scopes inserts to one.
+// `url` stores a base64 data URL today (same pattern as Document.fileUrl);
+// a future migration can swap this to an object-storage URL (Vercel Blob
+// / R2 / S3) without touching consumers.
+model NoteAttachment {
+  id          String   @id @default(cuid())
+  adminNoteId String?
+  dealNoteId  String?
+  name        String
+  url         String
+  type        String?
+  size        Int?
+  createdAt   DateTime @default(now())
+
+  adminNote   AdminNote? @relation(fields: [adminNoteId], references: [id], onDelete: Cascade)
+  dealNote    DealNote?  @relation(fields: [dealNoteId], references: [id], onDelete: Cascade)
+
+  @@index([adminNoteId])
+  @@index([dealNoteId])
 }
 
 // ─── IMPERSONATION TOKENS ───────────────────────────────────────────────────

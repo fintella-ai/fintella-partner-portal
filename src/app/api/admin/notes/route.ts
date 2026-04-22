@@ -18,21 +18,41 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { partnerCode, content, attachmentName, attachmentUrl, attachmentType, attachmentSize } = body;
+    const { partnerCode, content } = body;
+    const attachments: any[] = Array.isArray(body.attachments) ? body.attachments : [];
 
-    // Allow empty content when an attachment is provided — "here's the doc"
-    // is a legitimate note on its own. Either a text note OR an attachment
-    // is required.
-    const hasAttachment = typeof attachmentUrl === "string" && attachmentUrl.length > 0;
+    // Back-compat: older clients send a single `attachment*` set. Fold it
+    // into the attachments array so the write path is always the same.
+    if (!attachments.length && typeof body.attachmentUrl === "string" && body.attachmentUrl.length > 0) {
+      attachments.push({
+        name: body.attachmentName,
+        url: body.attachmentUrl,
+        type: body.attachmentType,
+        size: body.attachmentSize,
+      });
+    }
+
+    // Allow empty content when at least one attachment is provided —
+    // "here's the doc" is a legitimate note on its own.
     const trimmedContent = typeof content === "string" ? content.trim() : "";
-    if (!partnerCode || (!trimmedContent && !hasAttachment)) {
+    if (!partnerCode || (!trimmedContent && attachments.length === 0)) {
       return NextResponse.json({ error: "Partner code and either note content or an attachment are required" }, { status: 400 });
     }
 
-    // Cap attachment size at ~5MB base64 (~3.7MB raw). The DB text column
-    // can hold more but we don't want to balloon notes payloads.
-    if (hasAttachment && attachmentUrl.length > 5_500_000) {
-      return NextResponse.json({ error: "Attachment too large (max ~4MB)" }, { status: 413 });
+    // Per-attachment cap ~4MB raw (5.5MB base64). Total cap keeps the
+    // whole POST under ~15MB so the route doesn't OOM on huge batches.
+    let total = 0;
+    for (const a of attachments) {
+      if (typeof a?.url !== "string" || !a.url) {
+        return NextResponse.json({ error: "Each attachment requires a data url" }, { status: 400 });
+      }
+      if (a.url.length > 5_500_000) {
+        return NextResponse.json({ error: `Attachment ${a.name || ""} too large (max ~4MB each)` }, { status: 413 });
+      }
+      total += a.url.length;
+    }
+    if (total > 15_000_000) {
+      return NextResponse.json({ error: "Combined attachment size too large (max ~11MB)" }, { status: 413 });
     }
 
     // Get admin name from account
@@ -54,13 +74,18 @@ export async function POST(req: NextRequest) {
         content: trimmedContent,
         authorName,
         authorEmail,
-        ...(hasAttachment ? {
-          attachmentName: typeof attachmentName === "string" ? attachmentName.slice(0, 255) : null,
-          attachmentUrl,
-          attachmentType: typeof attachmentType === "string" ? attachmentType.slice(0, 128) : null,
-          attachmentSize: typeof attachmentSize === "number" && isFinite(attachmentSize) ? Math.round(attachmentSize) : null,
+        ...(attachments.length > 0 ? {
+          attachments: {
+            create: attachments.map((a: any) => ({
+              name: typeof a.name === "string" ? a.name.slice(0, 255) : "attachment",
+              url: a.url,
+              type: typeof a.type === "string" ? a.type.slice(0, 128) : null,
+              size: typeof a.size === "number" && isFinite(a.size) ? Math.round(a.size) : null,
+            })),
+          },
         } : {}),
       },
+      include: { attachments: true },
     });
 
     return NextResponse.json({ note }, { status: 201 });
