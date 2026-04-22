@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import WorkflowsPanel from "../workflows/WorkflowsPanel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = "links" | "errors" | "email" | "webhook" | "customapi" | "apilog" | "commits";
+type Tab = "links" | "errors" | "email" | "webhook" | "customapi" | "apilog" | "commits" | "automations";
 
 type Commit = {
   sha: string;
@@ -1007,13 +1008,14 @@ function WebhookTab() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "links",     label: "Quick Links",       icon: "🔗" },
-  { id: "errors",    label: "Recent Errors",     icon: "🚨" },
-  { id: "email",     label: "Send Test Email",   icon: "✉️" },
-  { id: "webhook",   label: "Webhook Test",      icon: "🧪" },
-  { id: "customapi", label: "Custom API",        icon: "🛰️" },
-  { id: "apilog",    label: "API Log",           icon: "📋" },
-  { id: "commits",   label: "Recent Commits",    icon: "📦" },
+  { id: "links",       label: "Quick Links",     icon: "🔗" },
+  { id: "errors",      label: "Recent Errors",   icon: "🚨" },
+  { id: "email",       label: "Send Test Email", icon: "✉️" },
+  { id: "webhook",     label: "Webhook Test",    icon: "🧪" },
+  { id: "customapi",   label: "Custom API",      icon: "🛰️" },
+  { id: "apilog",      label: "API Log",         icon: "📋" },
+  { id: "automations", label: "Automations",     icon: "⚡" },
+  { id: "commits",     label: "Recent Commits",  icon: "📦" },
 ];
 
 export default function DevPage() {
@@ -1082,6 +1084,7 @@ export default function DevPage() {
       {tab === "webhook"   && <WebhookTab />}
       {tab === "customapi" && <CustomSenderSection />}
       {tab === "apilog"    && <ApiLogSection />}
+      {tab === "automations" && <WorkflowsPanel />}
       {tab === "commits"   && <CommitsTab data={data} />}
     </div>
   );
