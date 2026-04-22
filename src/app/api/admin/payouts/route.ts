@@ -51,23 +51,53 @@ export async function GET(req: NextRequest) {
       stripeMap[sa.partnerCode] = { status: sa.status, payoutsEnabled: sa.payoutsEnabled };
     }
 
-    const payouts = commissions.map((c) => ({
-      id: c.id,
-      partnerName: partnerMap[c.partnerCode]?.company || partnerMap[c.partnerCode]?.name || c.partnerCode,
-      partnerId: partnerMap[c.partnerCode]?.id || null,
-      partnerCode: c.partnerCode,
-      tier: c.tier.toUpperCase(),
-      dealId: c.dealId,
-      dealName: c.dealName || c.dealId,
-      amount: c.amount,
-      status: c.status,
-      periodMonth: c.periodMonth || "",
-      payoutDate: c.payoutDate?.toISOString() || null,
-      batchId: c.batchId,
-      stripeTransferId: c.stripeTransferId || null,
-      stripeStatus: stripeMap[c.partnerCode]?.status || null,
-      stripePayoutsEnabled: stripeMap[c.partnerCode]?.payoutsEnabled || false,
-    }));
+    // Join dealId → deal row so the UI can render per-row deal context
+    // (actual refund, firm fee %, firm fee $) + derive each row's effective
+    // commission % as row.amount / firmFeeAmount.
+    const allDealIds = Array.from(new Set(commissions.map((c) => c.dealId)));
+    const dealRows = allDealIds.length > 0
+      ? await prisma.deal.findMany({
+          where: { id: { in: allDealIds } },
+          select: {
+            id: true,
+            stage: true,
+            estimatedRefundAmount: true,
+            actualRefundAmount: true,
+            firmFeeRate: true,
+            firmFeeAmount: true,
+          },
+        })
+      : [];
+    const dealMap: Record<string, typeof dealRows[number]> = {};
+    for (const d of dealRows) dealMap[d.id] = d;
+
+    const payouts = commissions.map((c) => {
+      const d = dealMap[c.dealId];
+      return {
+        id: c.id,
+        partnerName: partnerMap[c.partnerCode]?.company || partnerMap[c.partnerCode]?.name || c.partnerCode,
+        partnerId: partnerMap[c.partnerCode]?.id || null,
+        partnerCode: c.partnerCode,
+        tier: c.tier.toUpperCase(),
+        dealId: c.dealId,
+        dealName: c.dealName || c.dealId,
+        amount: c.amount,
+        // Deal context for the row. Null when the underlying Deal row is
+        // missing (shouldn't happen in practice but guarded defensively).
+        estimatedRefundAmount: d?.estimatedRefundAmount ?? null,
+        actualRefundAmount: d?.actualRefundAmount ?? null,
+        firmFeeRate: d?.firmFeeRate ?? null,
+        firmFeeAmount: d?.firmFeeAmount ?? null,
+        dealStage: d?.stage ?? null,
+        status: c.status,
+        periodMonth: c.periodMonth || "",
+        payoutDate: c.payoutDate?.toISOString() || null,
+        batchId: c.batchId,
+        stripeTransferId: c.stripeTransferId || null,
+        stripeStatus: stripeMap[c.partnerCode]?.status || null,
+        stripePayoutsEnabled: stripeMap[c.partnerCode]?.payoutsEnabled || false,
+      };
+    });
 
     // Summary stats
     const allComm = await prisma.commissionLedger.findMany();
@@ -124,6 +154,11 @@ export async function GET(req: NextRequest) {
             dealId: deal.id,
             dealName: deal.dealName,
             amount: overrideAmount,
+            estimatedRefundAmount: deal.estimatedRefundAmount,
+            actualRefundAmount: deal.actualRefundAmount ?? null,
+            firmFeeRate: deal.firmFeeRate ?? null,
+            firmFeeAmount: firmFee,
+            dealStage: deal.stage ?? null,
             status: epStatus,
             periodMonth: "",
             payoutDate: null,
