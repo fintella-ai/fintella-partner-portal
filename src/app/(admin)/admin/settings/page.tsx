@@ -225,6 +225,42 @@ export default function SettingsPage() {
     });
   };
 
+  // Module order + per-module layout (columns, alignment).
+  // Order matches the sequence sections render in on partner home page.
+  // Layout is a per-id map — missing keys fall through to render-layer defaults.
+  const DEFAULT_MODULE_ORDER = ["video", "events", "announcements", "leaderboard", "opportunities"];
+  const [moduleOrder, setModuleOrder] = useState<string[]>(DEFAULT_MODULE_ORDER);
+  type ModuleLayout = { columns?: 1 | 2 | 3; alignment?: "left" | "center" };
+  const [moduleLayout, setModuleLayout] = useState<Record<string, ModuleLayout>>({});
+  const setLayoutField = (id: string, field: keyof ModuleLayout, value: ModuleLayout[keyof ModuleLayout]) => {
+    setModuleLayout((prev) => ({ ...prev, [id]: { ...(prev[id] || {}), [field]: value } }));
+  };
+
+  // Drag-to-reorder state (HTML5 native dnd — no deps).
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const onDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+  const onDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) { setDraggedId(null); return; }
+    setModuleOrder((prev) => {
+      const src = prev.indexOf(draggedId);
+      const dst = prev.indexOf(targetId);
+      if (src < 0 || dst < 0) return prev;
+      const next = [...prev];
+      next.splice(src, 1);
+      next.splice(dst, 0, draggedId);
+      return next;
+    });
+    setDraggedId(null);
+  };
+
   // ── Fetch settings ────────────────────────────────────────────────────
 
   const fetchSettings = useCallback(async () => {
@@ -307,6 +343,18 @@ export default function SettingsPage() {
       try {
         const hidden = JSON.parse(settings.homeHiddenModules || "[]");
         if (Array.isArray(hidden)) setHiddenModules(new Set(hidden.filter((x: unknown) => typeof x === "string")));
+      } catch {}
+      try {
+        const order = JSON.parse(settings.homeModuleOrder || "[]");
+        if (Array.isArray(order) && order.length > 0) {
+          const known = order.filter((x: unknown) => typeof x === "string" && DEFAULT_MODULE_ORDER.includes(x as string)) as string[];
+          const missing = DEFAULT_MODULE_ORDER.filter((id) => !known.includes(id));
+          setModuleOrder([...known, ...missing]);
+        }
+      } catch {}
+      try {
+        const layout = JSON.parse(settings.homeModuleLayout || "{}");
+        if (layout && typeof layout === "object") setModuleLayout(layout);
       } catch {}
     } catch {
       // Use defaults
@@ -398,6 +446,8 @@ export default function SettingsPage() {
         callRecordingEnabled,
         homeEmbedVideoUrl: homeEmbedVideoUrl.trim() || null,
         homeHiddenModules: JSON.stringify(Array.from(hiddenModules)),
+        homeModuleOrder: JSON.stringify(moduleOrder),
+        homeModuleLayout: JSON.stringify(moduleLayout),
       };
 
       console.log("[settings] Saving — liveChatEnabled:", body.liveChatEnabled, "callRecordingEnabled:", body.callRecordingEnabled);
@@ -962,29 +1012,73 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          {/* Module Visibility */}
+          {/* Module Layout & Order — drag handles to reorder, toggle to show/hide,
+              per-module columns (for grid modules) and alignment (all modules). */}
           <div className="card p-5 sm:p-6">
-            <div className="font-body font-semibold text-sm mb-1">Module Visibility</div>
+            <div className="font-body font-semibold text-sm mb-1">Module Layout & Order</div>
             <p className="font-body text-[12px] text-[var(--app-text-muted)] mb-4">
-              Turn each Home-page module on or off. Off modules are hidden from partners but their content is preserved so you can turn them back on later.
+              Drag the <span className="inline-block align-middle text-[15px] leading-none text-[var(--app-text-secondary)]">⋮⋮</span> handle to reorder sections on the partner Home page. Toggle to show/hide. Pick columns for card grids and alignment for each module.
             </p>
             <div className="space-y-2">
-              {[
-                { id: "video", label: "Welcome Video", hint: "Embedded video under the welcome header" },
-                { id: "announcements", label: "Announcements", hint: "Admin announcements card" },
-                { id: "events", label: "Upcoming Events", hint: "Event cards grid" },
-                { id: "opportunities", label: "Referral Opportunities", hint: "Referral opportunity cards" },
-                { id: "leaderboard", label: "Leaderboard", hint: "Top-performing partners podium" },
-              ].map((m) => {
-                const visible = !hiddenModules.has(m.id);
+              {moduleOrder.map((id) => {
+                const META: Record<string, { label: string; hint: string; supportsColumns: boolean }> = {
+                  video:         { label: "Welcome Video", hint: "Embedded video under the welcome header", supportsColumns: false },
+                  events:        { label: "Upcoming Events", hint: "Event cards grid", supportsColumns: true },
+                  announcements: { label: "Announcements", hint: "Admin announcements card grid", supportsColumns: true },
+                  leaderboard:   { label: "Leaderboard", hint: "Top-performing partners table", supportsColumns: false },
+                  opportunities: { label: "Referral Opportunities", hint: "Referral opportunity cards", supportsColumns: true },
+                };
+                const m = META[id];
+                if (!m) return null;
+                const visible = !hiddenModules.has(id);
+                const layout = moduleLayout[id] || {};
+                const cols = layout.columns ?? (m.supportsColumns ? 3 : 1);
+                const align = layout.alignment ?? "center";
+                const isDragging = draggedId === id;
                 return (
-                  <div key={m.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-border)]">
-                    <div>
+                  <div
+                    key={id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, id)}
+                    onDragOver={onDragOver}
+                    onDrop={(e) => onDrop(e, id)}
+                    onDragEnd={() => setDraggedId(null)}
+                    className={`flex items-center gap-3 py-2 px-3 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-border)] transition-opacity ${isDragging ? "opacity-50" : ""}`}
+                  >
+                    <span className="cursor-grab active:cursor-grabbing text-[var(--app-text-muted)] select-none text-lg leading-none" title="Drag to reorder">⋮⋮</span>
+                    <div className="flex-1 min-w-0">
                       <div className="font-body text-[13px] font-medium">{m.label}</div>
                       <div className="font-body text-[11px] text-[var(--app-text-muted)]">{m.hint}</div>
                     </div>
+                    {m.supportsColumns && (
+                      <label className="flex items-center gap-1.5 shrink-0">
+                        <span className="font-body text-[11px] text-[var(--app-text-muted)]">Cols</span>
+                        <select
+                          value={cols}
+                          onChange={(e) => setLayoutField(id, "columns", Number(e.target.value) as 1 | 2 | 3)}
+                          className={`${inputClass} py-1 px-2 text-[12px]`}
+                          style={{ minWidth: 60 }}
+                        >
+                          <option value={1}>1</option>
+                          <option value={2}>2</option>
+                          <option value={3}>3</option>
+                        </select>
+                      </label>
+                    )}
+                    <label className="flex items-center gap-1.5 shrink-0">
+                      <span className="font-body text-[11px] text-[var(--app-text-muted)]">Align</span>
+                      <select
+                        value={align}
+                        onChange={(e) => setLayoutField(id, "alignment", e.target.value as "left" | "center")}
+                        className={`${inputClass} py-1 px-2 text-[12px]`}
+                        style={{ minWidth: 80 }}
+                      >
+                        <option value="center">Center</option>
+                        <option value="left">Full-width</option>
+                      </select>
+                    </label>
                     <button
-                      onClick={() => toggleModule(m.id)}
+                      onClick={() => toggleModule(id)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${visible ? "bg-green-500" : "bg-[var(--app-input-bg)]"}`}
                       aria-label={`Toggle ${m.label}`}
                     >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useSession } from "next-auth/react";
 import { useDevice } from "@/lib/useDevice";
 import { FIRM_SHORT } from "@/lib/constants";
@@ -110,6 +110,10 @@ export default function HomePage() {
   const [referralOpps, setReferralOpps] = useState<ReferralOpp[]>([]);
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [hiddenModules, setHiddenModules] = useState<Set<string>>(new Set());
+  const DEFAULT_ORDER = ["video", "events", "announcements", "leaderboard", "opportunities"];
+  const [moduleOrder, setModuleOrder] = useState<string[]>(DEFAULT_ORDER);
+  type ModuleLayout = { columns?: 1 | 2 | 3; alignment?: "left" | "center" };
+  const [moduleLayout, setModuleLayout] = useState<Record<string, ModuleLayout>>({});
 
   useEffect(() => {
     fetch("/api/settings")
@@ -133,60 +137,82 @@ export default function HomePage() {
         setVideoUrl(typeof d?.settings?.homeEmbedVideoUrl === "string" ? d.settings.homeEmbedVideoUrl : "");
         const hidden = parseJsonArray<string>(d?.settings?.homeHiddenModules);
         setHiddenModules(new Set(hidden.filter((x) => typeof x === "string")));
+        // Module order: keep admin-saved order, append any defaults that
+        // weren't in the saved list so a newly-added module shows up.
+        const savedOrder = parseJsonArray<string>(d?.settings?.homeModuleOrder);
+        const known = savedOrder.filter((x) => typeof x === "string" && DEFAULT_ORDER.includes(x));
+        const missing = DEFAULT_ORDER.filter((id) => !known.includes(id));
+        setModuleOrder([...known, ...missing]);
+        try {
+          const layout = JSON.parse(d?.settings?.homeModuleLayout || "{}");
+          if (layout && typeof layout === "object") setModuleLayout(layout);
+        } catch {}
       })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isVisible = (id: string) => !hiddenModules.has(id);
+  const getLayout = (id: string, defaults: ModuleLayout = {}): Required<ModuleLayout> => {
+    const saved = moduleLayout[id] || {};
+    return {
+      columns: (saved.columns ?? defaults.columns ?? 3) as 1 | 2 | 3,
+      alignment: (saved.alignment ?? defaults.alignment ?? "center") as "left" | "center",
+    };
+  };
+  // Map columns number to Tailwind grid classes. Mobile always 1 col.
+  const colsClass = (n: 1 | 2 | 3) =>
+    n === 1 ? "grid-cols-1"
+    : n === 2 ? "grid-cols-1 md:grid-cols-2"
+    : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
+  // Alignment wrapper — center uses max-w-4xl mx-auto; left is full-width.
+  const alignWrap = (align: "left" | "center") =>
+    align === "center" ? "max-w-4xl mx-auto" : "";
 
-  return (
-    <div>
-      {/* ══════════════════ WELCOME HEADER ══════════════════ */}
-      <div className="mb-6 sm:mb-8 animate-fade-up text-center">
-        <h1 className={`font-display ${device.headingSize} font-bold text-[var(--app-text)] mb-1`}>
-          Welcome Back, {firstName}
-        </h1>
-        <p className="font-body text-[13px] text-[var(--app-text-muted)]">{formatDateHeading()}</p>
+  // ─── Section renderers ─────────────────────────────────────────────
+  // Each returns null when the module is hidden or has no content to render.
+  const sectionWrap = (id: string, children: React.ReactNode, defaults: ModuleLayout = {}) => {
+    const { alignment } = getLayout(id, defaults);
+    return (
+      <div className={`mb-6 sm:mb-8 animate-fade-up ${alignWrap(alignment)}`}>
+        {children}
       </div>
+    );
+  };
 
-      {/* ══════════════════ WELCOME VIDEO ══════════════════ */}
-      {isVisible("video") && videoUrl && (
-        <div className="mb-6 sm:mb-8 animate-fade-up flex justify-center">
-          <div className="w-full max-w-3xl">
-            <div className="relative w-full overflow-hidden rounded-lg border border-[var(--app-border)] bg-black" style={{ aspectRatio: "16 / 9" }}>
-              <iframe
-                src={videoUrl}
-                className="absolute inset-0 h-full w-full"
-                title="Welcome video"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            </div>
+  const renderVideo = () => {
+    if (!isVisible("video") || !videoUrl) return null;
+    const { alignment } = getLayout("video", { alignment: "center" });
+    return (
+      <div className={`mb-6 sm:mb-8 animate-fade-up ${alignment === "center" ? "flex justify-center" : ""}`}>
+        <div className={`w-full ${alignment === "center" ? "max-w-3xl" : ""}`}>
+          <div className="relative w-full overflow-hidden rounded-lg border border-[var(--app-border)] bg-black" style={{ aspectRatio: "16 / 9" }}>
+            <iframe
+              src={videoUrl}
+              className="absolute inset-0 h-full w-full"
+              title="Welcome video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
           </div>
         </div>
-      )}
+      </div>
+    );
+  };
 
-      {/* ══════════════════ SECTION 1: UPCOMING EVENTS (centered, top of feed) ══════════════════ */}
-      {isVisible("events") && upcomingEvents.length > 0 && (
-      <div className="mb-6 sm:mb-8 animate-fade-up max-w-4xl mx-auto">
-        <h2 className="font-body text-xs tracking-[1.5px] uppercase text-[var(--app-text-muted)] mb-4 text-center">
-          Upcoming Events
-        </h2>
-        <div
-          className={`grid ${device.isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"} ${device.gap}`}
-        >
+  const renderEvents = () => {
+    if (!isVisible("events") || upcomingEvents.length === 0) return null;
+    const { columns } = getLayout("events", { columns: 3, alignment: "center" });
+    return sectionWrap("events", (
+      <>
+        <h2 className="font-body text-xs tracking-[1.5px] uppercase text-[var(--app-text-muted)] mb-4 text-center">Upcoming Events</h2>
+        <div className={`grid ${colsClass(columns)} ${device.gap}`}>
           {upcomingEvents.map((e, i) => (
             <div key={`${e.title}-${i}`} className={`card ${device.cardPadding} flex flex-col`}>
               {e.icon && <div className="text-3xl mb-3">{e.icon}</div>}
-              <div className="font-body text-sm font-semibold text-[var(--app-text)] mb-1.5">
-                {e.title}
-              </div>
-              <p className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-3 flex-1">
-                {e.body}
-              </p>
-              {e.date && (
-                <div className="font-body text-[11px] text-[var(--app-text-faint)] mb-4">{e.date}</div>
-              )}
+              <div className="font-body text-sm font-semibold text-[var(--app-text)] mb-1.5">{e.title}</div>
+              <p className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-3 flex-1">{e.body}</p>
+              {e.date && <div className="font-body text-[11px] text-[var(--app-text-faint)] mb-4">{e.date}</div>}
               {e.cta && (
                 <button className="w-full font-body text-[11px] tracking-[1px] uppercase text-brand-gold border border-brand-gold/30 rounded-lg px-4 py-2.5 hover:bg-brand-gold/10 transition-colors">
                   {e.cta}
@@ -195,60 +221,89 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-      </div>
-      )}
+      </>
+    ), { columns: 3, alignment: "center" });
+  };
 
-      {/* ══════════════════ SECTION 2: ANNOUNCEMENTS (2-col card grid on desktop) ══════════════════ */}
-      {isVisible("announcements") && announcements.length > 0 && (
-      <div className="mb-6 sm:mb-8 animate-fade-up">
-        <h2 className="font-body text-xs tracking-[1.5px] uppercase text-[var(--app-text-muted)] mb-4 text-center">
-          Announcements
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+  const renderAnnouncements = () => {
+    if (!isVisible("announcements") || announcements.length === 0) return null;
+    const { columns } = getLayout("announcements", { columns: 2, alignment: "left" });
+    return sectionWrap("announcements", (
+      <>
+        <h2 className="font-body text-xs tracking-[1.5px] uppercase text-[var(--app-text-muted)] mb-4 text-center">Announcements</h2>
+        <div className={`grid ${colsClass(columns)} gap-3`}>
           {announcements.map((a, idx) => {
             const badge = badgeStyle(a);
             return (
-              <div
-                key={`${a.title}-${idx}`}
-                className="card border-l-2 border-l-brand-gold overflow-hidden"
-              >
+              <div key={`${a.title}-${idx}`} className="card border-l-2 border-l-brand-gold overflow-hidden">
                 <div className="px-4 sm:px-6 py-4 sm:py-5">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="font-body text-sm font-semibold text-[var(--app-text)] leading-snug">
-                      {a.title}
-                    </div>
+                    <div className="font-body text-sm font-semibold text-[var(--app-text)] leading-snug">{a.title}</div>
                     {a.badge && (
-                      <span
-                        className={`${badge.bg} ${badge.border} ${badge.text} border rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase shrink-0`}
-                      >
+                      <span className={`${badge.bg} ${badge.border} ${badge.text} border rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase shrink-0`}>
                         {a.badge}
                       </span>
                     )}
                   </div>
-                  <p className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-2">
-                    {a.body}
-                  </p>
-                  {a.date && (
-                    <div className="font-body text-[11px] text-[var(--app-text-faint)]">{a.date}</div>
-                  )}
+                  <p className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-2">{a.body}</p>
+                  {a.date && <div className="font-body text-[11px] text-[var(--app-text-faint)]">{a.date}</div>}
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
-      )}
+      </>
+    ), { columns: 2, alignment: "left" });
+  };
 
-      {/* ══════════════════ SECTION 3: LEADERBOARD ══════════════════ */}
-      {leaderboardEnabled && isVisible("leaderboard") && <div className="mb-6 sm:mb-8 animate-fade-up">
+  const renderOpportunities = () => {
+    if (!isVisible("opportunities") || referralOpps.length === 0) return null;
+    const { columns } = getLayout("opportunities", { columns: 3, alignment: "left" });
+    return sectionWrap("opportunities", (
+      <>
+        <h2 className="font-body text-xs tracking-[1.5px] uppercase text-[var(--app-text-muted)] mb-1 text-center">Expand Your Earnings</h2>
+        <p className="font-body text-[11px] text-[var(--app-text-muted)] mb-4 text-center">
+          Additional referral opportunities to grow your income with {FIRM_SHORT}
+        </p>
+        <div className={`grid ${colsClass(columns)} ${device.gap}`}>
+          {referralOpps.map((r, i) => (
+            <div
+              key={`${r.title}-${i}`}
+              className={`${device.cardPadding} ${device.borderRadius} border flex flex-col ${
+                r.highlighted ? "border-brand-gold/25 bg-brand-gold/[0.04]" : "border-[var(--app-border)] bg-[var(--app-card-bg)]"
+              }`}
+            >
+              <div className={`font-body text-sm font-semibold mb-2 ${r.highlighted ? "text-brand-gold" : "text-[var(--app-text)]"}`}>{r.title}</div>
+              <p className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-4 flex-1">{r.description}</p>
+              {r.cta && (
+                <button className={`w-full font-body text-[11px] tracking-[1px] uppercase rounded-lg px-4 py-2.5 transition-colors ${
+                  r.highlighted ? "bg-brand-gold text-black font-semibold hover:bg-brand-gold/90" : "text-brand-gold border border-brand-gold/30 hover:bg-brand-gold/10"
+                }`}>{r.cta}</button>
+              )}
+            </div>
+          ))}
+        </div>
+      </>
+    ), { columns: 3, alignment: "left" });
+  };
+
+  const renderLeaderboard = () => {
+    if (!leaderboardEnabled || !isVisible("leaderboard")) return null;
+    return sectionWrap("leaderboard", (
+      <>
         <h2 className="font-body text-xs tracking-[1.5px] uppercase text-[var(--app-text-muted)] mb-1 text-center">
           Partner Leaderboard &mdash; March 2026
         </h2>
         <p className="font-body text-[11px] text-[var(--app-text-muted)] mb-4 text-center">
           Top performers this month (names hidden for privacy)
         </p>
+        <div className="card overflow-hidden">{renderLeaderboardTable()}</div>
+      </>
+    ), { alignment: "left" });
+  };
 
-        <div className="card overflow-hidden">
+  const renderLeaderboardTable = () => (
+    <>
           {device.isMobile ? (
             /* ── Mobile: card layout ── */
             <div>
@@ -321,67 +376,46 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Your Rank callout */}
-          <div className="px-4 sm:px-6 py-4 border-t border-[var(--app-border)] bg-brand-gold/[0.04]">
-            <div className="flex items-center gap-2">
-              <span className="font-body text-[13px] text-[var(--app-text-secondary)]">Your Rank:</span>
-              <span className="font-display text-lg font-bold text-brand-gold">#4</span>
-              <span className="font-body text-[11px] text-[var(--app-text-muted)] ml-1">
-                &mdash; Keep it up!
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>}
-
-      {/* ══════════════════ SECTION 4: REFERRAL OPPORTUNITIES ══════════════════ */}
-      {isVisible("opportunities") && referralOpps.length > 0 && (
-      <div className="animate-fade-up">
-        <h2 className="font-body text-xs tracking-[1.5px] uppercase text-[var(--app-text-muted)] mb-1 text-center">
-          Expand Your Earnings
-        </h2>
-        <p className="font-body text-[11px] text-[var(--app-text-muted)] mb-4 text-center">
-          Additional referral opportunities to grow your income with {FIRM_SHORT}
-        </p>
-        <div
-          className={`grid ${device.isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"} ${device.gap}`}
-        >
-          {referralOpps.map((r, i) => (
-            <div
-              key={`${r.title}-${i}`}
-              className={`${device.cardPadding} ${device.borderRadius} border flex flex-col ${
-                r.highlighted
-                  ? "border-brand-gold/25 bg-brand-gold/[0.04]"
-                  : "border-[var(--app-border)] bg-[var(--app-card-bg)]"
-              }`}
-            >
-              <div
-                className={`font-body text-sm font-semibold mb-2 ${
-                  r.highlighted ? "text-brand-gold" : "text-[var(--app-text)]"
-                }`}
-              >
-                {r.title}
-              </div>
-              <p className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-4 flex-1">
-                {r.description}
-              </p>
-              {r.cta && (
-                <button
-                  className={`w-full font-body text-[11px] tracking-[1px] uppercase rounded-lg px-4 py-2.5 transition-colors ${
-                    r.highlighted
-                      ? "bg-brand-gold text-black font-semibold hover:bg-brand-gold/90"
-                      : "text-brand-gold border border-brand-gold/30 hover:bg-brand-gold/10"
-                  }`}
-                >
-                  {r.cta}
-                </button>
-              )}
-            </div>
-          ))}
+      {/* Your Rank callout */}
+      <div className="px-4 sm:px-6 py-4 border-t border-[var(--app-border)] bg-brand-gold/[0.04]">
+        <div className="flex items-center gap-2">
+          <span className="font-body text-[13px] text-[var(--app-text-secondary)]">Your Rank:</span>
+          <span className="font-display text-lg font-bold text-brand-gold">#4</span>
+          <span className="font-body text-[11px] text-[var(--app-text-muted)] ml-1">
+            &mdash; Keep it up!
+          </span>
         </div>
       </div>
-      )}
+    </>
+  );
 
+  // ─── Dispatch ──────────────────────────────────────────────────────
+  const dispatchModule = (id: string): React.ReactNode => {
+    switch (id) {
+      case "video": return renderVideo();
+      case "events": return renderEvents();
+      case "announcements": return renderAnnouncements();
+      case "leaderboard": return renderLeaderboard();
+      case "opportunities": return renderOpportunities();
+      default: return null;
+    }
+  };
+
+  return (
+    <div>
+      {/* ══════════════════ WELCOME HEADER ══════════════════ */}
+      <div className="mb-6 sm:mb-8 animate-fade-up text-center">
+        <h1 className={`font-display ${device.headingSize} font-bold text-[var(--app-text)] mb-1`}>
+          Welcome Back, {firstName}
+        </h1>
+        <p className="font-body text-[13px] text-[var(--app-text-muted)]">{formatDateHeading()}</p>
+      </div>
+
+      {/* Render modules in admin-configured order. */}
+      {moduleOrder.map((id) => {
+        const node = dispatchModule(id);
+        return node ? <Fragment key={id}>{node}</Fragment> : null;
+      })}
     </div>
   );
 }
