@@ -56,7 +56,10 @@ interface WebhookSource {
 
 interface ActionConfig {
   type: ActionType;
-  config: Record<string, string>;
+  // Values are usually strings, but some action types (e.g. webhook.post)
+  // store structured config like a nested `headers` object. Keep the
+  // outer map permissive and let each action's editor narrow as needed.
+  config: Record<string, unknown>;
 }
 
 // ─── Condition editor helpers ─────────────────────────────────────────────────
@@ -199,6 +202,123 @@ function EmailTemplatePicker({
   );
 }
 
+// ─── Webhook.post action editor — URL + headers (kv) + body template ──────
+
+type WebhookPostConfig = {
+  url?: string;
+  headers?: Record<string, string>;
+  body?: string;
+};
+
+function WebhookPostEditor({
+  config,
+  onChange,
+}: {
+  config: Record<string, unknown>;
+  onChange: (patch: Partial<WebhookPostConfig>) => void;
+}) {
+  // Represent headers as an ordered list of [key, value] pairs while the
+  // admin edits, then flatten to a Record<string, string> on save. Using
+  // indices as React keys means rows stay stable across renames and we
+  // avoid the key-collision drama of Object-in-state.
+  const raw = (config.headers ?? {}) as Record<string, string>;
+  const [rows, setRows] = useState<[string, string][]>(
+    Object.entries(raw).length > 0 ? Object.entries(raw) : []
+  );
+
+  function pushRows(next: [string, string][]) {
+    setRows(next);
+    const obj: Record<string, string> = {};
+    for (const [k, v] of next) {
+      if (k.trim().length > 0) obj[k] = v;
+    }
+    onChange({ headers: obj });
+  }
+
+  const bodyVal = typeof config.body === "string" ? config.body : "";
+
+  return (
+    <>
+      <input
+        placeholder="POST URL (required) — e.g. https://partner.example.com/api/referrals"
+        value={(config.url as string) || ""}
+        onChange={(e) => onChange({ url: e.target.value })}
+        className="w-full rounded px-2 py-1.5 font-body text-sm theme-input font-mono"
+      />
+
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-body text-[11px] theme-text-faint uppercase tracking-wider">Headers</span>
+          <button
+            type="button"
+            onClick={() => pushRows([...rows, ["", ""]])}
+            className="font-body text-[11px] theme-text-muted hover:text-brand-gold transition-colors"
+          >
+            + Add Header
+          </button>
+        </div>
+        <div className="space-y-1">
+          {rows.length === 0 && (
+            <div className="font-body text-[11px] theme-text-faint italic">
+              Defaults to <code className="font-mono">Content-Type: application/json</code>. Add custom headers (e.g. <code className="font-mono">Authorization: Bearer xyz</code>) here.
+            </div>
+          )}
+          {rows.map(([k, v], idx) => (
+            <div key={idx} className="flex gap-1">
+              <input
+                placeholder="Header name (e.g. Authorization)"
+                value={k}
+                onChange={(e) => {
+                  const next = [...rows];
+                  next[idx] = [e.target.value, v];
+                  pushRows(next);
+                }}
+                className="flex-1 rounded px-2 py-1.5 font-body text-xs theme-input font-mono"
+              />
+              <input
+                placeholder="Value — supports {deal.id} etc."
+                value={v}
+                onChange={(e) => {
+                  const next = [...rows];
+                  next[idx] = [k, e.target.value];
+                  pushRows(next);
+                }}
+                className="flex-1 rounded px-2 py-1.5 font-body text-xs theme-input font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => pushRows(rows.filter((_, j) => j !== idx))}
+                className="font-body text-sm text-red-500 hover:text-red-400 px-2 py-1 rounded transition-colors"
+                style={{ border: "1px solid var(--app-border)" }}
+                title="Remove header"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-body text-[11px] theme-text-faint uppercase tracking-wider">Body Template</span>
+          <span className="font-body text-[10px] theme-text-faint">JSON with <code className="font-mono">{"{deal.field}"}</code> tokens</span>
+        </div>
+        <textarea
+          rows={10}
+          placeholder={`{\n  "partner_code": "{deal.partnerCode}",\n  "dealId": "{deal.id}",\n  "first_name": "{deal.clientFirstName}",\n  "last_name": "{deal.clientLastName}",\n  "email": "{deal.clientEmail}"\n}\n\nLeave empty to send the raw trigger payload as JSON.`}
+          value={bodyVal}
+          onChange={(e) => onChange({ body: e.target.value })}
+          className="w-full rounded px-2 py-1.5 font-body text-xs theme-input font-mono resize-y"
+        />
+        <div className="font-body text-[10px] theme-text-faint mt-1">
+          Tokens are substituted at fire time. Use the variable chips above to copy exact field names. If the body can&rsquo;t be parsed as JSON, the request still sends with the raw string — set <code className="font-mono">Content-Type</code> in headers accordingly.
+        </div>
+      </div>
+    </>
+  );
+}
+
 function ActionEditor({
   actions,
   onChange,
@@ -219,7 +339,7 @@ function ActionEditor({
     next[i] = { type, config: {} };
     onChange(next);
   }
-  function updateConfig(i: number, key: string, val: string) {
+  function updateConfig(i: number, key: string, val: unknown) {
     const next = [...actions];
     next[i] = { ...next[i], config: { ...next[i].config, [key]: val } };
     onChange(next);
@@ -256,33 +376,33 @@ function ActionEditor({
           </div>
 
           {a.type === "webhook.post" && (
-            <>
-              <input
-                placeholder="URL (required)"
-                value={a.config.url || ""}
-                onChange={(e) => updateConfig(i, "url", e.target.value)}
-                className="w-full rounded px-2 py-1.5 font-body text-sm theme-input"
-              />
-            </>
+            <WebhookPostEditor
+              config={a.config}
+              onChange={(patch) => {
+                const next = [...actions];
+                next[i] = { ...next[i], config: { ...next[i].config, ...patch } };
+                onChange(next);
+              }}
+            />
           )}
 
           {a.type === "notification.create" && (
             <>
               <input
                 placeholder="Title"
-                value={a.config.title || ""}
+                value={String(a.config.title ?? "")}
                 onChange={(e) => updateConfig(i, "title", e.target.value)}
                 className="w-full rounded px-2 py-1.5 font-body text-sm theme-input"
               />
               <textarea
                 placeholder="Message (supports {deal.dealName} variables)"
-                value={a.config.message || ""}
+                value={String(a.config.message ?? "")}
                 onChange={(e) => updateConfig(i, "message", e.target.value)}
                 rows={2}
                 className="w-full rounded px-2 py-1.5 font-body text-sm theme-input resize-none"
               />
               <select
-                value={a.config.recipientType || "admin"}
+                value={String(a.config.recipientType ?? "admin")}
                 onChange={(e) => updateConfig(i, "recipientType", e.target.value)}
                 className="w-full rounded px-2 py-1.5 font-body text-sm theme-input"
               >
@@ -295,7 +415,7 @@ function ActionEditor({
           {a.type === "deal.note" && (
             <textarea
               placeholder="Note content (supports {deal.dealName} variables)"
-              value={a.config.content || ""}
+              value={String(a.config.content ?? "")}
               onChange={(e) => updateConfig(i, "content", e.target.value)}
               rows={2}
               className="w-full rounded px-2 py-1.5 font-body text-sm theme-input resize-none"
@@ -305,12 +425,12 @@ function ActionEditor({
           {a.type === "email.send" && (
             <>
               <EmailTemplatePicker
-                value={a.config.template || ""}
+                value={String(a.config.template ?? "")}
                 onChange={(v) => updateConfig(i, "template", v)}
               />
               <input
                 placeholder="Recipient email (literal or {deal.clientEmail})"
-                value={a.config.recipientEmail || ""}
+                value={String(a.config.recipientEmail ?? "")}
                 onChange={(e) => updateConfig(i, "recipientEmail", e.target.value)}
                 className="w-full rounded px-2 py-1.5 font-body text-sm theme-input"
               />
