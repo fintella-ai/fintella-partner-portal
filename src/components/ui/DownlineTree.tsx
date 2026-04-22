@@ -1,5 +1,7 @@
 "use client";
 
+import LevelTag from "./LevelTag";
+
 export type TreePartner = {
   id: string;
   partnerCode: string;
@@ -19,10 +21,13 @@ function PersonSilhouette({ size = 28 }: { size?: number }) {
   );
 }
 
-function tierLabel(depth: number): { label: string; color: string; border: string; bg: string } {
-  if (depth === 0) return { label: "L1", color: "text-brand-gold", border: "border-brand-gold/30", bg: "bg-brand-gold/10" };
-  if (depth === 1) return { label: "L2", color: "text-purple-400", border: "border-purple-400/30", bg: "bg-purple-400/10" };
-  return { label: "L3", color: "text-blue-400", border: "border-blue-400/30", bg: "bg-blue-400/10" };
+// Card border + fill per tier, matching the LevelTag gold/silver/bronze palette.
+// Keeping this local because the DownlineTree cards want a lighter fill than
+// the tag chip itself (tag sits on top of the card and needs to pop).
+function tierCard(depth: number): { tier: "l1" | "l2" | "l3"; border: string; bg: string } {
+  if (depth === 0) return { tier: "l1", border: "border-[rgba(196,160,80,0.35)]", bg: "bg-[rgba(196,160,80,0.08)]" };
+  if (depth === 1) return { tier: "l2", border: "border-[rgba(200,205,215,0.3)]", bg: "bg-[rgba(200,205,215,0.06)]" };
+  return { tier: "l3", border: "border-[rgba(184,115,51,0.35)]", bg: "bg-[rgba(184,115,51,0.08)]" };
 }
 
 const statusDot: Record<string, string> = {
@@ -33,16 +38,16 @@ const statusDot: Record<string, string> = {
 };
 
 function TreeNode({ partner, depth, isMobile }: { partner: TreePartner; depth: number; isMobile: boolean }) {
-  const tier = tierLabel(depth);
+  const card = tierCard(depth);
   const hasChildren = partner.children.length > 0;
 
   return (
     <div className="flex flex-col items-center">
       {/* Node card */}
-      <div className={`relative border ${tier.border} ${tier.bg} rounded-xl ${isMobile ? "px-2.5 py-2.5 min-w-[100px] max-w-[130px]" : "px-4 py-3 min-w-[150px]"} text-center`}>
-        {/* Tier badge */}
-        <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 ${tier.bg} border ${tier.border} rounded-full px-2 py-0.5 font-body text-[9px] font-bold tracking-wider ${tier.color}`}>
-          {tier.label}
+      <div className={`relative border ${card.border} ${card.bg} rounded-xl ${isMobile ? "px-2.5 py-2.5 min-w-[100px] max-w-[130px]" : "px-4 py-3 min-w-[150px]"} text-center`}>
+        {/* Tier badge — shared LevelTag so the palette stays in lockstep with the partners table */}
+        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+          <LevelTag tier={card.tier} size="xs" />
         </div>
 
         {/* Silhouette */}
