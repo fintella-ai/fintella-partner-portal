@@ -16,6 +16,12 @@ type Payout = {
   dealId: string;
   dealName: string;
   amount: number;
+  // Deal-level context (from #371/#372 — stage-aware refund + per-deal firm fee)
+  estimatedRefundAmount: number | null;
+  actualRefundAmount: number | null;
+  firmFeeRate: number | null;
+  firmFeeAmount: number | null;
+  dealStage: string | null;
   status: "pending" | "due" | "paid";
   periodMonth: string;
   payoutDate: string | null;
@@ -61,8 +67,38 @@ function fmtMonth(d: string) {
   return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
+// Refund shown in the row: prefer actualRefundAmount once the deal is
+// closed_won (matches resolveDealFinancials semantics from #371).
+function refundForRow(p: Payout): number | null {
+  if (p.dealStage === "closedwon" && p.actualRefundAmount && p.actualRefundAmount > 0) {
+    return p.actualRefundAmount;
+  }
+  return p.estimatedRefundAmount ?? null;
+}
+
+// This row's effective commission % = amount earned on this tier / firm fee.
+// Returns null when firm fee is 0 / null so the cell can render "—" instead
+// of Infinity. Lets John see e.g. L2 @ 25% vs L1 override @ 5% on the same
+// deal side-by-side.
+function commissionPctForRow(p: Payout): number | null {
+  if (!p.firmFeeAmount || p.firmFeeAmount <= 0) return null;
+  return p.amount / p.firmFeeAmount;
+}
+
+function fmtPct(rate: number | null): string {
+  if (rate == null) return "—";
+  const pct = rate * 100;
+  // Show one decimal for non-integer percentages so a 5.5% override reads
+  // correctly; integer rates stay clean.
+  return Math.abs(pct - Math.round(pct)) < 0.05 ? `${Math.round(pct)}%` : `${pct.toFixed(1)}%`;
+}
+
 export default function PayoutManagementPage() {
-  const { columnWidths: payoutColWidths, getResizeHandler: getPayoutResizeHandler } = useResizableColumns([150, 120, 80, 100, 120, 100, 100, 100], { storageKey: "payouts" });
+  // 12 columns: Partner | Deal | Tier | Actual Refund | Fee % | Firm Fee | Comm % | Amount | Period | Status | Stripe | Action
+  const { columnWidths: payoutColWidths, getResizeHandler: getPayoutResizeHandler } = useResizableColumns(
+    [150, 140, 60, 110, 70, 100, 70, 100, 90, 90, 90, 90],
+    { storageKey: "payouts-v2" }
+  );
   const [tab, setTab] = useState<Tab>("Due");
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [stats, setStats] = useState<PayoutStats>({ totalDue: 0, totalPending: 0, totalPaid: 0, partnersToPay: 0 });
@@ -207,11 +243,15 @@ export default function PayoutManagementPage() {
                   <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[0], position: "relative" }}>Partner<span {...getPayoutResizeHandler(0)} /></th>
                   <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[1], position: "relative" }}>Deal<span {...getPayoutResizeHandler(1)} /></th>
                   <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[2], position: "relative" }}>Tier<span {...getPayoutResizeHandler(2)} /></th>
-                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[3], position: "relative" }}>Amount<span {...getPayoutResizeHandler(3)} /></th>
-                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[4], position: "relative" }}>Period<span {...getPayoutResizeHandler(4)} /></th>
-                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[5], position: "relative" }}>Status<span {...getPayoutResizeHandler(5)} /></th>
-                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[6], position: "relative" }}>Stripe<span {...getPayoutResizeHandler(6)} /></th>
-                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[7], position: "relative" }}>Action<span {...getPayoutResizeHandler(7)} /></th>
+                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[3], position: "relative" }} title="Actual refund when closed won, else estimated">Refund<span {...getPayoutResizeHandler(3)} /></th>
+                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[4], position: "relative" }}>Fee %<span {...getPayoutResizeHandler(4)} /></th>
+                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[5], position: "relative" }}>Firm Fee<span {...getPayoutResizeHandler(5)} /></th>
+                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[6], position: "relative" }} title="This row's commission % = amount / firm fee">Comm %<span {...getPayoutResizeHandler(6)} /></th>
+                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[7], position: "relative" }}>Amount<span {...getPayoutResizeHandler(7)} /></th>
+                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[8], position: "relative" }}>Period<span {...getPayoutResizeHandler(8)} /></th>
+                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[9], position: "relative" }}>Status<span {...getPayoutResizeHandler(9)} /></th>
+                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[10], position: "relative" }}>Stripe<span {...getPayoutResizeHandler(10)} /></th>
+                  <th className="px-4 py-3 text-center" style={{ width: payoutColWidths[11], position: "relative" }}>Action<span {...getPayoutResizeHandler(11)} /></th>
                 </tr>
               </thead>
               <tbody>
@@ -227,6 +267,14 @@ export default function PayoutManagementPage() {
                         {p.tier}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-center text-[var(--app-text-secondary)]">
+                      {(() => { const v = refundForRow(p); return v != null ? fmt$(v) : "—"; })()}
+                    </td>
+                    <td className="px-4 py-3 text-center text-[var(--app-text-secondary)]">{fmtPct(p.firmFeeRate)}</td>
+                    <td className="px-4 py-3 text-center text-[var(--app-text-secondary)]">
+                      {p.firmFeeAmount != null && p.firmFeeAmount > 0 ? fmt$(p.firmFeeAmount) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-center text-[var(--app-text-secondary)]">{fmtPct(commissionPctForRow(p))}</td>
                     <td className="px-4 py-3 font-medium text-[var(--app-text)]">{fmt$(p.amount)}</td>
                     <td className="px-4 py-3 text-[var(--app-text-secondary)]">{fmtMonth(p.periodMonth)}</td>
                     <td className="px-4 py-3 text-center">
@@ -286,6 +334,19 @@ export default function PayoutManagementPage() {
                   </span>
                 </div>
                 <DealLink dealId={p.dealId} className="font-body text-xs text-[var(--app-text-secondary)] mb-1 block">{p.dealName}</DealLink>
+                {/* Row-level deal context: refund, fee %, firm fee, this tier's commission % */}
+                {(() => {
+                  const refund = refundForRow(p);
+                  const commPct = commissionPctForRow(p);
+                  return (
+                    <div className="font-body text-[10px] text-[var(--app-text-muted)] mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                      {refund != null && <span>Refund {fmt$(refund)}</span>}
+                      {p.firmFeeRate != null && <span>Fee {fmtPct(p.firmFeeRate)}</span>}
+                      {p.firmFeeAmount != null && p.firmFeeAmount > 0 && <span>= {fmt$(p.firmFeeAmount)}</span>}
+                      {commPct != null && <span>· Comm {fmtPct(commPct)}</span>}
+                    </div>
+                  );
+                })()}
                 <div className="flex items-center justify-between mt-3">
                   <div>
                     <div className="font-display text-lg font-bold text-[var(--app-text)]">{fmt$(p.amount)}</div>
