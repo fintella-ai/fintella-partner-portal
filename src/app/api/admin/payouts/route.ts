@@ -160,11 +160,16 @@ export async function GET(req: NextRequest) {
           const overrideAmount = firmFee * epOverrideRate;
           if (overrideAmount <= 0) continue;
 
-          // Determine status based on deal stage
-          const epStatus = deal.stage === "closedwon" ? "due"
-            : deal.stage === "closedlost" ? "paid" // closed lost = no payout (skip)
-            : "pending";
+          // EP status follows the same lifecycle as L1/L2/L3 ledger rows:
+          //   closed_won + payment NOT received → "pending" (deal closed
+          //     but Frost hasn't paid Fintella yet, so nothing to disburse)
+          //   closed_won + paymentReceivedAt set → "due" (ready to batch)
+          //   closed_lost → skip entirely (no payout ever)
+          //   pre-close stages → "pending" (same as ledger pending-on-close)
           if (deal.stage === "closedlost") continue;
+          const epStatus = deal.stage === "closedwon"
+            ? (deal.paymentReceivedAt ? "due" : "pending")
+            : "pending";
 
           // Check status filter
           if (statusFilter && statusFilter !== "all" && epStatus !== statusFilter) continue;
