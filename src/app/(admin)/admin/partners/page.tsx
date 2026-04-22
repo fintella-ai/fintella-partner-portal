@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useResizableColumns } from "@/components/ui/ResizableTable";
 import { useRouter } from "next/navigation";
 import { fmtDate, fmtPhone, normalizePhone } from "@/lib/format";
+import LevelTag from "@/components/ui/LevelTag";
 
 type Partner = {
   id: string;
@@ -577,22 +578,43 @@ export default function AdminPartnersPage() {
           { key: "l2", label: "L2", count: countByLevel("l2") },
           { key: "l3", label: "L3", count: countByLevel("l3") },
         ];
+        // Tier-matched accent colors for the L1/L2/L3 chips — gold / silver /
+        // bronze, same palette as LevelTag. The "All levels" chip stays neutral.
+        const chipStyles: Record<string, { on: string; off: string }> = {
+          all: {
+            on: "bg-brand-gold/20 text-brand-gold border border-brand-gold/40",
+            off: "border border-[var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]",
+          },
+          l1: {
+            on: "bg-[rgba(196,160,80,0.22)] text-[#d4b060] border border-[rgba(196,160,80,0.55)]",
+            off: "border border-[rgba(196,160,80,0.3)] text-[#c4a050] hover:bg-[rgba(196,160,80,0.1)]",
+          },
+          l2: {
+            on: "bg-[rgba(200,205,215,0.2)] text-[#d7dbe3] border border-[rgba(200,205,215,0.45)]",
+            off: "border border-[rgba(200,205,215,0.25)] text-[#bcc1cb] hover:bg-[rgba(200,205,215,0.08)]",
+          },
+          l3: {
+            on: "bg-[rgba(184,115,51,0.22)] text-[#d99a6c] border border-[rgba(184,115,51,0.55)]",
+            off: "border border-[rgba(184,115,51,0.3)] text-[#c9895c] hover:bg-[rgba(184,115,51,0.1)]",
+          },
+        };
         return (
           <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
-            {chips.map((c) => (
-              <button
-                key={c.key}
-                onClick={() => setLevelFilter(c.key)}
-                className={`shrink-0 px-3 rounded-full font-body text-[11px] font-medium transition-colors min-h-[32px] flex items-center gap-1.5 ${
-                  levelFilter === c.key
-                    ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40"
-                    : "border border-[var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
-                }`}
-              >
-                <span>{c.label}</span>
-                <span className="font-mono text-[10px] opacity-70">{c.count}</span>
-              </button>
-            ))}
+            {chips.map((c) => {
+              const s = chipStyles[c.key] || chipStyles.all;
+              return (
+                <button
+                  key={c.key}
+                  onClick={() => setLevelFilter(c.key)}
+                  className={`shrink-0 px-3 rounded-full font-body text-[11px] font-medium transition-colors min-h-[32px] flex items-center gap-1.5 ${
+                    levelFilter === c.key ? s.on : s.off
+                  }`}
+                >
+                  <span>{c.label}</span>
+                  <span className="font-mono text-[10px] opacity-70">{c.count}</span>
+                </button>
+              );
+            })}
           </div>
         );
       })()}
@@ -832,9 +854,7 @@ export default function AdminPartnersPage() {
                 >
                   <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate text-center">{p.firstName} {p.lastName}</div>
                   <div className="text-center">
-                    <span className="font-mono text-[11px] text-[var(--app-text-secondary)] bg-[var(--app-input-bg)] border border-[var(--app-border)] rounded px-2 py-0.5">
-                      {(p.tier || "l1").toUpperCase()}
-                    </span>
+                    <LevelTag tier={p.tier} />
                   </div>
                   <div className="font-mono text-[12px] text-[var(--app-text-secondary)] text-center">{p.partnerCode}</div>
                   <div className="font-mono text-[12px] truncate text-center">
@@ -885,9 +905,7 @@ export default function AdminPartnersPage() {
                   <div>
                     <div className="font-body text-[13px] font-medium text-[var(--app-text)]">{p.firstName} {p.lastName}</div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="font-mono text-[10px] text-[var(--app-text-secondary)] bg-[var(--app-input-bg)] border border-[var(--app-border)] rounded px-1.5 py-0.5">
-                        {(p.tier || "l1").toUpperCase()}
-                      </span>
+                      <LevelTag tier={p.tier} size="xs" />
                       <span className="font-mono text-[11px] text-[var(--app-text-muted)]">{p.partnerCode}</span>
                     </div>
                   </div>

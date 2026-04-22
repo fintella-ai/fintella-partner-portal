@@ -8,6 +8,7 @@ import { getPermissions } from "@/lib/permissions";
 import CountryCodeSelect, { parseMobilePhone, buildMobilePhone } from "@/components/ui/CountryCodeSelect";
 import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 import ComposeEmailForm from "@/components/admin/ComposeEmailForm";
+import LevelTag from "@/components/ui/LevelTag";
 
 type Partner = {
   id: string;
@@ -365,11 +366,9 @@ export default function PartnerDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <button onClick={() => router.push("/admin/partners")} className="font-body text-[12px] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] mb-2 block">← Back to Partners</button>
-          <h2 className="font-display text-xl font-bold">
-            {partner.firstName} {partner.lastName}
-            <span className="font-body text-sm font-normal text-[var(--app-text-muted)] ml-2">
-              ({(partner.tier || "l1").toUpperCase()})
-            </span>
+          <h2 className="font-display text-xl font-bold flex items-center gap-2 flex-wrap">
+            <span>{partner.firstName} {partner.lastName}</span>
+            <LevelTag tier={partner.tier} />
           </h2>
           <div className="flex items-center gap-3 mt-1">
             <span className="font-mono text-[13px] text-[var(--app-text-secondary)]">{partner.partnerCode}</span>
