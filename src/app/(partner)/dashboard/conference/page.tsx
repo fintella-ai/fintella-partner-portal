@@ -126,20 +126,25 @@ export default function ConferencePage() {
   const openVideo = (url: string, title: string) => setVideoModal({ isOpen: true, url, title });
   const closeVideo = () => setVideoModal({ isOpen: false, url: "", title: "" });
 
+  const communicationsTabs = (
+    <PageTabBar
+      title="Communications"
+      tabs={[
+        { label: "Live Weekly Call", href: "/dashboard/conference" },
+        { label: "Announcements", href: "/dashboard/announcements" },
+        { label: "Messages", href: "/dashboard/messages" },
+        { label: "Notifications", href: "/dashboard/notifications" },
+      ]}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-
-      <PageTabBar
-        title="Communications"
-        tabs={[
-          { label: "Live Weekly Call", href: "/dashboard/conference" },
-          { label: "Announcements", href: "/dashboard/announcements" },
-          { label: "Messages", href: "/dashboard/messages" },
-          { label: "Notifications", href: "/dashboard/notifications" },
-        ]}
-      />
-        <div className="font-body text-sm text-[var(--app-text-muted)]">Loading conference data...</div>
+      <div>
+        {communicationsTabs}
+        <div className="flex items-center justify-center py-20">
+          <div className="font-body text-sm text-[var(--app-text-muted)]">Loading conference data...</div>
+        </div>
       </div>
     );
   }
@@ -149,6 +154,7 @@ export default function ConferencePage() {
 
   return (
     <div>
+      {communicationsTabs}
       <h2 className={`font-display ${device.isMobile ? "text-lg" : "text-[22px]"} font-bold mb-1.5`}>
         Live Weekly Call!
       </h2>
