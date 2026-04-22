@@ -831,6 +831,66 @@ export default function PartnerReportingPage() {
             })()}
           </div>
 
+          {/* Task 12: Downline Accounting subsection for Disabled L1s with downline deals */}
+          {tier === "l1" && !payoutDownlineEnabled && commDownlineDeals.length > 0 && (
+            <div className="mt-6 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg-secondary)] p-5">
+              <div className="mb-3">
+                <div className="font-body text-[14px] font-semibold text-[var(--app-text)]">
+                  Downline Accounting
+                </div>
+                <div className="font-body text-[12px] text-[var(--app-text-muted)] mt-0.5">
+                  What you owe your downline based on your private sub-partner agreements. Fintella pays you the full rate for every deal in your subtree — these amounts are what you&rsquo;re expected to pay out yourself.
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {commDownlineDeals.map((d) => {
+                  const l1Received = d.l1CommissionAmount + d.l2CommissionAmount;
+                  const owedToDownline = d.l2CommissionAmount;
+                  const kept = l1Received - owedToDownline;
+                  return (
+                    <div key={d.dealId} className="rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-3 py-2.5">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className="font-body text-[12px] font-medium text-[var(--app-text)] truncate">{d.dealName}</div>
+                        <div className="font-body text-[11px] text-[var(--app-text-muted)] shrink-0">
+                          ${d.firmFeeAmount.toLocaleString()} firm fee
+                        </div>
+                      </div>
+                      <div className="font-body text-[11px] text-[var(--app-text-secondary)] grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
+                        <div>You received from Fintella</div>
+                        <div className="text-right font-mono">${l1Received.toLocaleString()}</div>
+                        <div>
+                          You owe {d.submitterPartnerName} ({d.submitterTier.toUpperCase()} @ {(d.submitterRate * 100).toFixed(0)}%)
+                        </div>
+                        <div className="text-right font-mono">${owedToDownline.toLocaleString()}</div>
+                        <div className="text-[var(--app-text-muted)]">You keep</div>
+                        <div className="text-right font-mono text-[var(--app-text-muted)]">${kept.toLocaleString()}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-[var(--app-border)]">
+                {(() => {
+                  const totalReceived = commDownlineDeals.reduce((s, d) => s + d.l1CommissionAmount + d.l2CommissionAmount, 0);
+                  const totalOwed = commDownlineDeals.reduce((s, d) => s + d.l2CommissionAmount, 0);
+                  const totalKept = totalReceived - totalOwed;
+                  return (
+                    <div className="font-body text-[12px] grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
+                      <div className="font-semibold">Total received from Fintella</div>
+                      <div className="text-right font-mono font-semibold">${totalReceived.toLocaleString()}</div>
+                      <div className="font-semibold">Total owed to downline</div>
+                      <div className="text-right font-mono font-semibold">${totalOwed.toLocaleString()}</div>
+                      <div className="font-semibold">Total kept</div>
+                      <div className="text-right font-mono font-semibold">${totalKept.toLocaleString()}</div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
         </>
       )}
     </div>
