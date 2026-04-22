@@ -8,23 +8,20 @@ import EmailComposeTabImpl from "./EmailComposeTabImpl";
 import EmailTemplatesTabImpl from "./EmailTemplatesTabImpl";
 import SmsTabImpl from "./SmsTabImpl";
 import PhoneTabImpl from "./PhoneTabImpl";
-import WorkflowsPanel from "../workflows/WorkflowsPanel";
 import TeamChatPanel from "../team-chat/TeamChatPanel";
 import ChannelsListPanel from "../channels/ChannelsListPanel";
 
-type Tab = "email" | "sms" | "phone" | "automations" | "team-chat" | "channels";
+type Tab = "email" | "sms" | "phone" | "team-chat" | "channels";
 type EmailView = "inbox" | "compose" | "templates";
 
-// Automations is super_admin-only — the /api/admin/workflows* routes enforce
-// this, and filtering the pill here keeps other admin roles from seeing a
-// configure-anything UI that silently 403s on every save.
+// Automations moved to Admin → Development → Automations tab so the
+// Communications hub stays focused on partner-facing channels.
 const ALL_TABS: { id: Tab; label: string; superAdminOnly?: boolean }[] = [
-  { id: "email",       label: "Email" },
-  { id: "sms",         label: "SMS" },
-  { id: "phone",       label: "Phone" },
-  { id: "automations", label: "Automations", superAdminOnly: true },
-  { id: "team-chat",   label: "Team Chat" },
-  { id: "channels",    label: "Channels" },
+  { id: "email",     label: "Email" },
+  { id: "sms",       label: "SMS" },
+  { id: "phone",     label: "Phone" },
+  { id: "team-chat", label: "Team Chat" },
+  { id: "channels",  label: "Channels" },
 ];
 
 const EMAIL_VIEWS: { id: EmailView; label: string }[] = [
@@ -76,7 +73,7 @@ function CommunicationsHostInner() {
         Communications Hub
       </h2>
       <p className="font-body text-sm text-[var(--app-text-muted)] mb-6">
-        Manage partner email, SMS, phone, automations, and internal team chat from one place.
+        Manage partner email, SMS, phone, and internal team chat from one place.
       </p>
 
       {/* Top-level pill bar */}
@@ -108,9 +105,6 @@ function CommunicationsHostInner() {
 
       {tab === "sms"         && <SmsTabImpl />}
       {tab === "phone"       && <PhoneTabImpl />}
-      {/* Automations === the existing Workflows page — same panel, mounted
-          inside the hub so admins never have to context-switch. */}
-      {tab === "automations" && <WorkflowsPanel />}
       {tab === "team-chat"   && <TeamChatPanel />}
       {tab === "channels"    && <ChannelsListPanel />}
     </div>
