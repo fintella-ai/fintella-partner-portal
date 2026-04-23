@@ -402,7 +402,7 @@ export default async function PrivacyPage() {
               <span className="legal-strong">Email:</span> support@fintellaconsulting.com
             </li>
             <li>
-              <span className="legal-strong">Mail:</span> Fintella, 19111 Collins Ave #1804, Sunny Isles Beach, FL 33160
+              <span className="legal-strong">Mail:</span> Fintella, 111 2nd Ave NE #1250, St. Petersburg, FL 33701
             </li>
           </ul>
 
