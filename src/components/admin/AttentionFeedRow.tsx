@@ -8,6 +8,7 @@ export type AttentionSource =
   | "chat"
   | "ticket"
   | "agreement"
+  | "invite"
   | "partner"
   | "payout"
   | "feature";
@@ -29,6 +30,7 @@ const SOURCE_META: Record<AttentionSource, { icon: string; label: string; accent
   chat:      { icon: "💭", label: "Live Chat",   accent: "bg-purple-500/10 text-purple-300 border-purple-500/20" },
   ticket:    { icon: "🎫", label: "Ticket",      accent: "bg-yellow-500/10 text-yellow-300 border-yellow-500/20" },
   agreement: { icon: "📝", label: "Agreement",   accent: "bg-orange-500/10 text-orange-300 border-orange-500/20" },
+  invite:    { icon: "✉️", label: "Invite",       accent: "bg-cyan-500/10 text-cyan-300 border-cyan-500/20" },
   partner:   { icon: "🙋", label: "New Partner", accent: "bg-pink-500/10 text-pink-300 border-pink-500/20" },
   payout:    { icon: "💰", label: "Payout",      accent: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20" },
   feature:   { icon: "💡", label: "Request",     accent: "bg-indigo-500/10 text-indigo-300 border-indigo-500/20" },
