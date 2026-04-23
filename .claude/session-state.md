@@ -1,9 +1,9 @@
 # Session State
 
-🕒 Last updated: 2026-04-22 (very late) — 14 PRs shipped focused entirely on partner portal UX/visual overhaul: home page Phase 1+2, drag-to-reorder modules, dark header strip, center-aligned page bodies, more padding, footer, floating buttons pulled inline, docs into reporting tab.
+🕒 Last updated: 2026-04-23 — PR #404 merged: partner layout now shares the exact responsive padding contract as admin (`p-4 sm:px-10 sm:py-6 lg:px-24 lg:py-9`), mobile full-bleed dividers moved from `-mx-5` → `-mx-4`, and the layout-wide `text-center` wrapper around `{children}` was removed so partner page bodies default to left-aligned like admin. This effectively absorbs / supersedes the post-#402 eyeball task.
 
 ## 🌿 Git state
-- **main HEAD:** `8b5b064` — feat(partner): dark header strip + center-align all page bodies (#402)
+- **main HEAD:** `67a8713` — fix(partner/layout): match admin padding + default alignment (#404)
 - **origin/main:** in sync
 - **Open non-dependabot PRs:** 0 (#357 still DRAFT — flagged, don't merge)
 - **Working tree:** clean
@@ -31,13 +31,13 @@
 - **#393** Restore Communications tab bar on Live Weekly Call page (regression from #388 — PageTabBar was inside the loading branch only).
 - **#400** Swap Partner Support icon 🎧 → 🙋 to match admin; move Documents from sidebar into `/dashboard/reporting` as rightmost tab; extract shared `<DocumentsView />` component so `/dashboard/documents` deep-link still works.
 
-## 🎯 Queued for tomorrow (top of stack — unchanged from yesterday)
+## 🎯 Queued for tomorrow (top of stack)
 
 1. **Email templates → workflow actions** — mirror SMS pattern from #358/#360. Start with brainstorming skill. Keep `password_reset` hardcoded (security). 7 other sends to migrate. See `project_fintella_email_workflow_migration` memory.
 
 2. **Contabo VPS / MinIO bootstrap** — unblocks PR #357 multi-file note attachments. See `project_fintella_minio_vps_plan` memory.
 
-3. **Post-#402 live verification** — eyeball each partner page. If text-center cascade on `{children}` looks wrong on forms or wide tables, add targeted `text-left` overrides on that page. Tables should be fine (native `<td>` left-align overrides parent text-center) but worth checking Submit Client form, Deals, Commissions.
+3. **Post-#404 live verification (light)** — click through each partner route on the Vercel preview to confirm the left-align default + tightened mobile padding read correctly on forms, tables, and the home page.
 
 4. **Flagged from earlier sessions:**
    - Live Weekly column formatting + resizable columns
