@@ -774,9 +774,14 @@ export default function PartnerReportingPage() {
               const hasDirect = showDirect && directDeals.length > 0;
               const hasDownline = showDownline && downlineDeals.length > 0;
               if (!hasDirect && !hasDownline) return <div className="p-12 text-center font-body text-sm text-[var(--app-text-muted)]">No commission entries for this filter.</div>;
+              // `_amt` / `_status` always reflect what the viewing partner
+              // (L1) earns on the deal — the full L1 rate on direct rows and
+              // the L1 override (L1 rate − submitter rate) on downline rows.
+              // `_tier` still signals the deal source (L1 direct vs L2
+              // downline) via the colored badge.
               const commDeals = [
                 ...(showDirect ? directDeals.map((d) => ({ ...d, _tier: "l1" as const, _amt: d.l1CommissionAmount, _status: d.l1CommissionStatus })) : []),
-                ...(showDownline ? downlineDeals.map((d) => ({ ...d, _tier: "l2" as const, _amt: d.l2CommissionAmount, _status: d.l2CommissionStatus })) : []),
+                ...(showDownline ? downlineDeals.map((d) => ({ ...d, _tier: "l2" as const, _amt: d.l1CommissionAmount, _status: d.l1CommissionStatus })) : []),
               ];
               const commAccessors: Record<string, (d: any) => unknown> = {
                 dealName: (d) => d.dealName,
