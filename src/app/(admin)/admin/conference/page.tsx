@@ -26,13 +26,6 @@ type ConferenceEntry = {
   googleCalendarHtmlLink?: string | null;
 };
 
-// ─── DEMO FALLBACK ────────────────────────────────────────────────────────
-
-const DEMO_ENTRIES: ConferenceEntry[] = [
-  { id: "d1", title: "Weekly Partner Training & Q&A", description: "Product updates, training topics, success stories, and live Q&A.", embedUrl: null, joinUrl: "https://zoom.us/j/1234567890", recordingUrl: null, schedule: "Every Thursday at 2:00 PM ET", nextCall: "2026-03-26T18:00:00Z", hostName: "Fintella Leadership Team", duration: null, weekNumber: 13, notes: null, isActive: true, createdAt: "2026-03-20", updatedAt: "2026-03-20" },
-  { id: "d2", title: "Section 301 Update & New Partner Tools", description: null, embedUrl: "https://youtube.com/embed/example", joinUrl: null, recordingUrl: null, schedule: null, nextCall: "2026-03-19T18:00:00Z", hostName: "Sarah Mitchell", duration: "52 min", weekNumber: 12, notes: "Key topics covered.", isActive: false, createdAt: "2026-03-19", updatedAt: "2026-03-19" },
-];
-
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────
 
 export default function AdminConferencePage() {
@@ -62,9 +55,13 @@ export default function AdminConferencePage() {
       const res = await fetch("/api/admin/conference");
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setEntries(data.entries?.length ? data.entries : DEMO_ENTRIES);
+      // Show real rows — even when the array is empty. Previously we
+      // substituted a hardcoded DEMO_ENTRIES pair here, which meant
+      // clicking Del on the demo rows hit the API with non-existent ids
+      // and bubbled a Prisma "Record to delete does not exist" error.
+      setEntries(Array.isArray(data.entries) ? data.entries : []);
     } catch {
-      setEntries(DEMO_ENTRIES);
+      setEntries([]);
     } finally {
       setLoading(false);
     }

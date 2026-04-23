@@ -26,31 +26,6 @@ interface ConferenceEntry {
   jitsiRoom?: string | null;
 }
 
-/* ── Demo fallback data ────────────────────────────────────────────────── */
-
-const DEMO_ACTIVE: ConferenceEntry = {
-  id: "demo-active",
-  title: "Weekly Partner Training & Q&A",
-  description: "Product updates, training topics, success stories, and live Q&A.",
-  embedUrl: null,
-  joinUrl: "#",
-  recordingUrl: null,
-  schedule: "Every Thursday at 2:00 PM ET — 45-60 minutes",
-  nextCall: new Date().toISOString(),
-  hostName: "Fintella Leadership Team",
-  duration: null,
-  weekNumber: null,
-  notes: null,
-  isActive: true,
-};
-
-const DEMO_RECORDINGS: ConferenceEntry[] = [
-  { id: "d1", title: "Section 301 Update & New Partner Tools", description: null, embedUrl: null, joinUrl: null, recordingUrl: "#", schedule: null, nextCall: "2026-03-19T18:00:00Z", hostName: "Sarah Mitchell", duration: "52 min", weekNumber: 12, notes: null, isActive: false },
-  { id: "d2", title: "Commission Deep Dive & Top Partner Q&A", description: null, embedUrl: null, joinUrl: null, recordingUrl: "#", schedule: null, nextCall: "2026-03-12T18:00:00Z", hostName: "John Orlando", duration: "47 min", weekNumber: 11, notes: null, isActive: false },
-  { id: "d3", title: "IEEPA Changes & Client Outreach Strategies", description: null, embedUrl: null, joinUrl: null, recordingUrl: "#", schedule: null, nextCall: "2026-03-05T19:00:00Z", hostName: "Sarah Mitchell", duration: "58 min", weekNumber: 10, notes: null, isActive: false },
-  { id: "d4", title: "Onboarding Best Practices for New Partners", description: null, embedUrl: null, joinUrl: null, recordingUrl: "#", schedule: null, nextCall: "2026-02-26T19:00:00Z", hostName: "Fintella Leadership Team", duration: "41 min", weekNumber: 9, notes: null, isActive: false },
-];
-
 /* ── ICS helper ────────────────────────────────────────────────────────── */
 
 function generateICS(entry: ConferenceEntry) {
@@ -107,12 +82,17 @@ export default function ConferencePage() {
     fetch("/api/conference")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
-        setActiveSchedule(data.activeSchedule || DEMO_ACTIVE);
-        setPastRecordings(data.pastRecordings?.length ? data.pastRecordings : DEMO_RECORDINGS);
+        // Show real data — even when empty. The pre-launch DEMO_ACTIVE /
+        // DEMO_RECORDINGS fallbacks confused partners in production by
+        // displaying fake Zoom links, fake recording titles, and "Next
+        // Call: Weekly Partner Training & Q&A" when there was actually
+        // nothing scheduled yet.
+        setActiveSchedule(data.activeSchedule ?? null);
+        setPastRecordings(Array.isArray(data.pastRecordings) ? data.pastRecordings : []);
       })
       .catch(() => {
-        setActiveSchedule(DEMO_ACTIVE);
-        setPastRecordings(DEMO_RECORDINGS);
+        setActiveSchedule(null);
+        setPastRecordings([]);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -151,8 +131,8 @@ export default function ConferencePage() {
     );
   }
 
-  const active = activeSchedule || DEMO_ACTIVE;
-  const callInfo = formatCallDate(active.nextCall);
+  const active = activeSchedule;
+  const callInfo = active ? formatCallDate(active.nextCall) : { date: "", time: "" };
 
   return (
     <div>
@@ -164,7 +144,15 @@ export default function ConferencePage() {
         Join our weekly team call for product updates, training, success stories, and live Q&A.
       </p>
 
-      {/* ═══ NEXT CALL CARD ═══ */}
+      {/* ═══ NEXT CALL CARD / EMPTY STATE ═══ */}
+      {!active ? (
+        <div className={`${device.cardPadding} ${device.borderRadius} border border-[var(--app-border)] bg-[var(--app-card-bg)] mb-6 text-center`}>
+          <div className="font-body text-[11px] tracking-[1.5px] uppercase text-[var(--app-text-muted)] mb-2">No Live Call Scheduled</div>
+          <div className="font-body text-[13px] text-[var(--app-text-secondary)]">
+            Check back soon — the next Live Weekly will appear here once it's been scheduled.
+          </div>
+        </div>
+      ) : (
       <div className={`${device.cardPadding} ${device.borderRadius} border border-brand-gold/25 bg-gradient-to-br from-brand-gold/[0.06] to-brand-gold/[0.02] mb-6`}>
         <div className="flex items-center gap-2 mb-3">
           <span className="relative flex h-3 w-3">
@@ -232,8 +220,10 @@ export default function ConferencePage() {
           </div>
         )}
       </div>
+      )}
 
       {/* ═══ CALL SCHEDULE ═══ */}
+      {active && (
       <div className={`card ${device.cardPadding} mb-6`}>
         <div className="font-body font-semibold text-sm mb-3">Call Schedule</div>
         <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed">
@@ -246,12 +236,18 @@ export default function ConferencePage() {
           )}
         </div>
       </div>
+      )}
 
       {/* ═══ PAST RECORDINGS ═══ */}
       <div className="card">
         <div className="px-4 sm:px-6 py-4 border-b border-[var(--app-border)]">
           <div className="font-body font-semibold text-sm">Past Recordings</div>
         </div>
+        {pastRecordings.length === 0 && (
+          <div className="px-4 sm:px-6 py-10 text-center font-body text-[13px] text-[var(--app-text-muted)]">
+            No recordings available yet.
+          </div>
+        )}
         {pastRecordings.map((rec) => (
           <div key={rec.id} className="border-b border-[var(--app-border)] last:border-b-0">
             <div className="px-4 sm:px-6 py-4 hover:bg-[var(--app-card-bg)] transition-colors flex items-center justify-between gap-3">
