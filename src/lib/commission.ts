@@ -4,6 +4,15 @@ export function calcFirmFee(refund: number, rate = DEFAULT_FIRM_FEE_RATE): numbe
   return refund * rate;
 }
 
+// ─── Feature flag: sliding-window vs legacy waterfall ─────────────────────
+// Flip via env var WATERFALL_SLIDING_WINDOW=true to switch every
+// commission-computation call site to the Option B sliding-window model.
+// Flag default off keeps live traffic on the legacy 3-tier waterfall
+// until John flips it after parallel-run confirms equivalence.
+function useSlidingWindow(): boolean {
+  return process.env.WATERFALL_SLIDING_WINDOW === "true";
+}
+
 // ─── Waterfall Commission System ─────────────────────────────────────────────
 // Total payout always equals the L1's assigned commissionRate (not a fixed 25%).
 //
@@ -367,10 +376,79 @@ export async function computeDealCommissions(
 
   const waterfall = calcWaterfallCommissions(deal.firmFeeAmount, chain);
 
+  // Phase 1 flag gate: when the sliding-window model is enabled, rebuild
+  // the ledger entries from calcSlidingWindowWaterfall instead of the
+  // legacy tier-labeled buildLedgerEntries. The WaterfallResult we compute
+  // above is still returned in the response for telemetry / logging, but
+  // the on-disk ledger rows come from the new math when the flag is on.
+  //
+  // Equivalence: for existing 3-tier chains (l1/l2/l3), the two functions
+  // produce identical amounts (proven in commission-sliding-window.test.ts).
+  // The flag lets us parallel-run + diff-check for a week before flipping
+  // portal-wide.
+  if (useSlidingWindow()) {
+    const slide = calcSlidingWindowWaterfall(
+      deal.firmFeeAmount,
+      chain.map((n) => ({ partnerCode: n.partnerCode, commissionRate: n.commissionRate })),
+    );
+    const slidingEntries = buildLedgerEntriesFromSliding(slide, chain, { payoutDownlineEnabled });
+    const totalAmount = slidingEntries.reduce((s, e) => s + e.amount, 0);
+    return { entries: slidingEntries, chain, totalAmount, waterfall };
+  }
+
   const entries = buildLedgerEntries(waterfall, chain, { payoutDownlineEnabled });
 
   const totalAmount = entries.reduce((s, e) => s + e.amount, 0);
   return { entries, chain, totalAmount, waterfall };
+}
+
+/**
+ * Build ledger entries from a SlidingWaterfallResult. Preserves the legacy
+ * `payoutDownlineEnabled` collapse behavior (when false + the deal isn't
+ * a self-deal, sum all payouts into a single row on the top ancestor)
+ * so report shapes don't change when the flag flips.
+ *
+ * `tier` field on each entry carries the partner's absolute tier from the
+ * original chain (l1/l2/l3/…), not the relative depth-from-submitter —
+ * admin-side reports want the absolute label. Phase 4 partner UI derives
+ * "My L2 / My L3" from depth-from-viewer at render time, not from this field.
+ */
+function buildLedgerEntriesFromSliding(
+  slide: SlidingWaterfallResult,
+  chain: PartnerChainNode[],
+  options: BuildLedgerOptions,
+): ComputedLedgerEntry[] {
+  if (slide.entries.length === 0) return [];
+
+  // Map each sliding-window entry back to its PartnerChainNode to get the
+  // absolute tier for the ledger row.
+  const byCode: Record<string, PartnerChainNode> = {};
+  for (const n of chain) byCode[n.partnerCode] = n;
+
+  const submitter = chain[0];
+  const isDownlineDeal = submitter && submitter.tier !== "l1";
+
+  // Disabled-payout collapse: same semantics as legacy — funnel the whole
+  // deal's payouts onto the top-of-chain L1 as one row. "Top of chain" here
+  // means the highest paid entity in the sliding window, which is the last
+  // entry by depthFromSubmitter. For a 3-tier chain that's always the L1.
+  if (!options.payoutDownlineEnabled && isDownlineDeal) {
+    const l1Node = chain.find((n) => n.tier === "l1");
+    const target = l1Node || slide.entries[slide.entries.length - 1];
+    const sum = roundCents(slide.totalAmount);
+    const targetCode = "partnerCode" in target ? target.partnerCode : (target as any).partnerCode;
+    const targetTier = "tier" in target ? target.tier : (byCode[targetCode]?.tier ?? "l1");
+    return [{ partnerCode: targetCode, tier: targetTier, amount: sum }];
+  }
+
+  return slide.entries.map((e) => {
+    const node = byCode[e.partnerCode];
+    return {
+      partnerCode: e.partnerCode,
+      tier: node?.tier ?? "l1",
+      amount: roundCents(e.amount),
+    };
+  });
 }
 
 // ─── Ledger Entry Builder ────────────────────────────────────────────────
