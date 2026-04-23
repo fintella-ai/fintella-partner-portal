@@ -34,10 +34,14 @@ function serialiseValue(field: Field, op: Op, raw: string): string | number | bo
   if (field === "signedAgreement" || field === "l3Enabled") {
     return trimmed.toLowerCase() === "true";
   }
+  // Tier values are stored lowercase in Partner.tier. Admins type "L1"
+  // (readable) but the stored value is "l1", so we lowercase here so
+  // the filter actually matches regardless of the admin's casing.
+  const normalize = (s: string) => (field === "tier" ? s.toLowerCase() : s);
   if (op === "in") {
-    return trimmed.split(",").map((s) => s.trim()).filter(Boolean);
+    return trimmed.split(",").map((s) => normalize(s.trim())).filter(Boolean);
   }
-  return trimmed;
+  return normalize(trimmed);
 }
 
 export default function SegmentRuleBuilder({
@@ -120,7 +124,7 @@ export default function SegmentRuleBuilder({
           </select>
           <input
             className="theme-input text-sm flex-1 min-w-[120px]"
-            placeholder={row.op === "in" ? "l1,l2" : row.field === "signedAgreement" ? "true" : "value"}
+            placeholder={row.op === "in" ? (row.field === "tier" ? "L1,L2" : "value1,value2") : row.field === "signedAgreement" ? "true" : row.field === "tier" ? "L1" : "value"}
             value={row.value}
             onChange={(e) => update(idx, { value: e.target.value })}
           />
