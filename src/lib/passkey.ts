@@ -15,8 +15,13 @@
 
 import { prisma } from "./prisma";
 
+// .trim() first to neutralize trailing whitespace/newlines that sometimes
+// sneak in when env vars are piped via `echo "…" | vercel env add` (same
+// bug we patched in #435 for the Google Calendar redirect URI). Without
+// this, WebAuthn rejects every sign-in with "expected https://fintella.partners "
+// because the trailing space makes the origin mismatch strict-equality.
 const PORTAL_URL =
-  (process.env.NEXT_PUBLIC_PORTAL_URL || "https://fintella.partners").replace(/\/$/, "");
+  (process.env.NEXT_PUBLIC_PORTAL_URL || "https://fintella.partners").trim().replace(/\/$/, "");
 
 export const RP_NAME = "Fintella Partner Portal";
 export const RP_ID = new URL(PORTAL_URL).hostname;
