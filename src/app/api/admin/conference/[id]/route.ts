@@ -36,6 +36,11 @@ export async function PUT(
     if (body.weekNumber !== undefined) data.weekNumber = body.weekNumber ? parseInt(body.weekNumber, 10) : null;
     if (body.notes !== undefined) data.notes = body.notes || null;
     if (body.isActive !== undefined) data.isActive = body.isActive;
+    // Accept a jitsiRoom override — empty string / null from the UI means
+    // "don't change it", so we only write when the caller sends a truthy
+    // value. Prevents a save-without-slug from clobbering the auto-
+    // generated one.
+    if (body.jitsiRoom !== undefined && body.jitsiRoom) data.jitsiRoom = String(body.jitsiRoom);
 
     const entry = await prisma.conferenceSchedule.update({
       where: { id: params.id },
