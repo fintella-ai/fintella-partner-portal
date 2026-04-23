@@ -611,6 +611,135 @@ function CleanupTab() {
           </>
         )}
       </div>
+
+      {/* ── Orphaned admin-chat threads ─────────────────────────────── */}
+      <OrphanedChatSection />
+    </div>
+  );
+}
+
+// ── Orphaned admin-chat threads (AdminChatThread.dealId → deleted Deal) ──
+interface OrphanChatPreview {
+  count: number;
+  totalMessages: number;
+  sample: Array<{ id: string; dealId: string | null; messages: number; lastMessageAt: string; createdAt: string }>;
+}
+
+function OrphanedChatSection() {
+  const [preview, setPreview] = useState<OrphanChatPreview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [result, setResult] = useState<{ deleted: number; messagesDeleted: number } | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/dev/orphaned-chat");
+      if (!res.ok) throw new Error("Preview failed");
+      setPreview(await res.json());
+    } catch {
+      setPreview(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async () => {
+    if (!preview || preview.count === 0) return;
+    const ok = confirm(
+      `This will permanently DELETE ${preview.count} orphaned AdminChatThread row(s) and cascade-delete ${preview.totalMessages} message(s), mentions, and read-state rows from the production database.\n\nThis writes to the real DB and cannot be undone. Continue?`
+    );
+    if (!ok) return;
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/admin/dev/orphaned-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Delete failed: ${data.error || res.statusText}`);
+        return;
+      }
+      setResult({ deleted: data.deleted, messagesDeleted: data.messagesDeleted });
+      await load();
+    } catch (e) {
+      alert(`Delete failed: ${(e as Error).message || e}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="card overflow-hidden mt-5">
+      <div className="px-5 py-4 border-b border-[var(--app-border)]">
+        <div className="font-body font-semibold text-sm">Orphaned Internal Chat Threads</div>
+        <div className="font-body text-[11px] theme-text-muted mt-0.5">
+          AdminChatThread rows whose <code className="font-mono">dealId</code> points to a deleted Deal. Deleting the thread cascades to all messages, mentions, and read-state rows.
+        </div>
+      </div>
+      <div className="p-5 space-y-4">
+        {result && (
+          <div className="rounded-lg border border-green-500/30 bg-green-500/[0.05] px-3 py-2 font-body text-[12px] text-green-400">
+            Deleted {result.deleted} orphaned thread{result.deleted === 1 ? "" : "s"} (cascaded {result.messagesDeleted} message{result.messagesDeleted === 1 ? "" : "s"}).
+          </div>
+        )}
+        {loading ? (
+          <div className="font-body text-sm theme-text-muted">Scanning threads…</div>
+        ) : !preview ? (
+          <div className="font-body text-sm text-red-400">Preview failed. Try refreshing.</div>
+        ) : preview.count === 0 ? (
+          <div className="font-body text-sm theme-text-muted">✓ No orphaned internal-chat threads. Nothing to clean up.</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-1">Orphaned threads</div>
+                <div className="font-display text-2xl font-bold text-brand-gold">{preview.count}</div>
+              </div>
+              <div>
+                <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-1">Messages to cascade-delete</div>
+                <div className="font-display text-2xl font-bold text-brand-gold">{preview.totalMessages}</div>
+              </div>
+            </div>
+            <div className="rounded-lg border border-[var(--app-border)] overflow-hidden">
+              <div className="grid grid-cols-[1fr_90px_130px] gap-2 px-3 py-2 border-b border-[var(--app-border)] bg-[var(--app-bg-secondary)]">
+                {["Deal ID (missing)", "Messages", "Last message"].map((h) => (
+                  <div key={h} className="font-body text-[10px] uppercase tracking-wider theme-text-muted">{h}</div>
+                ))}
+              </div>
+              <div className="max-h-[300px] overflow-y-auto">
+                {preview.sample.map((row) => (
+                  <div key={row.id} className="grid grid-cols-[1fr_90px_130px] gap-2 px-3 py-2 border-b border-[var(--app-border)] last:border-b-0 font-body text-[12px]">
+                    <div className="font-mono truncate" title={row.dealId || ""}>{row.dealId || "(null)"}</div>
+                    <div>{row.messages}</div>
+                    <div className="text-[var(--app-text-muted)]">{new Date(row.lastMessageAt).toLocaleDateString()}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="font-body text-[12px] text-red-400/80 border border-red-400/30 rounded-lg px-4 py-2 hover:bg-red-400/10 transition-colors disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : `Delete ${preview.count} orphaned thread${preview.count === 1 ? "" : "s"}`}
+              </button>
+              <button
+                onClick={load}
+                disabled={deleting}
+                className="font-body text-[12px] theme-text-muted border border-[var(--app-border)] rounded-lg px-4 py-2 hover:bg-[var(--app-hover)] transition-colors"
+              >
+                Refresh preview
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
