@@ -115,6 +115,24 @@ export async function POST(req: NextRequest) {
     const tier = (typeof body.tier === "string" && ["l1", "l2", "l3"].includes(body.tier))
       ? body.tier
       : "l1";
+
+    // Structural rule: L2 / L3 partners must always have an upline
+    // (referredByPartnerCode). L1s must never have one. The admin form
+    // allows the tier override for corrections, but the chain
+    // invariant stays enforced at the server so a mis-filled form
+    // can't produce an orphan L2 or a rootless L3.
+    if (tier === "l1" && body.referredByPartnerCode) {
+      return NextResponse.json(
+        { error: "L1 partners cannot have an upline (referredByPartnerCode). Leave it blank or pick tier L2/L3." },
+        { status: 400 },
+      );
+    }
+    if ((tier === "l2" || tier === "l3") && !body.referredByPartnerCode) {
+      return NextResponse.json(
+        { error: `${tier.toUpperCase()} partners must have an upline. Provide a 'referredByPartnerCode' or change tier to L1.` },
+        { status: 400 },
+      );
+    }
     let commissionRate: number | undefined = undefined;
     if (body.commissionRate != null) {
       const r = parseFloat(body.commissionRate);

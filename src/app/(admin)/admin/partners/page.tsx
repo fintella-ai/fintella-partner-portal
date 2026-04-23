@@ -123,7 +123,12 @@ export default function AdminPartnersPage() {
   const [formRate, setFormRate] = useState<number>(0.25);
   const [formRateMode, setFormRateMode] = useState<"standard" | "custom">("standard");
   const [formCustomPct, setFormCustomPct] = useState<string>("");
-  const [addPayoutDownlineEnabled, setAddPayoutDownlineEnabled] = useState(false);
+  // Default-on per policy change 2026-04-23: Fintella pays every
+  // downline partner directly (everyone signs a Fintella agreement),
+  // so the "Enable Payout Downline Partners" checkbox starts checked.
+  // Admins can still uncheck it for the rare legacy case where an L1
+  // is responsible for paying their own downline.
+  const [addPayoutDownlineEnabled, setAddPayoutDownlineEnabled] = useState(true);
   const [formError, setFormError] = useState("");
 
   // Invite L1 partner modal
@@ -134,7 +139,7 @@ export default function AdminPartnersPage() {
   const [inviteRate, setInviteRate] = useState<number | "">(0.25);
   const [inviteRateMode, setInviteRateMode] = useState<"standard" | "custom">("standard");
   const [inviteCustomPct, setInviteCustomPct] = useState<string>("");
-  const [invitePayoutDownlineEnabled, setInvitePayoutDownlineEnabled] = useState(false);
+  const [invitePayoutDownlineEnabled, setInvitePayoutDownlineEnabled] = useState(true);
   const [inviteError, setInviteError] = useState("");
   const [inviteResult, setInviteResult] = useState<{ signupUrl: string } | null>(null);
   const [inviteSending, setInviteSending] = useState(false);
@@ -306,7 +311,7 @@ export default function AdminPartnersPage() {
     setShowInvite(false);
     setInviteEmail(""); setInviteFirst(""); setInviteLast(""); setInviteRate(0.25);
     setInviteRateMode("standard"); setInviteCustomPct("");
-    setInvitePayoutDownlineEnabled(false);
+    setInvitePayoutDownlineEnabled(true);
     setInviteError(""); setInviteResult(null);
   };
 
@@ -401,7 +406,7 @@ export default function AdminPartnersPage() {
       setShowForm(false);
       setFormFirst(""); setFormLast(""); setFormEmail(""); setFormPhone(""); setFormCode(""); setFormReferrer("");
       setFormTier("l1"); setFormRate(0.25); setFormRateMode("standard"); setFormCustomPct("");
-      setAddPayoutDownlineEnabled(false);
+      setAddPayoutDownlineEnabled(true);
       fetchPartners();
     } catch {
       setFormError("Connection error");
@@ -610,10 +615,18 @@ export default function AdminPartnersPage() {
         </div>
       )}
 
-      {/* Add Partner Form */}
+      {/* Add Partner Form.
+          Admins normally add L1 partners (top-of-chain, no upline). L2
+          and L3 partners come into existence via a parent's invite
+          link. The Tier + Referred By fields are preserved here as an
+          override for corrections (e.g. re-creating an L2 whose record
+          was lost) — default path leaves tier=L1 and referrer empty. */}
       {showForm && (
         <div className="card p-5 mb-6">
-          <div className="font-body font-semibold text-sm mb-4">Add New Partner</div>
+          <div className="font-body font-semibold text-sm mb-1">Add New Partner</div>
+          <p className="font-body text-[11px] text-[var(--app-text-muted)] mb-4">
+            Default is a new <strong>L1</strong> with no upline. Use Tier L2/L3 + Referred By only as an override for corrections — normal onboarding is an invite from the parent partner.
+          </p>
           {formError && <div className="mb-3 p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg font-body text-[12px] text-red-400">{formError}</div>}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <input className={inputClass} value={formFirst} onChange={(e) => setFormFirst(e.target.value)} placeholder="First Name *" />
@@ -621,15 +634,15 @@ export default function AdminPartnersPage() {
             <input className={inputClass} value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="Email *" type="email" />
             <input className={inputClass} value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="Phone" />
             <input className={inputClass} value={formCode} onChange={(e) => setFormCode(e.target.value)} placeholder="Partner Code (auto-generated)" />
-            <input className={inputClass} value={formReferrer} onChange={(e) => setFormReferrer(e.target.value)} placeholder="Referred By (partner code)" />
+            <input className={inputClass} value={formReferrer} onChange={(e) => setFormReferrer(e.target.value)} placeholder="Referred By (override — partner code)" />
             <select className={inputClass} value={formTier} onChange={(e) => {
               const newTier = e.target.value as "l1" | "l2" | "l3";
               setFormTier(newTier);
               if (newTier !== "l1") setAddPayoutDownlineEnabled(false);
             }}>
-              <option value="l1">Tier: L1</option>
-              <option value="l2">Tier: L2</option>
-              <option value="l3">Tier: L3</option>
+              <option value="l1">Tier: L1 (default)</option>
+              <option value="l2">Tier: L2 (override)</option>
+              <option value="l3">Tier: L3 (override)</option>
             </select>
             {formRateMode === "standard" ? (
               <select
@@ -689,7 +702,7 @@ export default function AdminPartnersPage() {
           )}
           <div className="flex gap-3 mt-4">
             <button onClick={handleAdd} className="btn-gold text-[12px] px-5 py-2.5">Create Partner</button>
-            <button onClick={() => { setShowForm(false); setAddPayoutDownlineEnabled(false); }} className="font-body text-[12px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-5 py-2.5 hover:text-[var(--app-text-secondary)] transition-colors">Cancel</button>
+            <button onClick={() => { setShowForm(false); setAddPayoutDownlineEnabled(true); }} className="font-body text-[12px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-5 py-2.5 hover:text-[var(--app-text-secondary)] transition-colors">Cancel</button>
           </div>
         </div>
       )}
