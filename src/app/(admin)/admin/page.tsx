@@ -29,7 +29,7 @@ const FILTER_TABS: Array<{ id: FilterTab; label: string; sources: AttentionSourc
   { id: "all",        label: "All",        sources: "all" },
   { id: "messages",   label: "Messages",   sources: ["email", "sms", "chat"] },
   { id: "support",    label: "Support",    sources: ["ticket"] },
-  { id: "onboarding", label: "Onboarding", sources: ["agreement", "partner"] },
+  { id: "onboarding", label: "Onboarding", sources: ["agreement", "invite", "partner"] },
   { id: "payouts",    label: "Payouts",    sources: ["payout"] },
 ];
 
@@ -39,6 +39,7 @@ interface Stats {
   pendingPayouts: { count: number; amount: number };
   unsignedAgreements: number;
   pendingPartners: number;
+  openInvites: number;
   featureRequests: number;
 }
 
@@ -48,6 +49,7 @@ const INITIAL_STATS: Stats = {
   pendingPayouts: { count: 0, amount: 0 },
   unsignedAgreements: 0,
   pendingPartners: 0,
+  openInvites: 0,
   featureRequests: 0,
 };
 
@@ -149,6 +151,7 @@ export default function AdminWorkspacePage() {
       payoutsRes,
       partnersRes,
       featuresRes,
+      invitesRes,
     ] = await Promise.allSettled([
       fetch("/api/admin/inbox").then((r) => (r.ok ? r.json() : null)),
       fetch("/api/admin/sms/log").then((r) => (r.ok ? r.json() : null)),
@@ -159,6 +162,7 @@ export default function AdminWorkspacePage() {
         : Promise.resolve(null),
       fetch("/api/admin/partners").then((r) => (r.ok ? r.json() : null)),
       fetch("/api/admin/feature-requests").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/admin/invites").then((r) => (r.ok ? r.json() : null)),
     ]);
 
     // Each value is either null (endpoint failed / not permitted) or the
@@ -170,6 +174,7 @@ export default function AdminWorkspacePage() {
     const payouts = payoutsRes.status === "fulfilled" ? payoutsRes.value : null;
     const partners = partnersRes.status === "fulfilled" ? partnersRes.value : null;
     const features = featuresRes.status === "fulfilled" ? featuresRes.value : null;
+    const invites = invitesRes.status === "fulfilled" ? invitesRes.value : null;
 
     // ─── Derived stats ─────────────────────────────────────────────
     const emailUnread = inbox?.stats?.unread ?? 0;
@@ -203,12 +208,17 @@ export default function AdminWorkspacePage() {
 
     const featureRequests = features?.stats?.submitted ?? 0;
 
+    const openInvites = Array.isArray(invites?.invites)
+      ? (invites.invites as any[]).filter((i) => i.status === "active" && !i.usedByPartnerCode)
+      : [];
+
     setStats({
       unreadMessages,
       openTickets,
       pendingPayouts,
       unsignedAgreements,
       pendingPartners,
+      openInvites: openInvites.length,
       featureRequests,
     });
 
@@ -309,6 +319,25 @@ export default function AdminWorkspacePage() {
         createdAt: p.createdAt,
         href: `/admin/partners/${p.id}`,
         actionLabel: "Activate",
+      });
+    }
+
+    // Open recruitment invites — admin-generated L1 invites that are
+    // still active and haven't been used yet. These are partners-to-be
+    // who haven't clicked the signup link. Surfaced in Onboarding so
+    // admins can nudge / resend.
+    for (const inv of openInvites) {
+      feed.push({
+        id: `invite:${inv.id}`,
+        source: "invite",
+        partnerCode: null,
+        partnerName: inv.invitedName || inv.invitedEmail || null,
+        summary: inv.invitedEmail
+          ? `Invited ${inv.invitedEmail} — not signed up yet`
+          : "Open invite — not used yet",
+        createdAt: inv.lastReminderSentAt || inv.createdAt,
+        href: "/admin/partners",
+        actionLabel: "Nudge",
       });
     }
 
@@ -464,7 +493,7 @@ export default function AdminWorkspacePage() {
         <WorkspaceStatCard
           label="Pending Signups"
           value={loading ? "—" : stats.pendingPartners.toLocaleString()}
-          sub="Awaiting activation"
+          sub={loading ? "Awaiting activation" : `Awaiting activation · ${stats.openInvites} open invite${stats.openInvites === 1 ? "" : "s"}`}
           href="/admin/partners"
         />
         {showFeatureCard && (
