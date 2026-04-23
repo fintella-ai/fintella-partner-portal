@@ -1,9 +1,9 @@
 # Session State
 
-🕒 Last updated: 2026-04-23 — PR #406 merged: Commission History desktop table rebuilt with 9 columns (Deal · Date · Tier · Refund · Fee % · Firm Fee · Comm % · Commission · Status), header divider lines, no sort arrows, Deal left-aligned and all other headers centered. Downline rows now source `l1CommissionAmount` / `l1CommissionStatus` so the Commission / Comm % / Status columns always reflect what the viewing partner (L1) earns, while the tier badge still signals deal source. Earlier today: PR #404 (partner margins + default alignment match admin) + PR #405 (checkpoint).
+🕒 Last updated: 2026-04-23 — PR #408 merged: partner Full Reporting → Commissions tab now surfaces Enterprise Partner overrides when (and only when) the signed-in partner has an active `EnterprisePartner` record. New `GET /api/partner/enterprise` endpoint; summary grid expands from 2 → 3 cols with an Enterprise Override card; Commission History gains an Enterprise sub-tab with columns Deal · Date · L1 Partner · Refund · Fee % · Firm Fee · Override % · Enterprise Commission · Status. Non-EP partners see nothing new. Earlier today: PR #404 (layout padding match admin), #406 (Commission History expanded columns), #407 (checkpoint).
 
 ## 🌿 Git state
-- **main HEAD:** `3ce383f` — feat(partner/reporting): expand Commission History columns (#406)
+- **main HEAD:** `b6f6e63` — feat(partner/reporting): enterprise override card + commission tab (#408)
 - **origin/main:** in sync
 - **Open non-dependabot PRs:** 0 (#357 still DRAFT — flagged, don't merge)
 - **Working tree:** clean
