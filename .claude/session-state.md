@@ -1,9 +1,9 @@
 # Session State
 
-🕒 Last updated: 2026-04-23 — PR #425 merged: all admin reports aggregates (Commissions Paid/Due/Pending stats, Monthly table, Top Partners ranking) now filter out orphaned CommissionLedger rows whose dealId points to a deleted Deal. Was the root cause of TestL2 TestLast appearing on Top Partners with 0 deals + $19,500 commission — previous #420 fix only skipped orphans in the deals/pipeline columns but still accumulated their amount. PR #424 before that dropped the DEMO_ENTRIES / DEMO_ACTIVE / DEMO_RECORDINGS fallbacks on admin + partner conference pages — was causing the "Record to delete does not exist" error because empty DB was substituting phantom `d1`/`d2` rows. Earlier today: #404 layout padding, #406 Commission History columns, #408 EP override card + sub-tab, #410 agreement + invite reminders, #412 HubSpot-style workflow editor, #414 Live Weekly seed gate, #416 Jitsi embed + conference reminders (Calendar sync deferred v2), #418 admin downline list shows L3s, #420 Top Partners deals counts override deals, #422 delete-error surfacing + jitsiRoom backfill.
+🕒 Last updated: 2026-04-23 — PR #427 merged: Jitsi Room Slug is now a visible, editable field in the Live Weekly add/edit form. Create mode: optional — leave blank for auto-generate. Edit mode: pre-filled with current slug + full `meet.jit.si/<slug>` URL preview. Slug-safe input. PUT handler ignores empty string so save-without-touching-slug doesn't clobber. Earlier today: #404 layout padding, #406 Commission History columns, #408 EP override card + sub-tab, #410 agreement + invite reminders, #412 HubSpot-style workflow editor, #414 Live Weekly seed gate, #416 Jitsi embed + conference reminders (Calendar sync deferred v2), #418 admin downline list shows L3s, #420 Top Partners deals counts override deals, #422 delete-error surfacing + jitsiRoom backfill, #424 drop conference demo fallbacks, #425 hide orphaned ledger rows across all reports aggregates.
 
 ## 🌿 Git state
-- **main HEAD:** `1458fdd` — fix(reports): hide orphaned ledger rows everywhere, not just Top Partners (#425)
+- **main HEAD:** `90dd859` — feat(conference): expose Jitsi room slug in admin form (#427)
 - **origin/main:** in sync
 - **Open non-dependabot PRs:** 0 (#357 still DRAFT — flagged, don't merge)
 - **Working tree:** clean
