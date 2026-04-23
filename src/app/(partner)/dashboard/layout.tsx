@@ -58,6 +58,13 @@ const MAIN_NAV: Array<{
   { id: "feature-request", href: "/dashboard/feature-request", icon: "💡", label: "Feature Requests", shortLabel: "Ideas" },
 ];
 
+// Built-in icon overrides — wins over the default emoji on MAIN_NAV,
+// loses to an admin-uploaded custom icon in PortalSettings.navIcons.
+// Mirrors BUILT_IN_ADMIN_ICONS in src/app/(admin)/admin/layout.tsx.
+const BUILT_IN_PARTNER_ICONS: Record<string, string> = {
+  reporting: "/icons/reporting-chart.svg",
+};
+
 // Mobile bottom bar items (subset)
 const MOBILE_BAR = [
   { id: "home", href: "/dashboard/home", icon: "🏠", shortLabel: "Home" },
@@ -302,7 +309,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onClick={() => navigate(item.href)}
             collapsed={isCollapsed}
             customLabel={navLabels[`partner.${item.id}`]}
-            customIcon={navIcons[`partner.${item.id}`]}
+            customIcon={navIcons[`partner.${item.id}`] || BUILT_IN_PARTNER_ICONS[item.id]}
           />
         ))}
       </div>

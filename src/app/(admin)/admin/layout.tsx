@@ -29,6 +29,13 @@ const ADMIN_NAV_IDS_DEFAULT = [
   "settings", "users", "features", "dev",
 ];
 
+// Built-in icon overrides — wins over the default emoji, loses to an
+// admin-uploaded custom icon in PortalSettings.navIcons. Use this to
+// ship hand-drawn SVG nav icons without forcing every admin to upload.
+const BUILT_IN_ADMIN_ICONS: Record<string, string> = {
+  reporting: "/icons/reporting-chart.svg",
+};
+
 const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
   home:         { id: "home", href: "/admin", icon: "🏠", label: "Home" },
   partners:     { id: "partners", href: "/admin/partners", icon: "👥", label: "Partners" },
@@ -225,8 +232,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {filteredNav.map((item) => {
         // Resolve custom label + icon for this item (admin scope).
+        // Priority: admin-uploaded custom > built-in SVG override > emoji.
         const customLabel = navLabels[`admin.${item.id}`];
-        const customIcon = navIcons[`admin.${item.id}`];
+        const customIcon = navIcons[`admin.${item.id}`] || BUILT_IN_ADMIN_ICONS[item.id];
         const renderIcon = customIcon ? (
           <img src={customIcon} alt="" className="w-5 h-5 object-contain" />
         ) : (
@@ -271,7 +279,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   {item.children.map((c) => {
                     const isActive = pathname === c.href || pathname.startsWith(c.href + "/");
                     const cLabel = navLabels[`admin.${c.id}`] || c.label;
-                    const cIcon = navIcons[`admin.${c.id}`];
+                    const cIcon = navIcons[`admin.${c.id}`] || BUILT_IN_ADMIN_ICONS[c.id];
                     return (
                       <button
                         key={c.id}
