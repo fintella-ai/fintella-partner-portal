@@ -1,9 +1,9 @@
 # Session State
 
-🕒 Last updated: 2026-04-24 — PR #444 merged: added 🏠 Home to `ALL_ADMIN_NAV_ITEMS` in the settings page so admins can reorder it from Settings → Navigation → Admin Navigation (was forgotten in #442 when the workspace landing shipped). Saved a durable feedback memory `feedback_nav_add_must_update_settings_registry` so future nav additions don't skip this step. Yesterday: PR #442 shipped the admin Workspace dashboard at `/admin`. The 2026-04-23 session had 21 PRs (Google Calendar OAuth, Jitsi embed, HubSpot-style workflow editor, reminder triggers, orphan cleanup, etc.).
+🕒 Last updated: 2026-04-24 — PR #446 merged: admin workspace V2 — right-rail PartnerContextDrawer (slides in from partner name clicks on feed rows), Activity Timeline section (client-side merge of deals + partners + payouts recent events, newest-first), and per-admin section reorder via localStorage (`fintella.admin.workspace.layout.v1`) with an ✎ Edit layout toggle. Quick Links stays pinned at the bottom. Pure front-end additions on top of the V1 from #442. Earlier today: #442 shipped the workspace, #444 added Home to the admin nav reorder registry. 2026-04-23 session had 21 PRs (Google Calendar OAuth, Jitsi embed, HubSpot-style workflow editor, reminder triggers, orphan cleanup, etc.).
 
 ## 🌿 Git state
-- **main HEAD:** `af5c5b6` — fix(settings/nav): show Home in admin nav reorder editor (#444)
+- **main HEAD:** `76b55d9` — feat(admin/workspace): V2 — right-rail drawer + activity timeline + reorder (#446)
 - **origin/main:** in sync
 - **Open non-dependabot PRs:** 0 (#357 still DRAFT — flagged, don't merge)
 - **Working tree:** clean
