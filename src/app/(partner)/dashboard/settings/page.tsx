@@ -62,6 +62,21 @@ export default function AccountSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "warning" | "error" } | null>(null);
+  // Tab state — sections split into five discrete tabs per product spec.
+  // The form data itself is shared state across every tab, so switching
+  // tabs preserves any unsaved edits (the single Save button at the
+  // bottom commits everything regardless of which tab the edit was made
+  // on). Passkeys tab is special: it manages its own state + has its
+  // own add/remove flow, so the Save button hides there.
+  type TabId = "personal" | "communication" | "address" | "payout" | "passkeys";
+  const [activeTab, setActiveTab] = useState<TabId>("personal");
+  const TABS: { id: TabId; label: string }[] = [
+    { id: "personal", label: "Personal Information" },
+    { id: "communication", label: "Communication Preferences" },
+    { id: "address", label: "Address" },
+    { id: "payout", label: "Payout Information" },
+    { id: "passkeys", label: "Passkeys (Login)" },
+  ];
 
   useEffect(() => {
     fetch("/api/partner/settings")
@@ -169,9 +184,31 @@ export default function AccountSettingsPage() {
         </div>
       )}
 
+      {/* Tab bar — horizontal scroll on mobile to fit all five tabs. */}
+      <div className="mb-5 overflow-x-auto -mx-2 px-2">
+        <div className="inline-flex gap-1 min-w-max border-b border-[var(--app-border)]">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setActiveTab(t.id)}
+              className={`font-body text-[13px] px-4 py-2.5 whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                activeTab === t.id
+                  ? "text-brand-gold border-brand-gold"
+                  : "text-[var(--app-text-muted)] border-transparent hover:text-[var(--app-text-secondary)]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {activeTab !== "passkeys" && (
       <div className={`card ${device.cardPadding} ${device.borderRadius}`}>
 
-        {/* ── Personal Information ── */}
+        {/* ── Personal Information (includes Contact Information per spec) ── */}
+        {activeTab === "personal" && (<>
         <div className="mb-6">
           <div className="font-body text-[12px] font-semibold text-[var(--app-text-secondary)] tracking-wider uppercase mb-4">
             Personal Information
@@ -275,9 +312,10 @@ export default function AccountSettingsPage() {
           </div>
         </div>
 
-        <div className="border-t border-[var(--app-border)] my-6" />
+        </>)}
 
         {/* ── Communication Preferences (Phase 15a/15b) ── */}
+        {activeTab === "communication" && (
         <div className="mb-6">
           <div className="font-body text-[12px] font-semibold text-[var(--app-text-secondary)] tracking-wider uppercase mb-2">
             Communication Preferences
@@ -338,9 +376,10 @@ export default function AccountSettingsPage() {
           </label>
         </div>
 
-        <div className="border-t border-[var(--app-border)] my-6" />
+        )}
 
         {/* ── Address ── */}
+        {activeTab === "address" && (
         <div className="mb-6">
           <div className="font-body text-[12px] font-semibold text-[var(--app-text-secondary)] tracking-wider uppercase mb-4">
             Street Address
@@ -405,7 +444,10 @@ export default function AccountSettingsPage() {
           </div>
         </div>
 
+        )}
+
         {/* ── PAYOUT INFORMATION ── */}
+        {activeTab === "payout" && (
         <div className={`card ${device.cardPadding} mb-5`}>
           <div className="font-body font-semibold text-sm mb-1">Payout Information</div>
           <p className="font-body text-[11px] text-[var(--app-text-muted)] mb-5">Banking details for commission payouts via domestic wire transfer.</p>
@@ -498,8 +540,18 @@ export default function AccountSettingsPage() {
           </div>
         </div>
 
-        {/* ── Passkeys (WebAuthn) ── */}
-        <PasskeysCard />
+        )}
+
+      </div>
+      )}
+
+      {/* ── Passkeys (WebAuthn) ── renders outside the shared form card
+           because it has its own add/remove flow that doesn't share the
+           Save button below. */}
+      {activeTab === "passkeys" && <PasskeysCard />}
+
+      {activeTab !== "passkeys" && (
+      <div>
 
         {/* ── Message banner ── */}
         {message && (
@@ -539,6 +591,7 @@ export default function AccountSettingsPage() {
           {saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
+      )}
     </div>
   );
 }
