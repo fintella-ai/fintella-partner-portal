@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
+import LevelTag from "@/components/ui/LevelTag";
 import { fmt$, fmtDate, fmtDateTime } from "@/lib/format";
 import { FIRM_SHORT, DEFAULT_FIRM_FEE_RATE } from "@/lib/constants";
 import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
@@ -614,6 +615,7 @@ export default function PartnerReportingPage() {
                               );
                               return (<>
                                 <H label="Partner" k="firstName" className="px-4 sm:px-6 py-3 text-left" />
+                                <H label="Level" k="tier" />
                                 <H label="Code" k="partnerCode" />
                                 <H label="Company" k="companyName" />
                                 <H label="Status" k="status" />
@@ -631,6 +633,7 @@ export default function PartnerReportingPage() {
                             return (
                             <tr key={p.id} className={`border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
                               <td className="px-4 sm:px-6 py-3.5 font-body text-[13px] font-medium text-[var(--app-text)]">{p.firstName} {p.lastName}</td>
+                              <td className="px-3 py-3.5 text-center"><LevelTag tier={p.tier} /></td>
                               <td className="px-3 py-3.5 text-center font-mono text-[12px] text-[var(--app-text-muted)]">{p.partnerCode}</td>
                               <td className="px-3 py-3.5 text-center font-body text-[12px] text-[var(--app-text-secondary)]">{p.companyName || "—"}</td>
                               <td className="px-3 py-3.5 text-center">
