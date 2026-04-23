@@ -123,7 +123,12 @@ export default function AdminPartnersPage() {
   const [formRate, setFormRate] = useState<number>(0.25);
   const [formRateMode, setFormRateMode] = useState<"standard" | "custom">("standard");
   const [formCustomPct, setFormCustomPct] = useState<string>("");
-  const [addPayoutDownlineEnabled, setAddPayoutDownlineEnabled] = useState(false);
+  // Default-on per policy change 2026-04-23: Fintella pays every
+  // downline partner directly (everyone signs a Fintella agreement),
+  // so the "Enable Payout Downline Partners" checkbox starts checked.
+  // Admins can still uncheck it for the rare legacy case where an L1
+  // is responsible for paying their own downline.
+  const [addPayoutDownlineEnabled, setAddPayoutDownlineEnabled] = useState(true);
   const [formError, setFormError] = useState("");
 
   // Invite L1 partner modal
@@ -134,7 +139,7 @@ export default function AdminPartnersPage() {
   const [inviteRate, setInviteRate] = useState<number | "">(0.25);
   const [inviteRateMode, setInviteRateMode] = useState<"standard" | "custom">("standard");
   const [inviteCustomPct, setInviteCustomPct] = useState<string>("");
-  const [invitePayoutDownlineEnabled, setInvitePayoutDownlineEnabled] = useState(false);
+  const [invitePayoutDownlineEnabled, setInvitePayoutDownlineEnabled] = useState(true);
   const [inviteError, setInviteError] = useState("");
   const [inviteResult, setInviteResult] = useState<{ signupUrl: string } | null>(null);
   const [inviteSending, setInviteSending] = useState(false);
@@ -306,7 +311,7 @@ export default function AdminPartnersPage() {
     setShowInvite(false);
     setInviteEmail(""); setInviteFirst(""); setInviteLast(""); setInviteRate(0.25);
     setInviteRateMode("standard"); setInviteCustomPct("");
-    setInvitePayoutDownlineEnabled(false);
+    setInvitePayoutDownlineEnabled(true);
     setInviteError(""); setInviteResult(null);
   };
 
@@ -401,7 +406,7 @@ export default function AdminPartnersPage() {
       setShowForm(false);
       setFormFirst(""); setFormLast(""); setFormEmail(""); setFormPhone(""); setFormCode(""); setFormReferrer("");
       setFormTier("l1"); setFormRate(0.25); setFormRateMode("standard"); setFormCustomPct("");
-      setAddPayoutDownlineEnabled(false);
+      setAddPayoutDownlineEnabled(true);
       fetchPartners();
     } catch {
       setFormError("Connection error");
@@ -697,7 +702,7 @@ export default function AdminPartnersPage() {
           )}
           <div className="flex gap-3 mt-4">
             <button onClick={handleAdd} className="btn-gold text-[12px] px-5 py-2.5">Create Partner</button>
-            <button onClick={() => { setShowForm(false); setAddPayoutDownlineEnabled(false); }} className="font-body text-[12px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-5 py-2.5 hover:text-[var(--app-text-secondary)] transition-colors">Cancel</button>
+            <button onClick={() => { setShowForm(false); setAddPayoutDownlineEnabled(true); }} className="font-body text-[12px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-5 py-2.5 hover:text-[var(--app-text-secondary)] transition-colors">Cancel</button>
           </div>
         </div>
       )}
