@@ -47,6 +47,7 @@ export default function AdminConferencePage() {
   const [formDuration, setFormDuration] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
+  const [formJitsiRoom, setFormJitsiRoom] = useState("");
 
   // ── Fetch ──────────────────────────────────────────────────────────────
 
@@ -76,6 +77,7 @@ export default function AdminConferencePage() {
     setFormWeekNumber(""); setFormJoinUrl(""); setFormEmbedUrl("");
     setFormRecordingUrl(""); setFormSchedule(""); setFormNextCall("");
     setFormDuration(""); setFormNotes(""); setFormIsActive(true);
+    setFormJitsiRoom("");
     setEditingItem(null); setShowForm(false);
   };
 
@@ -98,6 +100,7 @@ export default function AdminConferencePage() {
     setFormDuration(entry.duration || "");
     setFormNotes(entry.notes || "");
     setFormIsActive(entry.isActive);
+    setFormJitsiRoom(entry.jitsiRoom || "");
     setShowForm(true);
   };
 
@@ -119,6 +122,10 @@ export default function AdminConferencePage() {
       duration: formDuration.trim() || null,
       notes: formNotes.trim() || null,
       isActive: formIsActive,
+      // Optional override. Empty string on create → server auto-generates
+      // a slug. Empty string on edit → we leave the existing slug
+      // untouched (handled server-side in the PUT handler).
+      jitsiRoom: formJitsiRoom.trim() || null,
     };
 
     try {
@@ -340,6 +347,30 @@ export default function AdminConferencePage() {
                 className="w-full bg-[var(--app-card-bg)] border border-[var(--app-border)] rounded-lg px-3 py-2.5 font-body text-[13px] text-[var(--app-text)] focus:border-brand-gold/40 focus:outline-none transition-colors"
                 placeholder="52 min"
               />
+            </div>
+            {/* Jitsi Room Slug — partners join this room in-portal via iframe.
+                Leave blank on create and the server auto-generates a unique
+                slug from the id + week number. Admin can edit after create
+                to use a vanity slug (e.g. "fintella-weekly-301-update"). */}
+            <div className="sm:col-span-2">
+              <label className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Jitsi Room Slug</label>
+              <input
+                type="text"
+                value={formJitsiRoom}
+                onChange={(e) => setFormJitsiRoom(e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g, "-"))}
+                className="w-full bg-[var(--app-card-bg)] border border-[var(--app-border)] rounded-lg px-3 py-2.5 font-body text-[13px] text-[var(--app-text)] focus:border-brand-gold/40 focus:outline-none transition-colors font-mono"
+                placeholder={editingItem ? "Leave blank to keep existing" : "Leave blank to auto-generate (recommended)"}
+              />
+              {formJitsiRoom && (
+                <div className="mt-1.5 font-body text-[11px] text-[var(--app-text-muted)]">
+                  Partners join in-portal. Full URL: <span className="font-mono text-[var(--app-text-secondary)]">https://meet.jit.si/{formJitsiRoom}</span>
+                </div>
+              )}
+              {!formJitsiRoom && !editingItem && (
+                <div className="mt-1.5 font-body text-[11px] text-[var(--app-text-muted)]">
+                  A unique Jitsi slug is generated automatically from the week number when you save.
+                </div>
+              )}
             </div>
             {/* Notes */}
             <div className="sm:col-span-2">
