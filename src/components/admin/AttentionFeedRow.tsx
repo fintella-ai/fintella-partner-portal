@@ -54,14 +54,24 @@ function relativeAge(iso: string): string {
  * Single row in the admin workspace "Needs Attention" feed. Renders a
  * source badge, partner label, summary, relative age, and a quick-action
  * button that deep-links to the page where the action lives.
+ *
+ * If `onSelectPartner` is provided, clicking the partner name opens
+ * the right-rail partner context drawer instead of navigating.
  */
-export default function AttentionFeedRow({ item }: { item: AttentionItem }) {
+export default function AttentionFeedRow({
+  item,
+  onSelectPartner,
+}: {
+  item: AttentionItem;
+  onSelectPartner?: (partnerCode: string) => void;
+}) {
   const meta = SOURCE_META[item.source];
   const age = relativeAge(item.createdAt);
   const staleBadge =
     (Date.now() - new Date(item.createdAt).getTime()) / 86_400_000 >= 3
       ? "text-red-400"
       : "theme-text-muted";
+  const canSelect = !!(onSelectPartner && item.partnerCode);
 
   return (
     <div className="grid grid-cols-[auto_1fr_auto_auto] gap-3 items-center px-4 sm:px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors">
@@ -72,9 +82,19 @@ export default function AttentionFeedRow({ item }: { item: AttentionItem }) {
             {meta.label}
           </span>
           {item.partnerName && (
-            <span className="font-body text-[12px] text-[var(--app-text)] truncate">
-              {item.partnerName}
-            </span>
+            canSelect ? (
+              <button
+                onClick={() => onSelectPartner!(item.partnerCode!)}
+                className="font-body text-[12px] text-[var(--app-text)] truncate hover:text-brand-gold transition-colors"
+                title="Open partner context"
+              >
+                {item.partnerName}
+              </button>
+            ) : (
+              <span className="font-body text-[12px] text-[var(--app-text)] truncate">
+                {item.partnerName}
+              </span>
+            )
           )}
           {item.partnerCode && (
             <span className="font-mono text-[10px] theme-text-faint">{item.partnerCode}</span>
