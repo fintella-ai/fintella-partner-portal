@@ -557,9 +557,7 @@ export default function HomePage() {
           className="mb-6 sm:mb-8 flex items-center justify-center gap-3 rounded-xl border border-yellow-500/25 bg-yellow-500/[0.06] px-4 py-3 font-body text-[13px] text-yellow-400 hover:bg-yellow-500/[0.1] transition-colors"
         >
           <span aria-hidden>📝</span>
-          <span>
-            <strong>{pendingAgreementCount}</strong> downline {pendingAgreementCount === 1 ? "agreement needs" : "agreements need"} your upload
-          </span>
+          <span className="font-semibold">Downline Agreements Need Your Upload</span>
           <span className="text-yellow-400/70">→</span>
         </a>
       )}
