@@ -6,6 +6,8 @@ import { useSession } from "next-auth/react";
 import { getPermissions, type AdminRole } from "@/lib/permissions";
 import WorkspaceStatCard from "@/components/admin/WorkspaceStatCard";
 import AttentionFeedRow, { type AttentionItem, type AttentionSource } from "@/components/admin/AttentionFeedRow";
+import PartnerContextDrawer from "@/components/admin/PartnerContextDrawer";
+import ActivityTimeline from "@/components/admin/ActivityTimeline";
 import { fmt$ } from "@/lib/format";
 
 /**
@@ -49,6 +51,28 @@ const INITIAL_STATS: Stats = {
   featureRequests: 0,
 };
 
+// Sections that the admin can reorder. `quickLinks` sits at the bottom
+// and isn't reorderable (it's a permanent "what to do next" footer).
+type SectionId = "stats" | "attention" | "activity";
+const DEFAULT_SECTION_ORDER: SectionId[] = ["stats", "attention", "activity"];
+const LAYOUT_KEY = "fintella.admin.workspace.layout.v1";
+
+function readLayout(): SectionId[] {
+  if (typeof window === "undefined") return DEFAULT_SECTION_ORDER;
+  try {
+    const raw = window.localStorage.getItem(LAYOUT_KEY);
+    if (!raw) return DEFAULT_SECTION_ORDER;
+    const parsed = JSON.parse(raw) as SectionId[];
+    // Reconcile: drop unknown ids, append missing defaults, preserves order.
+    const known = new Set<SectionId>(DEFAULT_SECTION_ORDER);
+    const preserved = parsed.filter((s) => known.has(s));
+    const appended = DEFAULT_SECTION_ORDER.filter((s) => !preserved.includes(s));
+    return [...preserved, ...appended];
+  } catch {
+    return DEFAULT_SECTION_ORDER;
+  }
+}
+
 export default function AdminWorkspacePage() {
   const { data: session } = useSession();
   const role = ((session?.user as any)?.role || "admin") as AdminRole;
@@ -60,6 +84,61 @@ export default function AdminWorkspacePage() {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>("all");
+
+  // Right-rail partner context drawer state
+  const [drawerPartnerCode, setDrawerPartnerCode] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const openPartnerDrawer = useCallback((code: string) => {
+    setDrawerPartnerCode(code);
+    setDrawerOpen(true);
+  }, []);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  // Per-admin layout — section order + edit-mode toggle. Stored in
+  // localStorage so it's per-browser/per-admin with no schema change.
+  const [sectionOrder, setSectionOrder] = useState<SectionId[]>(DEFAULT_SECTION_ORDER);
+  const [editMode, setEditMode] = useState(false);
+  const [draggedSection, setDraggedSection] = useState<SectionId | null>(null);
+
+  // Hydrate layout from localStorage on mount (client only).
+  useEffect(() => {
+    setSectionOrder(readLayout());
+  }, []);
+
+  const persistLayout = useCallback((next: SectionId[]) => {
+    setSectionOrder(next);
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(LAYOUT_KEY, JSON.stringify(next));
+      } catch {
+        // localStorage quota / privacy mode — best-effort
+      }
+    }
+  }, []);
+
+  const onSectionDragStart = (e: React.DragEvent, id: SectionId) => {
+    if (!editMode) return;
+    setDraggedSection(id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+  const onSectionDragOver = (e: React.DragEvent) => {
+    if (!editMode || !draggedSection) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+  const onSectionDrop = (e: React.DragEvent, targetId: SectionId) => {
+    if (!editMode || !draggedSection) return;
+    e.preventDefault();
+    if (draggedSection === targetId) { setDraggedSection(null); return; }
+    const next = [...sectionOrder];
+    const src = next.indexOf(draggedSection);
+    const dst = next.indexOf(targetId);
+    if (src < 0 || dst < 0) { setDraggedSection(null); return; }
+    next.splice(src, 1);
+    next.splice(dst, 0, draggedSection);
+    persistLayout(next);
+    setDraggedSection(null);
+  };
 
   const loadWorkspace = useCallback(async () => {
     const [
@@ -292,23 +371,68 @@ export default function AdminWorkspacePage() {
   const showPayoutsCard = permissions.canEditPayouts;
   const showFeatureCard = role === "super_admin";
 
-  return (
-    <div>
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="font-display text-[22px] font-bold mb-1">
-          Workspace
-        </h2>
-        <p className="font-body text-[13px] text-[var(--app-text-muted)]">
-          {adminName ? `Welcome back, ${adminName}. ` : ""}Everything that needs your attention, in one place.
-          {lastRefreshed && (
-            <span className="theme-text-faint"> · Refreshed {lastRefreshed.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
-          )}
-        </p>
-      </div>
+  // Build the three reorderable sections as a map so we can render
+  // them in whatever order sectionOrder dictates. Quick Links is NOT
+  // reorderable — it stays pinned below the rest.
+  const sectionRenderers: Record<SectionId, () => JSX.Element> = {
+    stats: () => (
+      <section
+        key="stats"
+        draggable={editMode}
+        onDragStart={(e) => onSectionDragStart(e, "stats")}
+        onDragOver={onSectionDragOver}
+        onDrop={(e) => onSectionDrop(e, "stats")}
+        className={`mb-6 ${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move" : ""}`}
+      >
+        {editMode && (
+          <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">
+            ⋮⋮ Stats row — drag to reorder
+          </div>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {renderStatCards()}
+        </div>
+      </section>
+    ),
+    attention: () => (
+      <section
+        key="attention"
+        draggable={editMode}
+        onDragStart={(e) => onSectionDragStart(e, "attention")}
+        onDragOver={onSectionDragOver}
+        onDrop={(e) => onSectionDrop(e, "attention")}
+        className={`mb-6 ${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move" : ""}`}
+      >
+        {editMode && (
+          <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">
+            ⋮⋮ Needs Attention — drag to reorder
+          </div>
+        )}
+        {renderAttentionFeed()}
+      </section>
+    ),
+    activity: () => (
+      <section
+        key="activity"
+        draggable={editMode}
+        onDragStart={(e) => onSectionDragStart(e, "activity")}
+        onDragOver={onSectionDragOver}
+        onDrop={(e) => onSectionDrop(e, "activity")}
+        className={`mb-6 ${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move" : ""}`}
+      >
+        {editMode && (
+          <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">
+            ⋮⋮ Recent Activity — drag to reorder
+          </div>
+        )}
+        <ActivityTimeline refreshKey={lastRefreshed?.getTime() || 0} />
+      </section>
+    ),
+  };
 
-      {/* ═══ HERO STATS ══════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+  function renderStatCards() {
+    return (
+      <>
         {showMessagingCard && (
           <WorkspaceStatCard
             label="Unread Messages"
@@ -351,10 +475,13 @@ export default function AdminWorkspacePage() {
             href="/admin/features"
           />
         )}
-      </div>
+      </>
+    );
+  }
 
-      {/* ═══ NEEDS ATTENTION ════════════════════════════════════════ */}
-      <div className="card mb-6">
+  function renderAttentionFeed() {
+    return (
+      <div className="card">
         <div className="px-4 sm:px-5 pt-4 pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
             <div className="font-body font-semibold text-sm">Needs Attention</div>
@@ -393,12 +520,47 @@ export default function AdminWorkspacePage() {
               </div>
             </div>
           ) : (
-            filteredItems.map((item) => <AttentionFeedRow key={item.id} item={item} />)
+            filteredItems.map((item) => (
+              <AttentionFeedRow key={item.id} item={item} onSelectPartner={openPartnerDrawer} />
+            ))
           )}
         </div>
       </div>
+    );
+  }
 
-      {/* ═══ QUICK LINKS ════════════════════════════════════════════ */}
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="font-display text-[22px] font-bold mb-1">
+            Workspace
+          </h2>
+          <p className="font-body text-[13px] text-[var(--app-text-muted)]">
+            {adminName ? `Welcome back, ${adminName}. ` : ""}Everything that needs your attention, in one place.
+            {lastRefreshed && (
+              <span className="theme-text-faint"> · Refreshed {lastRefreshed.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={() => setEditMode((v) => !v)}
+          className={`font-body text-[12px] px-3 py-2 rounded-lg border transition-colors ${
+            editMode
+              ? "bg-brand-gold text-black border-brand-gold font-semibold"
+              : "border-[var(--app-border)] theme-text-secondary hover:bg-brand-gold/10 hover:border-brand-gold/40"
+          }`}
+          title="Drag to reorder sections — saved per admin via localStorage"
+        >
+          {editMode ? "✓ Done editing" : "✎ Edit layout"}
+        </button>
+      </div>
+
+      {/* Render the 3 reorderable sections in the admin's chosen order */}
+      {sectionOrder.map((id) => sectionRenderers[id]())}
+
+      {/* ═══ QUICK LINKS — pinned to the bottom, not reorderable ═══ */}
       <div className="card p-4 sm:p-5">
         <div className="font-body font-semibold text-sm mb-3">Quick Links</div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -410,6 +572,13 @@ export default function AdminWorkspacePage() {
           <QuickLink href="/admin/conference" label="+ Live Weekly" icon="📹" />
         </div>
       </div>
+
+      {/* Right-rail partner context drawer */}
+      <PartnerContextDrawer
+        open={drawerOpen}
+        partnerCode={drawerPartnerCode}
+        onClose={closeDrawer}
+      />
     </div>
   );
 }
