@@ -7,6 +7,7 @@ import { FIRM_SHORT } from "@/lib/constants";
 import { useDevice } from "@/lib/useDevice";
 import NotificationBell from "@/components/ui/NotificationBell";
 import SoftPhone from "@/components/ui/SoftPhone";
+import InternalChatWidget from "@/components/admin/InternalChatWidget";
 import { getVisibleNav, getPermissions, ROLE_LABELS, type AdminRole } from "@/lib/permissions";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { reconcileNavOrder } from "@/lib/reconcileNavOrder";
@@ -479,6 +480,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           via window.__fintellaSoftphone.call(phone, name). Docks in the
           bottom-right until someone opens it. */}
       <SoftPhone />
+
+      {/* Persistent admin internal chat — layout-mounted so it stays
+          alive across page navigation. Toggle via the floating bubble
+          (bottom-right) or window.__fintellaInternalChat.toggle(). */}
+      <InternalChatWidget />
     </div>
   );
 }

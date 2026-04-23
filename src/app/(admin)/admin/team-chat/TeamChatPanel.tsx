@@ -28,15 +28,15 @@ type Message = {
   mentions: Mention[];
 };
 
-export default function TeamChatPanel() {
+export default function TeamChatPanel({ searchQuery }: { searchQuery?: string } = {}) {
   return (
     <Suspense fallback={<div className="font-body text-sm text-[var(--app-text-muted)]">Loading…</div>}>
-      <TeamChatInner />
+      <TeamChatInner searchQuery={searchQuery || ""} />
     </Suspense>
   );
 }
 
-function TeamChatInner() {
+function TeamChatInner({ searchQuery }: { searchQuery: string }) {
   const params = useSearchParams();
   const initialThreadId = params?.get("threadId") || null;
 
@@ -140,7 +140,25 @@ function TeamChatInner() {
         {/* Rail */}
         <div className={`${activeThreadId ? "hidden md:flex" : "flex"} w-full md:w-[280px] shrink-0 card flex-col overflow-hidden`}>
           <div className="flex-1 overflow-y-auto">
-            {threads.map((t) => (
+            {/* When the widget passes a `searchQuery`, filter threads by
+                name (Global / deal name). Minimal client-side filter —
+                no API change needed. */}
+            {(() => {
+              const q = (searchQuery || "").trim().toLowerCase();
+              const visible = q
+                ? threads.filter((t) => {
+                    const title = t.type === "global" ? "global room" : (t.dealName || "").toLowerCase();
+                    return title.includes(q);
+                  })
+                : threads;
+              if (q && visible.length === 0) {
+                return (
+                  <div className="px-4 py-6 text-center font-body text-[12px] text-[var(--app-text-muted)]">
+                    No threads match &ldquo;{searchQuery}&rdquo;.
+                  </div>
+                );
+              }
+              return visible.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setActiveThreadId(t.id)}
@@ -158,7 +176,8 @@ function TeamChatInner() {
                 </div>
                 <div className="font-body text-[10px] text-[var(--app-text-faint)]">{t.messageCount} messages</div>
               </button>
-            ))}
+              ));
+            })()}
           </div>
         </div>
 
