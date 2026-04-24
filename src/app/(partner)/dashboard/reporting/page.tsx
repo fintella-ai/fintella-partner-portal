@@ -339,7 +339,7 @@ export default function PartnerReportingPage() {
                         <StageBadge stage={deal.stage} />
                       </div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`font-body text-[10px] font-semibold rounded px-1.5 py-0.5 ${deal.source === "direct" ? "text-brand-gold bg-brand-gold/10 border border-brand-gold/20" : "text-purple-400 bg-purple-500/10 border border-purple-500/20"}`}>{deal.source === "direct" ? "L1 Direct" : "L2 Downline"}</span>
+                        <span className={`font-body text-[10px] font-semibold rounded px-1.5 py-0.5 ${deal.source === "direct" ? "text-brand-gold bg-brand-gold/10 border border-brand-gold/20" : "text-purple-400 bg-purple-500/10 border border-purple-500/20"}`}>{deal.source === "direct" ? "Direct" : "My L2"}</span>
                         <div className="font-body text-[11px] text-[var(--app-text-muted)]">{fmtDate(deal.createdAt)}</div>
                       </div>
                       <div className="flex items-center justify-between">
