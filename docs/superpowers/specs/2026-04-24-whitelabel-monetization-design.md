@@ -30,6 +30,7 @@
 - **Integrated partner qualification booker** (already built — `/booker` + BookingSlot / PartnerApplication models).
 - **Tenant-branded partner portal** — your customer's partners see your customer's brand, not ours.
 - **Generic connector framework** — tenant admin plugs in ANY business partner they work with, no waiting on a marketplace listing.
+- **🔥 Vetted pathway network (see section 11)** — the biggest moat. When a tenant buys Fintella OS, they don't just get a tracking platform — they get an **instant monetization engine** for their partners + end-clients. Flip on pathway integrations (tax strategy, accounting, insurance, utility reduction, lending, credit repair, 1099 filing, agreement management) and every one of your customer's partners can drop those offerings into their own book of business on day one. Revenue shows up before V1's commission engine ever fires, because partners start earning pathway commissions immediately. This is what no generic competitor can match — it's a **curated revenue marketplace bolted to the referral infrastructure**.
 
 ---
 
@@ -329,6 +330,46 @@ A key insight from the 2026-04-24 brainstorm: Fintella OS's V1 architecture (ten
 | **Secure document collection** | Client-upload flow for regulated docs (W-9, employment records, tax forms, incorporation docs); per-doc encryption + audit log | 2 weeks (extends Document model; add end-to-end-encrypted upload endpoint) |
 | **IRS transcript parsing** | Client uploads IRS transcript PDF → OCR → extract fields → populate deal record | 1–2 weeks (Claude-API-backed parsing pipeline; PDF → structured JSON → Deal fields) |
 | **Reporting + analytics suite** | Pre-built dashboards for tenant's business ops (pipeline velocity, conversion rate, rep performance, commission forecasts) | 2–3 weeks (extends existing `/admin/reports` tabs) |
+| **Landing page builder + editor** | Data-driven admin-editable landing page with AI "🪄 Regenerate" from portal content, A/B headline variants, pixel injection, exit-intent lead magnet. Already shipped in production Fintella (PR #518) — port as-is with tenant-branded defaults. | ~0 weeks incremental (clean port of existing code) |
+| **Lead-generation ad-set management** | Tenant-scoped ad campaigns — UTM builder, pixel-wired landing variants, ad-copy generator (Claude-backed), cost tracking per campaign, attributed-deal reporting. Manual export for ad platforms without public APIs; direct API publish where available (Google Ads, Meta Marketing API, LinkedIn Campaign Manager) | 3–4 weeks (new AdCampaign model + platform API connectors) |
+| **Partner recruiting automation** | Prospect identification, outbound sequence templates, cold-email + SMS cadences (TCPA-gated), response-triggered invite auto-send, recruitment-bonus incentives, conversion funnel analytics | 3 weeks (extends Application + reuses existing workflow engine) |
+| **Social-media content scheduler + publisher** | Cross-platform scheduling (X, LinkedIn, Facebook, Instagram, TikTok, Threads, YouTube), AI-generated content from deal wins / milestones / training releases, tagging + hashtag intelligence, calendar view, bulk upload, engagement analytics. Start with Buffer-style proxy layer, add native publishers per platform post-launch | 4–6 weeks (new ContentPost / SocialAccount / PublishJob models + platform APIs) |
+| **SEO booster (profit-center add-on)** | Per-tenant SEO audit, keyword tracker, AI-generated blog posts from training modules + FAQs, schema.org injection, sitemap/robots automation, backlink prospect finder | 3–4 weeks (extends the Landing Beast v2 SEO foundations) |
+| **Partner 1099 tax management** | Year-end 1099-NEC generation + e-filing with the IRS + state revenue departments; partner-facing W-9 collection at signup; per-partner tax summary dashboard; integration with Stripe Tax or Track1099 for the filing pipeline | 3–4 weeks (new PartnerTaxRecord model + IRS / Track1099 API integration) |
+| **Partner agreement management + legal review** | E-signature (SignWell pass-through), amendment workflow, legal-review queue with attorney reviewer assignment, risk scoring, version history, per-partner agreement audit log, template library (NDA / MSA / addendum / cancellation) | 2–3 weeks (extends existing PartnershipAgreement + SignWell flow) |
+| **Tax-strategy partner network** | Marketplace of vetted tax strategists tenants can introduce to their partners + end-clients (entity restructuring, Augusta rule, QBI optimization, Roth conversions, IC-DISC, etc.). Tenant earns referral fee on successful engagements. Resources library + scheduling | 3–4 weeks (new StrategyPartner / Resource / Referral models + scheduling integration) |
+| **Accounting services pathway** | Pathway: tenant's partners refer their clients into bookkeeping / monthly accounting / CFO-as-a-service providers in the network. Revenue share back to tenant + referring partner. Integration with QuickBooks / Xero client sync | 3–4 weeks (reuses referral + commission engines; adds QB / Xero connectors) |
+| **Insurance pathway** | Same model — partners refer clients to commercial / health / life / cyber insurance brokers in the Fintella-vetted network. Tenant + partner earn referral commissions | 2–3 weeks (reuses referral + commission engines) |
+| **Utility-cost-reduction pathway** | Commercial utility auditing + switching — energy brokers, telecom consultants, waste-management consultants. Refer in, recover savings, earn a % of year-one savings | 2 weeks (reuses referral engine + commission waterfall as is) |
+| **Lending + capital pathway** | Working capital, SBA loans, equipment financing, invoice factoring, MCA — referral network into vetted lenders; tenant + partner earn origination referral fees | 2–3 weeks (reuses referral engine) |
+| **Credit repair pathway** | Tenant's partners refer end-clients (business owners, employees, customers) into vetted credit-repair services; tenant + partner earn referral fees on enrollment + successful cleanup milestones | 2 weeks (reuses referral engine) |
+
+### Upsell pricing — per-module profit-center add-ons
+
+These extensions are sold as add-ons on top of the base tier. Tenants compose their product based on their business model.
+
+| Add-on | Typical price | Billing model |
+|---|---|---|
+| Landing page builder + editor | Included (base tier) | — |
+| Project management backend | +$297/mo | Flat |
+| Client portal + Secure document collection | +$497/mo | Flat + per-upload storage |
+| IRS transcript parsing | +$197/mo | Flat + $0.50/transcript metered |
+| Sales front-end CRM | +$297/mo | Flat |
+| Social media scheduler | +$397/mo | Flat + per-platform tier |
+| SEO booster | +$297/mo | Flat |
+| Lead-gen ad-set management | +$397/mo | Flat + Claude API pass-through at cost |
+| Partner recruiting automation | +$197/mo | Flat (TCPA-gated SMS sends metered at cost) |
+| Partner 1099 tax management | +$297/mo seasonally (Q4–Q1 only) | Flat during filing season; $0 off-season |
+| Partner agreement management | +$147/mo | Flat |
+| Tax-strategy pathway | Free to tenant; rev-share model (Fintella takes % of strategy engagement fees) | Pathway rev-share |
+| Accounting pathway | Free to tenant; rev-share | Pathway rev-share |
+| Insurance pathway | Free to tenant; rev-share | Pathway rev-share |
+| Utility-cost-reduction pathway | Free to tenant; rev-share | Pathway rev-share |
+| Lending pathway | Free to tenant; rev-share | Pathway rev-share |
+| Credit repair pathway | Free to tenant; rev-share | Pathway rev-share |
+
+**Illustrative ACV at saturation:**
+A Scale tier tenant adopting 4 flat add-ons + activating 2 pathway rev-shares = $2,997 base + ~$1,200 add-ons + pathway upside = $4,200+/mo direct ACV before pathway rev-share upside. 25 customers at that mix = $105k MRR + pathway commissions.
 
 ### Strategic implication
 
