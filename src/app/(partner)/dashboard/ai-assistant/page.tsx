@@ -601,6 +601,8 @@ const TOOL_LABELS: Record<string, string> = {
   create_support_ticket: "Ticket created",
   start_live_chat: "Live chat started",
   initiate_live_transfer: "Live call initiated",
+  offer_schedule_slots: "Slots offered",
+  book_slot: "Call booked",
 };
 
 function ToolCallChip({ call }: { call: ToolCallRecord }) {
@@ -718,6 +720,27 @@ function describeToolCall(call: ToolCallRecord): string {
       const role =
         typeof routed.role === "string" ? routed.role : "support";
       return `${n} admin${n === 1 ? "" : "s"} · ${role}`;
+    }
+    case "offer_schedule_slots": {
+      const slots = Array.isArray(output.slots) ? output.slots : [];
+      const inbox = (output.inbox ?? {}) as Record<string, unknown>;
+      const role = typeof inbox.role === "string" ? inbox.role : "support";
+      return `${slots.length} slot${slots.length === 1 ? "" : "s"} · ${role}`;
+    }
+    case "book_slot": {
+      const startUtc =
+        typeof output.startUtc === "string" ? output.startUtc : "";
+      const when = startUtc
+        ? new Date(startUtc).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : "";
+      const routed = (output.routedTo ?? {}) as Record<string, unknown>;
+      const role = typeof routed.role === "string" ? routed.role : "";
+      return `${when}${role ? ` · ${role}` : ""}`;
     }
     default:
       return "";
