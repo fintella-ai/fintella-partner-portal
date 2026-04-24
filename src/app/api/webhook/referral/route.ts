@@ -1644,8 +1644,31 @@ async function withApiLog(
 
 // ─── Next.js route exports ──────────────────────────────────────────────────
 
+// POST is the only verb some integrators (firewalled partner stacks, plain
+// HTML forms, zaps) can send, so it now covers BOTH create and update:
+//
+//   - body.dealId present → treated as an update (delegates to patchHandler)
+//   - body.dealId absent  → treated as a new-deal submission (postHandler)
+//
+// PATCH still works for callers that can send it — same update path.
 export async function POST(req: NextRequest) {
-  return withApiLog(req, postHandler);
+  return withApiLog(req, async (innerReq) => {
+    // Peek the body via a clone so the real handler can still read the
+    // stream. An unparseable body peeks as "no dealId" → falls through to
+    // postHandler, which will return a proper 400 for the bad JSON.
+    let looksLikeUpdate = false;
+    try {
+      const peek = await innerReq.clone().json();
+      looksLikeUpdate =
+        peek &&
+        typeof peek === "object" &&
+        typeof peek.dealId === "string" &&
+        peek.dealId.trim().length > 0;
+    } catch {
+      looksLikeUpdate = false;
+    }
+    return looksLikeUpdate ? patchHandler(innerReq) : postHandler(innerReq);
+  });
 }
 
 export async function PATCH(req: NextRequest) {
