@@ -18,8 +18,17 @@ if (process.env.SENTRY_AUTH_TOKEN) {
     silent: !process.env.CI,
     // Upload a larger set of source maps for prettier stack traces
     widenClientFileUpload: true,
-    // Strip Sentry logger calls from the client bundle to save bytes
-    disableLogger: true,
+    // Strip Sentry logger calls from the client bundle to save bytes.
+    // `disableLogger: true` is deprecated as of @sentry/nextjs v9; the
+    // replacement is `webpack.treeshake.removeDebugLogging`. Note this is
+    // webpack-only — if we ever enable Turbopack, this option becomes a
+    // no-op and we should fall back to `disableLogger` (which still
+    // functions, just warns) or remove the stripping entirely.
+    webpack: {
+      treeshake: {
+        removeDebugLogging: true,
+      },
+    },
     // Tunnel Sentry events through our own route so ad-blockers +
     // privacy extensions don't drop them. /monitoring is intentionally
     // more generic than the wizard-default /sentry-tunnel — the literal
