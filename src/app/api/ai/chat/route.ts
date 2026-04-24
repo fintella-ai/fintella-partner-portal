@@ -169,10 +169,11 @@ export async function POST(req: NextRequest) {
 
     // If the UI pin forced a specialist, record it as a user_button-triggered
     // handoff for telemetry even though no tool call happened server-side.
+    // (personaId is always a generalist here — "finn" | "stella" — so any
+    // specialist pin is by definition a handoff, no need to compare.)
     if (
       !handoffMeta &&
-      (pinnedSpecialist === "tara" || pinnedSpecialist === "ollie") &&
-      personaId !== pinnedSpecialist
+      (pinnedSpecialist === "tara" || pinnedSpecialist === "ollie")
     ) {
       handoffMeta = {
         from: personaId,

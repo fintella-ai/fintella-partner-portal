@@ -62,10 +62,15 @@ export async function extractPdfTextFromBuffer(
   try {
     // Dynamic import — pdf-parse pulls in heavy deps we want lazy-loaded
     // off the hot path for any request that doesn't need extraction.
-    const pdfParseModule = (await import("pdf-parse")) as
-      | ((buf: Buffer) => Promise<{ text: string; numpages?: number }>)
-      | { default: (buf: Buffer) => Promise<{ text: string; numpages?: number }> };
-    const pdfParse =
+    // Cast through `unknown` because the module's published types don't
+    // match either the CJS-style callable export or the ESM default shape
+    // we actually get at runtime. Worst case at runtime we fall into the
+    // catch below and return empty text.
+    type PdfParseFn = (buf: Buffer) => Promise<{ text: string; numpages?: number }>;
+    const pdfParseModule = (await import("pdf-parse")) as unknown as
+      | PdfParseFn
+      | { default: PdfParseFn };
+    const pdfParse: PdfParseFn =
       typeof pdfParseModule === "function"
         ? pdfParseModule
         : pdfParseModule.default;

@@ -107,7 +107,7 @@ export default function ReferralLinksPage() {
   // old ensureInvitesExist auto-gen so the Tracking tab isn't pre-populated
   // with unused links (a brand new partner's Tracking tab should start empty).
   const createInviteForRate = useCallback(
-    async (rate: number): Promise<Invite | null> => {
+    async (rate: number): Promise<Invite | undefined> => {
       const existing = invites.find(
         (i) =>
           Math.round(i.commissionRate * 100) === Math.round(rate * 100) &&
@@ -119,10 +119,10 @@ export default function ReferralLinksPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rate }),
       });
-      if (!res.ok) return null;
+      if (!res.ok) return undefined;
       const data = await res.json();
       await loadInvites();
-      return (data.invite as Invite) ?? null;
+      return (data.invite as Invite) ?? undefined;
     },
     [invites, loadInvites]
   );
