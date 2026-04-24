@@ -6,6 +6,7 @@ import { FIRM_SHORT } from "@/lib/constants";
 import { fmt$ } from "@/lib/format";
 import { GettingStartedChecklist } from "@/components/partner/GettingStartedChecklist";
 import { markGettingStartedVideoWatched } from "@/lib/markGettingStarted";
+import GlossaryText from "@/components/ui/GlossaryText";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DEMO DATA
@@ -398,7 +399,10 @@ export default function HomePage() {
                   <div className={`font-body text-sm font-semibold leading-snug mb-2 ${a.highlighted ? "text-brand-gold" : "text-[var(--app-text)]"}`}>
                     {a.title}
                   </div>
-                  <p className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-2">{a.body}</p>
+                  <GlossaryText
+                    text={a.body}
+                    className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-2 block"
+                  />
                   {a.date && <div className="font-body text-[11px] text-[var(--app-text-faint)]">{a.date}</div>}
                 </div>
               </div>
