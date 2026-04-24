@@ -5,6 +5,7 @@ import { useDevice } from "@/lib/useDevice";
 import { FIRM_SHORT } from "@/lib/constants";
 import { fmt$ } from "@/lib/format";
 import { GettingStartedChecklist } from "@/components/partner/GettingStartedChecklist";
+import { markGettingStartedVideoWatched } from "@/lib/markGettingStarted";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DEMO DATA
@@ -198,6 +199,20 @@ export default function HomePage() {
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Getting-Started: mark the welcome video as watched after 30s on the
+  // home page when a video is configured. Fair heuristic — a partner who
+  // loads home with a real video URL and stays half a minute has seen the
+  // video slot. We can't detect actual play inside a third-party iframe
+  // (cross-origin), so this is the best passive signal without adding an
+  // explicit "I watched it" button to the UI.
+  useEffect(() => {
+    if (!videoUrl || hiddenModules.has("video")) return;
+    const timer = window.setTimeout(() => {
+      markGettingStartedVideoWatched();
+    }, 30_000);
+    return () => window.clearTimeout(timer);
+  }, [videoUrl, hiddenModules]);
 
   const isVisible = (id: string) => !hiddenModules.has(id);
   const getLayout = (id: string, defaults: ModuleLayout = {}): Required<ModuleLayout> => {

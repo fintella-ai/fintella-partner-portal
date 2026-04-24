@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
 import { FIRM_SHORT, SUPPORT_EMAIL } from "@/lib/constants";
+import { markGettingStartedLinkShared } from "@/lib/markGettingStarted";
 
 interface Invite {
   id: string;
@@ -126,6 +127,7 @@ export default function ReferralLinksPage() {
     navigator.clipboard.writeText(`${baseUrl}/signup?token=${inv.token}`);
     setCopiedRate(rate);
     setTimeout(() => setCopiedRate(null), 2000);
+    markGettingStartedLinkShared();
   }
 
   async function handleSendInvite(e: React.FormEvent) {
@@ -400,6 +402,7 @@ export default function ReferralLinksPage() {
                             navigator.clipboard.writeText(`${baseUrl}/signup?token=${inv.token}`);
                             setCopiedRate(inv.commissionRate);
                             setTimeout(() => setCopiedRate(null), 2000);
+                            markGettingStartedLinkShared();
                           }}
                           className={`font-body text-[11px] px-3 py-1.5 rounded-lg border transition-colors ${
                             copiedRate === inv.commissionRate
