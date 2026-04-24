@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fireWorkflowTrigger } from "@/lib/workflow-engine";
+import { computeGettingStarted, parseOnboardingState, serializeOnboardingState } from "@/lib/getting-started";
 
 // Force dynamic rendering — the route queries Prisma at request time, so
 // static pre-rendering at build would hit `DATABASE_URL not found` in
@@ -76,6 +77,7 @@ export async function GET(req: NextRequest) {
     startedAt: startedAt.toISOString(),
     agreementReminders: { workflows: 0, cadenceDays: 0, fired: 0, skipped: 0 },
     inviteReminders: { workflows: 0, cadenceDays: 0, fired: 0, skipped: 0 },
+    onboardingNudges: { workflows: 0, cadenceDays: 0, fired: 0, skipped: 0 },
   };
 
   // ─── Agreement reminders ───────────────────────────────────────────
@@ -185,6 +187,86 @@ export async function GET(req: NextRequest) {
         data: { lastReminderSentAt: startedAt },
       });
       result.inviteReminders.fired += 1;
+    }
+  }
+
+  // ─── Onboarding nudges ─────────────────────────────────────────────
+  // Partners who signed up more than `cadenceDays` ago and still have
+  // < 100% checklist progress. Throttled per-partner via
+  // `onboardingState.lastNudgeSentAt`. Skipped if the partner has
+  // dismissed the checklist on their home page (respects user intent).
+  const nudgeWfs = await prisma.workflow.findMany({
+    where: { trigger: "partner.onboarding_stalled", enabled: true },
+  });
+  result.onboardingNudges.workflows = nudgeWfs.length;
+  if (nudgeWfs.length > 0) {
+    const cadenceDays = minCadence(nudgeWfs);
+    const cutoff = cutoffFor(cadenceDays);
+    result.onboardingNudges.cadenceDays = cadenceDays;
+
+    const candidates = await prisma.partner.findMany({
+      where: {
+        status: "active",
+        signupDate: { lte: cutoff },
+      },
+      select: {
+        partnerCode: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        mobilePhone: true,
+        signupDate: true,
+        onboardingState: true,
+      },
+    });
+
+    for (const partner of candidates) {
+      const state = parseOnboardingState(partner.onboardingState);
+      if (state.dismissed) { result.onboardingNudges.skipped += 1; continue; }
+      if (state.completedAt) { result.onboardingNudges.skipped += 1; continue; }
+
+      // Throttle: skip if we already nudged within the cadence window.
+      if (state.lastNudgeSentAt) {
+        const last = new Date(state.lastNudgeSentAt);
+        if (last > cutoff) { result.onboardingNudges.skipped += 1; continue; }
+      }
+
+      const checklist = await computeGettingStarted(partner.partnerCode);
+      if (checklist.completedCount === checklist.totalCount) {
+        result.onboardingNudges.skipped += 1;
+        continue;
+      }
+
+      const nextStep = checklist.steps.find((s) => !s.done && s.status === "ready")
+        || checklist.steps.find((s) => !s.done);
+
+      await fireWorkflowTrigger("partner.onboarding_stalled", {
+        partner: {
+          partnerCode: partner.partnerCode,
+          firstName: partner.firstName,
+          lastName: partner.lastName,
+          email: partner.email,
+          mobilePhone: partner.mobilePhone ?? "",
+        },
+        checklist: {
+          completedCount: checklist.completedCount,
+          totalCount: checklist.totalCount,
+          progressPercent: checklist.progressPercent,
+        },
+        nextStep: nextStep
+          ? { id: nextStep.id, title: nextStep.title, description: nextStep.description, ctaUrl: nextStep.ctaUrl }
+          : null,
+        daysSinceSignup: daysBetween(partner.signupDate, startedAt),
+        portalUrl,
+      });
+
+      await prisma.partner.update({
+        where: { partnerCode: partner.partnerCode },
+        data: {
+          onboardingState: serializeOnboardingState({ ...state, lastNudgeSentAt: startedAt.toISOString() }),
+        },
+      });
+      result.onboardingNudges.fired += 1;
     }
   }
 

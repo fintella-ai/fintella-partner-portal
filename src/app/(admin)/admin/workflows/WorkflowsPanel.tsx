@@ -101,6 +101,7 @@ type TriggerDefaults = {
 const TRIGGER_DEFAULTS: Record<string, TriggerDefaults> = {
   "partner.agreement_reminder": { emailToken: "{partner.email}",        emailLabel: "The partner with the unsigned agreement", smsSubject: "deal_partner", smsLabel: "The partner with the unsigned agreement" },
   "partner.invite_reminder":    { emailToken: "{invite.invitedEmail}",  emailLabel: "The invited person",                       smsSubject: null,            smsLabel: "" },
+  "partner.onboarding_stalled": { emailToken: "{partner.email}",        emailLabel: "The stalled partner",                      smsSubject: "deal_partner", smsLabel: "The stalled partner" },
   "conference.call_reminder":   { emailToken: "{partner.email}",        emailLabel: "Every active partner (one send per partner)", smsSubject: "deal_partner", smsLabel: "Every active partner (one send per partner)" },
   "partner.created":            { emailToken: "{partner.email}",        emailLabel: "The new partner",                          smsSubject: "deal_partner", smsLabel: "The new partner" },
   "partner.activated":          { emailToken: "{partner.email}",        emailLabel: "The activated partner",                    smsSubject: "deal_partner", smsLabel: "The activated partner" },
