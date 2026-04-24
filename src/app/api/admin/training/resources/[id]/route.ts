@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { bumpKnowledgeVersion } from "@/lib/ai-knowledge-version";
+import { extractPdfTextFromUrl } from "@/lib/pdf-extraction";
 
 /**
  * PUT /api/admin/training/resources/[id]
@@ -46,10 +48,35 @@ export async function PUT(
       }
     }
 
+    // If fileUrl changed on a PDF resource, re-extract the text so Tara's
+    // knowledge reflects the new file. Runs BEFORE the update so the row
+    // can be written in one atomic operation.
+    if (
+      (updateData.fileUrl || updateData.fileType) &&
+      updateData.fileType === "pdf"
+    ) {
+      const url = (updateData.fileUrl as string) || "";
+      if (url) {
+        const result = await extractPdfTextFromUrl(url);
+        if (result.text) {
+          updateData.extractedText = result.text;
+          updateData.extractedAt = new Date();
+        } else {
+          // Empty result — clear any stale text from previous extraction
+          updateData.extractedText = null;
+          updateData.extractedAt = null;
+        }
+      }
+    }
+
     const resource = await prisma.trainingResource.update({
       where: { id },
       data: updateData,
     });
+
+    await bumpKnowledgeVersion().catch((e) =>
+      console.error("[ai-knowledge] bumpKnowledgeVersion failed", e)
+    );
 
     return NextResponse.json({ resource });
   } catch {
@@ -85,6 +112,10 @@ export async function DELETE(
     await prisma.trainingResource.delete({
       where: { id },
     });
+
+    await bumpKnowledgeVersion().catch((e) =>
+      console.error("[ai-knowledge] bumpKnowledgeVersion failed", e)
+    );
 
     return NextResponse.json({ success: true });
   } catch {
