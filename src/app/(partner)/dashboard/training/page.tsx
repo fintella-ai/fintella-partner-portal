@@ -654,7 +654,10 @@ export default function TrainingPage() {
           </div>
 
           {/* FAQ Accordion */}
-          <Accordion items={accordionItems} />
+          <Accordion
+            items={accordionItems}
+            renderContent={(text) => <GlossaryText text={text} />}
+          />
         </>
       )}
 

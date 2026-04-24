@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 
 /**
  * Represents a single item within an Accordion.
@@ -25,6 +25,13 @@ interface AccordionProps {
    * When false (default), opening one item closes all others.
    */
   allowMultiple?: boolean;
+  /**
+   * Optional transform for rendering each item's `content` string. Lets
+   * callers wrap the text in a component (e.g. GlossaryText for inline
+   * jargon tooltips on the FAQ tab). If omitted, raw string is rendered.
+   * Phase 2d of the PartnerOS AI roadmap.
+   */
+  renderContent?: (content: string, item: AccordionItem) => ReactNode;
 }
 
 /**
@@ -48,6 +55,7 @@ interface AccordionProps {
 export default function Accordion({
   items,
   allowMultiple = false,
+  renderContent,
 }: AccordionProps) {
   /** Set of currently-expanded item IDs. */
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -126,7 +134,7 @@ export default function Accordion({
             >
               <div className="border-t border-[var(--app-border)] px-4 sm:px-5 pb-4 pt-3">
                 <p className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed">
-                  {item.content}
+                  {renderContent ? renderContent(item.content, item) : item.content}
                 </p>
               </div>
             </div>
