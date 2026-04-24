@@ -27,6 +27,13 @@ export default function EmailTemplatesTabImpl() {
   const [templateUsage, setTemplateUsage] = useState<Record<string, { total: number; enabled: number; workflows: Array<{ id: string; name: string; enabled: boolean }> }>>({});
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+  type StatsRow = {
+    sent: number; delivered: number; opens: number; uniqueOpens: number;
+    clicks: number; uniqueClicks: number; bounced: number; dropped: number;
+    unsubscribed: number; deliveryRate: number; openRate: number; clickRate: number;
+  };
+  const [templateStats, setTemplateStats] = useState<Record<string, StatsRow>>({});
+  const statsWindowDays = 30;
 
   const [showNewTemplate, setShowNewTemplate] = useState(false);
   const [newTplKey, setNewTplKey] = useState("");
@@ -68,6 +75,18 @@ export default function EmailTemplatesTabImpl() {
   useEffect(() => {
     loadTemplates();
   }, [loadTemplates]);
+
+  // Per-template engagement stats. Silently no-ops if the EmailEvent
+  // table is empty (SendGrid webhook not yet configured) — templates
+  // just render without the stats row in that case.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/admin/email-events/stats?days=${statsWindowDays}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d?.stats) setTemplateStats(d.stats); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [statsWindowDays]);
 
   const handleCreateTemplate = async () => {
     if (!newTplKey.trim() || !newTplName.trim() || !newTplSubject.trim() || !newTplBody.trim()) {
@@ -417,6 +436,31 @@ export default function EmailTemplatesTabImpl() {
               <p className="font-body text-xs text-[var(--app-text-muted)] mb-1">
                 <span className="text-[var(--app-text-secondary)]">Subject:</span> {t.subject}
               </p>
+
+              {templateStats[t.key] && templateStats[t.key].sent > 0 && (
+                <div
+                  className="font-body text-[11px] text-[var(--app-text-muted)] mb-2 leading-relaxed"
+                  title={`Last ${statsWindowDays} days. "Sent" is every successful outbound via EmailLog; "delivered / opened / clicked" are engagement events posted back by the SendGrid Event Webhook.`}
+                >
+                  <span className="text-[var(--app-text-secondary)]">Last {statsWindowDays}d:</span>{" "}
+                  <span className="text-[var(--app-text)]">{templateStats[t.key].sent}</span> sent
+                  {templateStats[t.key].delivered > 0 && (
+                    <> · <span className="text-[var(--app-text)]">{templateStats[t.key].delivered}</span> delivered ({Math.round(templateStats[t.key].deliveryRate * 100)}%)</>
+                  )}
+                  {templateStats[t.key].uniqueOpens > 0 && (
+                    <> · <span className="text-brand-gold">{templateStats[t.key].uniqueOpens}</span> opened ({Math.round(templateStats[t.key].openRate * 100)}%)</>
+                  )}
+                  {templateStats[t.key].uniqueClicks > 0 && (
+                    <> · <span className="text-brand-gold">{templateStats[t.key].uniqueClicks}</span> clicked ({Math.round(templateStats[t.key].clickRate * 100)}%)</>
+                  )}
+                  {(templateStats[t.key].bounced > 0 || templateStats[t.key].dropped > 0) && (
+                    <> · <span className="text-red-400">{templateStats[t.key].bounced + templateStats[t.key].dropped}</span> failed</>
+                  )}
+                  {templateStats[t.key].unsubscribed > 0 && (
+                    <> · <span className="text-yellow-400">{templateStats[t.key].unsubscribed}</span> unsubscribed</>
+                  )}
+                </div>
+              )}
               <p className="font-body text-xs text-[var(--app-text-muted)] line-clamp-2 mb-2">
                 {t.bodyText}
               </p>
