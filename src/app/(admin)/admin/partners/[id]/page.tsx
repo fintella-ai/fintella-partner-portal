@@ -10,6 +10,7 @@ import CountryCodeSelect, { parseMobilePhone, buildMobilePhone } from "@/compone
 import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 import ComposeEmailForm from "@/components/admin/ComposeEmailForm";
 import LevelTag from "@/components/ui/LevelTag";
+import { AdminGettingStartedCard } from "@/components/admin/AdminGettingStartedCard";
 
 type Partner = {
   id: string;
@@ -732,6 +733,9 @@ export default function PartnerDetailPage() {
       )}
 
       {activeTab === "info" && (<>
+      {/* ─── GETTING-STARTED PROGRESS ────────────────────────────── */}
+      <AdminGettingStartedCard partnerId={partner.partnerCode} />
+
       {/* ─── LOGIN CREDENTIALS ──────────────────────────────────── */}
       <div className="card p-5 sm:p-6 mb-6">
         <div className="font-body font-semibold text-sm mb-4">Login Credentials</div>
