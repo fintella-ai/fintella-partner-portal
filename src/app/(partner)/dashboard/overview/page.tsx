@@ -81,8 +81,8 @@ export default function OverviewPage() {
 
   const stats = [
     { label: "Refund Pipeline", value: fmt$(totalRefundPipeline), sub: "All deals" },
-    { label: "L1 Earned", value: fmt$(totalL1Earned), sub: `${fmt$(totalL1Paid)} paid` },
-    { label: "L2 Earned", value: fmt$(totalL2Earned), sub: `${fmt$(totalL2Paid)} paid` },
+    { label: "Direct Earned", value: fmt$(totalL1Earned), sub: `${fmt$(totalL1Paid)} paid` },
+    { label: "My L2 Earned", value: fmt$(totalL2Earned), sub: `${fmt$(totalL2Paid)} paid` },
     { label: "Team Size", value: String(downlinePartners.length), sub: "Partners" },
   ];
 
@@ -230,7 +230,7 @@ export default function OverviewPage() {
                         <div className="font-body text-[13px] text-[var(--app-text)]">{fmt$(p.estimatedRefundAmount)}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-body text-[9px] text-[var(--app-text-muted)] tracking-wider uppercase mb-0.5">L2 Commission</div>
+                        <div className="font-body text-[9px] text-[var(--app-text-muted)] tracking-wider uppercase mb-0.5">My L2 Commission</div>
                         <div className="font-display text-sm font-semibold text-brand-gold">{fmt$(p.l2CommissionAmount)}</div>
                         <div className="mt-1"><StatusBadge status={p.l2CommissionStatus} /></div>
                       </div>
@@ -250,7 +250,7 @@ export default function OverviewPage() {
                     <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Stage</th>
                     <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Est. Refund</th>
                     <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">Status</th>
-                    <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">L2 Commission</th>
+                    <th className="px-3 py-3 text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider font-medium text-center">My L2 Commission</th>
                   </tr>
                 </thead>
                 <tbody>
