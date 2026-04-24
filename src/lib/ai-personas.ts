@@ -30,9 +30,14 @@ export interface Persona {
   voiceWrapperMarkdown: string; // prepended to the shared knowledge block in the system prompt
 }
 
-// Phase 2 registry — Finn + Stella (generalists) + Tara (product specialist).
-// Phase 3 adds ollie (support specialist).
-export const PERSONAS: Record<"finn" | "stella" | "tara", Persona> = {
+// Phase 3 registry — Finn + Stella (generalists) + Tara (product specialist)
+// + Ollie (support specialist). Phase 3a ships Ollie as a portal-ops
+// generalist (same KNOWLEDGE_BASE as Finn/Stella, different voice). Phase
+// 3b-d add her tool surface: lookupDeal, lookupCommissions, lookupAgreement,
+// lookupDownline, start_live_chat, initiate_live_transfer,
+// offer_schedule_slots, book_slot, create_support_ticket, investigate_bug,
+// emergencyCallSuperAdmin. None of that lands in this PR.
+export const PERSONAS: Record<"finn" | "stella" | "tara" | "ollie", Persona> = {
   finn: {
     id: "finn",
     displayName: "Finn",
@@ -103,6 +108,30 @@ export const PERSONAS: Record<"finn" | "stella" | "tara", Persona> = {
       "When a prospect-facing marketing or pitch-copy question comes up, your first instinct is ALWAYS to check the compliance rules at the top of this prompt. If the partner's phrasing violates one, rewrite it compliantly and explain why.",
     ].join("\n"),
   },
+  ollie: {
+    id: "ollie",
+    displayName: "Ollie",
+    role: "support_specialist",
+    avatarSrc: "/ai-avatars/ollie.svg",
+    accentHex: "#4a9d9c",
+    tagline: "Portal ops. Troubleshooting. Gets things moving.",
+    longDescription:
+      "Ollie is the one to bring in when something is broken, something's missing, or you just can't find where to click. She handles portal how-to questions end-to-end — where your agreement lives, how to submit a lead, why a deal looks stuck, how to invite a downline. Finn and Stella hand off to her automatically when the question is about the portal itself rather than the refund product.",
+    voiceWrapperMarkdown: [
+      "## Your persona — Ollie",
+      "",
+      "You are **Ollie**, the portal operations + troubleshooting specialist on the Fintella Partner Portal AI team. Your voice is:",
+      "",
+      "- Calm, investigative, action-oriented. Lead with action verbs: \"Pulling your recent deals…\", \"Checking your agreement status…\", \"Found it.\"",
+      "- Narrate the work as you do it so the partner feels the process happening — especially important when they arrived frustrated.",
+      "- Never dismiss a problem. If a partner says something is broken, treat it as worth investigating even if the likely answer is user error.",
+      "- When stuck or the partner needs a human: offer the escalation ladder explicitly. In Phase 3a that ladder is just \"open a support ticket\" — Phase 3b-d add live chat, phone transfer, and scheduled calls.",
+      "- Clear language over jargon. Partners may be new to the portal; explain terms as you use them the first time in a conversation.",
+      "- Never invent features or states. If a partner describes something you can't verify, say \"I can't confirm that from what I see — let me get a human involved.\"",
+      "",
+      'Example tone: "Pulling your recent deals… Found it. Your \'Oceanport\' deal is in Client Engaged stage, which means Frost Law has the client\'s retainer and is waiting on the consultation slot. Typical next step is the call gets booked within 48 hours. Want me to open a ticket to nudge the scheduling?"',
+    ].join("\n"),
+  },
 };
 
 /**
@@ -111,9 +140,10 @@ export const PERSONAS: Record<"finn" | "stella" | "tara", Persona> = {
  */
 export function resolvePersonaId(
   input: string | null | undefined
-): "finn" | "stella" | "tara" {
+): "finn" | "stella" | "tara" | "ollie" {
   if (input === "stella") return "stella";
   if (input === "tara") return "tara";
+  if (input === "ollie") return "ollie";
   return "finn"; // default fallback
 }
 
@@ -122,9 +152,13 @@ export function resolvePersonaId(
  * KNOWLEDGE_BASE in the Anthropic system prompt. Kept as a separate
  * (uncached) text block so the shared KNOWLEDGE_BASE keeps its cache hit
  * across personas — only this tiny wrapper is uncached.
+ *
+ * Accepts any generalist or support-specialist id (finn, stella, ollie).
+ * product_specialist (tara) uses buildTaraSystemBlocks instead since her
+ * system prompt swaps in a different knowledge blob.
  */
 export function buildPersonaVoiceBlock(
-  personaId: "finn" | "stella"
+  personaId: "finn" | "stella" | "ollie"
 ): Anthropic.Messages.TextBlockParam {
   const persona = PERSONAS[personaId];
   return {
@@ -155,25 +189,32 @@ export async function buildTaraSystemBlocks(): Promise<
 
 /**
  * The hand_off tool — Finn and Stella carry this so they can transfer
- * depth-requiring questions to a specialist. Phase 2 enables "tara"
- * only; Phase 3 will extend the enum to include "ollie".
+ * depth-requiring questions to a specialist. Phase 2 enabled "tara";
+ * Phase 3a extends the enum to include "ollie" for portal-ops /
+ * troubleshooting / stuck-deal questions.
+ *
+ * Routing guidance for the LLM:
+ *  - tara: tariff refund product, pitch scripts, pre-qual, compliance,
+ *    marketing copy, rebuttals
+ *  - ollie: portal how-to (where's X, how do I Y), deal status
+ *    investigation, broken feature reports, "I'm stuck" situations
  */
 export const HAND_OFF_TOOL: Anthropic.Messages.Tool = {
   name: "hand_off",
   description:
-    "Transfer the conversation to a specialist when the user's question requires deep product knowledge about the tariff refund service (pitch scripts, pre-qualification, compliance, rebuttals, marketing copy). Only call when you cannot answer confidently from the portal knowledge base. Do NOT use for questions about the user's own deals, commissions, or portal how-to — answer those yourself.",
+    "Transfer the conversation to a specialist. Route to 'tara' when the question is about the tariff refund product (pitch, pre-qual, compliance, rebuttals, marketing copy). Route to 'ollie' when the question is about the portal itself (how-to, stuck deal, something broken, needing to reach a human). Do NOT hand off for quick factual questions you can answer directly from the knowledge base — only when the specialist would do a meaningfully better job.",
   input_schema: {
     type: "object" as const,
     properties: {
       to: {
         type: "string" as const,
-        enum: ["tara"],
+        enum: ["tara", "ollie"],
         description: "Which specialist to hand off to.",
       },
       reason: {
         type: "string" as const,
         description:
-          "One-line summary of why the specialist is needed (e.g. \"partner asked about pitch script compliance\").",
+          "One-line summary of why the specialist is needed (e.g. \"partner asked about pitch script compliance\" or \"partner can't find their agreement\").",
       },
       summary: {
         type: "string" as const,

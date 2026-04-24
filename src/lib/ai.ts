@@ -339,7 +339,7 @@ export interface GenerateResult {
    * specialist + the summary prepended to history.
    */
   handOff?: {
-    to: "tara";
+    to: "tara" | "ollie";
     reason: string;
     summary: string;
   };
@@ -380,8 +380,12 @@ In the meantime, you can:
 
   // ── REAL ANTHROPIC CALL ──
   // System-prompt assembly branches on persona.role:
-  // - generalists (Finn, Stella): cached portal KNOWLEDGE_BASE + uncached voice wrapper + user context
-  // - product_specialist (Tara): cached product-knowledge blob (with its own cache_control) + uncached voice wrapper + user context
+  // - generalists (Finn, Stella) + support_specialist (Ollie): cached portal
+  //   KNOWLEDGE_BASE + uncached voice wrapper + user context. Ollie reuses the
+  //   portal KB because her scope is portal-ops / how-to / troubleshooting,
+  //   not the refund product specifically.
+  // - product_specialist (Tara): cached product-knowledge blob (with its own
+  //   cache_control) + uncached voice wrapper + user context.
   let systemBlocks: Anthropic.Messages.TextBlockParam[];
   if (persona.role === "product_specialist") {
     const taraBlocks = await buildTaraSystemBlocks();
@@ -393,7 +397,7 @@ In the meantime, you can:
         text: KNOWLEDGE_BASE,
         cache_control: { type: "ephemeral" },
       },
-      buildPersonaVoiceBlock(resolvedPersona as "finn" | "stella"),
+      buildPersonaVoiceBlock(resolvedPersona as "finn" | "stella" | "ollie"),
       {
         type: "text",
         text: userContext,
@@ -433,9 +437,9 @@ In the meantime, you can:
         reason?: string;
         summary?: string;
       };
-      if (input.to === "tara") {
+      if (input.to === "tara" || input.to === "ollie") {
         handOff = {
-          to: "tara",
+          to: input.to,
           reason: input.reason ?? "",
           summary: input.summary ?? "",
         };
