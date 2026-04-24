@@ -26,6 +26,7 @@ const MAIN_NAV: Array<{
   activePaths?: string[];
 }> = [
   { id: "home", href: "/dashboard/home", icon: "🏠", label: "Home", shortLabel: "Home" },
+  { id: "getting-started", href: "/dashboard/getting-started", icon: "⭐", label: "Getting Started", shortLabel: "Start" },
   { id: "overview", href: "/dashboard/overview", icon: "📊", label: "Overview", shortLabel: "Stats" },
   { id: "training", href: "/dashboard/training", icon: "📖", label: "Partner Training", shortLabel: "Learn" },
   { id: "deals", href: "/dashboard/deals", icon: "📋", label: "My Deals", shortLabel: "Deals" },
