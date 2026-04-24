@@ -8,7 +8,7 @@ import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import LevelTag from "@/components/ui/LevelTag";
 import { fmt$, fmtDate, fmtDateTime } from "@/lib/format";
-import { FIRM_SHORT, DEFAULT_FIRM_FEE_RATE } from "@/lib/constants";
+import { FIRM_SHORT, DEFAULT_FIRM_FEE_RATE, COMMISSION_STATUS_LABELS } from "@/lib/constants";
 import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 import SortHeader, { type SortDir } from "@/components/ui/SortHeader";
 import { compareRows } from "@/lib/sortRows";
@@ -312,9 +312,11 @@ export default function PartnerReportingPage() {
                 </select>
                 <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={inputClass}>
                   <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
+                  <option value="projected">Projected</option>
+                  <option value="pending_payment">Pending Payment</option>
                   <option value="due">Due</option>
                   <option value="paid">Paid</option>
+                  <option value="lost">Lost</option>
                 </select>
               </div>
             </div>
@@ -1179,7 +1181,7 @@ function DealDetailPanel({ deal }: { deal: any }) {
             { label: "Estimated Refund", value: fmt$(deal.estimatedRefundAmount), highlight: false },
             { label: "Firm Fee", value: fmt$(deal.firmFeeAmount), highlight: false },
             { label: "Commission", value: fmt$(deal.l1CommissionAmount || deal.l2CommissionAmount || 0), highlight: true },
-            { label: "Status", value: (deal.l1CommissionStatus || deal.l2CommissionStatus || "pending").replace(/^\w/, (c: string) => c.toUpperCase()), highlight: false },
+            { label: "Status", value: COMMISSION_STATUS_LABELS[(deal.l1CommissionStatus || deal.l2CommissionStatus || "pending_payment").toLowerCase()] || "Pending Payment", highlight: false },
           ].map((f) => (
             <div key={f.label} className="p-3 rounded-lg" style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}>
               <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mb-1">{f.label}</div>

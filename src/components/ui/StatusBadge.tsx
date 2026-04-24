@@ -1,7 +1,12 @@
-import { COMMISSION_STATUS_COLORS } from "@/lib/constants";
+import { COMMISSION_STATUS_COLORS, COMMISSION_STATUS_LABELS } from "@/lib/constants";
 
 export default function StatusBadge({ status }: { status?: string }) {
-  const c = COMMISSION_STATUS_COLORS[status?.toLowerCase() || ""] || "#6b7280";
+  const key = status?.toLowerCase() || "";
+  const c = COMMISSION_STATUS_COLORS[key] || "#6b7280";
+  // Prefer the canonical display label (Pending Payment / Projected / …)
+  // over the raw status string so partners + admins see the same copy
+  // regardless of where the row comes from.
+  const label = COMMISSION_STATUS_LABELS[key] || status || "Pending Payment";
 
   return (
     <span
@@ -12,7 +17,7 @@ export default function StatusBadge({ status }: { status?: string }) {
         border: `1px solid ${c}44`,
       }}
     >
-      {status || "Pending"}
+      {label}
     </span>
   );
 }

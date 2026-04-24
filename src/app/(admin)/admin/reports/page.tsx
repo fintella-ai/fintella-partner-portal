@@ -33,7 +33,10 @@ type Stats = {
   totalPipeline: number;
   totalCommissionsPaid: number;
   totalCommissionsDue: number;
-  totalCommissionsPending: number;
+  totalCommissionsPending: number;           // legacy; kept for compat
+  totalCommissionsProjected: number;
+  totalCommissionsPendingPayment: number;
+  totalCommissionsLost: number;
   totalPartners: number;
   activePartners: number;
   newPartnersThisMonth: number;
@@ -168,6 +171,9 @@ export default function ReportsPage() {
     totalCommissionsPaid: 0,
     totalCommissionsDue: 0,
     totalCommissionsPending: 0,
+    totalCommissionsProjected: 0,
+    totalCommissionsPendingPayment: 0,
+    totalCommissionsLost: 0,
     totalPartners: 0,
     activePartners: 0,
     newPartnersThisMonth: 0,
@@ -187,12 +193,14 @@ export default function ReportsPage() {
         {editMode && (
           <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">⋮⋮ Key Metrics — drag to reorder</div>
         )}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {[
             { label: "Total Pipeline", value: fmt$(s.totalPipeline), color: "text-[var(--app-text)]" },
-            { label: "Commissions Paid", value: fmt$(s.totalCommissionsPaid), color: "text-green-400" },
+            { label: "Projected", value: fmt$(s.totalCommissionsProjected), color: "text-purple-400" },
+            { label: "Pending Payment", value: fmt$(s.totalCommissionsPendingPayment), color: "text-yellow-400" },
             { label: "Commissions Due", value: fmt$(s.totalCommissionsDue), color: "text-blue-400" },
-            { label: "Commissions Pending", value: fmt$(s.totalCommissionsPending), color: "text-yellow-400" },
+            { label: "Commissions Paid", value: fmt$(s.totalCommissionsPaid), color: "text-green-400" },
+            { label: "Lost", value: fmt$(s.totalCommissionsLost), color: "text-red-400" },
           ].map((m) => (
             <div key={m.label} className="stat-card">
               <div className="font-body text-[9px] tracking-[1.5px] uppercase text-[var(--app-text-muted)] mb-2">{m.label}</div>
