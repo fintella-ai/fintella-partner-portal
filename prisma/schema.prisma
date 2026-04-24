@@ -928,6 +928,35 @@ model EmailLog {
   @@index([createdAt])
 }
 
+// ─── EMAIL EVENT (SendGrid Event Webhook) ───────────────────────────────────
+// SendGrid's Event Webhook POSTs delivery + engagement events back to us
+// at /api/sendgrid/event-webhook. Each event has a `sg_message_id` whose
+// first segment matches EmailLog.providerMessageId, so we denormalize
+// `template` + `partnerCode` from the matched EmailLog at insert time for
+// fast per-template / per-partner aggregation.
+model EmailEvent {
+  id                String   @id @default(cuid())
+  providerMessageId String   // EmailLog.providerMessageId (X-Message-Id). Foreign-key-lite — no cascade, webhook events may arrive for logs that got pruned
+  sgMessageId       String?  // full sg_message_id (providerMessageId prefixed with provider-side suffixes)
+  event             String   // processed, delivered, open, click, bounce, dropped, deferred, spamreport, unsubscribe, group_unsubscribe, group_resubscribe
+  email             String
+  timestamp         DateTime // event time from the webhook payload
+  reason            String?  // bounce / dropped reason (failure category)
+  bounceType        String?  // hard / soft / blocked
+  url               String?  // click URL
+  userAgent         String?  // open/click user-agent
+  ip                String?
+  template          String?  // denormalized from EmailLog.template (null when we can't match)
+  partnerCode       String?  // denormalized from EmailLog.partnerCode
+  createdAt         DateTime @default(now())
+
+  @@index([providerMessageId])
+  @@index([template])
+  @@index([event])
+  @@index([createdAt])
+  @@index([partnerCode])
+}
+
 // ─── INBOUND EMAIL (SendGrid Inbound Parse) ─────────────────────────────────
 // Every email received at *@inbound.fintella.partners is POSTed by SendGrid's
 // Inbound Parse webhook to /api/webhook/inbound-email and persisted here.
