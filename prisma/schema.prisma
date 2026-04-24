@@ -17,6 +17,12 @@ model User {
   role                  String   @default("admin") // super_admin, admin, accounting, partner_support
   // PartnerOS AI — Phase 1 persona split (spec §3.6). Slot for future admin AI experience.
   preferredGeneralist   String?  // "finn" | "stella"
+  // PartnerOS AI Phase 3c — escalation availability (spec §8.3)
+  availableForLiveChat  Boolean  @default(false)  // admin toggles on when at desk to receive Ollie → live-chat transfers
+  availableForLiveCall  Boolean  @default(false)  // same, for Twilio live-phone bridging
+  personalCellPhone     String?                    // for IT-emergency outbound call chain (E.164)
+  lastHeartbeatAt       DateTime?                  // 60s client ping; drives isAdminOnline helper
+  isITEmergencyContact  Boolean  @default(false)  // true = receives the emergencyCallSuperAdmin chain
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -868,6 +874,7 @@ model AiConversation {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   messages    AiMessage[]
+  escalations AiEscalation[]
 
   @@index([userId])
   @@index([updatedAt])
@@ -1532,4 +1539,51 @@ model LandingContent {
   lastPublishedAt     DateTime?
   lastPublishedBy     String?  // admin id
   updatedAt           DateTime @updatedAt
+}
+
+// ─── ADMIN INBOX (PartnerOS AI Phase 3 — spec §7, §8.3) ──────────────────
+// Role-scoped inbox used for Ollie escalation routing (ticket emails,
+// scheduled-call Google Calendars, notification fan-out). Four rows seeded
+// at build time: support / legal / admin / accounting. `support@` is the
+// universal outbound From; other inboxes get Reply-To so threading works.
+model AdminInbox {
+  id                            String    @id @default(cuid())
+  emailAddress                  String    @unique            // "support@fintella.partners"
+  displayName                   String                        // "Partner Support"
+  role                          String    @unique             // "support" | "legal" | "admin" | "accounting"
+  categories                    String[]                      // SupportTicket.category values routed here
+  acceptScheduledCalls          Boolean   @default(false)
+  workHours                     Json?                         // { mon: [["09:00","17:00"]], ... }
+  timeZone                      String    @default("America/New_York")
+  callDurationMinutes           Int       @default(15)
+  callTitleTemplate             String    @default("Fintella: {partnerName} — {reason}")
+  googleCalendarConnectedAt     DateTime?
+  googleCalendarRefreshToken    String?                       // encrypted at rest — Phase 3c
+  assignedAdminIds              String[]                      // User IDs; fan-out notifications
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
+}
+
+// Per-turn audit trail for every escalation rung Ollie offers / fires.
+// Lets us diff "offered" vs "succeeded" to tune the escalation ladder,
+// and lets admin UI surface "who handed me this ticket / booking" context.
+model AiEscalation {
+  id                String    @id @default(cuid())
+  conversationId    String
+  rung              String    // "live_chat" | "live_call" | "scheduled_call" | "support_ticket"
+  status            String    // "offered" | "initiated" | "succeeded" | "failed" | "declined"
+  targetInboxId     String?
+  targetAdminId     String?
+  partnerCode       String
+  category          String?
+  priority          String    @default("normal")
+  reason            String?
+  payload           Json?     // rung-specific extras (ticketId, bookingId, twilioSid, etc.)
+  emergencyCalled   Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  conversation      AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([partnerCode])
+  @@index([targetInboxId])
 }

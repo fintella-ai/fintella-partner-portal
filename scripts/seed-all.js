@@ -868,6 +868,51 @@ async function main() {
   });
   console.log("✓ Portal settings initialized");
 
+  // ── Admin Inboxes (PartnerOS AI Phase 3c — spec §7.2 / §7.6) ────────
+  // Four role-scoped inboxes used for Ollie's escalation routing. Seeded
+  // on every build; `update: {}` keeps this idempotent so admins can edit
+  // assignedAdminIds / workHours / calendar-connect state in the UI
+  // without the seed resetting their work.
+  const ADMIN_INBOXES = [
+    {
+      role: "support",
+      emailAddress: "support@fintella.partners",
+      displayName: "Partner Support",
+      categories: ["deal_tracking", "portal_question", "tech_error", "other"],
+    },
+    {
+      role: "legal",
+      emailAddress: "legal@fintella.partners",
+      displayName: "Legal",
+      categories: ["agreement_question", "legal_question"],
+    },
+    {
+      role: "admin",
+      emailAddress: "admin@fintella.partners",
+      displayName: "Admin / Enterprise",
+      categories: ["enterprise_inquiry", "ceo_escalation"],
+    },
+    {
+      role: "accounting",
+      emailAddress: "accounting@fintella.partners",
+      displayName: "Accounting",
+      categories: ["commission_question", "payment_question"],
+    },
+  ];
+  for (const inbox of ADMIN_INBOXES) {
+    await prisma.adminInbox.upsert({
+      where: { role: inbox.role },
+      update: {},
+      create: {
+        role: inbox.role,
+        emailAddress: inbox.emailAddress,
+        displayName: inbox.displayName,
+        categories: inbox.categories,
+      },
+    });
+  }
+  console.log("✓ Admin inboxes seeded: " + ADMIN_INBOXES.map(function(i) { return i.role; }).join(", "));
+
   // ── Admin Team Chat: ensure singleton global thread ───────────────────
   const existingGlobalThread = await prisma.adminChatThread.findFirst({
     where: { type: "global" },
