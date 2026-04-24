@@ -16,6 +16,7 @@ import { getOnlineAdminsForInbox } from "@/lib/admin-online";
 import { getOfferedSlots } from "@/lib/scheduling";
 import { emergencyCallSuperAdmin } from "@/lib/emergency-call";
 import { initiateBridgedCall } from "@/lib/twilio-voice";
+import { createEventOnInboxCalendar } from "@/lib/google-calendar";
 
 export type OllieToolName =
   | "lookupDeal"
@@ -193,7 +194,7 @@ export const OLLIE_TOOLS: Anthropic.Messages.Tool[] = [
   {
     name: "book_slot",
     description:
-      "Book a scheduled call slot the partner just picked from offer_schedule_slots. Records an AiEscalation with rung=scheduled_call, fans out admin notifications, and returns a confirmation the partner can reference. Pass the exact startUtc from the slot the partner chose. Real Google Calendar event creation ships in a follow-up PR — for now the admin sees the notification and handles the calendar add manually.",
+      "Book a scheduled call slot the partner just picked from offer_schedule_slots. Creates a Google Calendar event on the inbox's connected calendar (when OAuth is set up), records an AiEscalation, fans out admin notifications, and returns a confirmation. Pass the exact startUtc from the slot the partner chose.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -1120,6 +1121,7 @@ async function bookSlot(
         callTitleTemplate: true,
         assignedAdminIds: true,
         acceptScheduledCalls: true,
+        googleCalendarRefreshToken: true,
       },
     })) ??
     (await prisma.adminInbox.findUnique({
@@ -1132,6 +1134,7 @@ async function bookSlot(
         callTitleTemplate: true,
         assignedAdminIds: true,
         acceptScheduledCalls: true,
+        googleCalendarRefreshToken: true,
       },
     }));
 
@@ -1153,6 +1156,43 @@ async function bookSlot(
       ? `${partner.firstName ?? ""} ${partner.lastName ?? ""}`.trim() || partnerCode
       : partnerCode;
 
+  // Create a real Google Calendar event on the inbox's primary calendar
+  // when the inbox has OAuth connected. Returns null when no token is
+  // set — falls back to notification-only path from Phase 3c.4d.
+  const eventTitle = (routedInbox.callTitleTemplate || "Fintella: {partnerName} — {reason}")
+    .replace("{partnerName}", partnerName)
+    .replace("{reason}", reason.slice(0, 100));
+  const calendarEvent = await createEventOnInboxCalendar(
+    routedInbox.googleCalendarRefreshToken,
+    routedInbox.id,
+    {
+      summary: eventTitle,
+      description: [
+        `Partner: ${partnerName} (${partnerCode})`,
+        partner?.email ? `Partner email: ${partner.email}` : "",
+        partnerPhone ? `Partner phone: ${partnerPhone}` : "",
+        "",
+        `Reason: ${reason}`,
+        "",
+        "— Booked via Ollie (PartnerOS)",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      startIso: start.toISOString(),
+      endIso: end.toISOString(),
+      attendeeEmails: partner?.email ? [partner.email] : [],
+    }
+  ).catch((e) => {
+    console.error("[book_slot] calendar event creation failed:", e);
+    return null;
+  });
+
+  const calendarEventStatus: "created" | "skipped_no_token" | "failed" = calendarEvent
+    ? "created"
+    : routedInbox.googleCalendarRefreshToken
+      ? "failed"
+      : "skipped_no_token";
+
   // Record the booking.
   const escalation = ctx.conversationId
     ? await prisma.aiEscalation.create({
@@ -1172,7 +1212,9 @@ async function bookSlot(
             partnerPhone: partnerPhone || null,
             partnerName,
             partnerEmail: partner?.email ?? null,
-            calendarEventStatus: "not_wired_yet",
+            calendarEventStatus,
+            calendarEventId: calendarEvent?.id ?? null,
+            calendarEventLink: calendarEvent?.htmlLink ?? null,
           },
         },
         select: { id: true, createdAt: true },
@@ -1220,6 +1262,13 @@ async function bookSlot(
     )
   );
 
+  const calendarNote =
+    calendarEventStatus === "created"
+      ? "Calendar event created on the inbox's Google Calendar."
+      : calendarEventStatus === "skipped_no_token"
+        ? "Inbox hasn't connected Google Calendar yet — booked via notification only. Admin will add to their calendar manually."
+        : "Calendar event creation failed — admin still notified via bell.";
+
   return ok({
     escalationId: escalation?.id.substring(0, 8) ?? null,
     startUtc: start.toISOString(),
@@ -1230,8 +1279,10 @@ async function bookSlot(
       displayName: routedInbox.displayName,
     },
     adminsNotified: recipientEmails.length,
-    note:
-      "Slot booked — admins notified. Real Google Calendar event creation ships in a follow-up PR. For now the admin will add it to their calendar manually from the notification.",
+    calendarEventStatus,
+    calendarEventId: calendarEvent?.id ?? null,
+    calendarEventLink: calendarEvent?.htmlLink ?? null,
+    note: `Slot booked — ${recipientEmails.length} admin${recipientEmails.length === 1 ? "" : "s"} notified. ${calendarNote}`,
   });
 }
 
