@@ -47,8 +47,27 @@
 | **Starter** | $497 | — | 25 active partners, 500 deals/yr, 1 connector, Fintella footer watermark, shared `*.fintella.os` subdomain only |
 | **Growth** | $1,497 | $497 deposit locks $1,197/mo for 12 mo when V2 ships | 150 partners, unlimited deals, 3 active connectors, full white-label, custom domain (CNAME), priority email support |
 | **Scale** | $2,997 | $997 deposit locks $2,397/mo for 12 mo when V2 ships | Unlimited partners, unlimited connectors, V2 recurring-revenue engine (when shipped), dedicated Slack channel, founder access, quarterly product consult |
+| **🔥 Performance (profit-share)** | **$0 upfront + $0 monthly** | — | Full Growth-tier feature set including custom domain + pathway network access. Fintella takes **20% of every commission processed through the platform** + **30% of every pathway rev-share** the tenant + their partners earn. Minimum 12-month commit. Ideal for ICPs without SaaS budget but with ready-to-activate partner networks. |
 
-**Setup fee:** $1,500–$3,000 one-time (covers provisioning, domain config, brand setup, data migration from legacy spreadsheets / tools).
+**Setup fee:** $1,500–$3,000 one-time on Starter/Growth/Scale (covers provisioning, domain config, brand setup, data migration). **WAIVED on Performance tier** — zero risk upfront in exchange for higher ongoing participation. Fintella eats the provisioning cost and recoups from commission/pathway volume.
+
+**Performance-tier economics (illustrative):**
+- Tenant brings 25 partners, each closing ~2 deals/mo at avg $2k commission each = $100k/mo partner commission volume
+- Fintella's 20% platform cut = $20k/mo
+- Plus pathway rev-share: if 30% of partners activate 2 pathways each at avg $500/mo pathway commission = $7.5k/mo pathway volume × 30% = $2.25k/mo
+- Total Fintella take per Performance tenant: ~$22k/mo without Starter/Growth/Scale subscription fees
+- Compare to Growth tenant at $1.5k/mo flat: Performance tier yields 14x the monthly revenue IF the tenant's volume is there
+
+**When to offer Performance:**
+- Tenant has existing partner roster (5+ active referrers) but no SaaS budget
+- Tenant's deal volume is predictable/steady (gives Fintella confidence in the run rate)
+- Tenant is comfortable with higher take rate in exchange for zero risk
+- Tenant values alignment (Fintella is motivated to help them close more deals)
+
+**When NOT to offer Performance:**
+- Tenant is early-stage with no partner roster yet (Fintella carries all the risk)
+- Tenant is low-volume / hobby-scale (take rate doesn't clear Fintella's cost to serve)
+- Tenant prefers predictable SaaS pricing for accounting reasons
 
 **V2 founder-pricing deposit mechanism:**
 
