@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     const { conversationId, message, pinnedSpecialist } = body as {
       conversationId?: string;
       message?: string;
-      pinnedSpecialist?: "tara";
+      pinnedSpecialist?: "tara" | "ollie";
     };
 
     if (!message || typeof message !== "string" || !message.trim()) {
@@ -114,10 +114,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // If the UI force-pinned a specialist (e.g. "Talk to Tara" button),
-    // use that as the initial persona instead of the generalist.
-    const initialPersona: "finn" | "stella" | "tara" =
-      pinnedSpecialist === "tara" ? "tara" : personaId;
+    // If the UI force-pinned a specialist (e.g. "Talk to Tara" / "Talk to Ollie"
+    // button), use that as the initial persona instead of the generalist.
+    const initialPersona: "finn" | "stella" | "tara" | "ollie" =
+      pinnedSpecialist === "tara"
+        ? "tara"
+        : pinnedSpecialist === "ollie"
+          ? "ollie"
+          : personaId;
 
     // Call Anthropic (or mock) as the initial persona
     const result = await generateResponse(userContext, history, initialPersona);
@@ -126,7 +130,7 @@ export async function POST(req: NextRequest) {
     // The specialist sees the hand-off summary prepended as a user turn so the
     // partner doesn't have to re-explain.
     let finalResult = result;
-    let finalPersonaId: "finn" | "stella" | "tara" = initialPersona;
+    let finalPersonaId: "finn" | "stella" | "tara" | "ollie" = initialPersona;
     let handoffMeta:
       | {
           from: string;
@@ -137,11 +141,14 @@ export async function POST(req: NextRequest) {
         }
       | null = null;
 
-    if (result.handOff && result.handOff.to === "tara") {
-      finalPersonaId = "tara";
+    if (
+      result.handOff &&
+      (result.handOff.to === "tara" || result.handOff.to === "ollie")
+    ) {
+      finalPersonaId = result.handOff.to;
       handoffMeta = {
         from: initialPersona,
-        to: "tara",
+        to: result.handOff.to,
         reason: result.handOff.reason,
         summary: result.handOff.summary,
         triggeredBy: "llm_tool",
@@ -160,13 +167,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If the UI pin forced Tara, record it as a user_button-triggered handoff
-    // for telemetry even though no tool call happened server-side.
-    if (!handoffMeta && pinnedSpecialist === "tara" && personaId !== "tara") {
+    // If the UI pin forced a specialist, record it as a user_button-triggered
+    // handoff for telemetry even though no tool call happened server-side.
+    if (
+      !handoffMeta &&
+      (pinnedSpecialist === "tara" || pinnedSpecialist === "ollie") &&
+      personaId !== pinnedSpecialist
+    ) {
       handoffMeta = {
         from: personaId,
-        to: "tara",
-        reason: "user clicked Talk to Tara",
+        to: pinnedSpecialist,
+        reason: `user clicked Talk to ${pinnedSpecialist === "tara" ? "Tara" : "Ollie"}`,
         summary: "",
         triggeredBy: "user_button",
       };

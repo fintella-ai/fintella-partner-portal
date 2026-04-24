@@ -51,7 +51,7 @@ export default function AiAssistantPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [preferredGeneralist, setPreferredGeneralist] = useState<string | null | undefined>(undefined);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pinnedSpecialist, setPinnedSpecialist] = useState<"tara" | null>(null);
+  const [pinnedSpecialist, setPinnedSpecialist] = useState<"tara" | "ollie" | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // ─── LOAD CONVERSATIONS + CONFIG ─────────────────────────────────────
@@ -261,7 +261,7 @@ export default function AiAssistantPage() {
                   Switch
                 </button>
               )}
-              {pinnedSpecialist === "tara" ? (
+              {pinnedSpecialist ? (
                 <button
                   onClick={() => setPinnedSpecialist(null)}
                   className="font-body text-[10px] uppercase tracking-wider text-[var(--app-text-muted)] hover:text-[var(--app-text)] underline-offset-2 hover:underline"
@@ -269,12 +269,20 @@ export default function AiAssistantPage() {
                   ← Back to {preferredGeneralist === "stella" ? "Stella" : "Finn"}
                 </button>
               ) : (
-                <button
-                  onClick={() => setPinnedSpecialist("tara")}
-                  className="font-body text-[10px] uppercase tracking-wider text-[var(--app-text-muted)] hover:text-[#5e7eb8] underline-offset-2 hover:underline"
-                >
-                  Talk to Tara
-                </button>
+                <>
+                  <button
+                    onClick={() => setPinnedSpecialist("tara")}
+                    className="font-body text-[10px] uppercase tracking-wider text-[var(--app-text-muted)] hover:text-[#5e7eb8] underline-offset-2 hover:underline"
+                  >
+                    Talk to Tara
+                  </button>
+                  <button
+                    onClick={() => setPinnedSpecialist("ollie")}
+                    className="font-body text-[10px] uppercase tracking-wider text-[var(--app-text-muted)] hover:text-[#4a9d9c] underline-offset-2 hover:underline"
+                  >
+                    Talk to Ollie
+                  </button>
+                </>
               )}
             </div>
           </div>
