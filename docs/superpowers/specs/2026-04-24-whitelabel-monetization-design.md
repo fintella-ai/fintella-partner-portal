@@ -10,7 +10,9 @@
 ## 1. Product positioning
 
 **Name (working):** Fintella OS
-**Tagline:** *The referral network platform — branded for your firm, deployed in hours, running like Fintella does.*
+**Tagline:** *Your custom partner network. Instant access to ours.*
+
+**Value proposition (one paragraph):** Fintella OS is a tenant-branded partner-program platform — tracking, commissions, downline, payouts, portal-level branding — **plus plugged-in access to a vetted revenue pathway network** John has assembled over years (tax strategy, accounting, insurance, utility reduction, lending, credit repair, 1099 tax management, partner agreement management). A tenant doesn't just get software; they get a turnkey business-in-a-box where their partners start earning from day one — not just on the tenant's own deals, but on every client referred into any of the pathway services. This is what no competitor can match.
 
 **ICP (Ideal Customer Profile):** Client-sourcing referral networks in regulated services.
 
