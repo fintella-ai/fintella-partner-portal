@@ -221,10 +221,11 @@ function InboxRow({
             ))}
           </div>
         </div>
-        <div className="font-body text-[10px] text-[var(--app-text-muted)] text-right">
-          {inbox.googleCalendarConnectedAt
-            ? "Calendar connected"
-            : "Calendar not connected"}
+        <div className="font-body text-[10px] text-[var(--app-text-muted)] text-right shrink-0">
+          <CalendarConnectButton
+            inboxId={inbox.id}
+            connectedAt={inbox.googleCalendarConnectedAt}
+          />
           {inbox.assignedAdminIds.length === 0 && (
             <div className="mt-1 text-amber-500">⚠ no admins assigned</div>
           )}
@@ -328,6 +329,66 @@ function InboxRow({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Per-inbox Google Calendar connect/disconnect button. When not connected,
+ * navigates the browser to the OAuth-start endpoint (server-side redirect
+ * to Google). When connected, shows a muted "Connected" pill + a
+ * small Disconnect link.
+ */
+function CalendarConnectButton({
+  inboxId,
+  connectedAt,
+}: {
+  inboxId: string;
+  connectedAt: string | null;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  if (!connectedAt) {
+    return (
+      <a
+        href={`/api/admin/inboxes/${inboxId}/google-calendar/connect`}
+        className="inline-block text-[11px] font-body text-brand-gold border border-brand-gold/40 rounded px-2 py-1 hover:bg-brand-gold/10"
+      >
+        Connect Calendar
+      </a>
+    );
+  }
+
+  async function disconnect() {
+    if (
+      !confirm(
+        "Disconnect this inbox's Google Calendar? New scheduled calls will fall back to notification-only booking until reconnected."
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    try {
+      await fetch(`/api/admin/inboxes/${inboxId}/google-calendar/disconnect`, {
+        method: "POST",
+      });
+      // Force a page reload so the parent AdminInboxesCard refetches.
+      window.location.reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <span className="text-[11px] text-green-500">✓ Calendar connected</span>
+      <button
+        onClick={disconnect}
+        disabled={busy}
+        className="text-[10px] text-[var(--app-text-muted)] hover:text-red-500 underline disabled:opacity-50"
+      >
+        {busy ? "Disconnecting…" : "Disconnect"}
+      </button>
     </div>
   );
 }

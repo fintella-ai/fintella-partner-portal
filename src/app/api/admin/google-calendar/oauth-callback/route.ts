@@ -32,6 +32,8 @@ export async function GET(req: NextRequest) {
 
   const code = req.nextUrl.searchParams.get("code");
   const err = req.nextUrl.searchParams.get("error");
+  const stateRaw = req.nextUrl.searchParams.get("state") || "";
+  const state = decodeURIComponent(stateRaw);
   if (err) {
     return NextResponse.redirect(`${settingsUrl}?google_calendar=error&reason=${encodeURIComponent(err)}`);
   }
@@ -39,10 +41,34 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${settingsUrl}?google_calendar=error&reason=no_code`);
   }
 
+  // Per-inbox OAuth flow: state = `inbox:<inboxId>:<email>`. Route the
+  // refresh token to AdminInbox instead of the global PortalSettings
+  // singleton. Legacy flow (state = plain admin email) continues to
+  // write to PortalSettings as before.
+  const inboxMatch = /^inbox:([^:]+):/.exec(state);
+
   try {
     // Use the same origin-based redirect URI the oauth-start handler
     // used, so Google's token exchange sees a matching redirect_uri.
     const tokens = await exchangeCodeForTokens(code, req.nextUrl.origin);
+
+    if (inboxMatch) {
+      const inboxId = inboxMatch[1];
+      await prisma.adminInbox.update({
+        where: { id: inboxId },
+        data: {
+          googleCalendarRefreshToken: tokens.refreshToken,
+          googleCalendarConnectedAt: new Date(),
+        },
+      });
+      // Per-inbox tokens don't share the global cache, so no invalidation
+      // needed — the inbox-scoped access-token helper mints fresh per call.
+      return NextResponse.redirect(
+        `${settingsUrl}?google_calendar=inbox_connected&inboxId=${encodeURIComponent(inboxId)}`
+      );
+    }
+
+    // Legacy flow — unchanged.
     await prisma.portalSettings.upsert({
       where: { id: "global" },
       update: {
@@ -57,9 +83,6 @@ export async function GET(req: NextRequest) {
         googleCalendarConnectedAt: new Date(),
       },
     });
-    // Next API call will mint a fresh access token from the new refresh
-    // token — clear any leftover cache in case a previous disconnected
-    // session left something behind.
     invalidateCachedAccessToken();
     return NextResponse.redirect(`${settingsUrl}?google_calendar=connected`);
   } catch (e: unknown) {

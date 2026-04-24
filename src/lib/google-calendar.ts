@@ -270,6 +270,142 @@ export async function googleCalendarConfigured(): Promise<boolean> {
   );
 }
 
+// ─── PER-INBOX HELPERS (PartnerOS Phase 2b) ──────────────────────────────
+// The legacy token cache above is keyed on the global singleton. Per-inbox
+// tokens get their own cache map keyed by inbox id so one admin clicking
+// "Connect Calendar" on the Support inbox doesn't force a re-auth on the
+// Accounting inbox.
+
+const inboxTokenCache = new Map<string, { token: string; expiresAt: number }>();
+
+async function getAccessTokenForInbox(
+  refreshToken: string,
+  inboxId: string
+): Promise<string | null> {
+  const cachedEntry = inboxTokenCache.get(inboxId);
+  if (cachedEntry && cachedEntry.expiresAt > Date.now() + 30_000)
+    return cachedEntry.token;
+
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID || "";
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || "";
+  if (!clientId || !clientSecret) return null;
+
+  const res = await fetch(TOKEN_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  if (!res.ok) {
+    console.error(
+      `[google-calendar inbox=${inboxId}] refresh failed ${res.status}: ${await res.text().catch(() => "")}`
+    );
+    return null;
+  }
+  const data = (await res.json()) as { access_token: string; expires_in: number };
+  inboxTokenCache.set(inboxId, {
+    token: data.access_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  });
+  return data.access_token;
+}
+
+export function invalidateCachedInboxToken(inboxId: string): void {
+  inboxTokenCache.delete(inboxId);
+}
+
+/**
+ * Query free-busy on the inbox's primary calendar between two ISO
+ * timestamps. Returns an array of busy intervals the caller can subtract
+ * from their candidate slots.
+ *
+ * When the inbox has no refresh token, returns `null` so the caller can
+ * fall back to a fixed slot grid (as Phase 3c.4d did before real OAuth).
+ */
+export async function freeBusyForInbox(
+  refreshToken: string | null,
+  inboxId: string,
+  timeMinIso: string,
+  timeMaxIso: string
+): Promise<Array<{ startIso: string; endIso: string }> | null> {
+  if (!refreshToken) return null;
+  const token = await getAccessTokenForInbox(refreshToken, inboxId);
+  if (!token) return null;
+
+  const res = await fetch(`${CAL_BASE}/freeBusy`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      timeMin: timeMinIso,
+      timeMax: timeMaxIso,
+      items: [{ id: "primary" }],
+    }),
+  });
+  if (!res.ok) {
+    console.error(
+      `[google-calendar inbox=${inboxId}] freeBusy failed ${res.status}: ${await res.text().catch(() => "")}`
+    );
+    return null;
+  }
+  const data = (await res.json()) as {
+    calendars?: Record<string, { busy?: Array<{ start: string; end: string }> }>;
+  };
+  const busy = data.calendars?.primary?.busy ?? [];
+  return busy.map((b) => ({ startIso: b.start, endIso: b.end }));
+}
+
+/**
+ * Create a calendar event on the inbox's primary calendar. Used by Ollie's
+ * `book_slot` tool after a partner picks a slot. Returns `null` if the
+ * inbox has no token (caller should fall back to the notification-only
+ * path from Phase 3c.4d).
+ */
+export async function createEventOnInboxCalendar(
+  refreshToken: string | null,
+  inboxId: string,
+  input: CalendarEventInput
+): Promise<CalendarEventResult | null> {
+  if (!refreshToken) return null;
+  const token = await getAccessTokenForInbox(refreshToken, inboxId);
+  if (!token) return null;
+
+  const body = {
+    summary: input.summary,
+    description: input.description
+      ? `${input.description}${input.joinUrl ? `\n\nJoin here: ${input.joinUrl}` : ""}`
+      : input.joinUrl,
+    location: input.joinUrl,
+    start: { dateTime: input.startIso, timeZone: "UTC" },
+    end: { dateTime: input.endIso, timeZone: "UTC" },
+    attendees: (input.attendeeEmails || []).map((email) => ({ email })),
+    reminders: { useDefault: true },
+  };
+
+  const res = await fetch(`${CAL_BASE}/calendars/primary/events`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    console.error(
+      `[google-calendar inbox=${inboxId}] createEvent failed ${res.status}: ${await res.text().catch(() => "")}`
+    );
+    return null;
+  }
+  const data = (await res.json()) as { id: string; htmlLink?: string };
+  return { id: data.id, htmlLink: data.htmlLink, demo: false };
+}
+
 export function invalidateCachedAccessToken(): void {
   cached = null;
 }

@@ -11,6 +11,7 @@
  * options even before Calendar is connected.
  */
 import { prisma } from "@/lib/prisma";
+import { freeBusyForInbox } from "@/lib/google-calendar";
 
 /** A 15-minute (or inbox-configured) call slot offered to a partner. */
 export interface ScheduleSlot {
@@ -57,6 +58,7 @@ export async function getOfferedSlots(
         timeZone: true,
         callDurationMinutes: true,
         acceptScheduledCalls: true,
+        googleCalendarRefreshToken: true,
       },
     })) ??
     (await prisma.adminInbox.findUnique({
@@ -68,6 +70,7 @@ export async function getOfferedSlots(
         timeZone: true,
         callDurationMinutes: true,
         acceptScheduledCalls: true,
+        googleCalendarRefreshToken: true,
       },
     }));
 
@@ -118,6 +121,43 @@ export async function getOfferedSlots(
         durationMinutes: duration,
       });
       if (slots.length >= 12) break;
+    }
+  }
+
+  // When the inbox has a Google Calendar connected, subtract busy
+  // intervals from our candidate slot grid so we don't offer times the
+  // admin is already booked. When no token is set, we fall through with
+  // the placeholder grid (Phase 3c.4d behavior).
+  if (inbox.googleCalendarRefreshToken && slots.length > 0) {
+    const windowStart = slots[0].startUtc;
+    const windowEnd = slots[slots.length - 1].endUtc;
+    const busy = await freeBusyForInbox(
+      inbox.googleCalendarRefreshToken,
+      inbox.id,
+      windowStart,
+      windowEnd
+    );
+    if (busy && busy.length > 0) {
+      const isBusy = (slot: ScheduleSlot) => {
+        const slotStart = Date.parse(slot.startUtc);
+        const slotEnd = Date.parse(slot.endUtc);
+        return busy.some((b) => {
+          const bStart = Date.parse(b.startIso);
+          const bEnd = Date.parse(b.endIso);
+          // overlap: slotStart < bEnd && slotEnd > bStart
+          return slotStart < bEnd && slotEnd > bStart;
+        });
+      };
+      const filtered = slots.filter((s) => !isBusy(s));
+      // Only apply if we have enough remaining — if the calendar is
+      // wall-to-wall, don't return zero slots; fall back to the grid
+      // and let the admin decline. (`>= 3` keeps the partner from
+      // seeing an awkward "no times at all" when the real cause is
+      // poor calendar hygiene.)
+      if (filtered.length >= 3) {
+        slots.length = 0;
+        slots.push(...filtered);
+      }
     }
   }
 
