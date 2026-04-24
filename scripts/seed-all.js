@@ -675,6 +675,49 @@ async function main() {
         "firmName",
       ]),
     },
+    {
+      key: "onboarding_nudge",
+      name: "Onboarding — Stall Nudge",
+      category: "Onboarding",
+      subject: "Still want to start earning with {firmShort}?",
+      preheader: "Finish your Getting-Started checklist — it takes a few minutes.",
+      heading: "Pick up where you left off",
+      bodyHtml:
+        "<p>Hi {partner.firstName},</p>" +
+        "<p>It's been {daysSinceSignup} days since you joined {firmShort} and we noticed your Getting-Started checklist is " +
+        "{checklist.completedCount} of {checklist.totalCount} complete. You're closer than you think.</p>" +
+        "<p>The next step: <strong>{nextStep.title}</strong>. {nextStep.description}</p>" +
+        "<p>Jump back into your portal and knock it out — we'll walk through the rest on the next Live Weekly.</p>",
+      bodyText:
+        "Hi {partner.firstName},\n\n" +
+        "It's been {daysSinceSignup} days since you joined {firmShort} and we noticed your Getting-Started checklist is {checklist.completedCount} of {checklist.totalCount} complete.\n\n" +
+        "Next step: {nextStep.title}\n{nextStep.description}\n\n" +
+        "Jump back in: {portalUrl}/dashboard/getting-started\n\n" +
+        "We'll walk through the rest on the next Live Weekly.",
+      ctaLabel: "Finish Getting Started",
+      ctaUrl: "{portalUrl}/dashboard/getting-started",
+      enabled: true,
+      isDraft: false,
+      description:
+        "Default template for the partner.onboarding_stalled workflow trigger. Fires from /api/cron/reminders once per `cadenceDays` for each active partner whose Getting-Started checklist is < 100% and who signed up at least `cadenceDays` ago. Throttled per-partner via Partner.onboardingState.lastNudgeSentAt. Admin can edit the body from /admin/communications Templates.",
+      variables: JSON.stringify([
+        "partner.firstName",
+        "partner.lastName",
+        "partner.partnerCode",
+        "partner.email",
+        "checklist.completedCount",
+        "checklist.totalCount",
+        "checklist.progressPercent",
+        "nextStep.id",
+        "nextStep.title",
+        "nextStep.description",
+        "nextStep.ctaUrl",
+        "daysSinceSignup",
+        "portalUrl",
+        "firmShort",
+        "firmName",
+      ]),
+    },
   ];
 
   for (const t of emailTemplates) {

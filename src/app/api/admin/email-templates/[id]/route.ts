@@ -25,6 +25,7 @@ const WIRED_TEMPLATE_KEYS = new Set([
   // (no hardcoded fallback — deleting the row breaks the reminder flow)
   "agreement_reminder",
   "invite_reminder",
+  "onboarding_nudge",
 ]);
 
 /**

@@ -45,6 +45,10 @@ export interface OnboardingState {
   firstTrainingCompletedAt?: string;
   referralLinkSharedAt?: string;
   completedAt?: string;
+  // Throttle for the partner.onboarding_stalled cron trigger. Written by
+  // /api/cron/reminders after each nudge fire so the next run skips the
+  // partner until the workflow's cadence window elapses.
+  lastNudgeSentAt?: string;
 }
 
 export interface GettingStartedResult {
