@@ -13,6 +13,12 @@ const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 if (dsn) {
   Sentry.init({
     dsn,
+    // Include request context + non-sensitive user info on client events.
+    // The beforeSend below still scrubs cookies and IPs before send.
+    sendDefaultPii: true,
+    // Enable Sentry Logs product on the browser too. Opt-in; no cost unless
+    // we actually call Sentry.logger.*.
+    enableLogs: true,
     // Keep sample rate low in prod to stay within Sentry free tier
     // (5k events/month). Bump temporarily if debugging a specific bug.
     tracesSampleRate: parseFloat(process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE || "0.1"),
