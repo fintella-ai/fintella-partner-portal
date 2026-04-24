@@ -12,6 +12,16 @@ if (dsn) {
     dsn,
     tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE || "0.1"),
     environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "development",
+    // Include request context (headers, query, etc.) on server events. Our
+    // beforeSend below still scrubs specific secrets; this just lets Sentry
+    // attach the non-sensitive request context we already have server-side.
+    sendDefaultPii: true,
+    // Enable the Sentry Logs product so Sentry.logger.* calls flow to Sentry.
+    // Opt-in feature — no additional cost unless we actually use the API.
+    enableLogs: true,
+    // Attach local variable values to server stack frames for easier debugging.
+    // beforeSend still redacts known secret patterns below before send.
+    includeLocalVariables: true,
     // Don't capture common noise
     ignoreErrors: [
       "NEXT_NOT_FOUND",
