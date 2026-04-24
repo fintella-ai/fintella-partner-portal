@@ -13,6 +13,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { STAGE_LABELS } from "@/lib/constants";
 import { getOnlineAdminsForInbox } from "@/lib/admin-online";
+import { getOfferedSlots } from "@/lib/scheduling";
 
 export type OllieToolName =
   | "lookupDeal"
@@ -21,7 +22,9 @@ export type OllieToolName =
   | "lookupDownline"
   | "create_support_ticket"
   | "start_live_chat"
-  | "initiate_live_transfer";
+  | "initiate_live_transfer"
+  | "offer_schedule_slots"
+  | "book_slot";
 
 // Categories Ollie may assign to a ticket. These feed AdminInbox.categories
 // to route email + notifications. Keep this list in sync with the seed in
@@ -126,6 +129,54 @@ export const OLLIE_TOOLS: Anthropic.Messages.Tool[] = [
         },
       },
       required: ["category", "reason"],
+    },
+  },
+  {
+    name: "offer_schedule_slots",
+    description:
+      "Show the partner available 15-minute (or inbox-configured) slots for a scheduled call. Resolves category → AdminInbox → offered slots over the next 3 business days. Returns an empty slots list if the inbox has acceptScheduledCalls=false or isn't configured — fall back to opening a ticket in that case. Use this when the partner doesn't need a human NOW but wants to book time.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        category: {
+          type: "string" as const,
+          enum: [...TICKET_CATEGORIES] as unknown as string[],
+          description: "Which admin inbox will own the call (same enum as create_support_ticket).",
+        },
+        daysAhead: {
+          type: "number" as const,
+          description: "How many business days forward to search. Defaults to 3, max 14.",
+        },
+      },
+      required: ["category"],
+    },
+  },
+  {
+    name: "book_slot",
+    description:
+      "Book a scheduled call slot the partner just picked from offer_schedule_slots. Records an AiEscalation with rung=scheduled_call, fans out admin notifications, and returns a confirmation the partner can reference. Pass the exact startUtc from the slot the partner chose. Real Google Calendar event creation ships in a follow-up PR — for now the admin sees the notification and handles the calendar add manually.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        category: {
+          type: "string" as const,
+          enum: [...TICKET_CATEGORIES] as unknown as string[],
+          description: "Same category you passed to offer_schedule_slots.",
+        },
+        startUtc: {
+          type: "string" as const,
+          description: "ISO UTC instant of the slot the partner picked (copy from the slot.startUtc field returned by offer_schedule_slots).",
+        },
+        reason: {
+          type: "string" as const,
+          description: "One-line summary of what the call is about — shown to the admin so they can prep.",
+        },
+        partnerPhone: {
+          type: "string" as const,
+          description: "Optional — partner's preferred call-back number. E.164 preferred.",
+        },
+      },
+      required: ["category", "startUtc", "reason"],
     },
   },
   {
@@ -250,6 +301,10 @@ export async function executeOllieTool(
         return await startLiveChat(partnerCode, args, ctx);
       case "initiate_live_transfer":
         return await initiateLiveTransfer(partnerCode, args, ctx);
+      case "offer_schedule_slots":
+        return await offerScheduleSlots(args);
+      case "book_slot":
+        return await bookSlot(partnerCode, args, ctx);
       default:
         return err(`Unknown tool: ${name}`);
     }
@@ -919,5 +974,202 @@ async function initiateLiveTransfer(
     fallbackUsed: usedFallback,
     note:
       "Live transfer intent recorded. Admins with availableForLiveCall=true + fresh heartbeat were notified. Twilio outbound bridge wiring ships in a follow-up PR — for now the admin sees the notification and can call the partner back on the confirmed number.",
+  });
+}
+
+// ─── SCHEDULED CALL TOOLS (Phase 3c.4d) ───────────────────────────────────
+
+async function offerScheduleSlots(args: Record<string, unknown>) {
+  const category = String(args.category ?? "other");
+  const daysAhead =
+    typeof args.daysAhead === "number" ? args.daysAhead : 3;
+
+  if (!(TICKET_CATEGORIES as readonly string[]).includes(category)) {
+    return err(`Unknown category: ${category}`);
+  }
+
+  const { slots, inbox, reason } = await getOfferedSlots(category, daysAhead);
+
+  if (!inbox) {
+    return ok({
+      slots: [],
+      reason: "no_inbox_configured",
+      message:
+        "No admin inbox is configured for this category yet. Offer a support ticket instead.",
+    });
+  }
+
+  if (reason === "inbox_not_accepting_scheduled_calls") {
+    return ok({
+      slots: [],
+      inbox: {
+        role: inbox.role,
+        displayName: inbox.displayName,
+      },
+      reason,
+      message: `${inbox.displayName} isn't currently accepting scheduled calls. Offer a support ticket or a different path.`,
+    });
+  }
+
+  return ok({
+    slots,
+    inbox: {
+      role: inbox.role,
+      displayName: inbox.displayName,
+      timeZone: inbox.timeZone,
+      durationMinutes: inbox.callDurationMinutes,
+    },
+    note:
+      "These are placeholder slots (v1). When Google Calendar per-inbox OAuth ships, slots will reflect real admin availability.",
+  });
+}
+
+async function bookSlot(
+  partnerCode: string,
+  args: Record<string, unknown>,
+  ctx: ExecuteCtx
+) {
+  const category = String(args.category ?? "other");
+  const startUtcRaw = String(args.startUtc ?? "").trim();
+  const reason = String(args.reason ?? "").trim();
+  const partnerPhone =
+    typeof args.partnerPhone === "string" ? args.partnerPhone.trim() : "";
+
+  if (!(TICKET_CATEGORIES as readonly string[]).includes(category)) {
+    return err(`Unknown category: ${category}`);
+  }
+  if (!reason) return err("Reason is required.");
+  if (!startUtcRaw) return err("startUtc is required.");
+  const start = new Date(startUtcRaw);
+  if (Number.isNaN(start.getTime())) {
+    return err("startUtc is not a valid ISO date.");
+  }
+  if (start.getTime() <= Date.now()) {
+    return err("startUtc is in the past. Re-offer slots.");
+  }
+
+  const routedInbox =
+    (await prisma.adminInbox.findFirst({
+      where: { categories: { has: category } },
+      select: {
+        id: true,
+        role: true,
+        displayName: true,
+        callDurationMinutes: true,
+        callTitleTemplate: true,
+        assignedAdminIds: true,
+        acceptScheduledCalls: true,
+      },
+    })) ??
+    (await prisma.adminInbox.findUnique({
+      where: { role: "support" },
+      select: {
+        id: true,
+        role: true,
+        displayName: true,
+        callDurationMinutes: true,
+        callTitleTemplate: true,
+        assignedAdminIds: true,
+        acceptScheduledCalls: true,
+      },
+    }));
+
+  if (!routedInbox || !routedInbox.acceptScheduledCalls) {
+    return err(
+      "Target inbox isn't accepting scheduled calls. Offer a support ticket instead."
+    );
+  }
+
+  const end = new Date(start.getTime() + routedInbox.callDurationMinutes * 60_000);
+
+  // Partner display name for the notification + future calendar title.
+  const partner = await prisma.partner.findUnique({
+    where: { partnerCode },
+    select: { firstName: true, lastName: true, email: true },
+  });
+  const partnerName =
+    partner
+      ? `${partner.firstName ?? ""} ${partner.lastName ?? ""}`.trim() || partnerCode
+      : partnerCode;
+
+  // Record the booking.
+  const escalation = ctx.conversationId
+    ? await prisma.aiEscalation.create({
+        data: {
+          conversationId: ctx.conversationId,
+          rung: "scheduled_call",
+          status: "succeeded",
+          targetInboxId: routedInbox.id,
+          partnerCode,
+          category,
+          priority: "normal",
+          reason,
+          payload: {
+            startUtc: start.toISOString(),
+            endUtc: end.toISOString(),
+            durationMinutes: routedInbox.callDurationMinutes,
+            partnerPhone: partnerPhone || null,
+            partnerName,
+            partnerEmail: partner?.email ?? null,
+            calendarEventStatus: "not_wired_yet",
+          },
+        },
+        select: { id: true, createdAt: true },
+      })
+    : null;
+
+  // Notify assigned admins (fallback to all support-eligible if empty).
+  let recipientEmails: string[] = [];
+  if (routedInbox.assignedAdminIds.length > 0) {
+    const assigned = await prisma.user.findMany({
+      where: { id: { in: routedInbox.assignedAdminIds } },
+      select: { email: true },
+    });
+    recipientEmails = assigned.map((u) => u.email);
+  }
+  if (recipientEmails.length === 0) {
+    const fallback = await prisma.user.findMany({
+      where: { role: { in: ["super_admin", "admin", "partner_support"] } },
+      select: { email: true },
+    });
+    recipientEmails = fallback.map((u) => u.email);
+  }
+
+  const startLocal = start.toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  const title = `📅 New scheduled call from Ollie`;
+  const message = `${partnerName} booked ${startLocal} (${routedInbox.callDurationMinutes}m) · ${reason.slice(0, 80)}`;
+
+  await Promise.all(
+    recipientEmails.map((email) =>
+      prisma.notification
+        .create({
+          data: {
+            recipientType: "admin",
+            recipientId: email,
+            type: "ai_scheduled_call",
+            title,
+            message,
+            link: `/admin/support?escalationId=${escalation?.id ?? ""}`,
+          },
+        })
+        .catch(() => {})
+    )
+  );
+
+  return ok({
+    escalationId: escalation?.id.substring(0, 8) ?? null,
+    startUtc: start.toISOString(),
+    endUtc: end.toISOString(),
+    durationMinutes: routedInbox.callDurationMinutes,
+    routedTo: {
+      role: routedInbox.role,
+      displayName: routedInbox.displayName,
+    },
+    adminsNotified: recipientEmails.length,
+    note:
+      "Slot booked — admins notified. Real Google Calendar event creation ships in a follow-up PR. For now the admin will add it to their calendar manually from the notification.",
   });
 }
