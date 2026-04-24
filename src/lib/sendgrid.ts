@@ -98,6 +98,16 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       providerMessageId: null,
       errorMessage: null,
     });
+    // email.failed trigger — "demo-mode" skips still count as a non-send
+    // so automations can react to "no real email actually went out"
+    // during local/preview testing.
+    fireEmailTrigger("email.failed", {
+      template: input.template || null,
+      to: input.to,
+      partnerCode: input.partnerCode ?? null,
+      reason: "demo-mode",
+      statusCode: 0,
+    });
     return { status: "demo", messageId: null };
   }
 
@@ -147,6 +157,13 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
         errorMessage: err,
       });
       console.error("[SendGrid]", err);
+      fireEmailTrigger("email.failed", {
+        template: input.template || null,
+        to: input.to,
+        partnerCode: input.partnerCode ?? null,
+        reason: err,
+        statusCode: res.status,
+      });
       return { status: "failed", messageId: null, error: err };
     }
 
@@ -163,6 +180,12 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       providerMessageId: messageId,
       errorMessage: null,
     });
+    fireEmailTrigger("email.sent", {
+      template: input.template || null,
+      to: input.to,
+      partnerCode: input.partnerCode ?? null,
+      messageId: messageId || null,
+    });
     return { status: "sent", messageId };
   } catch (err: any) {
     const message = err?.message || String(err);
@@ -178,8 +201,28 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       errorMessage: message,
     });
     console.error("[SendGrid] send threw:", message);
+    fireEmailTrigger("email.failed", {
+      template: input.template || null,
+      to: input.to,
+      partnerCode: input.partnerCode ?? null,
+      reason: message,
+      statusCode: 0,
+    });
     return { status: "failed", messageId: null, error: message };
   }
+}
+
+/**
+ * Fire-and-forget workflow trigger for email lifecycle events. Dynamic
+ * import keeps this file from taking a compile-time dependency on the
+ * workflow engine (which imports prisma and would circularly pull this
+ * file back in during test builds). Swallow any failure — a broken
+ * trigger must NEVER block the email pipeline.
+ */
+function fireEmailTrigger(triggerKey: string, payload: Record<string, unknown>): void {
+  import("@/lib/workflow-engine")
+    .then(({ fireWorkflowTrigger }) => fireWorkflowTrigger(triggerKey as any, payload))
+    .catch((e) => console.error("[SendGrid] fireEmailTrigger dispatch failed:", e));
 }
 
 // ─── EmailLog persistence (best-effort, never throws) ────────────────────────
@@ -279,7 +322,7 @@ function buildText(opts: ShellOpts): string {
 }
 
 /** Convenience wrapper: build both shells from a single ShellOpts. */
-function emailShell(opts: ShellOpts): { html: string; text: string } {
+export function emailShell(opts: ShellOpts): { html: string; text: string } {
   return { html: buildHtml(opts), text: buildText(opts) };
 }
 
@@ -847,6 +890,57 @@ This invitation link expires in 7 days.`;
     text,
     template: "l1_invite",
     partnerCode: null,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Channel-invite email — fired from the /api/admin/channels/[id]/members
+// POST endpoint whenever a new partner is added to an AnnouncementChannel.
+// Template key: partner_added_to_channel. Falls back to the hardcoded copy
+// below if the template row is missing/disabled.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export async function sendChannelInviteEmail(opts: {
+  toEmail: string;
+  toName: string | null;
+  channelName: string;
+  channelUrl: string;
+  partnerCode: string;
+}): Promise<SendEmailResult> {
+  const name = opts.toName || "there";
+  const heading = `You've been added to the "${opts.channelName}" channel`;
+  const bodyHtml = `
+    <p>Hi ${escapeHtml(name)},</p>
+    <p>An admin just added you to the <strong>${escapeHtml(opts.channelName)}</strong> announcement channel on ${escapeHtml(FIRM_SHORT)}.</p>
+    <p>Announcements posted there will now show up in your Announcements tab. You can reply to start a private thread with the admin team on any post.</p>
+    <p style="font-size:12px;color:#888;">Where to go: open the portal → sidebar → <strong>Communications &rarr; Announcements</strong>, or tap the button below.</p>`;
+  const bodyText = `Hi ${name},
+
+An admin just added you to the "${opts.channelName}" announcement channel on ${FIRM_SHORT}.
+
+Announcements posted there will now show up in your Announcements tab. You can reply to start a private thread with the admin team on any post.
+
+Open the channel: ${opts.channelUrl}
+
+Where to go: portal sidebar → Communications → Announcements.`;
+
+  const { html, text } = emailShell({
+    preheader: `You've been added to the "${opts.channelName}" channel.`,
+    heading,
+    bodyHtml,
+    bodyText,
+    ctaLabel: "Open Channel",
+    ctaUrl: opts.channelUrl,
+  });
+
+  return sendEmail({
+    to: opts.toEmail,
+    toName: opts.toName || undefined,
+    subject: `You've been added to the "${opts.channelName}" channel`,
+    html,
+    text,
+    template: "partner_added_to_channel",
+    partnerCode: opts.partnerCode,
   });
 }
 

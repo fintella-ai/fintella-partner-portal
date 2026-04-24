@@ -1,10 +1,29 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { compare } from "bcryptjs";
 import { prisma } from "./prisma";
 
+/**
+ * Google sign-in is **partner-only** and strictly a convenience shortcut for
+ * already-invited partners. We do NOT auto-provision new partners from a
+ * Google account (the portal is invite-only per the business rule — see
+ * feedback_partners_invite_only). The signIn callback below rejects any
+ * Google login whose email doesn't match an existing Partner row.
+ *
+ * Env vars (set on Vercel for prod + any preview you want to test against):
+ *   AUTH_GOOGLE_ID      — Google OAuth 2.0 Web client ID
+ *   AUTH_GOOGLE_SECRET  — Google OAuth 2.0 Web client secret
+ * NextAuth v5 auto-picks these up when the provider has no explicit
+ * clientId/clientSecret.
+ *
+ * Redirect URI to register in Google Cloud Console:
+ *   https://fintella.partners/api/auth/callback/google
+ */
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    Google,
     Credentials({
       id: "partner-login",
       name: "Partner Login",
@@ -110,10 +129,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    // Gate Google sign-ins to invited partners only. Non-partner emails and
+    // blocked partners are bounced back to /login with a human-readable
+    // error query string that the login page renders inline.
+    async signIn({ user, account }) {
+      if (account?.provider !== "google") return true;
+      const email = user.email?.trim();
+      if (!email) return "/login?error=google-no-email";
+      const partner = await prisma.partner.findFirst({
+        where: { email: { equals: email, mode: "insensitive" } },
+      });
+      if (!partner) return "/login?error=not-invited";
+      if (partner.status === "blocked") return "/login?error=blocked";
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      // Credentials providers set user.role / user.partnerCode directly.
       if (user) {
-        token.role = (user as any).role;
-        token.partnerCode = (user as any).partnerCode;
+        token.role = (user as any).role ?? token.role;
+        token.partnerCode = (user as any).partnerCode ?? token.partnerCode;
+      }
+      // Google sign-ins don't populate those fields — hydrate from the
+      // Partner row keyed by email on the first JWT pass.
+      if (account?.provider === "google" && token.email && !token.partnerCode) {
+        const partner = await prisma.partner.findFirst({
+          where: { email: { equals: token.email as string, mode: "insensitive" } },
+        });
+        if (partner) {
+          token.role = "partner";
+          token.partnerCode = partner.partnerCode;
+          (token as any).name = `${partner.firstName} ${partner.lastName}`.trim();
+        }
       }
       return token;
     },

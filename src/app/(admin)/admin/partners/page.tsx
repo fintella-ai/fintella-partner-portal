@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { fmtDate, fmtPhone, normalizePhone } from "@/lib/format";
 import LevelTag from "@/components/ui/LevelTag";
+import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 
 type Partner = {
   id: string;
@@ -17,6 +18,7 @@ type Partner = {
   mobilePhone: string | null;
   status: string;
   tier: string;
+  commissionRate?: number; // Prisma returns it, consumed by tree view
   referredByPartnerCode: string | null;
   notes: string | null;
   signupDate: string;
@@ -76,22 +78,49 @@ export default function AdminPartnersPage() {
   const canSetPayoutDownline = ["super_admin", "admin", "partner_support"].includes(
     (session?.user as any)?.role || ""
   );
+  // Bulk actions (status change, delete) are super-admin only — they
+  // touch many rows at once and mistakes are expensive. The checkbox
+  // column hides for everyone else so the UI doesn't imply a capability
+  // they don't have.
+  const canBulkAct = ((session?.user as any)?.role || "") === "super_admin";
   const router = useRouter();
-  // 9 columns: Partner, Level, Code, Phone, Email, Status, W9, Joined, Action
-  // Bumped storageKey so anyone with a persisted 8-col width map doesn't see
-  // the new Level column collapse to 0 before they resize manually.
+  // Bulk-action checkboxes are hidden until the super admin opts in via
+  // the "Show Bulk Actions" toggle above the table. Defined early so the
+  // column-width hook below can key off it.
+  const [showBulk, setShowBulk] = useState(false);
+  const bulkOn = canBulkAct && showBulk;
+  // 10 columns when bulk-select is on: [select] + Partner, Level, Code,
+  // Phone, Email, Status, Agreement, W9, Joined.
+  //  9 columns without:            Partner, Level, Code, Phone, Email,
+  //                                Status, Agreement, W9, Joined.
+  // Storage key flips with `bulkOn` so the width map for 10-col vs 9-col
+  // modes stays distinct and the layout never lands on a mismatched
+  // array length after toggling.
   const { columnWidths: partnerCols, getResizeHandler: partnerResize } = useResizableColumns(
-    [180, 70, 120, 140, 180, 90, 80, 110, 70],
-    { storageKey: "partners-v2" }
+    bulkOn
+      ? [36, 180, 70, 120, 140, 180, 90, 110, 80, 110]
+      : [180, 70, 120, 140, 180, 90, 110, 80, 110],
+    { storageKey: bulkOn ? "partners-v5-bulk" : "partners-v5" }
   );
   const partnerGridCols = partnerCols.map((w) => `${w}px`).join(" ");
 
   const [partners, setPartners] = useState<Partner[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
+  // Bulk-selection state — partner row IDs currently checked. Stays
+  // local (not URL-synced) because the selection doesn't survive a
+  // reload anyway (the status/delete verbs are terminal).
+  const [selectedPartnerIds, setSelectedPartnerIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("all");
-  const [levelFilter, setLevelFilter] = useState<"all" | "l1" | "l2" | "l3">("all");
+  const [levelFilter, setLevelFilter] = useState<"all" | "l1" | "l2" | "l3" | "l4plus">("all");
+  // View toggle: classic list/table vs. an org-chart tree forest rooted
+  // at a single partner the admin picks from `treeRootCode`. Tree view
+  // renders nothing until a specific root is chosen — "All partners"
+  // intentionally shows no forest (would be noise across dozens of L1s).
+  const [viewMode, setViewMode] = useState<"list" | "tree">("list");
+  const [treeRootCode, setTreeRootCode] = useState<string>("");
   const [showForm, setShowForm] = useState(false);
 
   // Add partner form
@@ -105,7 +134,12 @@ export default function AdminPartnersPage() {
   const [formRate, setFormRate] = useState<number>(0.25);
   const [formRateMode, setFormRateMode] = useState<"standard" | "custom">("standard");
   const [formCustomPct, setFormCustomPct] = useState<string>("");
-  const [addPayoutDownlineEnabled, setAddPayoutDownlineEnabled] = useState(false);
+  // Default-on per policy change 2026-04-23: Fintella pays every
+  // downline partner directly (everyone signs a Fintella agreement),
+  // so the "Enable Payout Downline Partners" checkbox starts checked.
+  // Admins can still uncheck it for the rare legacy case where an L1
+  // is responsible for paying their own downline.
+  const [addPayoutDownlineEnabled, setAddPayoutDownlineEnabled] = useState(true);
   const [formError, setFormError] = useState("");
 
   // Invite L1 partner modal
@@ -116,7 +150,7 @@ export default function AdminPartnersPage() {
   const [inviteRate, setInviteRate] = useState<number | "">(0.25);
   const [inviteRateMode, setInviteRateMode] = useState<"standard" | "custom">("standard");
   const [inviteCustomPct, setInviteCustomPct] = useState<string>("");
-  const [invitePayoutDownlineEnabled, setInvitePayoutDownlineEnabled] = useState(false);
+  const [invitePayoutDownlineEnabled, setInvitePayoutDownlineEnabled] = useState(true);
   const [inviteError, setInviteError] = useState("");
   const [inviteResult, setInviteResult] = useState<{ signupUrl: string } | null>(null);
   const [inviteSending, setInviteSending] = useState(false);
@@ -175,6 +209,76 @@ export default function AdminPartnersPage() {
   useEffect(() => { fetchPartners(); }, [fetchPartners]);
   useEffect(() => { fetchInvites(); }, [fetchInvites]);
 
+  // Bulk helpers — toggle one row, toggle all visible rows, clear.
+  // `visibleIds` is injected where called so select-all respects the
+  // current tab + level-filter + search-filter view.
+  const togglePartnerSelected = (id: string) => {
+    setSelectedPartnerIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const toggleAllVisible = (visibleIds: string[]) => {
+    setSelectedPartnerIds((prev) => {
+      const allSelected = visibleIds.length > 0 && visibleIds.every((id) => prev.has(id));
+      if (allSelected) {
+        const next = new Set(prev);
+        for (const id of visibleIds) next.delete(id);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const id of visibleIds) next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedPartnerIds(new Set());
+
+  const bulkUpdateStatus = async (status: string) => {
+    if (selectedPartnerIds.size === 0) return;
+    if (!confirm(`Mark ${selectedPartnerIds.size} partner(s) as "${status}"?`)) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/admin/partners/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partnerIds: Array.from(selectedPartnerIds), status }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || "Bulk update failed");
+        return;
+      }
+      clearSelection();
+      await fetchPartners();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (selectedPartnerIds.size === 0) return;
+    if (!confirm(`PERMANENTLY DELETE ${selectedPartnerIds.size} partner(s)? This writes to the real DB and cascades to their deals, commissions, and agreements. Cannot be undone.`)) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/admin/partners/bulk", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partnerIds: Array.from(selectedPartnerIds) }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || "Bulk delete failed");
+        return;
+      }
+      clearSelection();
+      await fetchPartners();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const resolvedInviteRate = (): number | null => {
     if (inviteRateMode === "custom") {
       const pct = parseFloat(inviteCustomPct);
@@ -191,7 +295,7 @@ export default function AdminPartnersPage() {
     if (rate == null) {
       setInviteError(
         inviteRateMode === "custom"
-          ? "Enter a custom rate between 1% and 50%."
+          ? "Enter a custom rate between 1% and 30%."
           : "Commission rate is required."
       );
       return;
@@ -218,7 +322,7 @@ export default function AdminPartnersPage() {
     setShowInvite(false);
     setInviteEmail(""); setInviteFirst(""); setInviteLast(""); setInviteRate(0.25);
     setInviteRateMode("standard"); setInviteCustomPct("");
-    setInvitePayoutDownlineEnabled(false);
+    setInvitePayoutDownlineEnabled(true);
     setInviteError(""); setInviteResult(null);
   };
 
@@ -313,7 +417,7 @@ export default function AdminPartnersPage() {
       setShowForm(false);
       setFormFirst(""); setFormLast(""); setFormEmail(""); setFormPhone(""); setFormCode(""); setFormReferrer("");
       setFormTier("l1"); setFormRate(0.25); setFormRateMode("standard"); setFormCustomPct("");
-      setAddPayoutDownlineEnabled(false);
+      setAddPayoutDownlineEnabled(true);
       fetchPartners();
     } catch {
       setFormError("Connection error");
@@ -326,11 +430,42 @@ export default function AdminPartnersPage() {
   const blocked = partners.filter((p) => p.status === "blocked").length;
   const invitedCount = invites.filter((inv) => inv.status === "active").length;
 
+  // Rows waiting on admin review — either an L1-uploaded agreement or a W9
+  // — float to the top of the list regardless of the selected sort column.
+  // Lets admins see the approval queue without scanning.
+  const needsReview = (p: Partner) => p.agreementStatus === "under_review" || p.w9Status === "under_review";
+
+  // Depth helper mirroring the one used by the L4+ chip — lets the
+  // filteredPartners list use the same level-matching logic as the
+  // chip counts. Shared map keyed by partnerCode for O(depth) lookup.
+  const partnersByCode: Record<string, Partner> = {};
+  for (const p of partners) partnersByCode[p.partnerCode] = p;
+  const partnerDepth = (p: Partner): number => {
+    let d = 0;
+    let cur: Partner | undefined = p;
+    for (let i = 0; i < 10 && cur?.referredByPartnerCode; i++) {
+      const parent: Partner | undefined = partnersByCode[cur.referredByPartnerCode];
+      if (!parent) break;
+      cur = parent;
+      d++;
+    }
+    return d;
+  };
+
   const filteredPartners = (activeTab === "all" || activeTab === "invited"
     ? partners
     : partners.filter((p) => p.status === activeTab)
-  ).filter((p) => levelFilter === "all" ? true : (p.tier || "l1") === levelFilter)
+  ).filter((p) => {
+    if (levelFilter === "all") return true;
+    if (levelFilter === "l4plus") return partnerDepth(p) >= 3;
+    return (p.tier || "l1") === levelFilter;
+  })
    .slice().sort((a, b) => {
+    // Priority bump: any row needing review jumps to the top.
+    const aReview = needsReview(a) ? 0 : 1;
+    const bReview = needsReview(b) ? 0 : 1;
+    if (aReview !== bReview) return aReview - bReview;
+
     let va: string, vb: string;
     if (sortCol === "name") { va = `${a.firstName} ${a.lastName}`.toLowerCase(); vb = `${b.firstName} ${b.lastName}`.toLowerCase(); }
     else if (sortCol === "code") { va = a.partnerCode; vb = b.partnerCode; }
@@ -432,7 +567,7 @@ export default function AdminPartnersPage() {
                       className={`${inputClass} flex-1`}
                       type="number"
                       min={1}
-                      max={50}
+                      max={30}
                       step={0.5}
                       value={inviteCustomPct}
                       onChange={(e) => setInviteCustomPct(e.target.value)}
@@ -512,10 +647,18 @@ export default function AdminPartnersPage() {
         </div>
       )}
 
-      {/* Add Partner Form */}
+      {/* Add Partner Form.
+          Admins normally add L1 partners (top-of-chain, no upline). L2
+          and L3 partners come into existence via a parent's invite
+          link. The Tier + Referred By fields are preserved here as an
+          override for corrections (e.g. re-creating an L2 whose record
+          was lost) — default path leaves tier=L1 and referrer empty. */}
       {showForm && (
         <div className="card p-5 mb-6">
-          <div className="font-body font-semibold text-sm mb-4">Add New Partner</div>
+          <div className="font-body font-semibold text-sm mb-1">Add New Partner</div>
+          <p className="font-body text-[11px] text-[var(--app-text-muted)] mb-4">
+            Default is a new <strong>L1</strong> with no upline. Use Tier L2/L3 + Referred By only as an override for corrections — normal onboarding is an invite from the parent partner.
+          </p>
           {formError && <div className="mb-3 p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg font-body text-[12px] text-red-400">{formError}</div>}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <input className={inputClass} value={formFirst} onChange={(e) => setFormFirst(e.target.value)} placeholder="First Name *" />
@@ -523,15 +666,15 @@ export default function AdminPartnersPage() {
             <input className={inputClass} value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="Email *" type="email" />
             <input className={inputClass} value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="Phone" />
             <input className={inputClass} value={formCode} onChange={(e) => setFormCode(e.target.value)} placeholder="Partner Code (auto-generated)" />
-            <input className={inputClass} value={formReferrer} onChange={(e) => setFormReferrer(e.target.value)} placeholder="Referred By (partner code)" />
+            <input className={inputClass} value={formReferrer} onChange={(e) => setFormReferrer(e.target.value)} placeholder="Referred By (override — partner code)" />
             <select className={inputClass} value={formTier} onChange={(e) => {
               const newTier = e.target.value as "l1" | "l2" | "l3";
               setFormTier(newTier);
               if (newTier !== "l1") setAddPayoutDownlineEnabled(false);
             }}>
-              <option value="l1">Tier: L1</option>
-              <option value="l2">Tier: L2</option>
-              <option value="l3">Tier: L3</option>
+              <option value="l1">Tier: L1 (default)</option>
+              <option value="l2">Tier: L2 (override)</option>
+              <option value="l3">Tier: L3 (override)</option>
             </select>
             {formRateMode === "standard" ? (
               <select
@@ -556,7 +699,7 @@ export default function AdminPartnersPage() {
                   className={`${inputClass} flex-1`}
                   type="number"
                   min={1}
-                  max={50}
+                  max={30}
                   step={0.5}
                   value={formCustomPct}
                   onChange={(e) => setFormCustomPct(e.target.value)}
@@ -591,7 +734,7 @@ export default function AdminPartnersPage() {
           )}
           <div className="flex gap-3 mt-4">
             <button onClick={handleAdd} className="btn-gold text-[12px] px-5 py-2.5">Create Partner</button>
-            <button onClick={() => { setShowForm(false); setAddPayoutDownlineEnabled(false); }} className="font-body text-[12px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-5 py-2.5 hover:text-[var(--app-text-secondary)] transition-colors">Cancel</button>
+            <button onClick={() => { setShowForm(false); setAddPayoutDownlineEnabled(true); }} className="font-body text-[12px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-5 py-2.5 hover:text-[var(--app-text-secondary)] transition-colors">Cancel</button>
           </div>
         </div>
       )}
@@ -618,13 +761,35 @@ export default function AdminPartnersPage() {
         const byStatus = activeTab === "all"
           ? partners
           : partners.filter((p) => p.status === activeTab);
-        const countByLevel = (k: "l1" | "l2" | "l3") =>
-          byStatus.filter((p) => (p.tier || "l1") === k).length;
-        const chips: { key: "all" | "l1" | "l2" | "l3"; label: string; count: number }[] = [
+
+        // Depth-from-root for the L4+ bucket. Walk each partner up the
+        // referredByPartnerCode chain via a code→partner map. A chain of
+        // N hops = depth N. Cap at 10 to guard against accidental cycles.
+        const byCode: Record<string, Partner> = {};
+        for (const p of byStatus) byCode[p.partnerCode] = p;
+        const depthOf = (p: Partner): number => {
+          let d = 0;
+          let cur: Partner | undefined = p;
+          for (let i = 0; i < 10 && cur?.referredByPartnerCode; i++) {
+            const parent: Partner | undefined = byCode[cur.referredByPartnerCode];
+            if (!parent) break;
+            cur = parent;
+            d++;
+          }
+          return d;
+        };
+        const matchesLevel = (p: Partner, k: "l1" | "l2" | "l3" | "l4plus"): boolean => {
+          if (k === "l4plus") return depthOf(p) >= 3;
+          return (p.tier || "l1") === k;
+        };
+        const countByLevel = (k: "l1" | "l2" | "l3" | "l4plus") =>
+          byStatus.filter((p) => matchesLevel(p, k)).length;
+        const chips: { key: "all" | "l1" | "l2" | "l3" | "l4plus"; label: string; count: number }[] = [
           { key: "all", label: "All levels", count: byStatus.length },
           { key: "l1", label: "L1", count: countByLevel("l1") },
           { key: "l2", label: "L2", count: countByLevel("l2") },
           { key: "l3", label: "L3", count: countByLevel("l3") },
+          { key: "l4plus", label: "L4+", count: countByLevel("l4plus") },
         ];
         // Tier-matched accent colors for the L1/L2/L3 chips — gold / silver /
         // bronze, same palette as LevelTag. The "All levels" chip stays neutral.
@@ -644,6 +809,13 @@ export default function AdminPartnersPage() {
           l3: {
             on: "bg-[rgba(184,115,51,0.22)] text-[#d99a6c] border border-[rgba(184,115,51,0.55)]",
             off: "border border-[rgba(184,115,51,0.3)] text-[#c9895c] hover:bg-[rgba(184,115,51,0.1)]",
+          },
+          // L4+ uses a neutral slate tone so it reads as "depth overflow"
+          // rather than a new tier color — these are still L3 or deeper
+          // partners by stored tier, just past the three-ladder.
+          l4plus: {
+            on: "bg-[rgba(100,116,139,0.22)] text-[#94a3b8] border border-[rgba(100,116,139,0.55)]",
+            off: "border border-[rgba(100,116,139,0.3)] text-[#64748b] hover:bg-[rgba(100,116,139,0.1)]",
           },
         };
         return (
@@ -666,6 +838,39 @@ export default function AdminPartnersPage() {
           </div>
         );
       })()}
+
+      {/* View toggle — list (classic table) vs tree (org-chart forest rooted
+          at each L1). Tree view ignores the level filter + bulk actions
+          but still respects the active tab + search. */}
+      {activeTab !== "invited" && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="font-body text-[11px] text-[var(--app-text-muted)]">View:</span>
+          <div className="inline-flex rounded-lg border border-[var(--app-border)] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`font-body text-[11px] px-3 py-1.5 transition-colors ${
+                viewMode === "list"
+                  ? "bg-brand-gold/20 text-brand-gold"
+                  : "text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
+              }`}
+            >
+              List
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("tree")}
+              className={`font-body text-[11px] px-3 py-1.5 transition-colors border-l border-[var(--app-border)] ${
+                viewMode === "tree"
+                  ? "bg-brand-gold/20 text-brand-gold"
+                  : "text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
+              }`}
+            >
+              Tree
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="mb-4">
@@ -864,25 +1069,193 @@ export default function AdminPartnersPage() {
         </>
       ) : (
         <>
-          {/* Partners — Desktop Table */}
+          {/* Bulk action bar — renders only for super admins with at
+              least one partner row checked. Floats above the table
+              with sticky-like prominence. Status dropdown + Delete +
+              Clear; Clear resets the selection without committing. */}
+
+          {/* Show/Hide Bulk Actions toggle — super-admin-only. Checkboxes
+              on both the desktop table and mobile cards stay hidden
+              until this is flipped on. Clears any pending selection when
+              hiding so we never keep "5 selected" state invisible. */}
+          {canBulkAct && viewMode === "list" && (
+            <div className="mb-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !showBulk;
+                  setShowBulk(next);
+                  if (!next) setSelectedPartnerIds(new Set());
+                }}
+                className="font-body text-[12px] text-brand-gold/80 hover:text-brand-gold border border-brand-gold/25 hover:bg-brand-gold/10 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                {showBulk ? "Hide Bulk Actions" : "Show Bulk Actions"}
+              </button>
+            </div>
+          )}
+
+          {canBulkAct && selectedPartnerIds.size > 0 && (
+            <div className="card mb-4 p-3 sm:p-4 flex flex-wrap items-center gap-3 border-brand-gold/30 bg-brand-gold/[0.04]">
+              <span className="font-body text-[12px] text-[var(--app-text-secondary)]">
+                <strong>{selectedPartnerIds.size}</strong> selected
+              </span>
+              <span className="text-[var(--app-text-faint)]">·</span>
+              <label className="font-body text-[11px] text-[var(--app-text-muted)]">Mark as:</label>
+              <select
+                disabled={bulkBusy}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  e.target.value = "";
+                  if (v) void bulkUpdateStatus(v);
+                }}
+                className="theme-input text-[12px] px-2 py-1.5 rounded-lg"
+                defaultValue=""
+              >
+                <option value="" disabled>Choose status…</option>
+                <option value="active">active</option>
+                <option value="pending">pending</option>
+                <option value="invited">invited</option>
+                <option value="blocked">blocked</option>
+                <option value="inactive">inactive</option>
+              </select>
+              <button
+                type="button"
+                disabled={bulkBusy}
+                onClick={() => void bulkDelete()}
+                className="font-body text-[12px] text-red-400/80 border border-red-500/30 rounded-lg px-3 py-1.5 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              >
+                Delete selected
+              </button>
+              <button
+                type="button"
+                disabled={bulkBusy}
+                onClick={clearSelection}
+                className="font-body text-[11px] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors"
+              >
+                Clear selection
+              </button>
+            </div>
+          )}
+
+          {/* Tree view — org-chart rooted at a single partner the admin
+              picks via the dropdown below. "All partners" intentionally
+              renders no tree because a forest of every L1 is just noise
+              once you have more than a handful. Pick a specific root
+              (any partner, not just L1) and the tree walks their downline
+              at arbitrary depth. Option B has no hard cap on chain depth. */}
+          {viewMode === "tree" && (() => {
+            const toNode = (p: Partner): TreePartner => {
+              const children = partners
+                .filter((c) => c.referredByPartnerCode === p.partnerCode)
+                .sort((a, b) => (a.lastName || "").localeCompare(b.lastName || ""))
+                .map(toNode);
+              return {
+                id: p.id,
+                partnerCode: p.partnerCode,
+                firstName: p.firstName || "",
+                lastName: p.lastName || "",
+                status: p.status,
+                commissionRate: p.commissionRate,
+                children,
+              };
+            };
+
+            // Alphabetical partner list feeding the dropdown — all partners,
+            // not just L1, so admins can drill into mid-chain trees too.
+            const dropdownPartners = [...partners].sort((a, b) => {
+              const an = `${a.lastName || ""} ${a.firstName || ""}`.trim();
+              const bn = `${b.lastName || ""} ${b.firstName || ""}`.trim();
+              return an.localeCompare(bn);
+            });
+            const selectedRootPartner = treeRootCode
+              ? partners.find((p) => p.partnerCode === treeRootCode)
+              : null;
+
+            return (
+              <div className="space-y-4">
+                <div className="card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <label className="font-body text-[12px] text-[var(--app-text-secondary)] font-semibold shrink-0">
+                    Tree root partner:
+                  </label>
+                  <select
+                    value={treeRootCode}
+                    onChange={(e) => setTreeRootCode(e.target.value)}
+                    className="theme-input text-[13px] px-3 py-2 rounded-lg flex-1 min-w-0"
+                  >
+                    <option value="">— All partners (tree hidden) —</option>
+                    {dropdownPartners.map((p) => (
+                      <option key={p.id} value={p.partnerCode}>
+                        {(p.lastName || "").trim()}{p.lastName ? ", " : ""}{p.firstName} ({p.partnerCode}) · {(p.tier || "l1").toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                  {treeRootCode && (
+                    <button
+                      type="button"
+                      onClick={() => setTreeRootCode("")}
+                      className="font-body text-[11px] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] border border-[var(--app-border)] rounded-lg px-3 py-1.5 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {selectedRootPartner ? (
+                  <div className="card p-4 sm:p-5 overflow-x-auto">
+                    <DownlineTree root={toNode(selectedRootPartner)} />
+                  </div>
+                ) : (
+                  <div className="card p-12 text-center font-body text-[13px] text-[var(--app-text-muted)]">
+                    Pick a partner above to see their downline tree.
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Partners — Desktop Table + Mobile Cards (list view) */}
+          {viewMode === "list" && (<>
           <div className="card hidden sm:block overflow-x-auto">
             <div className="grid gap-3 px-5 py-3 border-b border-[var(--app-border)]" style={{ gridTemplateColumns: partnerGridCols }}>
-              {([
+              {(bulkOn ? ([
+                { label: "__select", col: null },
                 { label: "Partner", col: "name" as SortCol },
                 { label: "Level", col: null },
                 { label: "Code", col: "code" as SortCol },
                 { label: "Phone", col: null },
                 { label: "Email", col: null },
                 { label: "Status", col: "status" as SortCol },
+                { label: "Agreement", col: null },
                 { label: "W9", col: null },
                 { label: "Joined", col: "joined" as SortCol },
-                { label: "", col: null },
-              ] as { label: string; col: SortCol | null }[]).map((h, i) => (
+              ]) : ([
+                { label: "Partner", col: "name" as SortCol },
+                { label: "Level", col: null },
+                { label: "Code", col: "code" as SortCol },
+                { label: "Phone", col: null },
+                { label: "Email", col: null },
+                { label: "Status", col: "status" as SortCol },
+                { label: "Agreement", col: null },
+                { label: "W9", col: null },
+                { label: "Joined", col: "joined" as SortCol },
+              ])).map((h, i) => (
+                h.label === "__select" ? (
+                  <div key="__select" className="flex items-center justify-center relative">
+                    <input
+                      type="checkbox"
+                      checked={filteredPartners.length > 0 && filteredPartners.every((p) => selectedPartnerIds.has(p.id))}
+                      onChange={() => toggleAllVisible(filteredPartners.map((p) => p.id))}
+                      className="w-4 h-4 rounded cursor-pointer accent-[#c4a050]"
+                      title="Select all visible"
+                    />
+                    <span {...partnerResize(i)} />
+                  </div>
+                ) :
                 h.col ? (
                   <button
                     key={h.label}
                     onClick={() => handleSort(h.col!)}
-                    className="relative w-full font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider flex items-center gap-0.5 hover:text-[var(--app-text-secondary)] transition-colors justify-center"
+                    className={`relative w-full font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider flex items-center gap-0.5 hover:text-[var(--app-text-secondary)] transition-colors ${h.label === "Partner" ? "justify-start" : "justify-center"}`}
                   >
                     {h.label}<SortIcon col={h.col} /><span {...partnerResize(i)} />
                   </button>
@@ -900,7 +1273,20 @@ export default function AdminPartnersPage() {
                   style={{ gridTemplateColumns: partnerGridCols }}
                   onClick={() => router.push(`/admin/partners/${p.id}`)}
                 >
-                  <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate text-center">{p.firstName} {p.lastName}</div>
+                  {bulkOn && (
+                    <div
+                      className="flex items-center justify-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedPartnerIds.has(p.id)}
+                        onChange={() => togglePartnerSelected(p.id)}
+                        className="w-4 h-4 rounded cursor-pointer accent-[#c4a050]"
+                      />
+                    </div>
+                  )}
+                  <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate text-left">{p.firstName} {p.lastName}</div>
                   <div className="text-center">
                     <LevelTag tier={p.tier} />
                   </div>
@@ -929,14 +1315,16 @@ export default function AdminPartnersPage() {
                     </span>
                   </div>
                   <div className="text-center">
+                    <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${docBadge[p.agreementStatus] || docBadge.none}`}>
+                      {p.agreementStatus === "under_review" ? "review" : p.agreementStatus}
+                    </span>
+                  </div>
+                  <div className="text-center">
                     <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${docBadge[p.w9Status] || docBadge.needed}`}>
                       {p.w9Status === "under_review" ? "review" : p.w9Status}
                     </span>
                   </div>
                   <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">{fmtDate(p.signupDate)}</div>
-                  <div className="text-center">
-                    <span className="font-body text-[11px] text-brand-gold/60 hover:text-brand-gold transition-colors">View →</span>
-                  </div>
                 </div>
               );
             })}
@@ -950,7 +1338,20 @@ export default function AdminPartnersPage() {
             {filteredPartners.map((p) => (
               <div key={p.id} className="card p-4 cursor-pointer hover:bg-[var(--app-card-bg)] transition-colors" onClick={() => router.push(`/admin/partners/${p.id}`)}>
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
+                  {bulkOn && (
+                    <div
+                      className="shrink-0 pt-0.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedPartnerIds.has(p.id)}
+                        onChange={() => togglePartnerSelected(p.id)}
+                        className="w-4 h-4 rounded cursor-pointer accent-[#c4a050]"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
                     <div className="font-body text-[13px] font-medium text-[var(--app-text)]">{p.firstName} {p.lastName}</div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <LevelTag tier={p.tier} size="xs" />
@@ -962,13 +1363,21 @@ export default function AdminPartnersPage() {
                   </span>
                 </div>
                 <div className="font-body text-[11px] text-[var(--app-text-muted)] mb-2">{p.email}</div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="font-body text-[11px] text-[var(--app-text-muted)]">Joined {fmtDate(p.signupDate)}</div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-body text-[9px] text-[var(--app-text-muted)] uppercase">W9:</span>
-                    <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${docBadge[p.w9Status] || docBadge.needed}`}>
-                      {p.w9Status === "under_review" ? "review" : p.w9Status}
-                    </span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-body text-[9px] text-[var(--app-text-muted)] uppercase">Agmt:</span>
+                      <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${docBadge[p.agreementStatus] || docBadge.none}`}>
+                        {p.agreementStatus === "under_review" ? "review" : p.agreementStatus}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-body text-[9px] text-[var(--app-text-muted)] uppercase">W9:</span>
+                      <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${docBadge[p.w9Status] || docBadge.needed}`}>
+                        {p.w9Status === "under_review" ? "review" : p.w9Status}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -977,6 +1386,7 @@ export default function AdminPartnersPage() {
               <div className="text-center py-10 font-body text-[13px] text-[var(--app-text-muted)]">No partners found.</div>
             )}
           </div>
+          </>)}
         </>
       )}
     </div>

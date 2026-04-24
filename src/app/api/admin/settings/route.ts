@@ -65,6 +65,7 @@ export async function PUT(req: NextRequest) {
     if (body.supportEmail !== undefined) data.supportEmail = body.supportEmail;
     if (body.logoUrl !== undefined) data.logoUrl = body.logoUrl;
     if (body.faviconUrl !== undefined) data.faviconUrl = body.faviconUrl;
+    if (body.agreementTemplateMaster !== undefined) data.agreementTemplateMaster = body.agreementTemplateMaster;
     if (body.agreementTemplate25 !== undefined) data.agreementTemplate25 = body.agreementTemplate25;
     if (body.agreementTemplate20 !== undefined) data.agreementTemplate20 = body.agreementTemplate20;
     if (body.agreementTemplate15 !== undefined) data.agreementTemplate15 = body.agreementTemplate15;
@@ -132,6 +133,9 @@ export async function PUT(req: NextRequest) {
     if (body.homeHiddenModules !== undefined) data.homeHiddenModules = body.homeHiddenModules;
     if (body.homeModuleOrder !== undefined) data.homeModuleOrder = body.homeModuleOrder;
     if (body.homeModuleLayout !== undefined) data.homeModuleLayout = body.homeModuleLayout;
+    if (body.liveWeeklyBannerUrl !== undefined) data.liveWeeklyBannerUrl = body.liveWeeklyBannerUrl;
+    if (body.activeThemeId !== undefined) data.activeThemeId = body.activeThemeId;
+    if (body.themeCustomizations !== undefined) data.themeCustomizations = body.themeCustomizations;
 
     // Upsert — create if not exists
     const settings = await prisma.portalSettings.upsert({

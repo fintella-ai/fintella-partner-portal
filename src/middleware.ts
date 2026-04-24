@@ -6,7 +6,7 @@ export default auth((req) => {
   const session = req.auth;
 
   // Public pages — accessible to anyone, no redirects
-  if (pathname.startsWith("/docs/") || pathname.startsWith("/signup") || pathname.startsWith("/impersonate") || pathname.startsWith("/getstarted") || pathname === "/privacy" || pathname === "/terms" || pathname === "/forgot-password" || pathname === "/reset-password") {
+  if (pathname.startsWith("/docs/") || pathname.startsWith("/signup") || pathname.startsWith("/impersonate") || pathname.startsWith("/getstarted") || pathname === "/privacy" || pathname === "/terms" || pathname === "/forgot-password" || pathname === "/reset-password" || pathname === "/apply" || pathname === "/booker" || pathname === "/landing-v2") {
     return NextResponse.next();
   }
 
@@ -16,7 +16,9 @@ export default auth((req) => {
     if (session?.user) {
       const role = (session.user as any).role;
       if (["admin", "super_admin", "accounting", "partner_support"].includes(role)) {
-        return NextResponse.redirect(new URL("/admin/partners", req.url));
+        // /admin is the workspace dashboard (previously we landed on
+        // /admin/partners). The sidebar's Home entry points here too.
+        return NextResponse.redirect(new URL("/admin", req.url));
       }
       return NextResponse.redirect(new URL("/dashboard/home", req.url));
     }

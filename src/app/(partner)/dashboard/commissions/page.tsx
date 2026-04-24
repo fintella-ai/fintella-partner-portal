@@ -35,7 +35,7 @@ function CommissionsPageContent() {
   const [ledger, setLedger] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [commTab, setCommTab] = useState<"all" | "direct" | "downline">("all");
-  const [payoutTab, setPayoutTab] = useState<"payout-all" | "payout-pending" | "payout-due" | "payout-paid">("payout-all");
+  const [payoutTab, setPayoutTab] = useState<"payout-all" | "payout-projected" | "payout-pending_payment" | "payout-due" | "payout-paid" | "payout-lost">("payout-all");
   const [pageTab, setPageTab] = useState<"overview" | "history" | "payouts">("overview");
 
   // Stripe Connect state
@@ -333,9 +333,9 @@ function CommissionsPageContent() {
       {/* ═══ TOTALS BANNER ═══ */}
       <div className={`${device.cardPadding} ${device.borderRadius} border border-[var(--app-border)] bg-[var(--app-card-bg)] mb-6`}>
         <div className={`flex ${device.isMobile ? "flex-col gap-5" : "items-center justify-center gap-0"} text-center`}>
-          {/* L1 Total */}
+          {/* Direct Total (the viewer's own closed deals) */}
           <div className={`${device.isMobile ? "" : "flex-1"} py-2`}>
-            <div className="font-body text-[9px] tracking-[1.5px] uppercase text-brand-gold/60 mb-1.5">L1 Total</div>
+            <div className="font-body text-[9px] tracking-[1.5px] uppercase text-brand-gold/60 mb-1.5">Direct Total</div>
             <div className="font-display text-2xl sm:text-3xl font-bold text-brand-gold mb-2">{fmt$(totalL1Earned)}</div>
             <div className="flex justify-center gap-4">
               <span className="font-body text-xs sm:text-sm font-semibold text-green-400">{fmt$(totalL1Paid)} <span className="font-normal text-green-400/70">Paid</span></span>
@@ -347,7 +347,7 @@ function CommissionsPageContent() {
           {hasDownline && (
             <div className={`${device.isMobile ? "" : "flex-1 border-l border-[var(--app-border)]"} py-2`}>
               {device.isMobile && <div className="border-t border-[var(--app-border)] -mt-2 mb-3" />}
-              <div className="font-body text-[9px] tracking-[1.5px] uppercase text-purple-400/60 mb-1.5">L2 Total</div>
+              <div className="font-body text-[9px] tracking-[1.5px] uppercase text-purple-400/60 mb-1.5">My L2 Total</div>
               <div className="font-display text-2xl sm:text-3xl font-bold text-purple-400 mb-2">{fmt$(totalL2Earned)}</div>
               <div className="flex justify-center gap-4">
                 <span className="font-body text-xs sm:text-sm font-semibold text-green-400">{fmt$(totalL2Paid)} <span className="font-normal text-green-400/70">Paid</span></span>
@@ -360,7 +360,7 @@ function CommissionsPageContent() {
           {hasL3 && (
             <div className={`${device.isMobile ? "" : "flex-1 border-l border-[var(--app-border)]"} py-2`}>
               {device.isMobile && <div className="border-t border-[var(--app-border)] -mt-2 mb-3" />}
-              <div className="font-body text-[9px] tracking-[1.5px] uppercase text-cyan-400/60 mb-1.5">L3 Total</div>
+              <div className="font-body text-[9px] tracking-[1.5px] uppercase text-cyan-400/60 mb-1.5">My L3 Total</div>
               <div className="font-display text-2xl sm:text-3xl font-bold text-cyan-400 mb-2">{fmt$(totalL3Earned)}</div>
               <div className="flex justify-center gap-4">
                 <span className="font-body text-xs sm:text-sm font-semibold text-green-400">{fmt$(totalL3Paid)} <span className="font-normal text-green-400/70">Paid</span></span>
@@ -544,9 +544,7 @@ function CommissionsPageContent() {
                       <div className="font-body text-[11px] text-[var(--app-text-muted)] mb-1">{fmtDate(deal.createdAt)}</div>
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <span className="font-body text-[10px] text-brand-gold font-semibold bg-brand-gold/10 border border-brand-gold/20 rounded px-1.5 py-0.5">L1</span>
-                          <span className="font-body text-[11px] text-[var(--app-text-muted)]">Direct</span>
-                          <span className="font-body text-[10px] text-[var(--app-text-faint)]">·</span>
+                          <span className="font-body text-[10px] text-brand-gold font-semibold bg-brand-gold/10 border border-brand-gold/20 rounded px-1.5 py-0.5">Direct</span>
                           <span className="font-body text-[11px] text-[var(--app-text-faint)] italic">—</span>
                         </div>
                         <div className="font-display text-sm font-semibold text-brand-gold">{fmt$(deal.l1CommissionAmount)}</div>
@@ -564,7 +562,7 @@ function CommissionsPageContent() {
                       <div className="font-body text-[11px] text-[var(--app-text-muted)] mb-1">{fmtDate(deal.createdAt)}</div>
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <span className="font-body text-[10px] text-purple-400 font-semibold bg-purple-500/10 border border-purple-500/20 rounded px-1.5 py-0.5">L2</span>
+                          <span className="font-body text-[10px] text-purple-400 font-semibold bg-purple-500/10 border border-purple-500/20 rounded px-1.5 py-0.5">My L2</span>
                           <span className="font-body text-[11px] text-[var(--app-text-muted)] truncate max-w-[120px]">{getPartnerName(deal.partnerCode).name}</span>
                         </div>
                         <div className="font-display text-sm font-semibold text-purple-400">{fmt$(deal.l2CommissionAmount)}</div>
@@ -590,7 +588,7 @@ function CommissionsPageContent() {
                     <div key={deal.id} className="grid grid-cols-[1.8fr_0.8fr_0.5fr_1fr_0.7fr_0.8fr_0.7fr] gap-3 px-6 py-3.5 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors">
                       <button onClick={() => router.push(`/dashboard/deals?deal=${deal.id}`)} className="font-body text-[13px] text-[var(--app-text)] truncate text-left hover:text-brand-gold hover:underline underline-offset-2 transition-colors">{deal.dealName}</button>
                       <div className="font-body text-[12px] text-[var(--app-text-muted)]">{fmtDate(deal.createdAt)}</div>
-                      <div><span className="font-body text-[10px] text-brand-gold font-semibold bg-brand-gold/10 border border-brand-gold/20 rounded px-1.5 py-0.5">L1</span></div>
+                      <div><span className="font-body text-[10px] text-brand-gold font-semibold bg-brand-gold/10 border border-brand-gold/20 rounded px-1.5 py-0.5">Direct</span></div>
                       <div className="font-body text-[12px] text-[var(--app-text-muted)] italic">— (Direct)</div>
                       <div className="font-body text-[12px] text-[var(--app-text-muted)] text-right">—</div>
                       <div className="font-display text-[14px] font-semibold text-brand-gold text-right">{fmt$(deal.l1CommissionAmount)}</div>
@@ -603,7 +601,7 @@ function CommissionsPageContent() {
                     <div key={deal.id} className="grid grid-cols-[1.8fr_0.8fr_0.5fr_1fr_0.7fr_0.8fr_0.7fr] gap-3 px-6 py-3.5 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors">
                       <div className="font-body text-[13px] text-[var(--app-text)] truncate">{deal.dealName}</div>
                       <div className="font-body text-[12px] text-[var(--app-text-muted)]">{fmtDate(deal.createdAt)}</div>
-                      <div><span className="font-body text-[10px] text-purple-400 font-semibold bg-purple-500/10 border border-purple-500/20 rounded px-1.5 py-0.5">L2</span></div>
+                      <div><span className="font-body text-[10px] text-purple-400 font-semibold bg-purple-500/10 border border-purple-500/20 rounded px-1.5 py-0.5">My L2</span></div>
                       <div className="text-center">
                         <div className="font-body text-[12px] text-[var(--app-text-secondary)]">{getPartnerName(deal.partnerCode).name}</div>
                         <div className="font-body text-[9px] text-[var(--app-text-faint)] tracking-wider">{deal.partnerCode}</div>
@@ -632,12 +630,14 @@ function CommissionsPageContent() {
         <div className="px-4 sm:px-6 pt-4 sm:pt-5">
           <div className="font-body font-semibold text-sm sm:text-[15px]">Payouts</div>
         </div>
-        <div className="flex gap-1 px-4 sm:px-6 border-b border-[var(--app-border)]">
+        <div className="flex gap-1 px-4 sm:px-6 border-b border-[var(--app-border)] overflow-x-auto">
           {([
-            { id: "payout-all" as const, label: "All" },
-            { id: "payout-pending" as const, label: "Pending" },
-            { id: "payout-due" as const, label: "Due" },
-            { id: "payout-paid" as const, label: "Paid" },
+            { id: "payout-all" as const, label: "All", matches: [] as string[] },
+            { id: "payout-projected" as const, label: "Projected", matches: ["projected"] },
+            { id: "payout-pending_payment" as const, label: "Pending Payment", matches: ["pending_payment", "pending"] },
+            { id: "payout-due" as const, label: "Due", matches: ["due"] },
+            { id: "payout-paid" as const, label: "Paid", matches: ["paid"] },
+            { id: "payout-lost" as const, label: "Lost", matches: ["lost"] },
           ]).map((t) => (
             <button
               key={t.id}
@@ -651,14 +651,20 @@ function CommissionsPageContent() {
               {t.label}
               {(() => {
                 const allEntries = ledger.length > 0 ? ledger : [
-                  ...directDeals.map((d: any) => ({ status: d.l1CommissionStatus || "pending" })),
-                  ...downlineDeals.map((d: any) => ({ status: d.l2CommissionStatus || "pending" })),
+                  ...directDeals.map((d: any) => ({ status: d.l1CommissionStatus || "pending_payment" })),
+                  ...downlineDeals.map((d: any) => ({ status: d.l2CommissionStatus || "pending_payment" })),
                 ];
-                const statusKey = t.id.replace("payout-", "");
-                const count = statusKey === "all" ? 0 : allEntries.filter((e: any) => e.status === statusKey).length;
+                if (t.matches.length === 0) return null;
+                const count = allEntries.filter((e: any) => t.matches.includes(e.status)).length;
                 if (count === 0) return null;
-                const colors = { pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20", due: "bg-blue-500/15 text-blue-400 border-blue-500/20", paid: "bg-green-500/15 text-green-400 border-green-500/20" };
-                return <span className={`ml-1.5 text-[10px] ${(colors as any)[statusKey] || ""} border rounded-full px-1.5`}>{count}</span>;
+                const colors: Record<string, string> = {
+                  "payout-projected": "bg-purple-500/15 text-purple-400 border-purple-500/20",
+                  "payout-pending_payment": "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
+                  "payout-due": "bg-blue-500/15 text-blue-400 border-blue-500/20",
+                  "payout-paid": "bg-green-500/15 text-green-400 border-green-500/20",
+                  "payout-lost": "bg-red-500/15 text-red-400 border-red-500/20",
+                };
+                return <span className={`ml-1.5 text-[10px] ${colors[t.id] || ""} border rounded-full px-1.5`}>{count}</span>;
               })()}
             </button>
           ))}
@@ -688,9 +694,15 @@ function CommissionsPageContent() {
           ];
 
           const statusFilter = payoutTab.replace("payout-", "");
+          // "pending_payment" tab also absorbs legacy "pending" rows
+          // that haven't been backfilled yet.
+          const matchesFilter = (s: string) => {
+            if (statusFilter === "pending_payment") return s === "pending_payment" || s === "pending";
+            return s === statusFilter;
+          };
           const filtered = payoutTab === "payout-all"
             ? entries
-            : entries.filter((e: any) => e.status === statusFilter);
+            : entries.filter((e: any) => matchesFilter(e.status));
 
           if (filtered.length === 0) {
             return (

@@ -19,14 +19,19 @@ export const TRIGGER_KEYS = [
   "deal.closed_lost",
   "partner.created",
   "partner.activated",
+  "partner.agreement_sent",
   "partner.agreement_reminder",
   "partner.invite_reminder",
+  "partner.added_to_channel",
+  "conference.call_reminder",
   "commission.created",
   "commission.paid",
   "sms.sent",
   "sms.received",
   "sms.opt_in",
   "sms.opt_out",
+  "email.sent",
+  "email.failed",
 ] as const;
 
 export type TriggerKey = (typeof TRIGGER_KEYS)[number];
@@ -38,14 +43,19 @@ export const TRIGGER_LABELS: Record<TriggerKey, string> = {
   "deal.closed_lost":           "Deal Closed Lost",
   "partner.created":            "Partner Created",
   "partner.activated":          "Partner Activated",
+  "partner.agreement_sent":     "Partner Agreement Sent",
   "partner.agreement_reminder": "Agreement Reminder (scheduled)",
   "partner.invite_reminder":    "Invite Reminder (scheduled)",
+  "partner.added_to_channel":   "Partner Added to Channel",
+  "conference.call_reminder":   "Live Weekly Reminder (scheduled)",
   "commission.created":         "Commission Created",
   "commission.paid":            "Commission Paid",
   "sms.sent":                   "SMS Sent",
   "sms.received":               "SMS Received (Inbound)",
   "sms.opt_in":                 "Partner Opted Into SMS",
   "sms.opt_out":                "Partner Replied STOP",
+  "email.sent":                 "Email Sent (outbound)",
+  "email.failed":               "Email Failed / Skipped",
 };
 
 // ─── Action types ─────────────────────────────────────────────────────────────
@@ -76,14 +86,19 @@ export const TRIGGER_DESCRIPTIONS: Record<TriggerKey, string> = {
   "deal.closed_lost":           "Fires the moment a deal's stage flips to closedlost.",
   "partner.created":            "Fires when a new partner account is created (reserved — call site not yet wired).",
   "partner.activated":          "Fires when a partner's partnership agreement is countersigned and the account flips to active.",
+  "partner.agreement_sent":     "Fires when an admin dispatches the SignWell partnership agreement to a partner via /api/admin/agreement/[partnerCode]. Payload: partner row + signingUrl. Pair with `email.send` (template `agreement_ready`) to replace the hardcoded sendAgreementReadyEmail path.",
   "partner.agreement_reminder": "Scheduled — runs once daily via /api/cron/reminders. Fires for each partner whose partnership agreement has been sent but not signed, once every `Cadence` days.",
   "partner.invite_reminder":    "Scheduled — runs once daily via /api/cron/reminders. Fires for each admin-generated recruitment invite that has NOT been used, once every `Cadence` days.",
+  "partner.added_to_channel":   "Fires when an admin adds a partner to an announcement channel. Payload: partnerCode, channelId, channelName, addedByEmail. Pair with `email.send` to ping the partner that a new channel is live for them.",
+  "conference.call_reminder":   "Scheduled — runs hourly via /api/cron/conference-reminders. Fires for each active Live Weekly call that is `Hours before call` away, once per active partner. Used to send 24-hour / 1-hour reminder emails + SMS.",
   "commission.created":         "Fires when a CommissionLedger row is first written (reserved — call site not yet wired).",
   "commission.paid":            "Fires when a commission row is marked paid during payout batch processing.",
   "sms.sent":                   "Fires when an outbound SMS is accepted by Twilio (status=sent). Doesn't fire on demo/failed/skipped_optout.",
   "sms.received":               "Fires when a partner texts our Twilio number (inbound SMS that isn't a STOP/START keyword).",
   "sms.opt_in":                 "Fires when a partner replies START (or taps the opt-in link) and Partner.smsOptIn flips true.",
   "sms.opt_out":                "Fires when a partner replies STOP and their smsOptIn flag flips false.",
+  "email.sent":                 "Fires after any outbound email is accepted by SendGrid (status=sent). Does NOT fire for demo-mode or failed sends. Use to chain follow-ups (e.g. notify admin when the welcome email reaches a new partner).",
+  "email.failed":               "Fires when an outbound email either errors out or is skipped by the demo gate. Payload includes the error reason — handy for admin notifications when transactional mail can't leave.",
 };
 
 export const ACTION_DESCRIPTIONS: Record<ActionType, string> = {
@@ -170,6 +185,14 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{partner.email}",          description: "Email address",      example: "jane@firm.com" },
     { token: "{partner.commissionRate}", description: "Commission rate (decimal, e.g. 0.25 = 25%)", example: "0.25" },
   ],
+  "partner.agreement_sent": [
+    { token: "{partner.partnerCode}",  description: "Partner the agreement was sent to",     example: "PTNJD8K3F" },
+    { token: "{partner.firstName}",    description: "First name",                             example: "Jane" },
+    { token: "{partner.lastName}",     description: "Last name",                              example: "Doe" },
+    { token: "{partner.email}",        description: "Email address",                          example: "jane@firm.com" },
+    { token: "{signingUrl}",           description: "SignWell signing URL (opens in new tab)",example: "https://app.signwell.com/..." },
+    { token: "{agreementId}",          description: "PartnershipAgreement row id",            example: "ckx123abc456def" },
+  ],
   "partner.agreement_reminder": [
     { token: "{partner.partnerCode}",  description: "Partner code of the unsigned-agreement holder", example: "PTNJD8K3F" },
     { token: "{partner.firstName}",    description: "First name",                                    example: "Jane" },
@@ -187,6 +210,29 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{invite.invitedName}", description: "Display name for the invitee (L1 invites only)",    example: "Jane Doe" },
     { token: "{invite.targetTier}", description: "Target tier (l1 / l2 / l3)",                          example: "l1" },
     { token: "{daysSinceInvited}",  description: "Whole days elapsed since the invite was created",    example: "4" },
+  ],
+  "partner.added_to_channel": [
+    { token: "{partner.partnerCode}", description: "Partner code of the added partner",                 example: "PTN-A7Q3" },
+    { token: "{partner.firstName}",   description: "First name of the added partner",                   example: "Jane" },
+    { token: "{partner.lastName}",    description: "Last name of the added partner",                    example: "Doe" },
+    { token: "{partner.email}",       description: "Email of the added partner",                        example: "jane@firm.com" },
+    { token: "{channelId}",           description: "AnnouncementChannel.id",                            example: "ckx123abc456def" },
+    { token: "{channelName}",         description: "Human-readable channel name",                       example: "L1 Partners" },
+    { token: "{channelUrl}",          description: "Absolute partner-portal link into the channel",     example: "https://fintella.partners/dashboard/announcements?channel=ckx123abc456def" },
+    { token: "{addedByEmail}",        description: "Email of the admin who added the partner",          example: "admin@fintella.partners" },
+  ],
+  "conference.call_reminder": [
+    { token: "{conference.title}",     description: "Title of the scheduled call",                       example: "Weekly Partner Training & Q&A" },
+    { token: "{conference.hostName}",  description: "Presenter name",                                    example: "John Orlando" },
+    { token: "{conference.nextCall}",  description: "When the call starts (ISO timestamp)",              example: "2026-03-26T18:00:00Z" },
+    { token: "{conference.nextCallLocal}", description: "Friendly call time (America/New_York)",         example: "Thu, Mar 26 at 2:00 PM ET" },
+    { token: "{conference.joinUrl}",   description: "In-portal join link (Jitsi room or legacy joinUrl)", example: "https://meet.jit.si/fintella-live-weekly-w13" },
+    { token: "{conference.weekNumber}", description: "Week number for labeling",                         example: "13" },
+    { token: "{hoursBeforeCall}",      description: "Lead time used for this reminder",                  example: "24" },
+    { token: "{partner.firstName}",    description: "Recipient partner's first name",                    example: "Jane" },
+    { token: "{partner.lastName}",     description: "Recipient partner's last name",                     example: "Doe" },
+    { token: "{partner.email}",        description: "Recipient partner's email",                         example: "jane@firm.com" },
+    { token: "{partner.partnerCode}",  description: "Recipient partner's code",                          example: "PTNJD8K3F" },
   ],
   "commission.created": [
     { token: "{commission.partnerCode}", description: "Recipient partner code",       example: "PTNJD8K3F" },
@@ -210,6 +256,19 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{sms.partnerCode}",  description: "Partner who texted us (looked up by phone)", example: "PTNJD8K3F" },
     { token: "{sms.fromPhone}",    description: "Sender phone in E.164",              example: "+14105551234" },
     { token: "{sms.body}",         description: "Inbound message body",               example: "When do I get paid?" },
+  ],
+  "email.sent": [
+    { token: "{template}",        description: "Template key (or literal string) of the email that was sent", example: "welcome" },
+    { token: "{to}",              description: "Recipient email address",                                      example: "jane@firm.com" },
+    { token: "{partnerCode}",     description: "Partner code if the send attributed to a partner (may be empty)", example: "PTNJD8K3F" },
+    { token: "{messageId}",       description: "SendGrid X-Message-Id header (tracking + dedup)",              example: "x-msg-abc123" },
+  ],
+  "email.failed": [
+    { token: "{template}",        description: "Template key of the email that failed",                        example: "welcome" },
+    { token: "{to}",              description: "Intended recipient email address",                             example: "jane@firm.com" },
+    { token: "{partnerCode}",     description: "Partner code if the send attributed to a partner",             example: "PTNJD8K3F" },
+    { token: "{reason}",          description: "Short reason string (\"demo-mode\", error message, etc.)",     example: "demo-mode" },
+    { token: "{statusCode}",      description: "SendGrid HTTP status code (0 for demo/network)",               example: "0" },
   ],
   "sms.opt_in": [
     { token: "{partner.partnerCode}", description: "Partner who opted in",            example: "PTNJD8K3F" },
@@ -338,6 +397,30 @@ async function executeAction(
         }
         if (!recipientId) break; // skip if no recipient can be resolved
 
+        // Optional clickable link for the notification. Interpolated the
+        // same way as title/message so admins can template it against the
+        // trigger payload (e.g. /dashboard/deals?deal={deal.id}). Falls
+        // back to a sensible default derived from the payload shape so
+        // existing workflows that never set a link stay clickable.
+        const rawLink = String(config.link || "").trim();
+        const link = rawLink
+          ? interpolate(rawLink, payload)
+          : (() => {
+              const deal = payload.deal as Record<string, unknown> | undefined;
+              if (deal?.id) {
+                return recipientType === "partner"
+                  ? `/dashboard/deals?deal=${deal.id}`
+                  : `/admin/deals#${deal.id}`;
+              }
+              const channelId = payload.channelId as string | undefined;
+              if (channelId) {
+                return recipientType === "partner"
+                  ? `/dashboard/announcements?channel=${channelId}`
+                  : `/admin/channels/${channelId}`;
+              }
+              return recipientType === "partner" ? "/dashboard/home" : "/admin";
+            })();
+
         await prisma.notification.create({
           data: {
             recipientType,
@@ -345,6 +428,7 @@ async function executeAction(
             type: "workflow",
             title: interpolate(title, payload),
             message: interpolate(message, payload),
+            link,
           },
         });
         break;
@@ -379,16 +463,59 @@ async function executeAction(
         const bodyText = renderVars(tpl.bodyText, vars);
         const bodyHtml = renderVars(tpl.bodyHtml, vars);
 
-        const toEmail = String(config.recipientEmail || "");
-        if (!toEmail) throw new Error("email.send: recipientEmail is required");
+        // Resolve recipient — three modes:
+        //   1. explicit config.recipientEmail  → use as-is (legacy)
+        //   2. recipientType: "partner" + partnerCode|"deal_partner" →
+        //      look up Partner.email in DB
+        //   3. recipientType: "admin" + recipientId (email) → use that email
+        //
+        // The partner-lookup path mirrors sms.send so admins can template
+        // emails against an event (e.g. partner.created) without having to
+        // hand-wire {partner.email} into the action config every time.
+        let toEmail = String(config.recipientEmail || "");
+        let resolvedPartnerCode: string | null = null;
+        const recipientType = String(config.recipientType || "").toLowerCase();
+
+        if (!toEmail && recipientType === "partner") {
+          let partnerCode = String(config.partnerCode || "");
+          if (!partnerCode || partnerCode === "deal_partner") {
+            const deal = payload.deal as Record<string, unknown> | undefined;
+            const partner = payload.partner as Record<string, unknown> | undefined;
+            partnerCode = String(deal?.partnerCode || partner?.partnerCode || "");
+          }
+          if (!partnerCode) throw new Error("email.send: partnerCode could not be resolved");
+          const partner = await prisma.partner.findUnique({
+            where: { partnerCode },
+            select: { partnerCode: true, email: true, firstName: true, lastName: true },
+          });
+          if (!partner?.email) throw new Error(`email.send: partner ${partnerCode} has no email on file`);
+          toEmail = partner.email;
+          resolvedPartnerCode = partner.partnerCode;
+          // Expose short-name partner fields so {firstName} etc. work even
+          // if the trigger payload doesn't include the full partner object.
+          vars.firstName = partner.firstName || "";
+          vars.lastName = partner.lastName || "";
+          vars.partnerCode = partner.partnerCode;
+        } else if (!toEmail && recipientType === "admin") {
+          toEmail = String(config.recipientId || "");
+          if (!toEmail) throw new Error("email.send: recipientId is required when recipientType=\"admin\"");
+        }
+
+        if (!toEmail) throw new Error("email.send: recipientEmail is required (or set recipientType)");
+
+        // Re-render now that vars may have picked up the resolved partner.
+        const finalSubject = renderVars(tpl.subject, vars);
+        const finalText = renderVars(tpl.bodyText, vars);
+        const finalHtml = renderVars(tpl.bodyHtml, vars);
 
         const { sendEmail } = await import("@/lib/sendgrid");
         await sendEmail({
           to: toEmail,
-          subject,
-          html: bodyHtml,
-          text: bodyText,
+          subject: finalSubject,
+          html: finalHtml,
+          text: finalText,
           template: templateKey,
+          partnerCode: resolvedPartnerCode,
           fromEmail: tpl.fromEmail || undefined,
           fromName: tpl.fromName || undefined,
           replyTo: tpl.replyTo || undefined,

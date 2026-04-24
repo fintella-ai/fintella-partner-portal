@@ -7,6 +7,7 @@ import { FIRM_NAME, FIRM_SHORT as DEFAULT_FIRM_SHORT, FIRM_SLOGAN as DEFAULT_FIR
 import { useDevice } from "@/lib/useDevice";
 import NotificationBell from "@/components/ui/NotificationBell";
 import InstallPrompt from "@/components/ui/InstallPrompt";
+import FintellaAppBanner from "@/components/ui/FintellaAppBanner";
 import { useTheme } from "@/components/layout/ThemeProvider";
 
 // ─── NAV STRUCTURE ───────────────────────────────────────────────────────────
@@ -56,8 +57,31 @@ const MAIN_NAV: Array<{
     shortLabel: "Help",
     activePaths: ["/dashboard/ai-assistant", "/dashboard/support"],
   },
+  // Direct entry for the full notifications log — kept alongside the
+  // Communications group (which still tabs into /dashboard/notifications)
+  // so partners have a one-click shortcut from the sidebar.
+  { id: "notifications", href: "/dashboard/notifications", icon: "🔔", label: "Notifications", shortLabel: "Alerts" },
   { id: "feature-request", href: "/dashboard/feature-request", icon: "💡", label: "Feature Requests", shortLabel: "Ideas" },
 ];
+
+// Built-in icon overrides — wins over the default emoji on MAIN_NAV,
+// loses to an admin-uploaded custom icon in PortalSettings.navIcons.
+// Mirrors BUILT_IN_ADMIN_ICONS in src/app/(admin)/admin/layout.tsx.
+const BUILT_IN_PARTNER_ICONS: Record<string, string> = {
+  reporting: "/icons/reporting-chart.svg",
+  overview: "/icons/overview-dashboard.svg",
+  home: "/icons/home-house.svg",
+  deals: "/icons/deals-briefcase.svg",
+  commissions: "/icons/commissions-coins.svg",
+  downline: "/icons/downline-tree.svg",
+  training: "/icons/training-book.svg",
+  "submit-client": "/icons/submit-clipboard-check.svg",
+  "referral-links": "/icons/referral-links-chain.svg",
+  communications: "/icons/communications-chat.svg",
+  "partner-support": "/icons/support-chat-question.svg",
+  notifications: "/icons/communications-chat.svg",
+  "feature-request": "/icons/features-lightbulb.svg",
+};
 
 // Mobile bottom bar items (subset)
 const MOBILE_BAR = [
@@ -260,15 +284,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   function renderSidebar(isCollapsed: boolean) {
     return (
     <div className="flex flex-col h-full">
-      {/* Brand */}
-      <div className={`${isCollapsed ? "px-1" : "px-2"} mb-6 text-center`}>
+      {/* Brand — expanded mode uses `-mx-4 -mt-4` to negate the
+           sidebar's p-4 padding so the logo stretches edge-to-edge at
+           the top of the column. `max-h-72` + object-cover for taller
+           fill. Collapsed mode keeps its compact centered icon. */}
+      <div className={`${isCollapsed ? "px-1 mb-6" : "-mx-4 -mt-4 mb-6"} text-center`}>
         {isCollapsed ? (
           <div className="font-display text-xs font-bold text-brand-gold">
             {logoUrl ? <img src={logoUrl} alt={firmShort} className="max-h-10 mx-auto object-contain" /> : firmShort.charAt(0)}
           </div>
         ) : logoUrl ? (
-          <div className="mb-2">
-            <img src={logoUrl} alt={firmShort} className="max-h-40 w-full object-contain" />
+          <div>
+            <img src={logoUrl} alt={firmShort} className="w-full max-h-72 object-cover" />
           </div>
         ) : (
           <div className="font-display text-sm font-bold text-brand-gold tracking-[1px]">
@@ -303,7 +330,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onClick={() => navigate(item.href)}
             collapsed={isCollapsed}
             customLabel={navLabels[`partner.${item.id}`]}
-            customIcon={navIcons[`partner.${item.id}`]}
+            customIcon={navIcons[`partner.${item.id}`] || BUILT_IN_PARTNER_ICONS[item.id]}
           />
         ))}
       </div>
@@ -367,6 +394,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {isCollapsed ? "Exit" : "Sign Out"}
         </button>
       </div>
+      {/* Breathing room below the sign-out button so the nav column can
+          scroll past it into solid sidebar background, matching the admin
+          panel. Improves visual separation on short viewports. */}
+      <div aria-hidden className="shrink-0" style={{ height: 160, background: "var(--app-sidebar-bg)" }} />
     </div>
     );
   }
@@ -375,6 +406,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex flex-col min-h-screen">
       {/* ── PWA INSTALL PROMPT ── */}
       {!isSudo && <InstallPrompt />}
+
+      {/* ── FLASHING "GET THE FINTELLA APP" BANNER ──
+          Sits above the layout, auto-hides when installed, and stays
+          dismissed across reloads via localStorage. Mobile UA → "Mobile
+          App" copy; desktop UA → "Desktop App" copy. Hidden while the
+          admin is sudoing a partner so the banner doesn't cover the
+          purple sudo bar. */}
+      {!isSudo && <FintellaAppBanner />}
 
       {/* ── ADMIN SUDO BANNER ── */}
       {isSudo && (
@@ -446,7 +485,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           className="fixed bottom-0 left-0 right-0 border-t flex z-[900] backdrop-blur-xl pb-safe"
           style={{ background: "var(--app-bg-secondary)", borderColor: "var(--app-sidebar-border)" }}
         >
-          {MOBILE_BAR.map((item) => (
+          {MOBILE_BAR.map((item) => {
+            const mobileCustomIcon = navIcons[`partner.${item.id}`] || BUILT_IN_PARTNER_ICONS[item.id];
+            return (
             <button
               key={item.id}
               onClick={() => navigate(item.href)}
@@ -456,10 +497,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 isActive(item.href, (item as { activePaths?: string[] }).activePaths) ? "text-brand-gold" : "text-[var(--app-text-muted)]"
               }`}
             >
-              <span className="text-xl leading-none">{item.icon}</span>
+              {mobileCustomIcon ? (
+                <img src={mobileCustomIcon} alt="" className="w-6 h-6 object-contain" />
+              ) : (
+                <span className="text-xl leading-none">{item.icon}</span>
+              )}
               <span className="leading-tight">{item.shortLabel}</span>
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -621,7 +667,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             Sits below the page body on every partner dashboard route.
             Shows the configured favicon (falls back to firm initial
             when no favicon is uploaded) above the copyright line. */}
-        <footer className="mt-24 sm:mt-32 pt-8 pb-6 border-t border-[var(--app-border)] text-center">
+        <footer className="mt-24 sm:mt-32 pt-8 pb-0 border-t border-[var(--app-border)] text-center">
           {faviconUrl ? (
             <img src={faviconUrl} alt={firmShort} className="mx-auto h-8 w-8 object-contain mb-2 opacity-80" />
           ) : (
@@ -632,6 +678,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <p className="font-body text-[11px] text-[var(--app-text-muted)] tracking-[1.5px] uppercase">
             © Fintella Financial Intelligence Network 2026
           </p>
+          <div className="mt-3 flex items-center justify-center gap-4 font-body text-[11px]">
+            <a href="/privacy" target="_blank" rel="noreferrer" className="text-[var(--app-text-muted)] hover:text-brand-gold transition-colors">
+              Privacy Policy
+            </a>
+            <span className="text-[var(--app-text-faint)]">·</span>
+            <a href="/terms" target="_blank" rel="noreferrer" className="text-[var(--app-text-muted)] hover:text-brand-gold transition-colors">
+              Terms &amp; Conditions
+            </a>
+          </div>
         </footer>
       </div>
 

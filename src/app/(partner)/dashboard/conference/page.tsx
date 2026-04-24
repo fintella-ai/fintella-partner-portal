@@ -23,32 +23,8 @@ interface ConferenceEntry {
   weekNumber: number | null;
   notes: string | null;
   isActive: boolean;
+  jitsiRoom?: string | null;
 }
-
-/* ── Demo fallback data ────────────────────────────────────────────────── */
-
-const DEMO_ACTIVE: ConferenceEntry = {
-  id: "demo-active",
-  title: "Weekly Partner Training & Q&A",
-  description: "Product updates, training topics, success stories, and live Q&A.",
-  embedUrl: null,
-  joinUrl: "#",
-  recordingUrl: null,
-  schedule: "Every Thursday at 2:00 PM ET — 45-60 minutes",
-  nextCall: new Date().toISOString(),
-  hostName: "Fintella Leadership Team",
-  duration: null,
-  weekNumber: null,
-  notes: null,
-  isActive: true,
-};
-
-const DEMO_RECORDINGS: ConferenceEntry[] = [
-  { id: "d1", title: "Section 301 Update & New Partner Tools", description: null, embedUrl: null, joinUrl: null, recordingUrl: "#", schedule: null, nextCall: "2026-03-19T18:00:00Z", hostName: "Sarah Mitchell", duration: "52 min", weekNumber: 12, notes: null, isActive: false },
-  { id: "d2", title: "Commission Deep Dive & Top Partner Q&A", description: null, embedUrl: null, joinUrl: null, recordingUrl: "#", schedule: null, nextCall: "2026-03-12T18:00:00Z", hostName: "John Orlando", duration: "47 min", weekNumber: 11, notes: null, isActive: false },
-  { id: "d3", title: "IEEPA Changes & Client Outreach Strategies", description: null, embedUrl: null, joinUrl: null, recordingUrl: "#", schedule: null, nextCall: "2026-03-05T19:00:00Z", hostName: "Sarah Mitchell", duration: "58 min", weekNumber: 10, notes: null, isActive: false },
-  { id: "d4", title: "Onboarding Best Practices for New Partners", description: null, embedUrl: null, joinUrl: null, recordingUrl: "#", schedule: null, nextCall: "2026-02-26T19:00:00Z", hostName: "Fintella Leadership Team", duration: "41 min", weekNumber: 9, notes: null, isActive: false },
-];
 
 /* ── ICS helper ────────────────────────────────────────────────────────── */
 
@@ -97,20 +73,37 @@ export default function ConferencePage() {
   const [activeSchedule, setActiveSchedule] = useState<ConferenceEntry | null>(null);
   const [pastRecordings, setPastRecordings] = useState<ConferenceEntry[]>([]);
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const [jitsiOpen, setJitsiOpen] = useState(false);
   const [videoModal, setVideoModal] = useState<{ isOpen: boolean; url: string; title: string }>({
     isOpen: false, url: "", title: "",
   });
+  // Admin-uploaded banner image (PortalSettings.liveWeeklyBannerUrl).
+  // When set, shown centered at the top of this page in place of the
+  // default text-only header.
+  const [bannerUrl, setBannerUrl] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.settings?.liveWeeklyBannerUrl) setBannerUrl(d.settings.liveWeeklyBannerUrl); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/conference")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
-        setActiveSchedule(data.activeSchedule || DEMO_ACTIVE);
-        setPastRecordings(data.pastRecordings?.length ? data.pastRecordings : DEMO_RECORDINGS);
+        // Show real data — even when empty. The pre-launch DEMO_ACTIVE /
+        // DEMO_RECORDINGS fallbacks confused partners in production by
+        // displaying fake Zoom links, fake recording titles, and "Next
+        // Call: Weekly Partner Training & Q&A" when there was actually
+        // nothing scheduled yet.
+        setActiveSchedule(data.activeSchedule ?? null);
+        setPastRecordings(Array.isArray(data.pastRecordings) ? data.pastRecordings : []);
       })
       .catch(() => {
-        setActiveSchedule(DEMO_ACTIVE);
-        setPastRecordings(DEMO_RECORDINGS);
+        setActiveSchedule(null);
+        setPastRecordings([]);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -149,12 +142,22 @@ export default function ConferencePage() {
     );
   }
 
-  const active = activeSchedule || DEMO_ACTIVE;
-  const callInfo = formatCallDate(active.nextCall);
+  const active = activeSchedule;
+  const callInfo = active ? formatCallDate(active.nextCall) : { date: "", time: "" };
 
   return (
     <div>
       {communicationsTabs}
+      {bannerUrl && (
+        <div className="flex justify-center mb-6">
+          <img
+            src={bannerUrl}
+            alt="Live Weekly Call"
+            className="max-h-80 w-auto rounded-xl border"
+            style={{ borderColor: "var(--app-border)" }}
+          />
+        </div>
+      )}
       <h2 className={`font-display ${device.isMobile ? "text-lg" : "text-[22px]"} font-bold mb-1.5`}>
         Live Weekly Call!
       </h2>
@@ -162,7 +165,15 @@ export default function ConferencePage() {
         Join our weekly team call for product updates, training, success stories, and live Q&A.
       </p>
 
-      {/* ═══ NEXT CALL CARD ═══ */}
+      {/* ═══ NEXT CALL CARD / EMPTY STATE ═══ */}
+      {!active ? (
+        <div className={`${device.cardPadding} ${device.borderRadius} border border-[var(--app-border)] bg-[var(--app-card-bg)] mb-6 text-center`}>
+          <div className="font-body text-[11px] tracking-[1.5px] uppercase text-[var(--app-text-muted)] mb-2">No Live Call Scheduled</div>
+          <div className="font-body text-[13px] text-[var(--app-text-secondary)]">
+            Check back soon — the next Live Weekly will appear here once it's been scheduled.
+          </div>
+        </div>
+      ) : (
       <div className={`${device.cardPadding} ${device.borderRadius} border border-brand-gold/25 bg-gradient-to-br from-brand-gold/[0.06] to-brand-gold/[0.02] mb-6`}>
         <div className="flex items-center gap-2 mb-3">
           <span className="relative flex h-3 w-3">
@@ -182,12 +193,32 @@ export default function ConferencePage() {
           {active.hostName && <span className="font-body text-[13px] text-[var(--app-text-secondary)]">👤 {active.hostName}</span>}
         </div>
         <div className={`flex ${device.isMobile ? "flex-col" : ""} gap-3`}>
-          <button
-            onClick={() => active.joinUrl && window.open(active.joinUrl, "_blank")}
-            className="btn-gold text-[13px] px-6 py-3 flex items-center justify-center gap-2"
-          >
-            📹 Join Call
-          </button>
+          {active.jitsiRoom ? (
+            <button
+              onClick={() => setJitsiOpen((v) => !v)}
+              className="btn-gold text-[13px] px-6 py-3 flex items-center justify-center gap-2"
+            >
+              📹 {jitsiOpen ? "Hide call" : "Join call here"}
+            </button>
+          ) : (
+            <button
+              onClick={() => active.joinUrl && window.open(active.joinUrl, "_blank")}
+              className="btn-gold text-[13px] px-6 py-3 flex items-center justify-center gap-2"
+            >
+              📹 Join Call
+            </button>
+          )}
+          {active.jitsiRoom && (
+            <a
+              href={`https://meet.jit.si/${active.jitsiRoom}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-body text-[12px] text-[var(--app-text-secondary)] border border-[var(--app-border)] rounded-lg px-5 py-3 hover:text-[var(--app-text-secondary)] hover:border-[var(--app-border)] transition-colors text-center"
+              title="Open in a new tab"
+            >
+              Open in new tab
+            </a>
+          )}
           <button
             onClick={() => generateICS(active)}
             className="font-body text-[12px] text-[var(--app-text-secondary)] border border-[var(--app-border)] rounded-lg px-5 py-3 hover:text-[var(--app-text-secondary)] hover:border-[var(--app-border)] transition-colors text-center"
@@ -195,9 +226,25 @@ export default function ConferencePage() {
             Add to Calendar
           </button>
         </div>
+
+        {/* In-portal Jitsi embed — Jitsi allows iframe embedding (unlike
+            Meet/Zoom/SignWell). Partners click "Join call here" and get
+            the video conference right inside their dashboard. */}
+        {jitsiOpen && active.jitsiRoom && (
+          <div className="mt-4 rounded-xl overflow-hidden border border-[var(--app-border)] bg-black" style={{ aspectRatio: "16 / 9" }}>
+            <iframe
+              src={`https://meet.jit.si/${active.jitsiRoom}`}
+              allow="camera; microphone; fullscreen; display-capture; autoplay"
+              className="w-full h-full"
+              title={active.title}
+            />
+          </div>
+        )}
       </div>
+      )}
 
       {/* ═══ CALL SCHEDULE ═══ */}
+      {active && (
       <div className={`card ${device.cardPadding} mb-6`}>
         <div className="font-body font-semibold text-sm mb-3">Call Schedule</div>
         <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed">
@@ -210,12 +257,18 @@ export default function ConferencePage() {
           )}
         </div>
       </div>
+      )}
 
       {/* ═══ PAST RECORDINGS ═══ */}
       <div className="card">
         <div className="px-4 sm:px-6 py-4 border-b border-[var(--app-border)]">
           <div className="font-body font-semibold text-sm">Past Recordings</div>
         </div>
+        {pastRecordings.length === 0 && (
+          <div className="px-4 sm:px-6 py-10 text-center font-body text-[13px] text-[var(--app-text-muted)]">
+            No recordings available yet.
+          </div>
+        )}
         {pastRecordings.map((rec) => (
           <div key={rec.id} className="border-b border-[var(--app-border)] last:border-b-0">
             <div className="px-4 sm:px-6 py-4 hover:bg-[var(--app-card-bg)] transition-colors flex items-center justify-between gap-3">

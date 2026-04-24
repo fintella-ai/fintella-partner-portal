@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
+import LevelTag from "@/components/ui/LevelTag";
 import { fmt$, fmtDate, fmtDateTime } from "@/lib/format";
-import { FIRM_SHORT, DEFAULT_FIRM_FEE_RATE } from "@/lib/constants";
+import { FIRM_SHORT, DEFAULT_FIRM_FEE_RATE, COMMISSION_STATUS_LABELS } from "@/lib/constants";
 import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 import SortHeader, { type SortDir } from "@/components/ui/SortHeader";
+import { useResizableColumns } from "@/components/ui/ResizableTable";
 import { compareRows } from "@/lib/sortRows";
 import DocumentsView from "@/components/partner/DocumentsView";
 
@@ -27,6 +29,23 @@ export default function PartnerReportingPage() {
   const [l3Partners, setL3Partners] = useState<any[]>([]);
   const [ledger, setLedger] = useState<any[]>([]);
   const [commissionRate, setCommissionRate] = useState(0.25);
+
+  // Resizable columns — one hook per table so column widths persist
+  // separately across tabs. 9 cols on the main all-deals overview, 8 on
+  // the My Deals list, 9 on the Downline deals list. Storage keys are
+  // namespaced under `partner-reporting-*`.
+  const { columnWidths: ovDealsCols, getResizeHandler: ovDealsResize } = useResizableColumns(
+    [260, 130, 100, 110, 80, 110, 80, 120, 100],
+    { storageKey: "partner-reporting-overview-deals" }
+  );
+  const { columnWidths: myDealsCols, getResizeHandler: myDealsResize } = useResizableColumns(
+    [260, 110, 110, 80, 110, 80, 130, 100],
+    { storageKey: "partner-reporting-my-deals" }
+  );
+  const { columnWidths: dnDealsCols, getResizeHandler: dnDealsResize } = useResizableColumns(
+    [260, 130, 100, 110, 80, 110, 80, 130, 100],
+    { storageKey: "partner-reporting-downline-deals" }
+  );
   const [tier, setTier] = useState("l1");
   const [payoutDownlineEnabled, setPayoutDownlineEnabled] = useState(false);
   const [topL1PayoutDownlineEnabled, setTopL1PayoutDownlineEnabled] = useState<boolean | null>(null);
@@ -311,9 +330,11 @@ export default function PartnerReportingPage() {
                 </select>
                 <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={inputClass}>
                   <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
+                  <option value="projected">Projected</option>
+                  <option value="pending_payment">Pending Payment</option>
                   <option value="due">Due</option>
                   <option value="paid">Paid</option>
+                  <option value="lost">Lost</option>
                 </select>
               </div>
             </div>
@@ -338,7 +359,7 @@ export default function PartnerReportingPage() {
                         <StageBadge stage={deal.stage} />
                       </div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`font-body text-[10px] font-semibold rounded px-1.5 py-0.5 ${deal.source === "direct" ? "text-brand-gold bg-brand-gold/10 border border-brand-gold/20" : "text-purple-400 bg-purple-500/10 border border-purple-500/20"}`}>{deal.source === "direct" ? "L1 Direct" : "L2 Downline"}</span>
+                        <span className={`font-body text-[10px] font-semibold rounded px-1.5 py-0.5 ${deal.source === "direct" ? "text-brand-gold bg-brand-gold/10 border border-brand-gold/20" : "text-purple-400 bg-purple-500/10 border border-purple-500/20"}`}>{deal.source === "direct" ? "Direct" : "My L2"}</span>
                         <div className="font-body text-[11px] text-[var(--app-text-muted)]">{fmtDate(deal.createdAt)}</div>
                       </div>
                       <div className="flex items-center justify-between">
@@ -354,30 +375,29 @@ export default function PartnerReportingPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full" style={{ tableLayout: "fixed" }}>
                   <thead>
                     <tr className="border-b border-[var(--app-border)]">
                       {(() => {
                         const on = (k: string) => cycleSort(k, overviewSort, overviewDir, setOverviewSort, setOverviewDir);
-                        const H = (props: { label: string; k: string; className?: string; sortable?: boolean }) => (
-
-                          <th className={props.className || "px-3 py-3 text-center"}>
-
+                        // H now renders width + resize handle so all 9 cols
+                        // can be dragged or double-clicked to fit content.
+                        const H = (props: { label: string; k: string; i: number; className?: string; sortable?: boolean }) => (
+                          <th style={{ width: ovDealsCols[props.i], position: "relative" }} className={props.className || "px-3 py-3 text-center"}>
                             <span className="font-body text-[10px] tracking-[1px] uppercase theme-text-muted">{props.label}</span>
-
+                            <span {...ovDealsResize(props.i)} />
                           </th>
-
                         );
                         return (<>
-                          <H label="Deal" k="dealName" className="px-4 sm:px-6 py-3 text-left" />
-                          <H label="Partner" k="source" />
-                          <H label="Stage" k="stage" />
-                          <H label="Refund" k="estimatedRefundAmount" />
-                          <H label="Fee %" k="firmFeeRate" />
-                          <H label="Firm Fee" k="firmFeeAmount" sortable={false} />
-                          <H label="Comm %" k="commRate" sortable={false} />
-                          <H label="Commission" k="commission" />
-                          <H label="Date" k="createdAt" />
+                          <H label="Deal" k="dealName" i={0} className="px-4 sm:px-6 py-3 text-left" />
+                          <H label="Partner" k="source" i={1} />
+                          <H label="Stage" k="stage" i={2} />
+                          <H label="Refund" k="estimatedRefundAmount" i={3} />
+                          <H label="Fee %" k="firmFeeRate" i={4} />
+                          <H label="Firm Fee" k="firmFeeAmount" i={5} sortable={false} />
+                          <H label="Comm %" k="commRate" i={6} sortable={false} />
+                          <H label="Commission" k="commission" i={7} />
+                          <H label="Date" k="createdAt" i={8} />
                         </>);
                       })()}
                     </tr>
@@ -457,29 +477,26 @@ export default function PartnerReportingPage() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full" style={{ tableLayout: "fixed" }}>
                     <thead>
                       <tr className="border-b border-[var(--app-border)]">
                         {(() => {
                           const on = (k: string) => cycleSort(k, myDealsSort, myDealsDir, setMyDealsSort, setMyDealsDir);
-                          const H = (props: { label: string; k: string; className?: string; sortable?: boolean }) => (
-
-                            <th className={props.className || "px-3 py-3 text-center"}>
-
+                          const H = (props: { label: string; k: string; i: number; className?: string; sortable?: boolean }) => (
+                            <th style={{ width: myDealsCols[props.i], position: "relative" }} className={props.className || "px-3 py-3 text-center"}>
                               <span className="font-body text-[10px] tracking-[1px] uppercase theme-text-muted">{props.label}</span>
-
+                              <span {...myDealsResize(props.i)} />
                             </th>
-
                           );
                           return (<>
-                            <H label="Deal" k="dealName" className="px-4 sm:px-6 py-3 text-left" />
-                            <H label="Stage" k="stage" />
-                            <H label="Refund" k="estimatedRefundAmount" />
-                            <H label="Fee %" k="firmFeeRate" />
-                            <H label="Firm Fee" k="firmFeeAmount" sortable={false} />
-                            <H label="Comm %" k="commRate" sortable={false} />
-                            <H label="Commission" k="commission" />
-                            <H label="Date" k="createdAt" />
+                            <H label="Deal" k="dealName" i={0} className="px-4 sm:px-6 py-3 text-left" />
+                            <H label="Stage" k="stage" i={1} />
+                            <H label="Refund" k="estimatedRefundAmount" i={2} />
+                            <H label="Fee %" k="firmFeeRate" i={3} />
+                            <H label="Firm Fee" k="firmFeeAmount" i={4} sortable={false} />
+                            <H label="Comm %" k="commRate" i={5} sortable={false} />
+                            <H label="Commission" k="commission" i={6} />
+                            <H label="Date" k="createdAt" i={7} />
                           </>);
                         })()}
                       </tr>
@@ -614,6 +631,7 @@ export default function PartnerReportingPage() {
                               );
                               return (<>
                                 <H label="Partner" k="firstName" className="px-4 sm:px-6 py-3 text-left" />
+                                <H label="Level" k="tier" />
                                 <H label="Code" k="partnerCode" />
                                 <H label="Company" k="companyName" />
                                 <H label="Status" k="status" />
@@ -631,6 +649,7 @@ export default function PartnerReportingPage() {
                             return (
                             <tr key={p.id} className={`border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
                               <td className="px-4 sm:px-6 py-3.5 font-body text-[13px] font-medium text-[var(--app-text)]">{p.firstName} {p.lastName}</td>
+                              <td className="px-3 py-3.5 text-center"><LevelTag tier={p.tier} /></td>
                               <td className="px-3 py-3.5 text-center font-mono text-[12px] text-[var(--app-text-muted)]">{p.partnerCode}</td>
                               <td className="px-3 py-3.5 text-center font-body text-[12px] text-[var(--app-text-secondary)]">{p.companyName || "—"}</td>
                               <td className="px-3 py-3.5 text-center">
@@ -669,30 +688,27 @@ export default function PartnerReportingPage() {
                 ))
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full" style={{ tableLayout: "fixed" }}>
                     <thead>
                       <tr className="border-b border-[var(--app-border)]">
                         {(() => {
                           const on = (k: string) => cycleSort(k, downlineDealsSort, downlineDealsDir, setDownlineDealsSort, setDownlineDealsDir);
-                          const H = (props: { label: string; k: string; className?: string; sortable?: boolean }) => (
-
-                            <th className={props.className || "px-3 py-3 text-center"}>
-
+                          const H = (props: { label: string; k: string; i: number; className?: string; sortable?: boolean }) => (
+                            <th style={{ width: dnDealsCols[props.i], position: "relative" }} className={props.className || "px-3 py-3 text-center"}>
                               <span className="font-body text-[10px] tracking-[1px] uppercase theme-text-muted">{props.label}</span>
-
+                              <span {...dnDealsResize(props.i)} />
                             </th>
-
                           );
                           return (<>
-                            <H label="Deal" k="dealName" className="px-4 sm:px-6 py-3 text-left" />
-                            <H label="Partner" k="submittingPartner" />
-                            <H label="Stage" k="stage" />
-                            <H label="Refund" k="estimatedRefundAmount" />
-                            <H label="Fee %" k="firmFeeRate" />
-                            <H label="Firm Fee" k="firmFeeAmount" sortable={false} />
-                            <H label="Comm %" k="commRate" sortable={false} />
-                            <H label="Commission" k="commission" />
-                            <H label="Date" k="createdAt" />
+                            <H label="Deal" k="dealName" i={0} className="px-4 sm:px-6 py-3 text-left" />
+                            <H label="Partner" k="submittingPartner" i={1} />
+                            <H label="Stage" k="stage" i={2} />
+                            <H label="Refund" k="estimatedRefundAmount" i={3} />
+                            <H label="Fee %" k="firmFeeRate" i={4} />
+                            <H label="Firm Fee" k="firmFeeAmount" i={5} sortable={false} />
+                            <H label="Comm %" k="commRate" i={6} sortable={false} />
+                            <H label="Commission" k="commission" i={7} />
+                            <H label="Date" k="createdAt" i={8} />
                           </>);
                         })()}
                       </tr>
@@ -1176,7 +1192,7 @@ function DealDetailPanel({ deal }: { deal: any }) {
             { label: "Estimated Refund", value: fmt$(deal.estimatedRefundAmount), highlight: false },
             { label: "Firm Fee", value: fmt$(deal.firmFeeAmount), highlight: false },
             { label: "Commission", value: fmt$(deal.l1CommissionAmount || deal.l2CommissionAmount || 0), highlight: true },
-            { label: "Status", value: (deal.l1CommissionStatus || deal.l2CommissionStatus || "pending").replace(/^\w/, (c: string) => c.toUpperCase()), highlight: false },
+            { label: "Status", value: COMMISSION_STATUS_LABELS[(deal.l1CommissionStatus || deal.l2CommissionStatus || "pending_payment").toLowerCase()] || "Pending Payment", highlight: false },
           ].map((f) => (
             <div key={f.label} className="p-3 rounded-lg" style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}>
               <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mb-1">{f.label}</div>

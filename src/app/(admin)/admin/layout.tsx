@@ -7,6 +7,7 @@ import { FIRM_SHORT } from "@/lib/constants";
 import { useDevice } from "@/lib/useDevice";
 import NotificationBell from "@/components/ui/NotificationBell";
 import SoftPhone from "@/components/ui/SoftPhone";
+import InternalChatWidget from "@/components/admin/InternalChatWidget";
 import { getVisibleNav, getPermissions, ROLE_LABELS, type AdminRole } from "@/lib/permissions";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { reconcileNavOrder } from "@/lib/reconcileNavOrder";
@@ -21,14 +22,38 @@ const isGroup = (n: NavItem): n is NavGroup => (n as NavGroup).children !== unde
 // Default display order — can be reordered via Settings → Navigation drag-and-drop.
 // IDs here must match ADMIN_NAV_ITEMS map below.
 const ADMIN_NAV_IDS_DEFAULT = [
-  "partners", "deals", "reporting",
+  "home",
+  "partners", "applications", "landingEditor", "deals", "reporting",
   "communications", "internalChats", "partnerSupport",
   "training", "conference", "documents",
   "settings", "users", "features", "dev",
 ];
 
+// Built-in icon overrides — wins over the default emoji, loses to an
+// admin-uploaded custom icon in PortalSettings.navIcons. Use this to
+// ship hand-drawn SVG nav icons without forcing every admin to upload.
+const BUILT_IN_ADMIN_ICONS: Record<string, string> = {
+  reporting: "/icons/reporting-chart.svg",
+  home: "/icons/home-house.svg",
+  deals: "/icons/deals-briefcase.svg",
+  training: "/icons/training-book.svg",
+  documents: "/icons/documents-folder.svg",
+  settings: "/icons/settings-gear.svg",
+  partnerSupport: "/icons/support-chat-question.svg",
+  partners: "/icons/partners-people.svg",
+  communications: "/icons/communications-chat.svg",
+  internalChats: "/icons/internal-chats-nested.svg",
+  conference: "/icons/conference-camera.svg",
+  dev: "/icons/dev-tools.svg",
+  features: "/icons/features-lightbulb.svg",
+  users: "/icons/users-shield-key.svg",
+};
+
 const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
+  home:         { id: "home", href: "/admin", icon: "🏠", label: "Home" },
   partners:     { id: "partners", href: "/admin/partners", icon: "👥", label: "Partners" },
+  applications: { id: "applications", href: "/admin/applications", icon: "📝", label: "Applications" },
+  landingEditor: { id: "landingEditor", href: "/admin/landing-editor", icon: "🪄", label: "Landing Editor" },
   deals:        { id: "deals", href: "/admin/deals", icon: "📋", label: "Deals" },
   // "reporting" is a synthetic umbrella for Reports / Revenue /
   // Custom Commissions / Payouts. The finance pages share a ReportingTabs
@@ -202,14 +227,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const sidebarContent = (
     <>
-      {/* ── Logo + subheading ─────────────────────────────────────── */}
-      <div className="flex flex-col items-center text-center mb-5 px-1">
+      {/* ── Logo + subheading ───────────────────────────────────────
+           Logo wrapper uses `-mx-4 -mt-4` to negate the sidebar's own
+           p-4 padding so the brand image stretches edge-to-edge at the
+           top of the nav column. `max-h-72` gives the extra vertical
+           room requested. */}
+      <div className={`flex flex-col items-center text-center mb-5 ${collapsed ? "px-1" : "-mx-4 -mt-4"}`}>
         {collapsed ? (
           logoUrl
             ? <img src={logoUrl} alt={FIRM_SHORT} className="h-10 w-10 mx-auto object-contain" />
             : <div className="font-display text-lg font-bold text-brand-gold leading-none">{FIRM_SHORT.charAt(0)}</div>
         ) : logoUrl ? (
-          <img src={logoUrl} alt={FIRM_SHORT} className="max-h-40 w-full object-contain mb-2" />
+          <img src={logoUrl} alt={FIRM_SHORT} className="w-full max-h-72 object-cover mb-2" />
         ) : (
           <div className="font-display text-xl font-bold text-brand-gold tracking-[1px] mb-1">{FIRM_SHORT}</div>
         )}
@@ -222,8 +251,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {filteredNav.map((item) => {
         // Resolve custom label + icon for this item (admin scope).
+        // Priority: admin-uploaded custom > built-in SVG override > emoji.
         const customLabel = navLabels[`admin.${item.id}`];
-        const customIcon = navIcons[`admin.${item.id}`];
+        const customIcon = navIcons[`admin.${item.id}`] || BUILT_IN_ADMIN_ICONS[item.id];
         const renderIcon = customIcon ? (
           <img src={customIcon} alt="" className="w-5 h-5 object-contain" />
         ) : (
@@ -268,7 +298,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   {item.children.map((c) => {
                     const isActive = pathname === c.href || pathname.startsWith(c.href + "/");
                     const cLabel = navLabels[`admin.${c.id}`] || c.label;
-                    const cIcon = navIcons[`admin.${c.id}`];
+                    const cIcon = navIcons[`admin.${c.id}`] || BUILT_IN_ADMIN_ICONS[c.id];
                     return (
                       <button
                         key={c.id}
@@ -294,7 +324,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           );
         }
 
-        const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+        // Home lives at "/admin" (exact match only) — otherwise it'd
+        // light up on every admin sub-page because of the startsWith
+        // check. All other items match their href + any nested route.
+        const isActive = item.href === "/admin"
+          ? pathname === "/admin"
+          : pathname === item.href || pathname.startsWith(item.href + "/");
         return (
           <button
             key={item.id}
@@ -372,6 +407,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {collapsed ? "↩" : "Sign Out"}
         </button>
       </div>
+
+      {/* Black-background breathing room below the sign-out button so the
+          sidebar can scroll past it without immediately hitting the viewport
+          edge. Helps the Sign Out button feel distinct from the screen
+          bottom on short viewports. */}
+      <div aria-hidden className="shrink-0" style={{ height: 160, background: "var(--app-sidebar-bg)" }} />
     </>
   );
 
@@ -472,6 +513,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           via window.__fintellaSoftphone.call(phone, name). Docks in the
           bottom-right until someone opens it. */}
       <SoftPhone />
+
+      {/* Persistent admin internal chat — layout-mounted so it stays
+          alive across page navigation. Toggle via the floating bubble
+          (bottom-right) or window.__fintellaInternalChat.toggle(). */}
+      <InternalChatWidget />
     </div>
   );
 }

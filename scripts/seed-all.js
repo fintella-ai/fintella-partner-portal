@@ -192,6 +192,15 @@ async function main() {
   // 1 active upcoming call + 7 past recordings. Mirrors scripts/seed-conference.ts
   // (kept inline here so every Vercel build seeds Live Weekly data — the .ts
   // standalone seed remains for ad-hoc dev runs).
+  //
+  // LIVE_MODE gate — without this, every Vercel redeploy upserts the hardcoded
+  // `cs-week-*` IDs back into the DB, so an admin's delete on production gets
+  // silently reverted on the next push. With FINTELLA_LIVE_MODE=true set on
+  // prod, we skip the re-upsert entirely. Admin still needs to delete demo
+  // rows once manually; from then on they stay deleted.
+  if (LIVE_MODE) {
+    console.log("✓ Conference seed SKIPPED (FINTELLA_LIVE_MODE=true)");
+  } else {
   const conferenceUpcoming = {
     id: "cs-week-13",
     title: "Weekly Partner Training & Q&A",
@@ -230,6 +239,7 @@ async function main() {
     });
   }
   console.log("✓ " + (1 + conferencePast.length) + " conference entries seeded (1 active + " + conferencePast.length + " past)");
+  }
 
   // ── Email Templates (Communications Hub) ───────────────────────────────
   // Seeds 7 templates: 4 wired (welcome, agreement_ready, agreement_signed,
@@ -530,6 +540,40 @@ async function main() {
       ]),
     },
     {
+      key: "live_weekly_reminder",
+      name: "Live Weekly — Reminder",
+      category: "Live Weekly",
+      subject: "Reminder: {conference.title} in {hoursBeforeCall}h",
+      preheader: "Join us for this week's Fintella Live Weekly call.",
+      heading: "Your Live Weekly call starts soon",
+      bodyHtml:
+        "<p>Hi {partner.firstName},</p>" +
+        "<p>Just a reminder that <strong>{conference.title}</strong> starts in about " +
+        "{hoursBeforeCall} hour(s) — {conference.nextCallLocal}.</p>" +
+        "<p>You can join right from your Fintella partner portal or from the link below.</p>",
+      bodyText:
+        "Hi {partner.firstName},\n\n" +
+        "Just a reminder that {conference.title} starts in about {hoursBeforeCall} hour(s) — {conference.nextCallLocal}.\n\n" +
+        "Join here: {conference.joinUrl}",
+      ctaLabel: "Join the call",
+      ctaUrl: "{conference.joinUrl}",
+      enabled: true,
+      isDraft: false,
+      description:
+        "Default template for the conference.call_reminder workflow trigger. Fires from /api/cron/conference-reminders for each active Live Weekly call N hours before it starts (configurable per workflow).",
+      variables: JSON.stringify([
+        "partner.firstName",
+        "partner.lastName",
+        "conference.title",
+        "conference.hostName",
+        "conference.nextCall",
+        "conference.nextCallLocal",
+        "conference.joinUrl",
+        "hoursBeforeCall",
+        "portalUrl",
+      ]),
+    },
+    {
       key: "password_reset",
       name: "Password Reset Link",
       category: "Account Security",
@@ -558,6 +602,43 @@ async function main() {
         "resetUrl",
         "role",
         "roleLabel",
+        "firmShort",
+        "firmName",
+        "portalUrl",
+      ]),
+    },
+    {
+      key: "partner_added_to_channel",
+      name: "Partner Added to Channel",
+      category: "Communications",
+      subject: "You've been added to the \"{channelName}\" channel",
+      preheader: "You've been added to the \"{channelName}\" announcement channel on {firmShort}.",
+      heading: "You've been added to the \"{channelName}\" channel",
+      bodyHtml:
+        "<p>Hi {firstName},</p>" +
+        "<p>An admin just added you to the <strong>{channelName}</strong> announcement channel on {firmShort}.</p>" +
+        "<p>Announcements posted there will now show up in your Announcements tab. You can reply to start a private thread with the admin team on any post.</p>" +
+        "<p style=\"font-size:12px;color:#888;\">Where to go: open the portal → sidebar → <strong>Communications → Announcements</strong>, or tap the button below.</p>",
+      bodyText:
+        "Hi {firstName},\n\n" +
+        "An admin just added you to the \"{channelName}\" announcement channel on {firmShort}.\n\n" +
+        "Announcements posted there will now show up in your Announcements tab. You can reply to start a private thread with the admin team on any post.\n\n" +
+        "Open the channel: {channelUrl}\n\n" +
+        "Where to go: portal sidebar → Communications → Announcements.",
+      ctaLabel: "Open Channel",
+      ctaUrl: "{channelUrl}",
+      enabled: true,
+      isDraft: false,
+      description:
+        "Fires from /api/admin/channels/[id]/members POST whenever an admin newly adds a partner to an AnnouncementChannel. Also powers the partner.added_to_channel workflow trigger. Falls back to hardcoded copy in sendgrid.ts if the row is missing/disabled so the send never silently breaks.",
+      variables: JSON.stringify([
+        "firstName",
+        "lastName",
+        "partnerCode",
+        "channelId",
+        "channelName",
+        "channelUrl",
+        "addedByEmail",
         "firmShort",
         "firmName",
         "portalUrl",
@@ -651,6 +732,16 @@ async function main() {
       variables: JSON.stringify(["invite.invitedName", "invite.signupUrl", "daysSinceInvited"]),
     },
     {
+      key: "live_weekly_reminder",
+      name: "Live Weekly Reminder",
+      category: "Live Weekly",
+      body: "Fintella: {partner.firstName}, {conference.title} starts in ~{hoursBeforeCall}h ({conference.nextCallLocal}). Join: {conference.joinUrl} — Reply STOP to opt out.",
+      enabled: false,
+      isDraft: false,
+      description: "Default SMS for the conference.call_reminder workflow. Fires from /api/cron/conference-reminders at the configured lead time before each active Live Weekly call.",
+      variables: JSON.stringify(["partner.firstName", "conference.title", "conference.nextCallLocal", "conference.joinUrl", "hoursBeforeCall"]),
+    },
+    {
       key: "opt_in_request",
       name: "Opt-In Request (Bulk)",
       category: "Opt-In",
@@ -670,6 +761,124 @@ async function main() {
     });
   }
   console.log("✓ " + smsTemplates.length + " SMS templates seeded (all disabled pending A2P)");
+
+  // ── Default email-migration workflows (disabled) ───────────────────────
+  //
+  // PR C of the email-templates → workflow-actions migration seeds these
+  // with `enabled: false` so they're inert by default. Admins can flip any
+  // one on to take over from the hardcoded sendgrid helpers for that event.
+  // When a workflow is enabled, admins should also disable the matching
+  // EmailTemplate row (or the seeded email will DOUBLE-SEND — once from
+  // the hardcoded helper, once from the workflow action).
+  //
+  // Stable IDs keep upsert idempotent. Using `update: {}` preserves any
+  // admin edits to the workflow's name/config after first deploy.
+  const defaultEmailWorkflows = [
+    {
+      id: "default-email-welcome",
+      name: "Default — Welcome email to new partner",
+      description: "Fires after partner.created. Sends the welcome EmailTemplate to the new partner. Enable to take over from the hardcoded sendWelcomeEmail path.",
+      enabled: false,
+      trigger: "partner.created",
+      triggerConfig: null,
+      conditions: null,
+      actions: [
+        {
+          type: "email.send",
+          config: {
+            template: "welcome",
+            recipientType: "partner",
+            partnerCode: "deal_partner",
+          },
+        },
+      ],
+    },
+    {
+      id: "default-email-agreement-ready",
+      name: "Default — Agreement ready email",
+      description: "Fires after partner.agreement_sent. Sends the agreement_ready EmailTemplate with {signingUrl} to the partner.",
+      enabled: false,
+      trigger: "partner.agreement_sent",
+      triggerConfig: null,
+      conditions: null,
+      actions: [
+        {
+          type: "email.send",
+          config: {
+            template: "agreement_ready",
+            recipientType: "partner",
+            partnerCode: "deal_partner",
+          },
+        },
+      ],
+    },
+    {
+      id: "default-email-agreement-signed",
+      name: "Default — Agreement signed (welcome-aboard) email",
+      description: "Fires after partner.activated (SignWell document_completed webhook). Sends the agreement_signed EmailTemplate.",
+      enabled: false,
+      trigger: "partner.activated",
+      triggerConfig: null,
+      conditions: null,
+      actions: [
+        {
+          type: "email.send",
+          config: {
+            template: "agreement_signed",
+            recipientType: "partner",
+            partnerCode: "deal_partner",
+          },
+        },
+      ],
+    },
+    {
+      id: "default-email-deal-status-update",
+      name: "Default — Deal status update email",
+      description: "Fires on deal.stage_changed. Sends the deal_status_update EmailTemplate to the submitting partner.",
+      enabled: false,
+      trigger: "deal.stage_changed",
+      triggerConfig: null,
+      conditions: null,
+      actions: [
+        {
+          type: "email.send",
+          config: {
+            template: "deal_status_update",
+            recipientType: "partner",
+            partnerCode: "deal_partner",
+          },
+        },
+      ],
+    },
+    {
+      id: "default-email-commission-paid",
+      name: "Default — Commission paid email",
+      description: "Fires on commission.paid during payout batch processing. Sends the commission_payment_notification EmailTemplate.",
+      enabled: false,
+      trigger: "commission.paid",
+      triggerConfig: null,
+      conditions: null,
+      actions: [
+        {
+          type: "email.send",
+          config: {
+            template: "commission_payment_notification",
+            recipientType: "partner",
+            partnerCode: "deal_partner",
+          },
+        },
+      ],
+    },
+  ];
+
+  for (const w of defaultEmailWorkflows) {
+    await prisma.workflow.upsert({
+      where: { id: w.id },
+      update: {}, // preserve admin edits after first seed
+      create: w,
+    });
+  }
+  console.log("✓ " + defaultEmailWorkflows.length + " default email workflows seeded (all DISABLED — admin enables to opt in)");
 
   // ── Portal Settings ───────────────────────────────────────────────────
   await prisma.portalSettings.upsert({

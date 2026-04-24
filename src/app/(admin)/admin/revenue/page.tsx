@@ -9,8 +9,78 @@ import SortHeader, { type SortDir } from "@/components/ui/SortHeader";
 
 type SortKey = string;
 
+// ─── Per-admin layout (drag-to-reorder via "Edit layout" button) ──────────
+// Same pattern as /admin/reports and /admin (AdminWorkspacePage). Section
+// order persists in localStorage.
+type SectionId = "summary" | "breakdown" | "enterprise" | "deals";
+const DEFAULT_SECTION_ORDER: SectionId[] = ["summary", "breakdown", "enterprise", "deals"];
+const LAYOUT_KEY = "fintella.admin.revenue.layout.v1";
+
+function readLayout(): SectionId[] {
+  if (typeof window === "undefined") return DEFAULT_SECTION_ORDER;
+  try {
+    const raw = window.localStorage.getItem(LAYOUT_KEY);
+    if (!raw) return DEFAULT_SECTION_ORDER;
+    const parsed = JSON.parse(raw) as SectionId[];
+    const known = new Set<SectionId>(DEFAULT_SECTION_ORDER);
+    const preserved = parsed.filter((s) => known.has(s));
+    const appended = DEFAULT_SECTION_ORDER.filter((s) => !preserved.includes(s));
+    return [...preserved, ...appended];
+  } catch {
+    return DEFAULT_SECTION_ORDER;
+  }
+}
+
 const FINTELLA_FEE_RATE = 0.40; // Fintella receives 40% of firm fee (Frost Law contract)
 const MAX_PARTNER_RATE = 0.25;  // Maximum commission rate any partner can have (used for projected pipeline fallback)
+
+// Shape returned by /api/admin/enterprise — mirrors the shape used on
+// the Custom Commissions → Enterprise Reporting tab. Duplicated here
+// (not imported) to keep the page self-contained; the types are stable
+// since both screens consume the same endpoint.
+type EnterprisePartnerData = {
+  id: string;
+  partnerCode: string;
+  partnerId: string | null;
+  partnerName: string;
+  companyName: string | null;
+  totalRate: number;
+  overrideRate: number;
+  applyToAll: boolean;
+  status: string;
+  notes: string | null;
+  createdAt: string;
+  overrides: {
+    id: string;
+    l1PartnerCode: string;
+    l1PartnerId: string | null;
+    l1PartnerName: string;
+    l1PartnerStatus: string;
+    status: string;
+    createdAt: string;
+  }[];
+  summary: {
+    totalDeals: number;
+    totalDealAmount: number;
+    totalFirmFees: number;
+    totalOverrideEarnings: number;
+    closedWonDeals: number;
+  };
+  dealBreakdown: {
+    id: string;
+    dealName: string;
+    partnerCode: string;
+    partnerName: string;
+    stage: string;
+    dealAmount: number;
+    firmFee: number;
+    fintellaGross: number;
+    l1Commission: number;
+    overrideAmount: number;
+    fintellaNetAfterEnterprise: number;
+    createdAt: string;
+  }[];
+};
 
 interface Deal {
   id: string;
@@ -92,6 +162,49 @@ const stageBadge: Record<string, string> = {
 export default function RevenuePage() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
+  // Enterprise-partner data, duplicated from the Custom Commissions →
+  // Enterprise Reporting tab so the company revenue page has EP totals
+  // in the same view as firm-fee totals + a breakdown table per EP.
+  const [enterprises, setEnterprises] = useState<EnterprisePartnerData[]>([]);
+  const [epLoading, setEpLoading] = useState(true);
+
+  // Drag-to-reorder layout state (per-admin via localStorage)
+  const [sectionOrder, setSectionOrder] = useState<SectionId[]>(DEFAULT_SECTION_ORDER);
+  const [editMode, setEditMode] = useState(false);
+  const [draggedSection, setDraggedSection] = useState<SectionId | null>(null);
+
+  useEffect(() => { setSectionOrder(readLayout()); }, []);
+
+  const persistLayout = useCallback((next: SectionId[]) => {
+    setSectionOrder(next);
+    if (typeof window !== "undefined") {
+      try { window.localStorage.setItem(LAYOUT_KEY, JSON.stringify(next)); } catch {}
+    }
+  }, []);
+
+  const onSectionDragStart = (e: React.DragEvent, id: SectionId) => {
+    if (!editMode) return;
+    setDraggedSection(id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+  const onSectionDragOver = (e: React.DragEvent) => {
+    if (!editMode || !draggedSection) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+  const onSectionDrop = (e: React.DragEvent, targetId: SectionId) => {
+    if (!editMode || !draggedSection) return;
+    e.preventDefault();
+    if (draggedSection === targetId) { setDraggedSection(null); return; }
+    const next = [...sectionOrder];
+    const src = next.indexOf(draggedSection);
+    const dst = next.indexOf(targetId);
+    if (src < 0 || dst < 0) { setDraggedSection(null); return; }
+    next.splice(src, 1);
+    next.splice(dst, 0, draggedSection);
+    persistLayout(next);
+    setDraggedSection(null);
+  };
   const [filter, setFilter] = useState<"all" | "closedwon" | "pipeline">("all");
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -120,6 +233,25 @@ export default function RevenuePage() {
   }, []);
 
   useEffect(() => { fetchDeals(); }, [fetchDeals]);
+
+  const fetchEnterprises = useCallback(() => {
+    setEpLoading(true);
+    fetch("/api/admin/enterprise")
+      .then((r) => r.json())
+      .then((d) => setEnterprises(Array.isArray(d?.enterprises) ? d.enterprises : []))
+      .catch(() => setEnterprises([]))
+      .finally(() => setEpLoading(false));
+  }, []);
+
+  useEffect(() => { fetchEnterprises(); }, [fetchEnterprises]);
+
+  // Aggregate across every ACTIVE enterprise partner. Totals flow into
+  // the top revenue cards + breakdown card as a company-wide line.
+  const activeEPs = enterprises.filter((e) => e.status === "active");
+  const totalEnterpriseOverride = activeEPs.reduce(
+    (s, ep) => s + (ep.summary?.totalOverrideEarnings || 0),
+    0,
+  );
 
   // Filter and sort deals
   const filtered = useMemo(() => {
@@ -192,6 +324,9 @@ export default function RevenuePage() {
   const totalFintellaGrossWon = totalFirmFeesWon * FINTELLA_FEE_RATE;
   const totalPartnerCommWon = closedWonDeals.reduce((sum, d) => sum + partnerCommission(d), 0);
   const totalFintellaNetWon = totalFintellaGrossWon - totalPartnerCommWon;
+  // Fintella's bottom line after paying out enterprise overrides too.
+  // Used alongside totalFintellaNetWon so the breakdown can show both.
+  const totalFintellaNetAfterEnterprise = totalFintellaNetWon - totalEnterpriseOverride;
 
   // Commission breakdown — paid vs pending/due. Status is tracked on the
   // L1 row for simple reporting; the L2/L3 rows flip together during payout.
@@ -216,19 +351,44 @@ export default function RevenuePage() {
   }
 
   return (
-    <div>
-      <ReportingTabs />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h2 className="font-display text-[22px] font-bold mb-1">Company Revenue</h2>
-          <p className="font-body text-[13px] theme-text-muted">
-            Fintella receives {Math.round(FINTELLA_FEE_RATE * 100)}% of firm fees. Partner commission rates vary per deal (up to {Math.round(MAX_PARTNER_RATE * 100)}%); totals below use each deal&rsquo;s own rate.
-          </p>
+    <div className="flex flex-col">
+      <div style={{ order: -1 }}>
+        <ReportingTabs />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <div>
+            <h2 className="font-display text-[22px] font-bold mb-1">Company Revenue</h2>
+            <p className="font-body text-[13px] theme-text-muted">
+              Fintella receives {Math.round(FINTELLA_FEE_RATE * 100)}% of firm fees. Partner commission rates vary per deal (up to {Math.round(MAX_PARTNER_RATE * 100)}%); totals below use each deal&rsquo;s own rate.
+            </p>
+          </div>
+          <button
+            onClick={() => setEditMode((v) => !v)}
+            className={`font-body text-[12px] px-3 py-2 rounded-lg border transition-colors shrink-0 ${
+              editMode
+                ? "bg-brand-gold text-black border-brand-gold font-semibold"
+                : "border-[var(--app-border)] theme-text-secondary hover:bg-brand-gold/10 hover:border-brand-gold/40"
+            }`}
+            title="Drag to reorder sections — saved per admin via localStorage"
+          >
+            {editMode ? "✓ Done editing" : "✎ Edit layout"}
+          </button>
         </div>
       </div>
 
       {/* ═══ REVENUE SUMMARY ═══ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <section
+        key="summary"
+        draggable={editMode}
+        onDragStart={(e) => onSectionDragStart(e, "summary")}
+        onDragOver={onSectionDragOver}
+        onDrop={(e) => onSectionDrop(e, "summary")}
+        className={`${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move mb-6" : ""}`}
+        style={{ order: sectionOrder.indexOf("summary") }}
+      >
+        {editMode && (
+          <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">⋮⋮ Revenue Summary — drag to reorder</div>
+        )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
         <div className="stat-card">
           <div className="font-body text-[9px] tracking-[1.5px] uppercase theme-text-muted mb-2">Total Deal Value</div>
           <div className="font-display text-xl sm:text-2xl font-bold">{fmt$(totalDealAmountWon)}</div>
@@ -247,9 +407,14 @@ export default function RevenuePage() {
           </div>
         </div>
         <div className="stat-card">
+          <div className="font-body text-[9px] tracking-[1.5px] uppercase theme-text-muted mb-2">Enterprise Overrides</div>
+          <div className="font-display text-xl sm:text-2xl font-bold text-purple-400">-{fmt$(totalEnterpriseOverride)}</div>
+          <div className="font-body text-[10px] theme-text-muted mt-1">{activeEPs.length} active enterprise partner{activeEPs.length === 1 ? "" : "s"}</div>
+        </div>
+        <div className="stat-card">
           <div className="font-body text-[9px] tracking-[1.5px] uppercase theme-text-muted mb-2">Fintella Net Revenue</div>
-          <div className="font-display text-xl sm:text-2xl font-bold text-green-400">{fmt$(totalFintellaNetWon)}</div>
-          <div className="font-body text-[10px] theme-text-muted mt-1">After partner commissions</div>
+          <div className="font-display text-xl sm:text-2xl font-bold text-green-400">{fmt$(totalFintellaNetAfterEnterprise)}</div>
+          <div className="font-body text-[10px] theme-text-muted mt-1">After partner + enterprise payouts</div>
         </div>
         <div className="stat-card">
           <div className="font-body text-[9px] tracking-[1.5px] uppercase theme-text-muted mb-2">Pipeline (Projected)</div>
@@ -257,8 +422,21 @@ export default function RevenuePage() {
           <div className="font-body text-[10px] theme-text-muted mt-1">{pipelineDeals.length} active deals</div>
         </div>
       </div>
+      </section>
 
       {/* ═══ BREAKDOWN CARD ═══ */}
+      <section
+        key="breakdown"
+        draggable={editMode}
+        onDragStart={(e) => onSectionDragStart(e, "breakdown")}
+        onDragOver={onSectionDragOver}
+        onDrop={(e) => onSectionDrop(e, "breakdown")}
+        className={`${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move mb-6" : ""}`}
+        style={{ order: sectionOrder.indexOf("breakdown") }}
+      >
+        {editMode && (
+          <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">⋮⋮ Revenue Breakdown — drag to reorder</div>
+        )}
       <div className="card p-5 sm:p-6 mb-6">
         <div className="font-body font-semibold text-sm mb-4">Revenue Breakdown</div>
         <div className="space-y-3">
@@ -282,14 +460,161 @@ export default function RevenuePage() {
             <span className="font-body text-[12px] text-yellow-400">Partner Commissions Pending</span>
             <span className="font-body text-[13px] text-yellow-400">-{fmt$(commPending)}</span>
           </div>
+          <div className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid var(--app-border)" }}>
+            <span className="font-body text-[13px] text-[var(--app-text-secondary)]">Fintella Net (after partner commissions)</span>
+            <span className="font-display text-[15px] font-bold text-[var(--app-text-secondary)]">{fmt$(totalFintellaNetWon)}</span>
+          </div>
+          <div className="flex items-center justify-between py-2 pl-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
+            <span className="font-body text-[12px] text-purple-400">Enterprise Overrides ({activeEPs.length} active EP{activeEPs.length === 1 ? "" : "s"})</span>
+            <span className="font-body text-[13px] text-purple-400">-{fmt$(totalEnterpriseOverride)}</span>
+          </div>
           <div className="flex items-center justify-between py-3 rounded-lg px-3 bg-green-500/5 border border-green-500/15">
-            <span className="font-body text-[14px] font-semibold text-green-400">Fintella Net Revenue</span>
-            <span className="font-display text-lg font-bold text-green-400">{fmt$(totalFintellaNetWon)}</span>
+            <span className="font-body text-[14px] font-semibold text-green-400">Fintella Net After Enterprise</span>
+            <span className="font-display text-lg font-bold text-green-400">{fmt$(totalFintellaNetAfterEnterprise)}</span>
           </div>
         </div>
       </div>
+      </section>
+
+      {/* ═══ ENTERPRISE REPORTING & PAYOUTS ═══
+          Duplicated from the Custom Commissions → Enterprise Reporting
+          tab so the company revenue page carries the per-EP breakdown
+          in one place. Same data source (/api/admin/enterprise) and the
+          same per-EP card shape: 5 summary metrics + per-deal table
+          with Fintella 40% / L1 commission / enterprise override /
+          Fintella net.  */}
+      <section
+        key="enterprise"
+        draggable={editMode}
+        onDragStart={(e) => onSectionDragStart(e, "enterprise")}
+        onDragOver={onSectionDragOver}
+        onDrop={(e) => onSectionDrop(e, "enterprise")}
+        className={`mb-6 ${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move" : ""}`}
+        style={{ order: sectionOrder.indexOf("enterprise") }}
+      >
+        {editMode && (
+          <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">⋮⋮ Enterprise Reporting &amp; Payouts — drag to reorder</div>
+        )}
+      <div>
+        <h3 className="font-display text-lg font-bold mb-1">Enterprise Reporting &amp; Payouts</h3>
+        <p className="font-body text-[13px] theme-text-muted mb-5">
+          Deal-level breakdown for each active enterprise partner — Fintella&rsquo;s 40% gross share, L1 commission paid, EP override paid, and net company profit after all payouts.
+        </p>
+
+        {epLoading ? (
+          <div className="card p-8 text-center"><div className="font-body text-sm theme-text-muted">Loading enterprise data...</div></div>
+        ) : activeEPs.length === 0 ? (
+          <div className="card p-10 text-center">
+            <div className="font-body text-sm theme-text-muted">
+              No active enterprise partners. Add one in <span className="text-brand-gold">Custom Commissions</span> → <span className="text-brand-gold">Custom Commissions</span> tab.
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {activeEPs.map((ep) => {
+              const activeDeals = ep.dealBreakdown;
+              const totalOverride = ep.summary.totalOverrideEarnings;
+              const totalL1Comm = activeDeals.reduce((s, d) => s + d.l1Commission, 0);
+              const totalFintellaGross = activeDeals.reduce((s, d) => s + d.fintellaGross, 0);
+              const totalNetAfterAll = activeDeals.reduce((s, d) => s + d.fintellaNetAfterEnterprise, 0);
+
+              return (
+                <div key={ep.id} className="card">
+                  <div className="px-5 py-4 border-b border-[var(--app-border)]">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <PartnerLink partnerId={ep.partnerId} className="font-body text-[15px] font-semibold text-[var(--app-text)]">{ep.partnerName}</PartnerLink>
+                          <span className="font-body text-xs text-purple-400 font-semibold">+{Math.round(ep.overrideRate * 100)}% override</span>
+                        </div>
+                        <div className="font-body text-[11px] theme-text-muted mt-0.5">{ep.partnerCode} &middot; {activeDeals.length} deal{activeDeals.length === 1 ? "" : "s"} across {ep.overrides.filter((o) => o.status === "active").length} L1 partner{ep.overrides.filter((o) => o.status === "active").length === 1 ? "" : "s"}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Summary metrics */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 px-5 py-4 border-b border-[var(--app-border)]">
+                    {[
+                      { label: "Fintella 40%", value: fmt$(totalFintellaGross), color: "text-brand-gold" },
+                      { label: "L1 Commission", value: fmt$(totalL1Comm), color: "text-red-400" },
+                      { label: `Enterprise ${Math.round(ep.overrideRate * 100)}%`, value: fmt$(totalOverride), color: "text-purple-400" },
+                      { label: "Total Payout", value: fmt$(totalL1Comm + totalOverride), color: "text-orange-400" },
+                      { label: "Fintella Net Profit", value: fmt$(totalNetAfterAll), color: "text-green-400" },
+                    ].map((m) => (
+                      <div key={m.label}>
+                        <div className="font-body text-[10px] theme-text-muted uppercase tracking-wider mb-1">{m.label}</div>
+                        <div className={`font-display text-base font-bold ${m.color}`}>{m.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Deal breakdown — desktop */}
+                  {activeDeals.length > 0 && (
+                    <>
+                      <div className="hidden md:block overflow-x-auto">
+                        <div className="grid grid-cols-[1.4fr_0.6fr_0.6fr_0.6fr_0.6fr_0.6fr_0.6fr] gap-2 px-5 py-2.5 border-b border-[var(--app-border)] min-w-[700px]">
+                          {["Deal", "L1 Partner", "Firm Fee", "Fintella 40%", "L1 Comm", `EP ${Math.round(ep.overrideRate * 100)}%`, "Net"].map((h) => (
+                            <div key={h} className="font-body text-[10px] tracking-[1px] uppercase theme-text-muted">{h}</div>
+                          ))}
+                        </div>
+                        {activeDeals.map((d) => (
+                          <div key={d.id} className="grid grid-cols-[1.4fr_0.6fr_0.6fr_0.6fr_0.6fr_0.6fr_0.6fr] gap-2 px-5 py-3 items-center min-w-[700px] hover:bg-[var(--app-hover)] transition-colors border-b border-[var(--app-border)] last:border-b-0">
+                            <div>
+                              <DealLink dealId={d.id} className="font-body text-[13px] font-medium truncate block">{d.dealName}</DealLink>
+                              <div className="font-body text-[10px] theme-text-muted">{d.stage.replace("_", " ")}</div>
+                            </div>
+                            <PartnerLink partnerId={null} className="font-body text-[12px] theme-text-secondary truncate">{d.partnerName}</PartnerLink>
+                            <div className="font-body text-[13px] theme-text-secondary">{fmt$(d.firmFee)}</div>
+                            <div className="font-body text-[13px] text-brand-gold font-semibold">{fmt$(d.fintellaGross)}</div>
+                            <div className="font-body text-[13px] text-red-400">-{fmt$(d.l1Commission)}</div>
+                            <div className="font-body text-[13px] text-purple-400 font-semibold">-{fmt$(d.overrideAmount)}</div>
+                            <div className="font-display text-[13px] font-semibold text-green-400">{fmt$(d.fintellaNetAfterEnterprise)}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Deal breakdown — mobile cards */}
+                      <div className="md:hidden divide-y divide-[var(--app-border)]">
+                        {activeDeals.map((d) => (
+                          <div key={d.id} className="px-4 py-4">
+                            <DealLink dealId={d.id} className="font-body text-sm font-medium text-[var(--app-text)] mb-1 block">{d.dealName}</DealLink>
+                            <div className="font-body text-xs theme-text-muted mb-2">{d.partnerName} &middot; {d.stage.replace("_", " ")}</div>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                              <div className="flex justify-between"><span className="font-body text-xs theme-text-muted">Fintella 40%</span><span className="font-body text-xs text-brand-gold font-semibold">{fmt$(d.fintellaGross)}</span></div>
+                              <div className="flex justify-between"><span className="font-body text-xs theme-text-muted">L1 Comm</span><span className="font-body text-xs text-red-400">-{fmt$(d.l1Commission)}</span></div>
+                              <div className="flex justify-between"><span className="font-body text-xs theme-text-muted">EP Override</span><span className="font-body text-xs text-purple-400 font-semibold">-{fmt$(d.overrideAmount)}</span></div>
+                              <div className="flex justify-between"><span className="font-body text-xs theme-text-muted">Net</span><span className="font-body text-xs text-green-400 font-semibold">{fmt$(d.fintellaNetAfterEnterprise)}</span></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {activeDeals.length === 0 && (
+                    <div className="px-5 py-8 text-center font-body text-[13px] theme-text-muted">No deals from assigned L1 partners yet.</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      </section>
 
       {/* ═══ DEAL-BY-DEAL TABLE ═══ */}
+      <section
+        key="deals"
+        draggable={editMode}
+        onDragStart={(e) => onSectionDragStart(e, "deals")}
+        onDragOver={onSectionDragOver}
+        onDrop={(e) => onSectionDrop(e, "deals")}
+        className={`${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move mb-6" : ""}`}
+        style={{ order: sectionOrder.indexOf("deals") }}
+      >
+        {editMode && (
+          <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">⋮⋮ Deal Revenue Detail — drag to reorder</div>
+        )}
       <div className="card">
         <div className="px-5 py-4 flex flex-col gap-3" style={{ borderBottom: "1px solid var(--app-border)" }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -498,6 +823,7 @@ export default function RevenuePage() {
           </div>
         )}
       </div>
+      </section>
     </div>
   );
 }

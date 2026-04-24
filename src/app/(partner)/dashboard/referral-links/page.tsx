@@ -5,8 +5,7 @@ import { useResizableColumns } from "@/components/ui/ResizableTable";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
-import CopyButton from "@/components/ui/CopyButton";
-import { FIRM_SHORT, FIRM_PHONE } from "@/lib/constants";
+import { FIRM_SHORT, SUPPORT_EMAIL } from "@/lib/constants";
 
 interface Invite {
   id: string;
@@ -43,6 +42,12 @@ export default function ReferralLinksPage() {
   const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
 
+  // Which section is visible. Tabs are the consolidated layout for
+  // recruiters; L3 (and any partner without downline rates) bypasses
+  // them entirely and falls through to the "no recruitment" message.
+  type ReferralTab = "send" | "links" | "tracking";
+  const [activeTab, setActiveTab] = useState<ReferralTab>("send");
+
   // Check agreement status — gate requires BOTH a signed agreement AND an
   // active Partner row. Post-#76 the SignWell webhook keeps these in sync
   // automatically; checking both here is defense-in-depth.
@@ -60,7 +65,6 @@ export default function ReferralLinksPage() {
   }, []);
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://fintella.partners";
-  const clientRefUrl = `https://referral.frostlawaz.com/l/ANNEXATIONPR/?utm_content=${partnerCode}`;
 
   const loadInvites = useCallback(async () => {
     try {
@@ -189,25 +193,44 @@ export default function ReferralLinksPage() {
       <h2 className="font-display text-xl sm:text-2xl font-bold mb-2">Referral Links</h2>
       <p className="font-body text-sm text-[var(--app-text-muted)] mb-6">Share client links and recruit partners to your downline.</p>
 
-      {/* ═══ CLIENT SUBMISSION LINK ═══ */}
-      <div className={`card ${device.cardPadding} border border-[#c4a050]/30 mb-6`}>
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-2xl">📩</span>
-          <div className="font-body font-semibold text-[15px]">Client Submission Link</div>
+      {/* ═══ TAB BAR ═══
+          Consolidates the three recruitment surfaces (Send invite /
+          Copy link / Track) behind a single navigation row so the page
+          doesn't read as an endless scroll. Only shown to partners who
+          can recruit — L3 falls through to the informational card. */}
+      {canRecruit && (
+        <div className="mb-6 border-b border-[var(--app-border)] flex flex-wrap gap-1">
+          {([
+            { id: "send", label: "Send Partner Invite" },
+            { id: "links", label: `Recruit ${targetTierLabel} Partner Links` },
+            { id: "tracking", label: "Invite Tracking" },
+          ] as const).map((t) => {
+            const active = activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setActiveTab(t.id)}
+                className={`font-body text-[13px] px-4 py-2.5 rounded-t-lg border border-b-0 transition-colors min-h-[40px] ${
+                  active
+                    ? "text-brand-gold border-[var(--app-border)] bg-[var(--app-card-bg)] -mb-px"
+                    : "text-[var(--app-text-muted)] border-transparent hover:text-[var(--app-text-secondary)] hover:bg-brand-gold/5"
+                }`}
+              >
+                {t.label}
+                {t.id === "tracking" && allInvites.length > 0 && (
+                  <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${active ? "bg-brand-gold/15 text-brand-gold" : "bg-[var(--app-input-bg)] text-[var(--app-text-muted)]"}`}>
+                    {allInvites.length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-        <div className="font-body text-[12px] text-[var(--app-text-muted)] leading-relaxed mb-4">
-          Send this link to importers who may qualify for a tariff refund. Deals are tracked to your account.
-        </div>
-        <div className={`flex ${device.isMobile ? "flex-col" : "flex-row items-center"} gap-3`}>
-          <div className="flex-1 bg-[#c4a050]/5 border border-[#c4a050]/30 rounded-lg px-4 py-3 font-mono text-[13px] text-[var(--app-text-secondary)] truncate select-all min-w-0">
-            {clientRefUrl}
-          </div>
-          <CopyButton text={clientRefUrl} color="#c4a050" />
-        </div>
-      </div>
+      )}
 
       {/* ═══ PARTNER RECRUITMENT — PRE-LOADED RATE LINKS ═══ */}
-      {canRecruit && (
+      {canRecruit && activeTab === "links" && (
         <div className="card mb-6">
           <div className={`${device.cardPadding} border-b`} style={{ borderColor: "var(--app-border)" }}>
             <div className="flex items-center gap-3 mb-1">
@@ -264,7 +287,7 @@ export default function ReferralLinksPage() {
       )}
 
       {/* ═══ SEND PARTNER INVITE ═══ */}
-      {canRecruit && (
+      {canRecruit && activeTab === "send" && (
         <div className="card mb-6">
           <div className={`${device.cardPadding} border-b`} style={{ borderColor: "var(--app-border)" }}>
             <div className="flex items-center gap-3 mb-1">
@@ -330,7 +353,7 @@ export default function ReferralLinksPage() {
       )}
 
       {/* ═══ INVITE TRACKING TABLE ═══ */}
-      {canRecruit && allInvites.length > 0 && (
+      {canRecruit && activeTab === "tracking" && allInvites.length > 0 && (
         <div className="card mb-6">
           <div className={`${device.cardPadding} border-b`} style={{ borderColor: "var(--app-border)" }}>
             <div className="font-body font-semibold text-[15px]">Invite Tracking ({allInvites.length})</div>
@@ -437,6 +460,15 @@ export default function ReferralLinksPage() {
         </div>
       )}
 
+      {/* Empty state for tracking tab when the partner has not generated any invites yet */}
+      {canRecruit && activeTab === "tracking" && allInvites.length === 0 && (
+        <div className="card p-6 text-center">
+          <div className="font-body text-[13px] text-[var(--app-text-muted)]">
+            No invites yet. Use <button onClick={() => setActiveTab("send")} className="text-brand-gold hover:underline">Send Partner Invite</button> or <button onClick={() => setActiveTab("links")} className="text-brand-gold hover:underline">Recruit {targetTierLabel} Partner Links</button> to get started.
+          </div>
+        </div>
+      )}
+
       {/* L3 partners can't recruit */}
       {partnerTier === "l3" && (
         <div className="card p-5 mb-6 text-center">
@@ -451,7 +483,7 @@ export default function ReferralLinksPage() {
           <span className="ml-2 text-[var(--app-text-faint)]">&middot; {partnerTier.toUpperCase()} at {Math.round(partnerRate * 100)}%</span>
         </div>
         <div className="font-body text-[12px] text-[var(--app-text-muted)]">
-          {FIRM_SHORT} Support: <span className="text-[var(--app-text-secondary)]">{FIRM_PHONE}</span>
+          {FIRM_SHORT} Support: <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[var(--app-text-secondary)] hover:text-brand-gold">{SUPPORT_EMAIL}</a>
         </div>
       </div>
     </div>

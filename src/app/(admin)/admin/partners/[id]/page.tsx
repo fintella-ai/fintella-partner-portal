@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { fmtDate, fmtDateTime } from "@/lib/format";
@@ -170,7 +170,12 @@ export default function PartnerDetailPage() {
   const [bankState, setBankState] = useState("");
   const [bankZip, setBankZip] = useState("");
 
-  const [l3Enabled, setL3Enabled] = useState(false);
+  // Note: Partner.l3Enabled is inert post-Option B Phase 6. No client
+  // state needed — the column is no longer read or written by this page.
+  // Editable tier + commission rate, super-admin only. Seeded from the
+  // fetched partner row; sent in the PUT payload when they change.
+  const [tier, setTier] = useState<"l1" | "l2" | "l3">("l1");
+  const [commissionRate, setCommissionRate] = useState<number>(0.25);
 
   const fetchPartner = useCallback(async () => {
     try {
@@ -228,7 +233,9 @@ export default function PartnerDetailPage() {
       setBankCity(prof?.bankCity || "");
       setBankState(prof?.bankState || "");
       setBankZip(prof?.bankZip || "");
-      setL3Enabled(p.l3Enabled);
+      // p.l3Enabled no longer hydrated — Phase 6 inert field
+      setTier(((p.tier || "l1").toLowerCase() as "l1" | "l2" | "l3"));
+      setCommissionRate(typeof p.commissionRate === "number" ? p.commissionRate : 0.25);
     } catch {} finally {
       setLoading(false);
     }
@@ -304,7 +311,13 @@ export default function PartnerDetailPage() {
         payoutMethod, bankName, accountType, routingNumber,
         accountNumber, beneficiaryName,
         bankStreet, bankStreet2, bankCity, bankState, bankZip,
-        l3Enabled,
+        // Option B Phase 6: l3Enabled is inert — deliberately NOT sent in
+        // the save body so existing column values aren't overwritten
+        // on every save. Column stays in the DB for rollback safety.
+        // Super-admin-only fields — the API rejects these for other
+        // roles, but sending them unconditionally keeps the client
+        // logic simple. The server is the source of truth.
+        ...(isSuperAdmin ? { tier, commissionRate } : {}),
       };
       const res = await fetch(`/api/admin/partners/${id}`, {
         method: "PUT",
@@ -954,7 +967,7 @@ export default function PartnerDetailPage() {
       {/* ─── DOWNLINE ─────────────────────────────────────────────── */}
       <div className="card mb-6">
         <div className="px-5 py-4 border-b border-[var(--app-border)] flex items-center justify-between flex-wrap gap-2">
-          <div className="font-body font-semibold text-sm">Downline Partners ({downline.length})</div>
+          <div className="font-body font-semibold text-sm">Downline Partners ({downline.length + l3Partners.length})</div>
           {downline.length > 0 && (
             <div className="flex bg-[var(--app-input-bg)] rounded-lg p-0.5">
               <button
@@ -1017,24 +1030,54 @@ export default function PartnerDetailPage() {
           })()
         ) : (
           <div>
-            {downline.map((d) => (
-              <div
-                key={d.id}
-                className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer flex items-center justify-between gap-3"
-                onClick={() => router.push(`/admin/partners/${d.id}`)}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <LevelTag tier={d.tier} />
-                  <div className="min-w-0">
-                    <div className="font-body text-[13px] text-[var(--app-text)] truncate">{d.firstName} {d.lastName}</div>
-                    <div className="font-mono text-[11px] text-[var(--app-text-muted)] truncate">{d.partnerCode}</div>
+            {downline.map((d) => {
+              // Render each L2 followed by any L3s recruited under that L2.
+              // Previously the list view only showed `downline` (L2s) and
+              // silently dropped `l3Partners`, even though the tree view on
+              // the same page rendered them correctly. L3 rows are indented
+              // so the parent→child relationship still reads.
+              const nested = l3Partners.filter((l3) => l3.referredByPartnerCode === d.partnerCode);
+              return (
+                <React.Fragment key={d.id}>
+                  <div
+                    className="px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer flex items-center justify-between gap-3"
+                    onClick={() => router.push(`/admin/partners/${d.id}`)}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <LevelTag tier={d.tier} />
+                      <div className="min-w-0">
+                        <div className="font-body text-[13px] text-[var(--app-text)] truncate">{d.firstName} {d.lastName}</div>
+                        <div className="font-mono text-[11px] text-[var(--app-text-muted)] truncate">{d.partnerCode}</div>
+                      </div>
+                    </div>
+                    <span className={`shrink-0 inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[d.status] || statusBadge.active}`}>
+                      {d.status}
+                    </span>
                   </div>
-                </div>
-                <span className={`shrink-0 inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[d.status] || statusBadge.active}`}>
-                  {d.status}
-                </span>
-              </div>
-            ))}
+                  {nested.map((l3) => (
+                    <div
+                      key={l3.id}
+                      className="pl-12 pr-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer flex items-center justify-between gap-3"
+                      onClick={(e) => { e.stopPropagation(); router.push(`/admin/partners/${l3.id}`); }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <LevelTag tier={l3.tier} />
+                        <div className="min-w-0">
+                          <div className="font-body text-[13px] text-[var(--app-text)] truncate">
+                            {l3.firstName} {l3.lastName}
+                            <span className="font-body text-[11px] text-[var(--app-text-muted)] ml-2">via {d.firstName} {d.lastName}</span>
+                          </div>
+                          <div className="font-mono text-[11px] text-[var(--app-text-muted)] truncate">{l3.partnerCode}</div>
+                        </div>
+                      </div>
+                      <span className={`shrink-0 inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${statusBadge[l3.status] || statusBadge.active}`}>
+                        {l3.status}
+                      </span>
+                    </div>
+                  ))}
+                </React.Fragment>
+              );
+            })}
           </div>
         )}
       </div>
@@ -1072,40 +1115,58 @@ export default function PartnerDetailPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-          {/* Tier */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          {/* Tier — editable for super admins (Save commits) */}
           <div className="p-4 rounded-lg bg-brand-gold/[0.06] border border-brand-gold/20">
             <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-1">Partner Tier</div>
-            <div className="font-display text-xl font-bold text-brand-gold">{(partner.tier || "l1").toUpperCase()}</div>
+            {isSuperAdmin ? (
+              <select
+                value={tier}
+                onChange={(e) => setTier(e.target.value as "l1" | "l2" | "l3")}
+                className="font-display text-xl font-bold text-brand-gold bg-transparent border border-brand-gold/30 rounded px-2 py-0.5 outline-none focus:border-brand-gold/60"
+              >
+                <option value="l1">L1</option>
+                <option value="l2">L2</option>
+                <option value="l3">L3</option>
+              </select>
+            ) : (
+              <div className="font-display text-xl font-bold text-brand-gold">{(partner.tier || "l1").toUpperCase()}</div>
+            )}
           </div>
 
-          {/* Commission rate */}
+          {/* Commission rate — editable for super admins */}
           <div className="p-4 rounded-lg" style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-border)" }}>
             <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-1">Commission Rate</div>
-            <div className="font-display text-xl font-bold text-brand-gold">
-              {partner.commissionRate ? `${Math.round(partner.commissionRate * 100)}%` : "25%"}
-            </div>
+            {isSuperAdmin ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  step={1}
+                  value={Math.round(commissionRate * 100)}
+                  onChange={(e) => {
+                    const pct = parseInt(e.target.value || "0", 10);
+                    if (isFinite(pct)) setCommissionRate(Math.max(0.01, Math.min(0.5, pct / 100)));
+                  }}
+                  className="font-display text-xl font-bold text-brand-gold bg-transparent border border-brand-gold/30 rounded px-2 py-0.5 outline-none focus:border-brand-gold/60 w-20"
+                />
+                <span className="font-display text-xl font-bold text-brand-gold">%</span>
+              </div>
+            ) : (
+              <div className="font-display text-xl font-bold text-brand-gold">
+                {partner.commissionRate ? `${Math.round(partner.commissionRate * 100)}%` : "25%"}
+              </div>
+            )}
             <div className="font-body text-[10px] text-[var(--app-text-muted)] mt-0.5">of firm fee on direct deals</div>
           </div>
 
-          {/* L3 toggle */}
-          <div className="p-4 rounded-lg" style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-border)" }}>
-            <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-1">L3 Recruitment</div>
-            <div className="flex items-center gap-3 mt-1">
-              <button
-                onClick={() => setL3Enabled(!l3Enabled)}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full shrink-0 transition-colors ${l3Enabled ? "bg-green-500" : "bg-[var(--app-input-bg)]"}`}
-              >
-                <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${l3Enabled ? "translate-x-7" : "translate-x-1.5"}`} />
-              </button>
-              <span className={`font-body text-[13px] font-medium ${l3Enabled ? "text-green-400" : "text-[var(--app-text-muted)]"}`}>
-                {l3Enabled ? "Enabled" : "Disabled"}
-              </span>
-            </div>
-            <div className="font-body text-[10px] text-[var(--app-text-muted)] mt-2">
-              {l3Enabled ? "This partner can recruit L3 sub-partners" : "Enable to allow this partner to recruit L3 sub-partners"}
-            </div>
-          </div>
+          {/* L3 toggle removed in Option B Phase 6 — the per-partner flag
+              is no longer consulted anywhere. Every partner whose rate
+              leaves room below them can recruit to depth 1 and their
+              downline can keep recruiting as the chain grows. The
+              Partner.l3Enabled column stays in the DB for rollback
+              safety but is inert. */}
         </div>
 
         <div className="p-3 rounded-lg bg-brand-gold/[0.04] border border-brand-gold/10">
@@ -1245,7 +1306,7 @@ export default function PartnerDetailPage() {
                   <input
                     type="number"
                     min={1}
-                    max={50}
+                    max={30}
                     step={0.5}
                     value={sendAgreementCustomPct}
                     onChange={(e) => setSendAgreementCustomPct(e.target.value)}

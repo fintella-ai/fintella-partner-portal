@@ -4,6 +4,45 @@ export function calcFirmFee(refund: number, rate = DEFAULT_FIRM_FEE_RATE): numbe
   return refund * rate;
 }
 
+/**
+ * Map a deal's stage + payment state to the canonical commission status.
+ *
+ *   Pre-client-engaged stages    → null   (no ledger row yet)
+ *   client_engaged / in_process  → "projected"
+ *   closed_won + no payment      → "pending_payment"
+ *   closed_won + paymentReceived → "due"
+ *   closed_lost                  → "lost"
+ *
+ * Callers use `null` to mean "don't create / delete any row for this deal
+ * in this lifecycle phase". Callers writing a row should upsert with the
+ * returned value; callers updating an existing row should flip to it.
+ *
+ * Status names align with COMMISSION_STATUSES in src/lib/constants.ts.
+ * The legacy "pending" value is never returned by this function — new
+ * writes use "pending_payment" — but the payouts + UI layers still
+ * display "pending" rows correctly as a transitional back-compat until
+ * a data backfill renames them in the DB.
+ */
+export function resolveCommissionStatus(
+  stage: string | null | undefined,
+  paymentReceivedAt: Date | null | undefined,
+): "projected" | "pending_payment" | "due" | "lost" | null {
+  if (!stage) return null;
+  if (stage === "closedlost") return "lost";
+  if (stage === "closedwon") return paymentReceivedAt ? "due" : "pending_payment";
+  if (stage === "client_engaged" || stage === "in_process") return "projected";
+  return null; // pre-engagement stages — no commission row
+}
+
+// ─── Feature flag: sliding-window vs legacy waterfall ─────────────────────
+// Flip via env var WATERFALL_SLIDING_WINDOW=true to switch every
+// commission-computation call site to the Option B sliding-window model.
+// Flag default off keeps live traffic on the legacy 3-tier waterfall
+// until John flips it after parallel-run confirms equivalence.
+function useSlidingWindow(): boolean {
+  return process.env.WATERFALL_SLIDING_WINDOW === "true";
+}
+
 // ─── Waterfall Commission System ─────────────────────────────────────────────
 // Total payout always equals the L1's assigned commissionRate (not a fixed 25%).
 //
@@ -97,6 +136,110 @@ export function calcWaterfallCommissions(
  */
 export function calcL1Override(l2Rate: number, l1Rate = MAX_COMMISSION_RATE): number {
   return l1Rate - l2Rate;
+}
+
+// ─── Sliding-window waterfall (Option B, Phase 0) ─────────────────────────
+// New commission model: every closed deal pays the submitter + up to 2
+// ancestors in the chain. Anyone farther upline earns $0 on that deal.
+//
+// Design notes:
+// - This function replaces the tier-label-aware waterfall with a
+//   depth-indexed one. It walks exactly `min(3, chain.length)` rows.
+// - The chain is expected to be ordered [submitter, parent, grandparent, …].
+// - On the current 3-tier data this produces amounts identical to
+//   calcWaterfallCommissions — the unit tests prove the equivalence.
+// - Only wired into live code paths once WATERFALL_SLIDING_WINDOW is
+//   flipped (Phase 1). For Phase 0 it's dead code that's unit-tested
+//   for correctness.
+
+export interface SlidingWaterfallInputNode {
+  partnerCode: string;
+  commissionRate: number; // the absolute rate this partner earns on their own deals (0 < r <= 0.30)
+}
+
+export interface SlidingWaterfallEntry {
+  partnerCode: string;
+  depthFromSubmitter: number; // 0 = submitter, 1 = parent, 2 = grandparent
+  rate: number;               // the rate THIS entity actually earns on this deal (own rate for submitter; override for uplines)
+  amount: number;             // firmFeeAmount * rate
+}
+
+export interface SlidingWaterfallResult {
+  entries: SlidingWaterfallEntry[]; // 1–3 rows (submitter + 0-2 ancestors)
+  totalRate: number;                // sum of all rates paid
+  totalAmount: number;              // sum of all amounts paid
+}
+
+/**
+ * Calculate commissions under the sliding-window model.
+ *
+ * @param firmFeeAmount  firm fee for the deal (NOT the refund amount)
+ * @param chain          ordered [submitter, parent, grandparent, …] — any
+ *                       length; entries beyond index 2 are ignored
+ *
+ * Math:
+ *   entries[0] (submitter)    → earns submitter.rate
+ *   entries[1] (parent)       → earns max(0, parent.rate - submitter.rate)
+ *   entries[2] (grandparent)  → earns max(0, grandparent.rate - parent.rate)
+ *   entries[3+]               → not emitted
+ *
+ * Negative overrides (parent rate < submitter rate) clamp to 0 as a
+ * defensive guard against data corruption or validation bugs elsewhere —
+ * they should never happen once the invite-time rate check lands.
+ */
+export function calcSlidingWindowWaterfall(
+  firmFeeAmount: number,
+  chain: SlidingWaterfallInputNode[]
+): SlidingWaterfallResult {
+  const result: SlidingWaterfallResult = { entries: [], totalRate: 0, totalAmount: 0 };
+  if (chain.length === 0 || !firmFeeAmount || firmFeeAmount <= 0) return result;
+
+  const submitter = chain[0];
+  const parent = chain[1]; // may be undefined
+  const grandparent = chain[2]; // may be undefined
+
+  // Submitter always earns their own rate.
+  const submitterRate = Math.max(0, submitter.commissionRate);
+  if (submitterRate > 0) {
+    result.entries.push({
+      partnerCode: submitter.partnerCode,
+      depthFromSubmitter: 0,
+      rate: submitterRate,
+      amount: firmFeeAmount * submitterRate,
+    });
+  }
+
+  // Parent earns the differential to the submitter.
+  if (parent) {
+    const parentOverride = Math.max(0, parent.commissionRate - submitterRate);
+    if (parentOverride > 0) {
+      result.entries.push({
+        partnerCode: parent.partnerCode,
+        depthFromSubmitter: 1,
+        rate: parentOverride,
+        amount: firmFeeAmount * parentOverride,
+      });
+    }
+  }
+
+  // Grandparent earns the differential to the parent (NOT the submitter).
+  if (grandparent && parent) {
+    const gpOverride = Math.max(0, grandparent.commissionRate - parent.commissionRate);
+    if (gpOverride > 0) {
+      result.entries.push({
+        partnerCode: grandparent.partnerCode,
+        depthFromSubmitter: 2,
+        rate: gpOverride,
+        amount: firmFeeAmount * gpOverride,
+      });
+    }
+  }
+
+  for (const e of result.entries) {
+    result.totalRate += e.rate;
+    result.totalAmount += e.amount;
+  }
+  return result;
 }
 
 /**
@@ -263,10 +406,79 @@ export async function computeDealCommissions(
 
   const waterfall = calcWaterfallCommissions(deal.firmFeeAmount, chain);
 
+  // Phase 1 flag gate: when the sliding-window model is enabled, rebuild
+  // the ledger entries from calcSlidingWindowWaterfall instead of the
+  // legacy tier-labeled buildLedgerEntries. The WaterfallResult we compute
+  // above is still returned in the response for telemetry / logging, but
+  // the on-disk ledger rows come from the new math when the flag is on.
+  //
+  // Equivalence: for existing 3-tier chains (l1/l2/l3), the two functions
+  // produce identical amounts (proven in commission-sliding-window.test.ts).
+  // The flag lets us parallel-run + diff-check for a week before flipping
+  // portal-wide.
+  if (useSlidingWindow()) {
+    const slide = calcSlidingWindowWaterfall(
+      deal.firmFeeAmount,
+      chain.map((n) => ({ partnerCode: n.partnerCode, commissionRate: n.commissionRate })),
+    );
+    const slidingEntries = buildLedgerEntriesFromSliding(slide, chain, { payoutDownlineEnabled });
+    const totalAmount = slidingEntries.reduce((s, e) => s + e.amount, 0);
+    return { entries: slidingEntries, chain, totalAmount, waterfall };
+  }
+
   const entries = buildLedgerEntries(waterfall, chain, { payoutDownlineEnabled });
 
   const totalAmount = entries.reduce((s, e) => s + e.amount, 0);
   return { entries, chain, totalAmount, waterfall };
+}
+
+/**
+ * Build ledger entries from a SlidingWaterfallResult. Preserves the legacy
+ * `payoutDownlineEnabled` collapse behavior (when false + the deal isn't
+ * a self-deal, sum all payouts into a single row on the top ancestor)
+ * so report shapes don't change when the flag flips.
+ *
+ * `tier` field on each entry carries the partner's absolute tier from the
+ * original chain (l1/l2/l3/…), not the relative depth-from-submitter —
+ * admin-side reports want the absolute label. Phase 4 partner UI derives
+ * "My L2 / My L3" from depth-from-viewer at render time, not from this field.
+ */
+function buildLedgerEntriesFromSliding(
+  slide: SlidingWaterfallResult,
+  chain: PartnerChainNode[],
+  options: BuildLedgerOptions,
+): ComputedLedgerEntry[] {
+  if (slide.entries.length === 0) return [];
+
+  // Map each sliding-window entry back to its PartnerChainNode to get the
+  // absolute tier for the ledger row.
+  const byCode: Record<string, PartnerChainNode> = {};
+  for (const n of chain) byCode[n.partnerCode] = n;
+
+  const submitter = chain[0];
+  const isDownlineDeal = submitter && submitter.tier !== "l1";
+
+  // Disabled-payout collapse: same semantics as legacy — funnel the whole
+  // deal's payouts onto the top-of-chain L1 as one row. "Top of chain" here
+  // means the highest paid entity in the sliding window, which is the last
+  // entry by depthFromSubmitter. For a 3-tier chain that's always the L1.
+  if (!options.payoutDownlineEnabled && isDownlineDeal) {
+    const l1Node = chain.find((n) => n.tier === "l1");
+    const target = l1Node || slide.entries[slide.entries.length - 1];
+    const sum = roundCents(slide.totalAmount);
+    const targetCode = "partnerCode" in target ? target.partnerCode : (target as any).partnerCode;
+    const targetTier = "tier" in target ? target.tier : (byCode[targetCode]?.tier ?? "l1");
+    return [{ partnerCode: targetCode, tier: targetTier, amount: sum }];
+  }
+
+  return slide.entries.map((e) => {
+    const node = byCode[e.partnerCode];
+    return {
+      partnerCode: e.partnerCode,
+      tier: node?.tier ?? "l1",
+      amount: roundCents(e.amount),
+    };
+  });
 }
 
 // ─── Ledger Entry Builder ────────────────────────────────────────────────

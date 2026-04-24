@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { getPermissions } from "@/lib/permissions";
 import { reconcileNavOrder } from "@/lib/reconcileNavOrder";
+import GoogleCalendarCard from "@/components/admin/GoogleCalendarCard";
+import PortalThemePicker from "@/components/admin/PortalThemePicker";
+import type { ThemeCustomizations } from "@/lib/portalThemes";
 
 /**
  * Compress an image file to a smaller base64 data URL.
@@ -75,7 +78,10 @@ const ALL_NAV_ITEMS = [
 // Admin Navigation editor in the settings page.
 // Default order mirrors ADMIN_NAV_IDS_DEFAULT in admin/layout.tsx
 const ALL_ADMIN_NAV_ITEMS = [
+  { id: "home", label: "Home", icon: "🏠" },
   { id: "partners", label: "Partners", icon: "👥" },
+  { id: "applications", label: "Applications", icon: "📝" },
+  { id: "landingEditor", label: "Landing Editor", icon: "🪄" },
   { id: "deals", label: "Deals", icon: "📋" },
   { id: "communications", label: "Communications", icon: "💬" },
   { id: "internalChats", label: "Internal Chats", icon: "💬" },
@@ -107,6 +113,7 @@ interface UpcomingEvent {
   body: string;
   date: string;
   cta: string;
+  ctaUrl?: string;          // target of the cta button on the partner home; empty = button hidden
   highlighted?: boolean;
 }
 
@@ -114,17 +121,20 @@ interface ReferralOpp {
   title: string;
   description: string;
   cta: string;
+  ctaUrl?: string;          // target of the cta button on the partner home; empty = button hidden
   highlighted: boolean;
 }
 
-type TabId = "branding" | "navigation" | "homepage" | "commissions" | "agreements";
+type TabId = "branding" | "themes" | "navigation" | "homepage" | "commissions" | "agreements" | "integrations";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "branding", label: "Branding" },
+  { id: "themes", label: "Themes" },
   { id: "navigation", label: "Navigation" },
   { id: "homepage", label: "Home Page" },
   { id: "commissions", label: "Commissions" },
   { id: "agreements", label: "Agreements" },
+  { id: "integrations", label: "Integrations" },
 ];
 
 // ─── DEFAULT HOME CONTENT ───────────────────────────────────────────────────
@@ -169,6 +179,11 @@ export default function SettingsPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
 
+  // Active portal theme — "default" preserves current portal appearance
+  // exactly. Any other value applies a preset from src/lib/portalThemes.ts.
+  const [activeThemeId, setActiveThemeId] = useState("default");
+  const [themeCustomizations, setThemeCustomizationsDraft] = useState<ThemeCustomizations>({});
+
   // Commissions
   const [l1Rate, setL1Rate] = useState("25");
   const [l2Rate, setL2Rate] = useState("5");
@@ -176,6 +191,7 @@ export default function SettingsPage() {
   const [l3Enabled, setL3Enabled] = useState(false);
 
   // Agreement templates (SignWell template IDs)
+  const [agreementTemplateMaster, setAgreementTemplateMaster] = useState("");
   const [agreementTemplate25, setAgreementTemplate25] = useState("");
   const [agreementTemplate20, setAgreementTemplate20] = useState("");
   const [agreementTemplate15, setAgreementTemplate15] = useState("");
@@ -233,7 +249,7 @@ export default function SettingsPage() {
   // Module order + per-module layout (columns, alignment).
   // Order matches the sequence sections render in on partner home page.
   // Layout is a per-id map — missing keys fall through to render-layer defaults.
-  const DEFAULT_MODULE_ORDER = ["getting_started", "video", "events", "announcements", "leaderboard", "opportunities"];
+  const DEFAULT_MODULE_ORDER = ["getting_started", "video", "liveWeekly", "events", "announcements", "leaderboard", "opportunities"];
   const [moduleOrder, setModuleOrder] = useState<string[]>(DEFAULT_MODULE_ORDER);
   type ModuleLayout = { columns?: 1 | 2 | 3; alignment?: "left" | "center" };
   const [moduleLayout, setModuleLayout] = useState<Record<string, ModuleLayout>>({});
@@ -281,11 +297,19 @@ export default function SettingsPage() {
       setSupportEmail(settings.supportEmail || "");
       setLogoUrl(settings.logoUrl || "");
       setFaviconUrl(settings.faviconUrl || "");
+      setActiveThemeId(settings.activeThemeId || "default");
+      try {
+        const parsed = JSON.parse(settings.themeCustomizations || "{}") as ThemeCustomizations;
+        setThemeCustomizationsDraft(parsed);
+      } catch {
+        setThemeCustomizationsDraft({});
+      }
 
       setL1Rate(String(Math.round(settings.l1Rate * 100)));
       setL2Rate(String(Math.round(settings.l2Rate * 100)));
       setL3Rate(String(Math.round(settings.l3Rate * 100)));
       setL3Enabled(settings.l3Enabled);
+      setAgreementTemplateMaster(settings.agreementTemplateMaster || "");
       setAgreementTemplate25(settings.agreementTemplate25 || "");
       setFintellaSignerName(settings.fintellaSignerName || "");
       setFintellaSignerEmail(settings.fintellaSignerEmail || "");
@@ -432,7 +456,7 @@ export default function SettingsPage() {
     try {
       const body = {
         firmName, firmShort, firmSlogan, firmPhone, supportEmail, logoUrl, faviconUrl,
-        agreementTemplate25, agreementTemplate20, agreementTemplate15, agreementTemplate10, agreementTemplateEnterprise,
+        agreementTemplateMaster, agreementTemplate25, agreementTemplate20, agreementTemplate15, agreementTemplate10, agreementTemplateEnterprise,
         fintellaSignerName, fintellaSignerEmail, fintellaSignerPlaceholder,
         l1Rate: parseFloat(l1Rate) / 100,
         l2Rate: parseFloat(l2Rate) / 100,
@@ -453,6 +477,8 @@ export default function SettingsPage() {
         homeHiddenModules: JSON.stringify(Array.from(hiddenModules)),
         homeModuleOrder: JSON.stringify(moduleOrder),
         homeModuleLayout: JSON.stringify(moduleLayout),
+        activeThemeId,
+        themeCustomizations: JSON.stringify(themeCustomizations),
       };
 
       console.log("[settings] Saving — liveChatEnabled:", body.liveChatEnabled, "callRecordingEnabled:", body.callRecordingEnabled);
@@ -569,7 +595,7 @@ export default function SettingsPage() {
   };
 
   const addEvent = () => {
-    setUpcomingEvents((prev) => [...prev, { icon: "📅", title: "", body: "", date: "", cta: "Join", highlighted: false }]);
+    setUpcomingEvents((prev) => [...prev, { icon: "📅", title: "", body: "", date: "", cta: "Join", ctaUrl: "", highlighted: false }]);
   };
 
   const removeEvent = (idx: number) => {
@@ -583,7 +609,7 @@ export default function SettingsPage() {
   };
 
   const addReferralOpp = () => {
-    setReferralOpps((prev) => [...prev, { title: "", description: "", cta: "Learn More", highlighted: false }]);
+    setReferralOpps((prev) => [...prev, { title: "", description: "", cta: "Learn More", ctaUrl: "", highlighted: false }]);
   };
 
   const removeReferralOpp = (idx: number) => {
@@ -779,6 +805,16 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ═══ THEMES TAB ═══ */}
+      {tab === "themes" && (
+        <PortalThemePicker
+          selectedThemeId={activeThemeId}
+          onSelect={setActiveThemeId}
+          customizations={themeCustomizations}
+          onCustomizationsChange={setThemeCustomizationsDraft}
+        />
       )}
 
       {/* ═══ NAVIGATION TAB ═══ */}
@@ -1028,6 +1064,7 @@ export default function SettingsPage() {
               {moduleOrder.map((id) => {
                 const META: Record<string, { label: string; hint: string; supportsColumns: boolean }> = {
                   video:         { label: "Welcome Video", hint: "Embedded video under the welcome header", supportsColumns: false },
+                  liveWeekly:    { label: "Live Weekly Call", hint: "Admin banner image + next-call card → /dashboard/conference", supportsColumns: false },
                   events:        { label: "Upcoming Events", hint: "Event cards grid", supportsColumns: true },
                   announcements: { label: "Announcements", hint: "Admin announcements card grid", supportsColumns: true },
                   leaderboard:   { label: "Leaderboard", hint: "Top-performing partners table", supportsColumns: false },
@@ -1208,6 +1245,14 @@ export default function SettingsPage() {
                   <textarea className={`${inputClass} resize-none`} rows={2} value={ev.body} onChange={(e) => updateEvent(idx, "body", e.target.value)} placeholder="Event description" />
                   <input className={inputClass} value={ev.cta} onChange={(e) => updateEvent(idx, "cta", e.target.value)} placeholder="Button text" />
                 </div>
+                <div className="mt-3">
+                  <input
+                    className={inputClass}
+                    value={ev.ctaUrl || ""}
+                    onChange={(e) => updateEvent(idx, "ctaUrl", e.target.value)}
+                    placeholder="Button URL — e.g. https://meet.jit.si/fintella-live-weekly-w14-xyz12  (leave blank to hide the button)"
+                  />
+                </div>
                 <label className="flex items-center gap-2 mt-3 cursor-pointer">
                   <input type="checkbox" checked={!!ev.highlighted} onChange={(e) => updateEvent(idx, "highlighted", e.target.checked)} className="accent-brand-gold" />
                   <span className="font-body text-[12px] text-[var(--app-text-secondary)]">Highlighted (featured card)</span>
@@ -1234,6 +1279,14 @@ export default function SettingsPage() {
                   <button onClick={() => removeReferralOpp(idx)} className="text-red-400/60 hover:text-red-400 text-[18px] shrink-0 mt-1">×</button>
                 </div>
                 <textarea className={`${inputClass} resize-none`} rows={2} value={opp.description} onChange={(e) => updateReferralOpp(idx, "description", e.target.value)} placeholder="Description" />
+                <div className="mt-3">
+                  <input
+                    className={inputClass}
+                    value={opp.ctaUrl || ""}
+                    onChange={(e) => updateReferralOpp(idx, "ctaUrl", e.target.value)}
+                    placeholder="Button URL — where the partner lands when they click (leave blank to hide the button)"
+                  />
+                </div>
                 <label className="flex items-center gap-2 mt-3 cursor-pointer">
                   <input type="checkbox" checked={opp.highlighted} onChange={(e) => updateReferralOpp(idx, "highlighted", e.target.checked)} className="accent-brand-gold" />
                   <span className="font-body text-[12px] text-[var(--app-text-secondary)]">Highlighted (featured card)</span>
@@ -1341,29 +1394,36 @@ export default function SettingsPage() {
         <div className="card p-5 sm:p-6">
           <div className="font-body font-semibold text-sm mb-1">Partnership Agreement Templates</div>
           <p className="font-body text-[12px] text-[var(--app-text-muted)] mb-5">
-            Enter the SignWell template ID for each commission tier. When a new partner signs up at a specific rate,
-            the corresponding template will be used to generate their partnership agreement.
+            One master template covers every standard partner agreement — the recruit&apos;s actual commission rate is interpolated into the template body at send time via the <code>partner_commission_rate</code> / <code>partner_commission_text</code> placeholders. The legacy per-rate templates below are read only as a fallback when Master is empty, and will be removed in a future release.
           </p>
+          <div className="grid grid-cols-1 gap-4 mb-6">
+            <div>
+              <label className={labelClass}>Master Agreement Template (all standard partners)</label>
+              <input className={inputClass} value={agreementTemplateMaster} onChange={(e) => setAgreementTemplateMaster(e.target.value)} placeholder="SignWell template ID — e.g. document_template_xxxxx" />
+              <p className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">Active template for every L1/L2/L3 partner agreement. Commission rate fills into the template body at send time.</p>
+            </div>
+          </div>
+          <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3 mt-1">Legacy per-rate templates (deprecated — fallback only)</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>25% Template (L1 Partners)</label>
               <input className={inputClass} value={agreementTemplate25} onChange={(e) => setAgreementTemplate25(e.target.value)} placeholder="SignWell template ID" />
-              <p className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">Direct L1 partners — 25% of firm fee</p>
+              <p className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">Used only if Master is empty</p>
             </div>
             <div>
               <label className={labelClass}>20% Template (L2 Partners)</label>
               <input className={inputClass} value={agreementTemplate20} onChange={(e) => setAgreementTemplate20(e.target.value)} placeholder="SignWell template ID" />
-              <p className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">L2 partners at 20% — L1 earns 5% override</p>
+              <p className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">Used only if Master is empty</p>
             </div>
             <div>
               <label className={labelClass}>15% Template (L2/L3 Partners)</label>
               <input className={inputClass} value={agreementTemplate15} onChange={(e) => setAgreementTemplate15(e.target.value)} placeholder="SignWell template ID" />
-              <p className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">Partners at 15% — upline earns 10% override</p>
+              <p className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">Used only if Master is empty</p>
             </div>
             <div>
               <label className={labelClass}>10% Template (L2/L3 Partners)</label>
               <input className={inputClass} value={agreementTemplate10} onChange={(e) => setAgreementTemplate10(e.target.value)} placeholder="SignWell template ID" />
-              <p className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">Partners at 10% — upline earns 15% override</p>
+              <p className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">Used only if Master is empty</p>
             </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>Enterprise Partner Agreement Template</label>
@@ -1489,6 +1549,12 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+        </div>
+      )}
+
+      {tab === "integrations" && (
+        <div className="space-y-5">
+          <GoogleCalendarCard />
         </div>
       )}
 

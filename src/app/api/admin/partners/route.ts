@@ -115,16 +115,52 @@ export async function POST(req: NextRequest) {
     const tier = (typeof body.tier === "string" && ["l1", "l2", "l3"].includes(body.tier))
       ? body.tier
       : "l1";
+
+    // Structural rule: L2 / L3 partners must always have an upline
+    // (referredByPartnerCode). L1s must never have one. The admin form
+    // allows the tier override for corrections, but the chain
+    // invariant stays enforced at the server so a mis-filled form
+    // can't produce an orphan L2 or a rootless L3.
+    if (tier === "l1" && body.referredByPartnerCode) {
+      return NextResponse.json(
+        { error: "L1 partners cannot have an upline (referredByPartnerCode). Leave it blank or pick tier L2/L3." },
+        { status: 400 },
+      );
+    }
+    if ((tier === "l2" || tier === "l3") && !body.referredByPartnerCode) {
+      return NextResponse.json(
+        { error: `${tier.toUpperCase()} partners must have an upline. Provide a 'referredByPartnerCode' or change tier to L1.` },
+        { status: 400 },
+      );
+    }
     let commissionRate: number | undefined = undefined;
     if (body.commissionRate != null) {
       const r = parseFloat(body.commissionRate);
-      if (!isFinite(r) || r <= 0 || r > 0.5) {
+      if (!isFinite(r) || r <= 0 || r > 0.3) {
         return NextResponse.json(
-          { error: "Commission rate must be between 1% and 50%." },
+          { error: "Commission rate must be between 1% and 30%." },
           { status: 400 }
         );
       }
       commissionRate = r;
+    }
+
+    // Default status for admin-created partners:
+    // - Explicit body.status always wins (admin chose a specific value).
+    // - No upline (top-level L1) → "active" (admin onboards direct relationships).
+    // - Upline has payoutDownlineEnabled=true → "active" (Fintella handles the
+    //   waterfall payout, so the downline signs Fintella's standard agreement
+    //   via the normal SignWell flow — no external upload needed).
+    // - Otherwise → "pending" so the upline L1 can upload the private
+    //   L1↔downline agreement from /dashboard/downline before the downline
+    //   partner is activated.
+    let defaultStatus = "active";
+    if (body.referredByPartnerCode) {
+      const upline = await prisma.partner.findUnique({
+        where: { partnerCode: body.referredByPartnerCode },
+        select: { payoutDownlineEnabled: true },
+      });
+      if (!upline?.payoutDownlineEnabled) defaultStatus = "pending";
     }
 
     const partner = await prisma.partner.create({
@@ -134,7 +170,7 @@ export async function POST(req: NextRequest) {
         firstName: body.firstName,
         lastName: body.lastName,
         phone: normalizePhone(body.phone),
-        status: body.status || "active",
+        status: body.status || defaultStatus,
         referredByPartnerCode: body.referredByPartnerCode || null,
         l3Enabled: body.l3Enabled || false,
         notes: body.notes || null,

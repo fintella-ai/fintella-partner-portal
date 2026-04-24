@@ -21,22 +21,90 @@ type ConferenceEntry = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  jitsiRoom?: string | null;
+  googleCalendarEventId?: string | null;
+  googleCalendarHtmlLink?: string | null;
 };
 
-// ─── DEMO FALLBACK ────────────────────────────────────────────────────────
-
-const DEMO_ENTRIES: ConferenceEntry[] = [
-  { id: "d1", title: "Weekly Partner Training & Q&A", description: "Product updates, training topics, success stories, and live Q&A.", embedUrl: null, joinUrl: "https://zoom.us/j/1234567890", recordingUrl: null, schedule: "Every Thursday at 2:00 PM ET", nextCall: "2026-03-26T18:00:00Z", hostName: "Fintella Leadership Team", duration: null, weekNumber: 13, notes: null, isActive: true, createdAt: "2026-03-20", updatedAt: "2026-03-20" },
-  { id: "d2", title: "Section 301 Update & New Partner Tools", description: null, embedUrl: "https://youtube.com/embed/example", joinUrl: null, recordingUrl: null, schedule: null, nextCall: "2026-03-19T18:00:00Z", hostName: "Sarah Mitchell", duration: "52 min", weekNumber: 12, notes: "Key topics covered.", isActive: false, createdAt: "2026-03-19", updatedAt: "2026-03-19" },
-];
-
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────
+
+/**
+ * Convert a Date object to the "YYYY-MM-DDTHH:mm" shape <input type="datetime-local">
+ * expects, using the *admin's local* wall-clock components — NOT the raw UTC
+ * fields from toISOString(). Prevents the call from shifting by the admin's
+ * UTC offset on every edit.
+ */
+function toLocalInputValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
+ * Convert a "YYYY-MM-DDTHH:mm" datetime-local string (which is in the admin's
+ * LOCAL timezone, with no offset attached) to a proper UTC ISO string. Without
+ * this, sending the raw value lets the server (Vercel = UTC) parse it as UTC,
+ * which off-sets the stored time by the admin's TZ offset (2 PM EDT was being
+ * stored as 2 PM UTC = 10 AM EDT).
+ */
+function fromLocalInputValue(local: string): string | null {
+  if (!local) return null;
+  const d = new Date(local); // interpreted as admin-local by the browser
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+/**
+ * Compress + resize an image file to a base64 data URL.
+ * Mirrors the helper on /admin/settings so the banner upload here
+ * produces DB-friendly payloads (under a few hundred KB) even when
+ * the admin drops a raw 4K photo.
+ */
+function compressImage(file: File, maxDim: number, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, w, h);
+        let dataUrl = canvas.toDataURL("image/webp", quality);
+        if (!dataUrl.startsWith("data:image/webp")) {
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+        resolve(dataUrl);
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function AdminConferencePage() {
   const [entries, setEntries] = useState<ConferenceEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<ConferenceEntry | null>(null);
+
+  // Page-level banner image shown centered at the top of the partner
+  // Live Weekly Call page. Stored in PortalSettings.liveWeeklyBannerUrl
+  // as a base64 data URL (same encoding as logoUrl / faviconUrl).
+  const [bannerUrl, setBannerUrl] = useState("");
+  const [bannerSaving, setBannerSaving] = useState(false);
+  const [bannerDragging, setBannerDragging] = useState(false);
 
   // Form fields
   const [formTitle, setFormTitle] = useState("");
@@ -51,6 +119,7 @@ export default function AdminConferencePage() {
   const [formDuration, setFormDuration] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
+  const [formJitsiRoom, setFormJitsiRoom] = useState("");
 
   // ── Fetch ──────────────────────────────────────────────────────────────
 
@@ -59,15 +128,72 @@ export default function AdminConferencePage() {
       const res = await fetch("/api/admin/conference");
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setEntries(data.entries?.length ? data.entries : DEMO_ENTRIES);
+      // Show real rows — even when the array is empty. Previously we
+      // substituted a hardcoded DEMO_ENTRIES pair here, which meant
+      // clicking Del on the demo rows hit the API with non-existent ids
+      // and bubbled a Prisma "Record to delete does not exist" error.
+      setEntries(Array.isArray(data.entries) ? data.entries : []);
     } catch {
-      setEntries(DEMO_ENTRIES);
+      setEntries([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
+
+  // Load the current banner URL once on mount. /api/admin/settings
+  // returns the whole PortalSettings row; we only read the one field.
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.settings?.liveWeeklyBannerUrl) setBannerUrl(d.settings.liveWeeklyBannerUrl); })
+      .catch(() => {});
+  }, []);
+
+  // ── Banner upload ──────────────────────────────────────────────────────
+
+  const persistBanner = async (url: string) => {
+    setBannerSaving(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ liveWeeklyBannerUrl: url }),
+      });
+      if (!res.ok) throw new Error();
+      setBannerUrl(url);
+    } catch {
+      alert("Failed to save banner image.");
+    } finally {
+      setBannerSaving(false);
+    }
+  };
+
+  const handleBannerFile = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      alert("Please choose an image file (PNG, JPG, WebP, or SVG).");
+      return;
+    }
+    try {
+      let dataUrl: string;
+      if (file.type === "image/svg+xml") {
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onerror = reject;
+          r.onload = () => resolve(r.result as string);
+          r.readAsDataURL(file);
+        });
+      } else {
+        // 1600px max keeps banners crisp on a 2x retina display
+        // without blowing up the DB row.
+        dataUrl = await compressImage(file, 1600, 0.85);
+      }
+      await persistBanner(dataUrl);
+    } catch {
+      alert("Failed to process image.");
+    }
+  };
 
   // ── Form helpers ───────────────────────────────────────────────────────
 
@@ -76,6 +202,7 @@ export default function AdminConferencePage() {
     setFormWeekNumber(""); setFormJoinUrl(""); setFormEmbedUrl("");
     setFormRecordingUrl(""); setFormSchedule(""); setFormNextCall("");
     setFormDuration(""); setFormNotes(""); setFormIsActive(true);
+    setFormJitsiRoom("");
     setEditingItem(null); setShowForm(false);
   };
 
@@ -94,10 +221,11 @@ export default function AdminConferencePage() {
     setFormEmbedUrl(entry.embedUrl || "");
     setFormRecordingUrl(entry.recordingUrl || "");
     setFormSchedule(entry.schedule || "");
-    setFormNextCall(entry.nextCall ? new Date(entry.nextCall).toISOString().slice(0, 16) : "");
+    setFormNextCall(toLocalInputValue(entry.nextCall));
     setFormDuration(entry.duration || "");
     setFormNotes(entry.notes || "");
     setFormIsActive(entry.isActive);
+    setFormJitsiRoom(entry.jitsiRoom || "");
     setShowForm(true);
   };
 
@@ -115,10 +243,14 @@ export default function AdminConferencePage() {
       embedUrl: formEmbedUrl.trim() || null,
       recordingUrl: formRecordingUrl.trim() || null,
       schedule: formSchedule.trim() || null,
-      nextCall: formNextCall || null,
+      nextCall: fromLocalInputValue(formNextCall),
       duration: formDuration.trim() || null,
       notes: formNotes.trim() || null,
       isActive: formIsActive,
+      // Optional override. Empty string on create → server auto-generates
+      // a slug. Empty string on edit → we leave the existing slug
+      // untouched (handled server-side in the PUT handler).
+      jitsiRoom: formJitsiRoom.trim() || null,
     };
 
     try {
@@ -155,13 +287,41 @@ export default function AdminConferencePage() {
     }
   };
 
+  const handleSyncCalendar = async (entry: ConferenceEntry) => {
+    if (!entry.nextCall) {
+      alert("This entry doesn't have a scheduled date yet — set one before syncing to Google Calendar.");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/conference/${entry.id}/sync-to-calendar`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "Sync failed");
+        return;
+      }
+      if (data.demo) {
+        alert("Calendar sync is not connected yet. Go to Admin → Settings → Google Calendar and click \"Connect Google Calendar\".");
+      } else {
+        alert(`Synced to Google Calendar.${data.entry?.googleCalendarHtmlLink ? `\n\nOpen event: ${data.entry.googleCalendarHtmlLink}` : ""}`);
+      }
+      fetchEntries();
+    } catch (e) {
+      alert(`Sync failed: ${(e as Error).message || e}`);
+    }
+  };
+
   const handleDelete = async (entry: ConferenceEntry) => {
     if (!confirm(`Delete "${entry.title}"?`)) return;
     try {
-      await fetch(`/api/admin/conference/${entry.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/conference/${entry.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(`Delete failed (${res.status}): ${body.error || res.statusText}`);
+        return;
+      }
       fetchEntries();
-    } catch {
-      // silently fail
+    } catch (e) {
+      alert(`Delete failed: ${(e as Error).message || e}`);
     }
   };
 
@@ -202,6 +362,83 @@ export default function AdminConferencePage() {
         <button onClick={openAddForm} className="btn-gold text-[12px] px-4 py-2.5">
           + Add Entry
         </button>
+      </div>
+
+      {/* After-call reminder — surfaced here so the manual post-call
+          workflow is discoverable. Auto-recording via paid JaaS +
+          webhook is a future upgrade; until then admins fill the row
+          in by hand after the call ends. */}
+      <div className="mb-4 rounded-lg border border-brand-gold/25 bg-brand-gold/[0.04] px-4 py-3 flex items-start gap-3">
+        <span className="text-base leading-none mt-0.5" aria-hidden>💡</span>
+        <div className="font-body text-[12px] text-[var(--app-text-secondary)] leading-relaxed">
+          <span className="font-semibold text-[var(--app-text)]">After each call ends:</span>{" "}
+          click <strong>Edit</strong> on the entry → paste the recording link into{" "}
+          <strong>Recording URL</strong> (or <strong>Embed URL</strong> for in-portal playback),
+          fill in <strong>Duration</strong> and <strong>Notes</strong>, then flip <strong>Active</strong> off
+          to move it to Past Recordings.{" "}
+          <span className="text-[var(--app-text-muted)]">(Auto-recording is a future upgrade — paid Jitsi JaaS can webhook the recording URL straight back here.)</span>
+        </div>
+      </div>
+
+      {/* Page banner upload — shows centered at the top of the partner
+          Live Weekly Call page when set. Drop or pick any image; it's
+          auto-compressed client-side before hitting the DB. */}
+      <div
+        className={`card p-4 sm:p-5 mb-6 transition-colors ${bannerDragging ? "ring-2 ring-brand-gold/40 bg-brand-gold/[0.03]" : ""}`}
+        onDragOver={(e) => { e.preventDefault(); setBannerDragging(true); }}
+        onDragLeave={() => setBannerDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setBannerDragging(false);
+          const file = e.dataTransfer.files?.[0];
+          if (file) void handleBannerFile(file);
+        }}
+      >
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="font-body font-semibold text-sm mb-1">Live Weekly Page Banner</div>
+            <p className="font-body text-[12px] text-[var(--app-text-muted)] max-w-md">
+              Drop a photo anywhere on this card or click <strong>Upload</strong> to set a banner image.
+              Shown centered at the top of the partner Live Weekly Call page. PNG, JPG, WebP, or SVG.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="font-body text-[12px] text-brand-gold/80 border border-brand-gold/30 rounded-lg px-3 py-2 hover:bg-brand-gold/10 transition-colors cursor-pointer">
+              {bannerSaving ? "Saving…" : bannerUrl ? "Replace" : "Upload"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                disabled={bannerSaving}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleBannerFile(file);
+                  e.currentTarget.value = "";
+                }}
+              />
+            </label>
+            {bannerUrl && (
+              <button
+                type="button"
+                onClick={() => void persistBanner("")}
+                disabled={bannerSaving}
+                className="font-body text-[12px] text-red-400/70 hover:text-red-400 disabled:opacity-50 transition-colors"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+        {bannerUrl && (
+          <div className="mt-4 flex justify-center">
+            <img
+              src={bannerUrl}
+              alt="Live Weekly banner preview"
+              className="max-h-48 w-auto rounded-lg border"
+              style={{ borderColor: "var(--app-border)" }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -330,6 +567,30 @@ export default function AdminConferencePage() {
                 placeholder="52 min"
               />
             </div>
+            {/* Jitsi Room Slug — partners join this room in-portal via iframe.
+                Leave blank on create and the server auto-generates a unique
+                slug from the id + week number. Admin can edit after create
+                to use a vanity slug (e.g. "fintella-weekly-301-update"). */}
+            <div className="sm:col-span-2">
+              <label className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Jitsi Room Slug</label>
+              <input
+                type="text"
+                value={formJitsiRoom}
+                onChange={(e) => setFormJitsiRoom(e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g, "-"))}
+                className="w-full bg-[var(--app-card-bg)] border border-[var(--app-border)] rounded-lg px-3 py-2.5 font-body text-[13px] text-[var(--app-text)] focus:border-brand-gold/40 focus:outline-none transition-colors font-mono"
+                placeholder={editingItem ? "Leave blank to keep existing" : "Leave blank to auto-generate (recommended)"}
+              />
+              {formJitsiRoom && (
+                <div className="mt-1.5 font-body text-[11px] text-[var(--app-text-muted)]">
+                  Partners join in-portal. Full URL: <span className="font-mono text-[var(--app-text-secondary)]">https://meet.jit.si/{formJitsiRoom}</span>
+                </div>
+              )}
+              {!formJitsiRoom && !editingItem && (
+                <div className="mt-1.5 font-body text-[11px] text-[var(--app-text-muted)]">
+                  A unique Jitsi slug is generated automatically from the week number when you save.
+                </div>
+              )}
+            </div>
             {/* Notes */}
             <div className="sm:col-span-2">
               <label className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Notes (Markdown)</label>
@@ -369,8 +630,8 @@ export default function AdminConferencePage() {
       {/* ═══ TABLE (desktop) ═══ */}
       <div className="card hidden sm:block">
         {/* Table header */}
-        <div className="grid grid-cols-[60px_1fr_140px_100px_80px_70px_70px_80px_120px] gap-2 px-5 py-3 border-b border-[var(--app-border)]">
-          {["Wk #", "Title", "Host", "Date", "Duration", "Rec?", "Notes?", "Status", "Actions"].map((h) => (
+        <div className="grid grid-cols-[60px_1fr_90px_140px_100px_80px_70px_70px_80px_200px] gap-2 px-5 py-3 border-b border-[var(--app-border)]">
+          {["Wk #", "Title", "URL", "Host", "Date", "Duration", "Rec?", "Notes?", "Status", "Actions"].map((h) => (
             <div key={h} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider">{h}</div>
           ))}
         </div>
@@ -378,10 +639,35 @@ export default function AdminConferencePage() {
         {entries.map((entry) => (
           <div
             key={entry.id}
-            className="grid grid-cols-[60px_1fr_140px_100px_80px_70px_70px_80px_120px] gap-2 px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors items-center"
+            className="grid grid-cols-[60px_1fr_90px_140px_100px_80px_70px_70px_80px_200px] gap-2 px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors items-center"
           >
             <div className="font-body text-[13px] text-[var(--app-text-secondary)]">{entry.weekNumber || "—"}</div>
             <div className="font-body text-[13px] text-[var(--app-text)] truncate">{entry.title}</div>
+            <div>
+              {entry.jitsiRoom ? (
+                <a
+                  href={`https://meet.jit.si/${entry.jitsiRoom}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-body text-[10px] text-brand-gold border border-brand-gold/30 rounded px-2 py-1 hover:bg-brand-gold/10 transition-colors whitespace-nowrap"
+                  title={`https://meet.jit.si/${entry.jitsiRoom}`}
+                >
+                  📹 Join
+                </a>
+              ) : entry.joinUrl ? (
+                <a
+                  href={entry.joinUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-body text-[10px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded px-2 py-1 hover:bg-[var(--app-card-bg)] transition-colors whitespace-nowrap"
+                  title={entry.joinUrl}
+                >
+                  ↗ Open
+                </a>
+              ) : (
+                <span className="font-body text-[12px] text-[var(--app-text-muted)]">—</span>
+              )}
+            </div>
             <div className="font-body text-[12px] text-[var(--app-text-secondary)] truncate">{entry.hostName || "—"}</div>
             <div className="font-body text-[12px] text-[var(--app-text-secondary)]">{fmtDate(entry.nextCall)}</div>
             <div className="font-body text-[12px] text-[var(--app-text-secondary)]">{entry.duration || "—"}</div>
@@ -404,6 +690,17 @@ export default function AdminConferencePage() {
                 className="font-body text-[10px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded px-2 py-1 hover:bg-[var(--app-card-bg)] transition-colors"
               >
                 {entry.isActive ? "Archive" : "Activate"}
+              </button>
+              <button
+                onClick={() => handleSyncCalendar(entry)}
+                className={`font-body text-[10px] border rounded px-2 py-1 transition-colors ${
+                  entry.googleCalendarEventId
+                    ? "text-green-400/80 border-green-400/30 hover:bg-green-400/10"
+                    : "text-blue-400/70 border-blue-400/25 hover:bg-blue-400/10"
+                }`}
+                title={entry.googleCalendarEventId ? "Re-sync to Google Calendar" : "Sync to Google Calendar"}
+              >
+                {entry.googleCalendarEventId ? "📅 Synced" : "📅 Sync"}
               </button>
               <button
                 onClick={() => handleDelete(entry)}
@@ -442,7 +739,26 @@ export default function AdminConferencePage() {
               <span>Rec: {entry.embedUrl || entry.recordingUrl ? "✓" : "—"}</span>
               <span>Notes: {entry.notes ? "✓" : "—"}</span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {entry.jitsiRoom ? (
+                <a
+                  href={`https://meet.jit.si/${entry.jitsiRoom}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-body text-[11px] text-brand-gold border border-brand-gold/30 rounded-lg px-3 py-1.5 hover:bg-brand-gold/10 transition-colors"
+                >
+                  📹 Join
+                </a>
+              ) : entry.joinUrl ? (
+                <a
+                  href={entry.joinUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-body text-[11px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--app-card-bg)] transition-colors"
+                >
+                  ↗ Open
+                </a>
+              ) : null}
               <button
                 onClick={() => openEditForm(entry)}
                 className="font-body text-[11px] text-brand-gold/60 border border-brand-gold/20 rounded-lg px-3 py-1.5 hover:bg-brand-gold/10 transition-colors"
@@ -454,6 +770,16 @@ export default function AdminConferencePage() {
                 className="font-body text-[11px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--app-card-bg)] transition-colors"
               >
                 {entry.isActive ? "Archive" : "Activate"}
+              </button>
+              <button
+                onClick={() => handleSyncCalendar(entry)}
+                className={`font-body text-[11px] border rounded-lg px-3 py-1.5 transition-colors ${
+                  entry.googleCalendarEventId
+                    ? "text-green-400/80 border-green-400/30 hover:bg-green-400/10"
+                    : "text-blue-400/70 border-blue-400/25 hover:bg-blue-400/10"
+                }`}
+              >
+                {entry.googleCalendarEventId ? "📅 Synced" : "📅 Sync"}
               </button>
               <button
                 onClick={() => handleDelete(entry)}

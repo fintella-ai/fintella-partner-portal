@@ -22,16 +22,35 @@ export async function GET() {
 
     const now = new Date();
 
+    // Filter out orphaned ledger rows (dealId points to a deleted Deal)
+    // so every aggregate in this report agrees with the visible deal set.
+    // Without this, stats like Commissions Pending + the Top Partners
+    // ranking accumulated money from deals that no longer exist —
+    // e.g. the $19,500 TestL2 row John kept seeing.
+    const dealById = new Map(allDeals.map((d) => [d.id, d]));
+    const liveCommissions = allCommissions.filter((c) => c.dealId && dealById.has(c.dealId));
+
     // ─── KEY METRICS ──────────────────────────────────────────────────
     const totalPipeline = allDeals.reduce((s, d) => s + d.estimatedRefundAmount, 0);
-    const totalCommissionsPaid = allCommissions
+    const totalCommissionsPaid = liveCommissions
       .filter((c) => c.status === "paid")
       .reduce((s, c) => s + c.amount, 0);
-    const totalCommissionsDue = allCommissions
+    const totalCommissionsDue = liveCommissions
       .filter((c) => c.status === "due")
       .reduce((s, c) => s + c.amount, 0);
-    const totalCommissionsPending = allCommissions
+    const totalCommissionsPending = liveCommissions
       .filter((c) => c.status === "pending")
+      .reduce((s, c) => s + c.amount, 0);
+    // New lifecycle buckets — pending_payment supersedes "pending"
+    // (legacy rows still counted in both totals until the backfill).
+    const totalCommissionsProjected = liveCommissions
+      .filter((c) => c.status === "projected")
+      .reduce((s, c) => s + c.amount, 0);
+    const totalCommissionsPendingPayment = liveCommissions
+      .filter((c) => c.status === "pending_payment" || c.status === "pending")
+      .reduce((s, c) => s + c.amount, 0);
+    const totalCommissionsLost = liveCommissions
+      .filter((c) => c.status === "lost")
       .reduce((s, c) => s + c.amount, 0);
 
     const totalPartners = allPartners.length;
@@ -82,10 +101,10 @@ export async function GET() {
             new Date(deal.updatedAt) >= d &&
             new Date(deal.updatedAt) < end
         ).length,
-        commPaid: allCommissions
+        commPaid: liveCommissions
           .filter((c) => c.status === "paid" && c.periodMonth === periodKey)
           .reduce((s, c) => s + c.amount, 0),
-        commDue: allCommissions
+        commDue: liveCommissions
           .filter((c) => c.status === "due" && c.periodMonth === periodKey)
           .reduce((s, c) => s + c.amount, 0),
         newPartners: allPartners.filter(
@@ -95,20 +114,26 @@ export async function GET() {
     }
 
     // ─── TOP PARTNERS (by total commission) ───────────────────────────
-    const partnerCommMap: Record<string, { deals: number; pipeline: number; commission: number }> =
-      {};
+    //
+    // `deals` / `pipeline` count BOTH the partner's own deals (where they
+    // are the submitter) AND the deals they earn override commission on
+    // (via CommissionLedger rows that reference those deals). Uses
+    // `liveCommissions` so orphaned rows don't inflate the ranking.
+    const partnerCommMap: Record<string, { dealIds: Set<string>; pipeline: number; commission: number }> = {};
+
     for (const deal of allDeals) {
-      if (!partnerCommMap[deal.partnerCode]) {
-        partnerCommMap[deal.partnerCode] = { deals: 0, pipeline: 0, commission: 0 };
-      }
-      partnerCommMap[deal.partnerCode].deals += 1;
-      partnerCommMap[deal.partnerCode].pipeline += deal.estimatedRefundAmount;
+      const m = (partnerCommMap[deal.partnerCode] ??= { dealIds: new Set(), pipeline: 0, commission: 0 });
+      m.dealIds.add(deal.id);
+      m.pipeline += deal.estimatedRefundAmount;
     }
-    for (const comm of allCommissions) {
-      if (!partnerCommMap[comm.partnerCode]) {
-        partnerCommMap[comm.partnerCode] = { deals: 0, pipeline: 0, commission: 0 };
+    for (const comm of liveCommissions) {
+      const deal = dealById.get(comm.dealId)!; // liveCommissions filter guarantees this
+      const m = (partnerCommMap[comm.partnerCode] ??= { dealIds: new Set(), pipeline: 0, commission: 0 });
+      m.commission += comm.amount;
+      if (!m.dealIds.has(comm.dealId)) {
+        m.dealIds.add(comm.dealId);
+        m.pipeline += deal.estimatedRefundAmount;
       }
-      partnerCommMap[comm.partnerCode].commission += comm.amount;
     }
 
     const partnerInfoMap: Record<string, { name: string; id: string }> = {};
@@ -123,7 +148,9 @@ export async function GET() {
         name: partnerInfoMap[code]?.name || code,
         id: partnerInfoMap[code]?.id || null,
         code,
-        ...data,
+        deals: data.dealIds.size,
+        pipeline: data.pipeline,
+        commission: data.commission,
       }));
 
     return NextResponse.json({
@@ -132,6 +159,9 @@ export async function GET() {
         totalCommissionsPaid,
         totalCommissionsDue,
         totalCommissionsPending,
+        totalCommissionsProjected,
+        totalCommissionsPendingPayment,
+        totalCommissionsLost,
         totalPartners,
         activePartners,
         newPartnersThisMonth,
