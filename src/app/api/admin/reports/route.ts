@@ -41,6 +41,17 @@ export async function GET() {
     const totalCommissionsPending = liveCommissions
       .filter((c) => c.status === "pending")
       .reduce((s, c) => s + c.amount, 0);
+    // New lifecycle buckets — pending_payment supersedes "pending"
+    // (legacy rows still counted in both totals until the backfill).
+    const totalCommissionsProjected = liveCommissions
+      .filter((c) => c.status === "projected")
+      .reduce((s, c) => s + c.amount, 0);
+    const totalCommissionsPendingPayment = liveCommissions
+      .filter((c) => c.status === "pending_payment" || c.status === "pending")
+      .reduce((s, c) => s + c.amount, 0);
+    const totalCommissionsLost = liveCommissions
+      .filter((c) => c.status === "lost")
+      .reduce((s, c) => s + c.amount, 0);
 
     const totalPartners = allPartners.length;
     const activePartners = allPartners.filter((p) => p.status === "active").length;
@@ -148,6 +159,9 @@ export async function GET() {
         totalCommissionsPaid,
         totalCommissionsDue,
         totalCommissionsPending,
+        totalCommissionsProjected,
+        totalCommissionsPendingPayment,
+        totalCommissionsLost,
         totalPartners,
         activePartners,
         newPartnersThisMonth,
