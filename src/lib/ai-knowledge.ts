@@ -1,10 +1,10 @@
 /**
  * PartnerOS AI — Product Specialist knowledge assembly
  *
- * Builds the large cached system-prompt block for Tara. Phase 2a reads
- * TrainingModule.content + FAQ rows. Phase 2b extends to PDF extracted
- * text + TrainingGlossary. Phase 2c extends to audio/video transcripts
- * + weekly-call recording transcripts.
+ * Builds the large cached system-prompt block for Tara. Phase 2a read
+ * TrainingModule.content + FAQ rows. Phase 2b (this revision) extends
+ * to PDF extracted text + TrainingGlossary. Phase 2c extends to
+ * audio/video transcripts + weekly-call recording transcripts.
  *
  * The cache-version comment at the top flips on every knowledge
  * mutation (see bumpKnowledgeVersion), forcing Anthropic's prompt cache
@@ -17,17 +17,38 @@ import { renderComplianceBlock } from "./ai-compliance";
 import { getKnowledgeVersion } from "./ai-knowledge-version";
 
 export async function buildProductSpecialistPrompt(): Promise<Anthropic.Messages.TextBlockParam> {
-  const [version, modules, faqs] = await Promise.all([
+  const [version, modules, resources, faqs, glossary] = await Promise.all([
     getKnowledgeVersion(),
     prisma.trainingModule.findMany({
       where: { published: true },
       orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
       select: { title: true, category: true, content: true },
     }),
+    // Phase 2b — published PDF resources with extracted text
+    prisma.trainingResource.findMany({
+      where: {
+        published: true,
+        fileType: "pdf",
+        extractedText: { not: null },
+      },
+      orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
+      select: {
+        title: true,
+        category: true,
+        fileType: true,
+        extractedText: true,
+      },
+    }),
     prisma.fAQ.findMany({
       where: { published: true },
       orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
       select: { question: true, answer: true },
+    }),
+    // Phase 2b — glossary
+    prisma.trainingGlossary.findMany({
+      where: { published: true },
+      orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { term: "asc" }],
+      select: { term: true, aliases: true, definition: true },
     }),
   ]);
 
@@ -45,10 +66,33 @@ export async function buildProductSpecialistPrompt(): Promise<Anthropic.Messages
           .join("\n\n")
       : "(no training modules published)",
     "",
+    "# Resource documents (PDFs)",
+    resources.length
+      ? resources
+          .map(
+            (r) =>
+              `## ${r.title}${r.category ? ` [${r.category}]` : ""}\n\n${r.extractedText ?? ""}`
+          )
+          .join("\n\n")
+      : "(no PDF resources available)",
+    "",
     "# FAQs",
     faqs.length
       ? faqs.map((f) => `### ${f.question}\n\n${f.answer}`).join("\n\n")
       : "(no FAQs published)",
+    "",
+    "# Glossary",
+    glossary.length
+      ? glossary
+          .map((g) => {
+            const aliases =
+              g.aliases && g.aliases.length
+                ? ` (aka: ${g.aliases.join(", ")})`
+                : "";
+            return `- **${g.term}**${aliases} — ${g.definition}`;
+          })
+          .join("\n")
+      : "(no glossary entries)",
   ].join("\n\n");
 
   return {

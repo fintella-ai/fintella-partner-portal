@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { bumpKnowledgeVersion } from "@/lib/ai-knowledge-version";
-import { extractPdfTextFromUrl } from "@/lib/pdf-extraction";
 
 /**
- * PUT /api/admin/training/resources/[id]
- *
- * Updates an existing training resource by ID.
- * Body contains optional fields to update.
+ * PUT /api/admin/training/glossary/[id]
+ * Updates a glossary entry.
  */
 export async function PUT(
   req: NextRequest,
@@ -18,7 +15,6 @@ export async function PUT(
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
   const role = (session.user as any).role;
   if (!["super_admin", "admin", "accounting", "partner_support"].includes(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -28,48 +24,18 @@ export async function PUT(
     const id = params.id;
     const body = await req.json();
 
-    // Build update data from provided fields only
     const updateData: Record<string, unknown> = {};
-    const allowedFields = [
-      "title",
-      "description",
-      "fileUrl",
-      "fileType",
-      "fileSize",
-      "moduleId",
-      "category",
-      "sortOrder",
-      "published",
-    ];
-
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updateData[field] = body[field];
-      }
+    const scalarFields = ["term", "definition", "category", "sortOrder", "published"];
+    for (const field of scalarFields) {
+      if (body[field] !== undefined) updateData[field] = body[field];
+    }
+    if (Array.isArray(body.aliases)) {
+      updateData.aliases = (body.aliases as unknown[]).filter(
+        (a): a is string => typeof a === "string" && !!a.trim()
+      );
     }
 
-    // If fileUrl changed on a PDF resource, re-extract the text so Tara's
-    // knowledge reflects the new file. Runs BEFORE the update so the row
-    // can be written in one atomic operation.
-    if (
-      (updateData.fileUrl || updateData.fileType) &&
-      updateData.fileType === "pdf"
-    ) {
-      const url = (updateData.fileUrl as string) || "";
-      if (url) {
-        const result = await extractPdfTextFromUrl(url);
-        if (result.text) {
-          updateData.extractedText = result.text;
-          updateData.extractedAt = new Date();
-        } else {
-          // Empty result — clear any stale text from previous extraction
-          updateData.extractedText = null;
-          updateData.extractedAt = null;
-        }
-      }
-    }
-
-    const resource = await prisma.trainingResource.update({
+    const entry = await prisma.trainingGlossary.update({
       where: { id },
       data: updateData,
     });
@@ -78,19 +44,23 @@ export async function PUT(
       console.error("[ai-knowledge] bumpKnowledgeVersion failed", e)
     );
 
-    return NextResponse.json({ resource });
-  } catch {
+    return NextResponse.json({ entry });
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      return NextResponse.json(
+        { error: "A glossary entry with that term already exists" },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
-      { error: "Failed to update training resource" },
+      { error: "Failed to update glossary entry" },
       { status: 500 }
     );
   }
 }
 
 /**
- * DELETE /api/admin/training/resources/[id]
- *
- * Deletes a training resource by ID.
+ * DELETE /api/admin/training/glossary/[id]
  */
 export async function DELETE(
   req: NextRequest,
@@ -100,18 +70,13 @@ export async function DELETE(
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
   const role = (session.user as any).role;
   if (!["super_admin", "admin", "accounting", "partner_support"].includes(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-
   try {
     const id = params.id;
-
-    await prisma.trainingResource.delete({
-      where: { id },
-    });
+    await prisma.trainingGlossary.delete({ where: { id } });
 
     await bumpKnowledgeVersion().catch((e) =>
       console.error("[ai-knowledge] bumpKnowledgeVersion failed", e)
@@ -120,7 +85,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(
-      { error: "Failed to delete training resource" },
+      { error: "Failed to delete glossary entry" },
       { status: 500 }
     );
   }

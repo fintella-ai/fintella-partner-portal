@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { bumpKnowledgeVersion } from "@/lib/ai-knowledge-version";
+import { extractPdfTextFromUrl } from "@/lib/pdf-extraction";
 
 /**
  * GET /api/admin/training/resources
@@ -71,6 +73,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // For PDFs: extract text at upload time so Tara can cite it. We run
+    // extraction first (non-fatal on failure) then write the row with the
+    // extracted text in one atomic create.
+    let extractedText: string | null = null;
+    let extractedAt: Date | null = null;
+    if (fileType === "pdf") {
+      const result = await extractPdfTextFromUrl(fileUrl);
+      if (result.text) {
+        extractedText = result.text;
+        extractedAt = new Date();
+      }
+    }
+
     const resource = await prisma.trainingResource.create({
       data: {
         title,
@@ -82,8 +97,15 @@ export async function POST(req: NextRequest) {
         category: category || null,
         sortOrder,
         published,
+        extractedText,
+        extractedAt,
       },
     });
+
+    // Invalidate Tara's cached system prompt so the next AI request includes the new resource.
+    await bumpKnowledgeVersion().catch((e) =>
+      console.error("[ai-knowledge] bumpKnowledgeVersion failed", e)
+    );
 
     return NextResponse.json({ resource }, { status: 201 });
   } catch {
