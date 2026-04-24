@@ -6,6 +6,7 @@ import { FIRM_SHORT } from "@/lib/constants";
 import { fmtDate } from "@/lib/format";
 import VideoModal from "@/components/ui/VideoModal";
 import PageTabBar from "@/components/ui/PageTabBar";
+import { markGettingStartedCallJoined } from "@/lib/markGettingStarted";
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
 
@@ -195,14 +196,24 @@ export default function ConferencePage() {
         <div className={`flex ${device.isMobile ? "flex-col" : ""} gap-3`}>
           {active.jitsiRoom ? (
             <button
-              onClick={() => setJitsiOpen((v) => !v)}
+              onClick={() => {
+                setJitsiOpen((v) => {
+                  if (!v) markGettingStartedCallJoined();
+                  return !v;
+                });
+              }}
               className="btn-gold text-[13px] px-6 py-3 flex items-center justify-center gap-2"
             >
               📹 {jitsiOpen ? "Hide call" : "Join call here"}
             </button>
           ) : (
             <button
-              onClick={() => active.joinUrl && window.open(active.joinUrl, "_blank")}
+              onClick={() => {
+                if (active.joinUrl) {
+                  markGettingStartedCallJoined();
+                  window.open(active.joinUrl, "_blank");
+                }
+              }}
               className="btn-gold text-[13px] px-6 py-3 flex items-center justify-center gap-2"
             >
               📹 Join Call

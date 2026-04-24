@@ -58,6 +58,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Fire the Getting-Started mark when the partner first completes ANY
+    // training module. `updateOnboardingState` is idempotent — the stamped
+    // timestamp only writes once. Fire-and-forget so training progress
+    // writes are never blocked by the checklist update.
+    if (completed) {
+      import("@/lib/getting-started").then(({ updateOnboardingState }) =>
+        updateOnboardingState(partnerCode, "mark_training_completed")
+      ).catch(() => {});
+    }
+
     return NextResponse.json(progress);
   } catch {
     return NextResponse.json(
