@@ -12,6 +12,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { STAGE_LABELS } from "@/lib/constants";
+import { sendOllieTicketInboxEmail } from "@/lib/sendgrid";
 
 export type OllieToolName =
   | "lookupDeal"
@@ -543,6 +544,35 @@ async function createSupportTicket(
     });
   }
 
+  // Fire-and-forget outbound email to the target inbox so admins see the
+  // ticket land in their role mailbox without having to poll the portal.
+  // Phase 3c.3b (spec §7.2). Never blocks tool execution on email failure.
+  if (routedInbox) {
+    const partnerProfile = await prisma.partner.findUnique({
+      where: { partnerCode },
+      select: { firstName: true, lastName: true, email: true },
+    });
+    const partnerName =
+      partnerProfile
+        ? `${partnerProfile.firstName ?? ""} ${partnerProfile.lastName ?? ""}`.trim() || partnerCode
+        : partnerCode;
+    void sendOllieTicketInboxEmail({
+      inboxEmail: routedInbox.emailAddress,
+      inboxDisplayName: routedInbox.displayName,
+      ticketId: ticket.id.substring(0, 8),
+      subject: ticket.subject,
+      category,
+      priority,
+      reason,
+      partnerCode,
+      partnerName,
+      partnerEmail: partnerProfile?.email ?? null,
+      relatedDealId,
+    }).catch((e) => {
+      console.error("[ollie] inbox-email send failed:", e?.message || e);
+    });
+  }
+
   return ok({
     ticketId: ticket.id.substring(0, 8),
     subject: ticket.subject,
@@ -554,6 +584,6 @@ async function createSupportTicket(
       : { role: "support", displayName: "Partner Support" },
     partnerLink: `/dashboard/support`,
     note:
-      "Ticket created and routed. A ticket email to the target inbox will fire in a follow-up PR (Phase 3c.3). Partner can view and reply from the Support page.",
+      "Ticket created, routed to the target inbox, and notification email fired. Partner can view and reply from the Support page.",
   });
 }

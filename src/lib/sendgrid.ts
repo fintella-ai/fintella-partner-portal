@@ -1160,3 +1160,95 @@ If you didn't request this, you can safely ignore this email — your password w
     template: "password_reset",
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PartnerOS AI — Ollie ticket notification to target AdminInbox
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fire-and-forget notification to the role inbox when Ollie creates a ticket
+ * on behalf of a partner. Phase 3c.3b of the roadmap.
+ *
+ * Sent FROM `support@` per spec §7.2 (single outbound identity), Reply-To
+ * set to the partner's email so admin replies thread correctly back to the
+ * actual human. Body surfaces everything Ollie captured so admins can triage
+ * without opening the portal unless they want to act.
+ *
+ * Never throws — caller treats as fire-and-forget. Demo mode (no
+ * SENDGRID_API_KEY) still logs a `status="demo"` row in EmailLog for audit.
+ */
+export async function sendOllieTicketInboxEmail(opts: {
+  inboxEmail: string;                  // "accounting@fintella.partners"
+  inboxDisplayName: string;            // "Accounting"
+  ticketId: string;
+  subject: string;
+  category: string;
+  priority: string;
+  reason: string;
+  partnerCode: string;
+  partnerName: string;
+  partnerEmail: string | null;
+  relatedDealId: string | null;
+}): Promise<SendEmailResult> {
+  const supportFrom =
+    process.env.SUPPORT_FROM_EMAIL || "support@fintella.partners";
+  const ticketUrl = `${PORTAL_URL}/admin/support`;
+
+  const subj = `[${opts.priority.toUpperCase()}] ${opts.subject} — via Ollie`;
+  const preheader = `New ${opts.category.replace(/_/g, " ")} ticket from ${opts.partnerName}`;
+  const heading = `New ticket routed to ${opts.inboxDisplayName}`;
+  const relatedLine = opts.relatedDealId
+    ? `<p style="margin:0 0 12px;"><strong>Related deal:</strong> ${escapeHtml(opts.relatedDealId)}</p>`
+    : "";
+  const relatedText = opts.relatedDealId
+    ? `Related deal: ${opts.relatedDealId}\n`
+    : "";
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;"><strong>Partner:</strong> ${escapeHtml(opts.partnerName)} (${escapeHtml(opts.partnerCode)})${
+      opts.partnerEmail ? ` &mdash; <a href="mailto:${escapeHtml(opts.partnerEmail)}">${escapeHtml(opts.partnerEmail)}</a>` : ""
+    }</p>
+    <p style="margin:0 0 12px;"><strong>Category:</strong> ${escapeHtml(opts.category)}</p>
+    <p style="margin:0 0 12px;"><strong>Priority:</strong> ${escapeHtml(opts.priority)}</p>
+    <p style="margin:0 0 12px;"><strong>Ticket ID:</strong> ${escapeHtml(opts.ticketId)}</p>
+    ${relatedLine}
+    <p style="margin:20px 0 8px;"><strong>Ollie&#39;s summary:</strong></p>
+    <blockquote style="border-left:3px solid ${BRAND_GOLD};margin:0;padding:8px 16px;color:#444;">${escapeHtml(opts.reason).replace(/\n/g, "<br>")}</blockquote>
+  `;
+  const bodyText = [
+    `Partner: ${opts.partnerName} (${opts.partnerCode})${opts.partnerEmail ? ` — ${opts.partnerEmail}` : ""}`,
+    `Category: ${opts.category}`,
+    `Priority: ${opts.priority}`,
+    `Ticket ID: ${opts.ticketId}`,
+    relatedText.trim(),
+    "",
+    "Ollie's summary:",
+    opts.reason,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const { html, text } = emailShell({
+    preheader,
+    heading,
+    bodyHtml,
+    bodyText,
+    ctaLabel: "Open in admin panel",
+    ctaUrl: ticketUrl,
+  });
+
+  return sendEmail({
+    to: opts.inboxEmail,
+    toName: opts.inboxDisplayName,
+    subject: subj,
+    html,
+    text,
+    template: "ollie_ticket_routed",
+    partnerCode: opts.partnerCode,
+    fromEmail: supportFrom,
+    fromName: `${FIRM_SHORT} Support (Ollie)`,
+    // Reply-To the partner's email so admin replies land in the actual
+    // customer's inbox, not the role mailbox.
+    replyTo: opts.partnerEmail || supportFrom,
+  });
+}
