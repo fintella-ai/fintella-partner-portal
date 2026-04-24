@@ -5,6 +5,7 @@ import { useDevice } from "@/lib/useDevice";
 import VideoModal from "@/components/ui/VideoModal";
 import Accordion from "@/components/ui/Accordion";
 import type { AccordionItem } from "@/components/ui/Accordion";
+import GlossaryText from "@/components/ui/GlossaryText";
 
 /* -------------------------------------------------------------------------- */
 /*  Interfaces                                                                */
@@ -457,9 +458,12 @@ export default function TrainingPage() {
                         </span>
                       </div>
 
-                      <p className="font-body text-[13px] text-[var(--app-text-muted)] mt-1.5 leading-relaxed">
-                        {m.description}
-                      </p>
+                      {m.description && (
+                        <GlossaryText
+                          text={m.description}
+                          className="font-body text-[13px] text-[var(--app-text-muted)] mt-1.5 leading-relaxed block"
+                        />
+                      )}
 
                       {/* Action row: duration, prominent Watch Video, details toggle */}
                       <div className="flex items-center flex-wrap gap-3 mt-4">
@@ -527,7 +531,10 @@ export default function TrainingPage() {
                                     <div className="flex-1 min-w-0">
                                       <div className="font-body text-[13px] font-medium text-[var(--app-text)]">{r.title}</div>
                                       {r.description && (
-                                        <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">{r.description}</div>
+                                        <GlossaryText
+                                          text={r.description}
+                                          className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5 block"
+                                        />
                                       )}
                                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                                         {r.fileSize && (
@@ -584,7 +591,10 @@ export default function TrainingPage() {
                 <div className="flex-1 min-w-0">
                   <div className="font-body text-sm font-medium text-[var(--app-text)]">{r.title}</div>
                   {r.description && (
-                    <p className="font-body text-[12px] text-[var(--app-text-muted)] mt-1">{r.description}</p>
+                    <GlossaryText
+                      text={r.description}
+                      className="font-body text-[12px] text-[var(--app-text-muted)] mt-1 block"
+                    />
                   )}
 
                   {/* Bottom row: file size + view / download buttons */}
