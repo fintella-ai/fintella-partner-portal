@@ -51,6 +51,7 @@ function compressImage(file: File, maxDim: number, quality: number): Promise<str
 // sidebar but is NOT reorderable / hide-able from the admin editor.
 const ALL_NAV_ITEMS = [
   { id: "home", label: "Home", icon: "🏠" },
+  { id: "getting-started", label: "Getting Started", icon: "⭐" },
   { id: "overview", label: "Overview", icon: "📊" },
   { id: "training", label: "Partner Training", icon: "📖" },
   { id: "deals", label: "My Deals", icon: "📋" },
@@ -248,7 +249,7 @@ export default function SettingsPage() {
   // Module order + per-module layout (columns, alignment).
   // Order matches the sequence sections render in on partner home page.
   // Layout is a per-id map — missing keys fall through to render-layer defaults.
-  const DEFAULT_MODULE_ORDER = ["video", "liveWeekly", "events", "announcements", "leaderboard", "opportunities"];
+  const DEFAULT_MODULE_ORDER = ["getting_started", "video", "liveWeekly", "events", "announcements", "leaderboard", "opportunities"];
   const [moduleOrder, setModuleOrder] = useState<string[]>(DEFAULT_MODULE_ORDER);
   type ModuleLayout = { columns?: 1 | 2 | 3; alignment?: "left" | "center" };
   const [moduleLayout, setModuleLayout] = useState<Record<string, ModuleLayout>>({});

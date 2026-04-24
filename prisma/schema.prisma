@@ -53,6 +53,13 @@ model Partner {
   // Metadata
   notes                 String?  // admin notes
   signupDate            DateTime @default(now())
+  // Getting-Started checklist state. JSON shape:
+  //   { dismissed?: boolean, watchedWelcomeVideoAt?: ISO, firstCallJoinedAt?: ISO,
+  //     firstTrainingCompletedAt?: ISO, referralLinkSharedAt?: ISO, completedAt?: ISO }
+  // Steps that are derivable from real DB signals (agreement, deals, downline,
+  // profile, payout) are computed live in src/lib/getting-started.ts and do NOT
+  // live here — this column only tracks actions that aren't otherwise recorded.
+  onboardingState       String   @default("{}")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -586,6 +593,10 @@ model PortalSettings {
   // overrides. Applied last in the cascade so they win over both
   // globals.css and the preset's own overrides.
   themeCustomizations    String  @default("{}")
+  // Partner Getting-Started expectations copy shown on /dashboard/getting-started.
+  // Markdown-rendered. When null, src/lib/getting-started.ts renders the hardcoded
+  // default copy so new portals aren't blank on day one.
+  gettingStartedExpectations String?
   // Timestamps
   updatedAt DateTime @updatedAt
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from "react";
 import { useDevice } from "@/lib/useDevice";
 import { FIRM_SHORT } from "@/lib/constants";
 import { fmt$ } from "@/lib/format";
+import { GettingStartedChecklist } from "@/components/partner/GettingStartedChecklist";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DEMO DATA
@@ -125,7 +126,7 @@ export default function HomePage() {
   // "pending", "invited", or "under_review".
   const [pendingAgreementCount, setPendingAgreementCount] = useState<number>(0);
   const [hiddenModules, setHiddenModules] = useState<Set<string>>(new Set());
-  const DEFAULT_ORDER = ["video", "liveWeekly", "events", "announcements", "leaderboard", "opportunities"];
+  const DEFAULT_ORDER = ["getting_started", "video", "liveWeekly", "events", "announcements", "leaderboard", "opportunities"];
   const [moduleOrder, setModuleOrder] = useState<string[]>(DEFAULT_ORDER);
   type ModuleLayout = { columns?: 1 | 2 | 3; alignment?: "left" | "center" };
   const [moduleLayout, setModuleLayout] = useState<Record<string, ModuleLayout>>({});
@@ -533,9 +534,19 @@ export default function HomePage() {
     </>
   );
 
+  const renderGettingStarted = () => {
+    if (!isVisible("getting_started")) return null;
+    return (
+      <div className="mb-6 sm:mb-8 animate-fade-up max-w-4xl mx-auto">
+        <GettingStartedChecklist variant="home" />
+      </div>
+    );
+  };
+
   // ─── Dispatch ──────────────────────────────────────────────────────
   const dispatchModule = (id: string): React.ReactNode => {
     switch (id) {
+      case "getting_started": return renderGettingStarted();
       case "video": return renderVideo();
       case "liveWeekly": return renderLiveWeekly();
       case "events": return renderEvents();
