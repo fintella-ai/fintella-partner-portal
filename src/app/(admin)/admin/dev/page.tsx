@@ -880,6 +880,8 @@ function ApiLogSection() {
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [dirFilter, setDirFilter] = useState<LogFilter>("all");
+  type StatusFilter = "all" | "success" | "errors";
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkReplaying, setBulkReplaying] = useState(false);
@@ -913,7 +915,13 @@ function ApiLogSection() {
     return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
   }, [autoRefresh]);
 
-  const filteredLogs = dirFilter === "all" ? logs : logs.filter((l) => l.direction === dirFilter);
+  const filteredLogs = logs
+    .filter((l) => dirFilter === "all" || l.direction === dirFilter)
+    .filter((l) => {
+      if (statusFilter === "all") return true;
+      const code = l.responseStatus ?? 0;
+      return statusFilter === "errors" ? code >= 400 : code > 0 && code < 400;
+    });
 
   const failedIncoming = filteredLogs.filter((l) => l.direction === "incoming" && l.body && (l.responseStatus ?? 0) >= 400);
   const toggleSelect = (id: string) => setSelectedIds((prev) => {
@@ -986,6 +994,22 @@ function ApiLogSection() {
                   : "border-[var(--app-border)] theme-text-muted hover:border-brand-gold/20"
               }`}>
               {f}
+            </button>
+          ))}
+          <div className="w-px h-5 bg-[var(--app-border)]" />
+          {/* Status filter pills */}
+          {(["all", "success", "errors"] as StatusFilter[]).map((f) => (
+            <button key={f} onClick={() => setStatusFilter(f)}
+              className={`font-body text-[10px] font-semibold uppercase tracking-wider border rounded-full px-3 py-1 min-h-[28px] transition-colors ${
+                statusFilter === f
+                  ? f === "errors"
+                    ? "bg-red-500/15 border-red-500/30 text-red-400"
+                    : f === "success"
+                      ? "bg-green-500/15 border-green-500/30 text-green-400"
+                      : "bg-brand-gold/10 border-brand-gold/30 text-brand-gold"
+                  : "border-[var(--app-border)] theme-text-muted hover:border-brand-gold/20"
+              }`}>
+              {f === "all" ? "all status" : f}
             </button>
           ))}
           <div className="w-px h-5 bg-[var(--app-border)]" />
@@ -1104,7 +1128,10 @@ function ApiLogSection() {
                     {log.durationMs != null && (
                       <span className="font-body text-[11px] theme-text-muted">{log.durationMs}ms</span>
                     )}
-                    <span className="font-body text-[11px] theme-text-muted ml-auto">
+                    <span className="font-body text-[10px] theme-text-faint ml-auto hidden sm:inline" title={new Date(log.createdAt).toLocaleString()}>
+                      {new Date(log.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })} {new Date(log.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                    </span>
+                    <span className="font-body text-[11px] theme-text-muted ml-auto sm:ml-1">
                       {relativeTime(log.createdAt)}
                     </span>
                     {log.error && (
