@@ -847,8 +847,15 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       // Deal not found — this may be a first-time submission from HubSpot
       // that includes hs_object_id alongside full client data. Fall back
       // to the create handler instead of returning 404.
+      // IMPORTANT: req body stream is already consumed above — must create
+      // a new Request with the raw body so postHandler can read it.
       console.log("[Webhook/Referral] PATCH fallback: deal not found for", rawDealId || rawExternalId, "— falling back to POST create handler");
-      return postHandler(req);
+      const freshReq = new NextRequest(req.url, {
+        method: "POST",
+        headers: req.headers,
+        body: rawBody,
+      });
+      return postHandler(freshReq);
     }
 
     const data: Record<string, any> = {};
