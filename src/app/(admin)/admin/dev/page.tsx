@@ -818,6 +818,57 @@ function OrphanedChatSection() {
   );
 }
 
+// ── Replay Button for failed webhook requests ──
+function ReplayButton({ log, onReplayComplete }: { log: ApiLog; onReplayComplete: () => void }) {
+  const [replaying, setReplaying] = useState(false);
+  const [result, setResult] = useState<{ status: number; body: string } | null>(null);
+
+  const replay = async () => {
+    if (!confirm("Replay this webhook request? The original body will be re-sent to " + (log.path || "/api/webhook/referral") + ".")) return;
+    setReplaying(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/dev/replay-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logId: log.id }),
+      });
+      const data = await res.json();
+      setResult({ status: data.status || res.status, body: JSON.stringify(data.body || data, null, 2) });
+      onReplayComplete();
+    } catch (e: any) {
+      setResult({ status: 0, body: e.message || "Network error" });
+    } finally {
+      setReplaying(false);
+    }
+  };
+
+  return (
+    <div className="pt-2 border-t border-[var(--app-border)]">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={replay}
+          disabled={replaying}
+          className="font-body text-[11px] font-semibold border border-brand-gold/30 text-brand-gold rounded-lg px-4 py-2 min-h-[36px] hover:bg-brand-gold/10 transition-colors disabled:opacity-50"
+        >
+          {replaying ? "Replaying…" : "↻ Replay Request"}
+        </button>
+        {result && (
+          <span className={`font-mono text-[11px] font-semibold ${result.status >= 200 && result.status < 300 ? "text-green-400" : "text-red-400"}`}>
+            {result.status} — {result.body.slice(0, 100)}
+          </span>
+        )}
+      </div>
+      {result && result.status >= 400 && (
+        <pre className="mt-2 font-mono text-[10px] text-red-400 rounded-lg px-3 py-2 overflow-x-auto whitespace-pre-wrap"
+          style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)" }}>
+          {result.body}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 // ── API Log Tab (standalone, All / Incoming / Outgoing filter) ──
 type LogFilter = "all" | "incoming" | "outgoing";
 
@@ -829,6 +880,10 @@ function ApiLogSection() {
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [dirFilter, setDirFilter] = useState<LogFilter>("all");
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkReplaying, setBulkReplaying] = useState(false);
+  const [bulkResults, setBulkResults] = useState<Record<string, { status: number; ok: boolean }>>({});
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -859,6 +914,39 @@ function ApiLogSection() {
   }, [autoRefresh]);
 
   const filteredLogs = dirFilter === "all" ? logs : logs.filter((l) => l.direction === dirFilter);
+
+  const failedIncoming = filteredLogs.filter((l) => l.direction === "incoming" && l.body && (l.responseStatus ?? 0) >= 400);
+  const toggleSelect = (id: string) => setSelectedIds((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+  const selectAllFailed = () => setSelectedIds(new Set(failedIncoming.map((l) => l.id)));
+  const deselectAll = () => setSelectedIds(new Set());
+
+  const bulkReplay = async (ids: string[]) => {
+    if (!confirm(`Replay ${ids.length} failed webhook request${ids.length > 1 ? "s" : ""}? Requests will be sent one at a time with a 1.5s delay between each to avoid rate limits.`)) return;
+    setBulkReplaying(true);
+    const results: Record<string, { status: number; ok: boolean }> = {};
+    for (let i = 0; i < ids.length; i++) {
+      try {
+        const res = await fetch("/api/admin/dev/replay-webhook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ logId: ids[i] }),
+        });
+        const data = await res.json();
+        const status = data.status || res.status;
+        results[ids[i]] = { status, ok: status >= 200 && status < 300 };
+      } catch {
+        results[ids[i]] = { status: 0, ok: false };
+      }
+      setBulkResults({ ...results });
+      if (i < ids.length - 1) await new Promise((r) => setTimeout(r, 1500));
+    }
+    setBulkReplaying(false);
+    fetchLogs();
+  };
 
   const methodBadge = (m: string) => {
     const colors: Record<string, string> = {
@@ -915,6 +1003,14 @@ function ApiLogSection() {
             className="font-body text-[11px] border border-[var(--app-border)] theme-text-muted rounded-lg px-3 py-1.5 min-h-[36px] hover:border-brand-gold/20 transition-colors disabled:opacity-50">
             {loading ? "…" : "↺ Refresh"}
           </button>
+          {failedIncoming.length > 0 && (
+            <button onClick={() => { setBulkMode((p) => !p); setSelectedIds(new Set()); setBulkResults({}); }}
+              className={`font-body text-[11px] border rounded-lg px-3 py-1.5 min-h-[36px] transition-colors ${
+                bulkMode ? "bg-brand-gold/10 border-brand-gold/30 text-brand-gold" : "border-[var(--app-border)] theme-text-muted hover:border-brand-gold/20"
+              }`}>
+              {bulkMode ? "✕ Exit Bulk" : "↻ Bulk Replay"}
+            </button>
+          )}
           {logs.length > 0 && (
             <button onClick={clearLogs} disabled={clearing}
               className="font-body text-[11px] border border-red-500/20 text-red-400 rounded-lg px-3 py-1.5 min-h-[36px] hover:bg-red-500/5 transition-colors disabled:opacity-50">
@@ -923,6 +1019,27 @@ function ApiLogSection() {
           )}
         </div>
       </div>
+
+      {/* Bulk action bar */}
+      {bulkMode && failedIncoming.length > 0 && (
+        <div className="px-5 py-3 border-b border-[var(--app-border)] flex items-center gap-3 flex-wrap" style={{ background: "var(--app-gold-overlay)" }}>
+          <button onClick={selectedIds.size === failedIncoming.length ? deselectAll : selectAllFailed}
+            className="font-body text-[11px] font-semibold border border-brand-gold/30 text-brand-gold rounded-lg px-3 py-1.5 min-h-[32px] hover:bg-brand-gold/10 transition-colors">
+            {selectedIds.size === failedIncoming.length ? "Deselect All" : `Select All Failed (${failedIncoming.length})`}
+          </button>
+          {selectedIds.size > 0 && (
+            <button onClick={() => bulkReplay(Array.from(selectedIds))} disabled={bulkReplaying}
+              className="font-body text-[11px] font-semibold bg-brand-gold text-black rounded-lg px-4 py-1.5 min-h-[32px] hover:opacity-90 transition-colors disabled:opacity-50">
+              {bulkReplaying ? `Replaying… (1.5s delay between each)` : `↻ Replay ${selectedIds.size} Selected`}
+            </button>
+          )}
+          {Object.keys(bulkResults).length > 0 && (
+            <span className="font-body text-[11px] theme-text-muted">
+              {Object.values(bulkResults).filter((r) => r.ok).length} succeeded, {Object.values(bulkResults).filter((r) => !r.ok).length} failed
+            </span>
+          )}
+        </div>
+      )}
 
       {filteredLogs.length === 0 ? (
         <div className="px-5 py-10 text-center">
@@ -943,6 +1060,24 @@ function ApiLogSection() {
                   className="w-full text-left px-5 py-3 hover:bg-[var(--app-hover)] transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-wrap">
+                    {/* Bulk checkbox */}
+                    {bulkMode && log.direction === "incoming" && log.body && (statusCode ?? 0) >= 400 && (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(log.id)}
+                        onChange={(e) => { e.stopPropagation(); toggleSelect(log.id); }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 accent-brand-gold shrink-0"
+                      />
+                    )}
+                    {/* Bulk result badge */}
+                    {bulkResults[log.id] && (
+                      <span className={`font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                        bulkResults[log.id].ok ? "bg-green-500/15 text-green-400 border-green-500/30" : "bg-red-500/15 text-red-400 border-red-500/30"
+                      }`}>
+                        {bulkResults[log.id].ok ? "✓ replayed" : "✗ failed"}
+                      </span>
+                    )}
                     {/* Direction badge */}
                     <span className={`font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${
                       log.direction === "outgoing"
@@ -1028,6 +1163,11 @@ function ApiLogSection() {
                           {log.error}
                         </div>
                       </div>
+                    )}
+
+                    {/* Replay button — available for failed incoming webhook requests */}
+                    {log.direction === "incoming" && log.body && (statusCode ?? 0) >= 400 && (
+                      <ReplayButton log={log} onReplayComplete={fetchLogs} />
                     )}
                   </div>
                 )}
