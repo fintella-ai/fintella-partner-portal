@@ -128,6 +128,62 @@ export default function AdminDealsPage() {
   const [editingDealNoteId, setEditingDealNoteId] = useState<string | null>(null);
   const [editingDealNoteContent, setEditingDealNoteContent] = useState("");
 
+  // Bulk actions
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedDealIds, setSelectedDealIds] = useState<Set<string>>(new Set());
+  const [bulkActing, setBulkActing] = useState(false);
+  const [dragSelecting, setDragSelecting] = useState(false);
+
+  const toggleDealSelect = (id: string) => setSelectedDealIds((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const bulkDelete = async () => {
+    const count = selectedDealIds.size;
+    if (!confirm(`Delete ${count} deal${count > 1 ? "s" : ""}? This cannot be undone.`)) return;
+    setBulkActing(true);
+    let deleted = 0;
+    const ids = Array.from(selectedDealIds);
+    for (let i = 0; i < ids.length; i++) {
+      try {
+        const res = await fetch(`/api/admin/deals/${ids[i]}`, { method: "DELETE" });
+        if (res.ok) deleted++;
+      } catch {}
+    }
+    setBulkActing(false);
+    setSelectedDealIds(new Set());
+    setBulkMode(false);
+    alert(`Deleted ${deleted} of ${count} deals.`);
+    fetchDeals();
+  };
+
+  const bulkChangeStage = async (newStage: string) => {
+    const count = selectedDealIds.size;
+    if (!confirm(`Change ${count} deal${count > 1 ? "s" : ""} to stage "${newStage}"?`)) return;
+    setBulkActing(true);
+    const ids = Array.from(selectedDealIds);
+    for (let i = 0; i < ids.length; i++) {
+      try {
+        await fetch(`/api/admin/deals/${ids[i]}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stage: newStage }),
+        });
+      } catch {}
+    }
+    setBulkActing(false);
+    setSelectedDealIds(new Set());
+    fetchDeals();
+  };
+
+  useEffect(() => {
+    const stopDrag = () => setDragSelecting(false);
+    window.addEventListener("mouseup", stopDrag);
+    return () => window.removeEventListener("mouseup", stopDrag);
+  }, []);
+
   // Editable client-submission fields (super_admin / admin / partner_support
   // may need to correct these manually when the referral form came in with
   // typos or stale info — e.g. wrong email, wrong legal entity name).
@@ -435,8 +491,45 @@ export default function AdminDealsPage() {
 
   return (
     <div>
-      <h2 className="font-display text-xl font-bold mb-1">Deal Management</h2>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="font-display text-xl font-bold">Deal Management</h2>
+        {isSuperAdmin && (
+          <button onClick={() => { setBulkMode((p) => !p); setSelectedDealIds(new Set()); }}
+            className={`font-body text-[11px] border rounded-lg px-3 py-1.5 min-h-[36px] transition-colors ${
+              bulkMode ? "bg-brand-gold/10 border-brand-gold/30 text-brand-gold" : "border-[var(--app-border)] theme-text-muted hover:border-brand-gold/20"
+            }`}>
+            {bulkMode ? "✕ Exit Bulk" : "☐ Bulk Actions"}
+          </button>
+        )}
+      </div>
       <p className="font-body text-[13px] text-[var(--app-text-muted)] mb-6">View, filter, and manage all deals across partners.</p>
+
+      {/* Bulk action bar */}
+      {bulkMode && selectedDealIds.size > 0 && (
+        <div className="card p-3 mb-4 flex items-center gap-3 flex-wrap" style={{ background: "var(--app-gold-overlay)" }}>
+          <span className="font-body text-[12px] font-semibold text-brand-gold">{selectedDealIds.size} selected</span>
+          <select
+            onChange={(e) => { if (e.target.value) bulkChangeStage(e.target.value); e.target.value = ""; }}
+            className="font-body text-[11px] border border-[var(--app-border)] rounded-lg px-2 py-1.5 bg-[var(--app-input-bg)] text-[var(--app-text)]"
+            defaultValue=""
+          >
+            <option value="" disabled>Change Stage…</option>
+            <option value="lead_submitted">Lead Submitted</option>
+            <option value="meeting_booked">Meeting Booked</option>
+            <option value="qualified">Qualified</option>
+            <option value="client_engaged">Client Engaged</option>
+            <option value="disqualified">Disqualified</option>
+          </select>
+          <button onClick={bulkDelete} disabled={bulkActing}
+            className="font-body text-[11px] font-semibold border border-red-500/30 text-red-400 rounded-lg px-3 py-1.5 min-h-[32px] hover:bg-red-500/10 transition-colors disabled:opacity-50">
+            {bulkActing ? "Deleting…" : "🗑 Delete Selected"}
+          </button>
+          <button onClick={() => setSelectedDealIds(new Set())}
+            className="font-body text-[11px] theme-text-muted hover:text-[var(--app-text)] transition-colors ml-auto">
+            Clear selection
+          </button>
+        </div>
+      )}
 
       {/* ═══ STATS ═══ */}
       {stats && (
@@ -604,9 +697,20 @@ export default function AdminDealsPage() {
           <div key={deal.id} id={`deal-${deal.id}`}>
             <div
               className={`grid gap-6 px-5 py-3.5 border-b border-[var(--app-border)] hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
-              style={{ gridTemplateColumns: dealGridCols }}
+              style={{ gridTemplateColumns: bulkMode ? `36px ${dealGridCols}` : dealGridCols }}
               onClick={() => toggleExpand(deal)}
             >
+              {bulkMode && (
+                <input
+                  type="checkbox"
+                  checked={selectedDealIds.has(deal.id)}
+                  onChange={(e) => { e.stopPropagation(); toggleDealSelect(deal.id); }}
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => { e.stopPropagation(); setDragSelecting(true); toggleDealSelect(deal.id); }}
+                  onMouseEnter={() => { if (dragSelecting && !selectedDealIds.has(deal.id)) toggleDealSelect(deal.id); }}
+                  className="w-4 h-4 accent-brand-gold cursor-pointer"
+                />
+              )}
               <div>
                 <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate">{deal.dealName}</div>
                 <div className="font-body text-[11px] text-[var(--app-text-muted)] truncate">{deal.clientName || deal.clientEmail || "—"}</div>
