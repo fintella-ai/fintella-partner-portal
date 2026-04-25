@@ -648,11 +648,19 @@ async function postHandler(req: NextRequest): Promise<Response> {
     // integration push, zero validation errors while they're testing.)
     const sparseData = !firstName && !lastName && !email && !legalEntityName;
 
+    // House deal detection — ANNEXATIONPR is Fintella's own referral code.
+    // These are direct company deals tracked at 40% for revenue reporting.
+    // No downline waterfall — the commission is company profit.
+    const HOUSE_CODES = ["ANNEXATIONPR"];
+    const isHouseDeal = partnerCode ? HOUSE_CODES.includes(partnerCode.toUpperCase()) : false;
+    const HOUSE_COMMISSION_RATE = 0.40;
+
     // Snapshot the L1 commission rate at deal-creation time so later
     // changes to Partner.commissionRate don't retro-affect this deal.
-    // Skip for UNATTRIBUTED deals — no partner chain to walk.
-    const l1RateSnapshot =
-      partnerCode && partnerCode !== "UNATTRIBUTED"
+    // House deals use the fixed house rate. Skip for UNATTRIBUTED deals.
+    const l1RateSnapshot = isHouseDeal
+      ? HOUSE_COMMISSION_RATE
+      : partnerCode && partnerCode !== "UNATTRIBUTED"
         ? await getL1CommissionRateSnapshot(prisma, partnerCode).catch(() => null)
         : null;
 
@@ -692,9 +700,9 @@ async function postHandler(req: NextRequest): Promise<Response> {
           consultBookedTime: consultBookedTime || null,
           l1CommissionRate: l1RateSnapshot,
           idempotencyKey: idempotencyKey || null,
-          notes: `Source: Frost Law Referral Form | Partner: ${
-            partnerCode || "none"
-          }${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
+          notes: isHouseDeal
+            ? `Source: Referral Form | HOUSE DEAL (Fintella Direct) | Rate: ${HOUSE_COMMISSION_RATE * 100}%${externalStage ? ` | External Stage: ${externalStage}` : ""}`
+            : `Source: Referral Form | Partner: ${partnerCode || "none"}${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
         },
       });
       // Additive: create the admin-chat deal thread eagerly.
