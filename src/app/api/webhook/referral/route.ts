@@ -838,7 +838,11 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       ? await prisma.deal.findUnique({ where: { id: rawDealId } })
       : await prisma.deal.findUnique({ where: { externalDealId: rawExternalId! } });
     if (!deal) {
-      return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+      // Deal not found — this may be a first-time submission from HubSpot
+      // that includes hs_object_id alongside full client data. Fall back
+      // to the create handler instead of returning 404.
+      console.log("[Webhook/Referral] PATCH fallback: deal not found for", rawDealId || rawExternalId, "— falling back to POST create handler");
+      return postHandler(req);
     }
 
     const data: Record<string, any> = {};
