@@ -28,13 +28,13 @@ export async function POST(req: NextRequest) {
   if (!log) return NextResponse.json({ error: "Log entry not found" }, { status: 404 });
   if (!log.body) return NextResponse.json({ error: "No request body stored for this log entry" }, { status: 400 });
 
-  const originalHeaders: Record<string, string> = {};
-  try {
-    const parsed = JSON.parse(log.headers || "{}");
-    if (parsed["x-fintella-api-key"]) originalHeaders["x-fintella-api-key"] = parsed["x-fintella-api-key"];
-    if (parsed["x-webhook-secret"]) originalHeaders["x-webhook-secret"] = parsed["x-webhook-secret"];
-    if (parsed["authorization"]) originalHeaders["authorization"] = parsed["authorization"];
-  } catch {}
+  // Use the real API key from env — stored headers have "[REDACTED]"
+  const authHeaders: Record<string, string> = {};
+  if (process.env.FROST_LAW_API_KEY) {
+    authHeaders["x-fintella-api-key"] = process.env.FROST_LAW_API_KEY;
+  } else if (process.env.REFERRAL_WEBHOOK_SECRET) {
+    authHeaders["x-webhook-secret"] = process.env.REFERRAL_WEBHOOK_SECRET;
+  }
 
   const baseUrl = req.nextUrl.origin;
   // Hardcoded to webhook/referral only — prevents SSRF via stored log.path
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       method: log.method || "POST",
       headers: {
         "Content-Type": "application/json",
-        ...originalHeaders,
+        ...authHeaders,
       },
       body: log.body,
     });
