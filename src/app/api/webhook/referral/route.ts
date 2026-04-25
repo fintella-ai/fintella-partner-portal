@@ -700,9 +700,7 @@ async function postHandler(req: NextRequest): Promise<Response> {
           consultBookedTime: consultBookedTime || null,
           l1CommissionRate: l1RateSnapshot,
           idempotencyKey: idempotencyKey || null,
-          notes: isHouseDeal
-            ? `Source: Referral Form | HOUSE DEAL (Fintella Direct) | Rate: ${HOUSE_COMMISSION_RATE * 100}%${externalStage ? ` | External Stage: ${externalStage}` : ""}`
-            : `Source: Referral Form | Partner: ${partnerCode || "none"}${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
+          notes: `Source: Referral Form | Partner: ${partnerCode || "none"}${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
         },
       });
       // Additive: create the admin-chat deal thread eagerly.
