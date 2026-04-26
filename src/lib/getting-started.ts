@@ -23,10 +23,11 @@ export interface ChecklistStep {
   description: string;
   ctaLabel: string;
   ctaUrl: string;
-  icon?: string | null;       // emoji or /icons/xxx.svg path; null = renderer uses a generic marker
-  isCustom?: boolean;          // true for admin-authored steps (beyond the 9 built-ins)
+  icon?: string | null;
+  isCustom?: boolean;
   status: StepStatus;
   done: boolean;
+  videoUrl?: string | null;
 }
 
 export type BuiltInStepId =
@@ -53,6 +54,7 @@ export interface StepOverride {
   icon?: string;
   hidden?: boolean;
   order?: number;
+  videoUrl?: string;
 }
 
 /** Shape of an entry in `PortalSettings.gettingStartedCustomSteps`. */
@@ -359,6 +361,8 @@ export async function computeGettingStarted(partnerCode: string): Promise<Gettin
         step.ctaUrl = o.ctaUrl;
       if (typeof o.icon === "string" && o.icon.trim())
         step.icon = o.icon;
+      if (typeof o.videoUrl === "string" && o.videoUrl.trim())
+        step.videoUrl = o.videoUrl;
       if (typeof o.order === "number" && Number.isFinite(o.order))
         explicitOrder.set(step.id, o.order);
     }
