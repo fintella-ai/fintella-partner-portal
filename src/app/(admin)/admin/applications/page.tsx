@@ -75,8 +75,11 @@ export default function AdminApplicationsPage() {
   const [copied, setCopied] = useState(false);
   const [approveApp, setApproveApp] = useState<Application | null>(null);
   const [approveRate, setApproveRate] = useState<number | "">("");
+  const [approveCustomRate, setApproveCustomRate] = useState("");
+  const [approveRateMode, setApproveRateMode] = useState<"preset" | "custom">("preset");
   const [approveReferrer, setApproveReferrer] = useState("");
   const [approveSending, setApproveSending] = useState(false);
+  const [partnerList, setPartnerList] = useState<Array<{ partnerCode: string; firstName: string; lastName: string }>>([]);
 
   const fetchApps = useCallback(async () => {
     setLoading(true);
@@ -131,7 +134,17 @@ export default function AdminApplicationsPage() {
   function startApprove(app: Application) {
     setApproveApp(app);
     setApproveRate("");
+    setApproveCustomRate("");
+    setApproveRateMode("preset");
     setApproveReferrer(app.uplineCode || "");
+    if (partnerList.length === 0) {
+      fetch("/api/admin/partners")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => {
+          if (d?.partners) setPartnerList(d.partners.map((p: any) => ({ partnerCode: p.partnerCode, firstName: p.firstName, lastName: p.lastName })));
+        })
+        .catch(() => {});
+    }
   }
 
   async function submitApproval() {
@@ -141,7 +154,7 @@ export default function AdminApplicationsPage() {
       const res = await fetch(`/api/admin/applications/${approveApp.id}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commissionRate: approveRate, uplineCode: approveReferrer || undefined }),
+        body: JSON.stringify({ commissionRate: approveRateMode === "custom" ? parseFloat(approveCustomRate) / 100 : approveRate, uplineCode: approveReferrer || undefined }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -336,32 +349,67 @@ export default function AdminApplicationsPage() {
             </div>
             <div>
               <label className="text-xs uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Commission Rate</label>
-              <select
-                value={approveRate}
-                onChange={(e) => setApproveRate(e.target.value ? parseFloat(e.target.value) : "")}
-                className={`w-full theme-input rounded-lg px-3 py-2 text-sm ${approveRate === "" ? "border-red-500/40" : ""}`}
-              >
-                <option value="">— Select rate —</option>
-                <option value={0.10}>10%</option>
-                <option value={0.15}>15%</option>
-                <option value={0.20}>20%</option>
-                <option value={0.25}>25%</option>
-              </select>
+              {approveRateMode === "preset" ? (
+                <div className="flex gap-2">
+                  <select
+                    value={approveRate}
+                    onChange={(e) => {
+                      if (e.target.value === "__custom") { setApproveRateMode("custom"); setApproveRate(""); return; }
+                      setApproveRate(e.target.value ? parseFloat(e.target.value) : "");
+                    }}
+                    className={`flex-1 theme-input rounded-lg px-3 py-2 text-sm ${approveRate === "" ? "border-red-500/40" : ""}`}
+                  >
+                    <option value="">— Select rate —</option>
+                    <option value={0.05}>5%</option>
+                    <option value={0.10}>10%</option>
+                    <option value={0.15}>15%</option>
+                    <option value={0.20}>20%</option>
+                    <option value={0.25}>25%</option>
+                    <option value={0.30}>30%</option>
+                    <option value="__custom">Custom…</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    step={1}
+                    value={approveCustomRate}
+                    onChange={(e) => setApproveCustomRate(e.target.value)}
+                    placeholder="e.g. 12"
+                    className="w-24 theme-input rounded-lg px-3 py-2 text-sm"
+                  />
+                  <span className="text-sm theme-text-muted">%</span>
+                  <button
+                    onClick={() => { setApproveRateMode("preset"); setApproveCustomRate(""); }}
+                    className="text-xs text-brand-gold hover:underline"
+                  >
+                    Back to presets
+                  </button>
+                </div>
+              )}
             </div>
             <div>
-              <label className="text-xs uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Referring Partner Code</label>
-              <input
-                type="text"
+              <label className="text-xs uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Referred By</label>
+              <select
                 value={approveReferrer}
                 onChange={(e) => setApproveReferrer(e.target.value)}
-                placeholder="e.g. PTNS4XDMN (optional)"
                 className="w-full theme-input rounded-lg px-3 py-2 text-sm"
-              />
+              >
+                <option value="">— None (direct) —</option>
+                {partnerList.map((p) => (
+                  <option key={p.partnerCode} value={p.partnerCode}>
+                    {p.firstName} {p.lastName} ({p.partnerCode})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="flex gap-2">
             <button
-              disabled={approveSending || approveRate === ""}
+              disabled={approveSending || (approveRateMode === "preset" ? approveRate === "" : !approveCustomRate || parseFloat(approveCustomRate) <= 0 || parseFloat(approveCustomRate) > 30)}
               onClick={submitApproval}
               className="px-4 py-2 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 disabled:opacity-50"
             >
