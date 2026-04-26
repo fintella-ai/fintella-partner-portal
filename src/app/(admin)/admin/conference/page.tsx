@@ -372,12 +372,24 @@ export default function AdminConferencePage() {
       <div className="mb-4 rounded-lg border border-brand-gold/25 bg-brand-gold/[0.04] px-4 py-3 flex items-start gap-3">
         <span className="text-base leading-none mt-0.5" aria-hidden>💡</span>
         <div className="font-body text-[12px] text-[var(--app-text-secondary)] leading-relaxed">
-          <span className="font-semibold text-[var(--app-text)]">After each call ends:</span>{" "}
-          click <strong>Edit</strong> on the entry → paste the recording link into{" "}
-          <strong>Recording URL</strong> (or <strong>Embed URL</strong> for in-portal playback),
-          fill in <strong>Duration</strong> and <strong>Notes</strong>, then flip <strong>Active</strong> off
-          to move it to Past Recordings.{" "}
-          <span className="text-[var(--app-text-muted)]">(Auto-recording is a future upgrade.)</span>
+          <span className="font-semibold text-[var(--app-text)]">Recordings auto-import daily</span> from Google Drive
+          (Meet Recordings folder). You can also click <strong>Import Now</strong> below, or manually
+          paste a recording link via <strong>Edit</strong> → <strong>Recording URL</strong>.
+          <button
+            onClick={async () => {
+              const res = await fetch("/api/cron/import-meet-recordings");
+              const data = await res.json();
+              if (data.ok) {
+                alert(`Import complete — ${data.imported} recording${data.imported === 1 ? "" : "s"} imported (${data.found} found in Drive)`);
+                fetchEntries();
+              } else {
+                alert(data.error || "Import failed");
+              }
+            }}
+            className="ml-2 text-brand-gold font-semibold hover:underline"
+          >
+            Import Now →
+          </button>
         </div>
       </div>
 
