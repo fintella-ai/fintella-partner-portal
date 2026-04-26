@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PERSONAS, resolvePersonaId, type PersonaId } from "@/lib/ai-personas";
 import { useDevice } from "@/lib/useDevice";
 import PersonaSwitcherRow from "./PersonaSwitcherRow";
 import ChatPanel, { type ChatMessage } from "./ChatPanel";
+import InlineTicketForm from "./InlineTicketForm";
 
 // ─── LOCALSTORAGE KEYS ─────────────────────────────────────────────────────
 const LS_OPEN = "fintella.partner.chatBubble.open";
@@ -34,6 +36,18 @@ export default function PartnerChatBubble({
   const [unreadCount, setUnreadCount] = useState(0);
   const [introSeen, setIntroSeen] = useState(true); // default true to avoid flash
   const unreadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ─── INLINE TICKET FORM STATE ────────────────────────────────────────────
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [ticketPrefill, setTicketPrefill] = useState<{
+    subject?: string;
+    category?: string;
+    description?: string;
+    priority?: string;
+    dealId?: string;
+  }>({});
+  // Whether the last assistant message mentions support (for inline link)
+  const [showSupportLink, setShowSupportLink] = useState(false);
 
   // ─── HYDRATE FROM LOCALSTORAGE ──────────────────────────────────────────
   useEffect(() => {
@@ -202,6 +216,34 @@ export default function PartnerChatBubble({
 
           return final;
         });
+
+        // ── Detect create_support_ticket tool call → show inline form ──
+        const toolCalls = data.assistantMessage?.toolCalls as
+          | { name: string; input: Record<string, string> }[]
+          | null
+          | undefined;
+        if (toolCalls && Array.isArray(toolCalls)) {
+          const ticketCall = toolCalls.find(
+            (tc) => tc.name === "create_support_ticket"
+          );
+          if (ticketCall) {
+            const inp = ticketCall.input ?? {};
+            setTicketPrefill({
+              subject: inp.subject ?? "",
+              category: inp.category ?? "",
+              description: inp.reason ?? "",
+              priority: inp.priority ?? "normal",
+              dealId: inp.relatedDealId ?? "",
+            });
+            setShowTicketForm(true);
+          }
+        }
+
+        // ── Detect support mention in text → show inline link ──
+        const text = (data.assistantMessage?.content ?? "").toLowerCase();
+        setShowSupportLink(
+          text.includes("support ticket") || text.includes("support page")
+        );
       }
     } catch {
       // On error, remove the optimistic message
@@ -332,6 +374,31 @@ export default function PartnerChatBubble({
           liveChatEnabled={liveChatEnabled}
           onTalkToPerson={handleTalkToPerson}
         />
+
+        {/* Inline support link */}
+        {showSupportLink && !showTicketForm && (
+          <div className="px-4 py-2 border-t border-[var(--app-border)]">
+            <Link
+              href="/dashboard/support"
+              className="font-body text-[11px] text-brand-gold hover:text-brand-gold/80 transition-colors"
+            >
+              Open Support Page &rarr;
+            </Link>
+          </div>
+        )}
+
+        {/* Inline ticket form */}
+        {showTicketForm && (
+          <InlineTicketForm
+            prefillSubject={ticketPrefill.subject}
+            prefillCategory={ticketPrefill.category}
+            prefillDescription={ticketPrefill.description}
+            prefillPriority={ticketPrefill.priority}
+            prefillDealId={ticketPrefill.dealId}
+            onCreated={() => setShowTicketForm(false)}
+            onCancel={() => setShowTicketForm(false)}
+          />
+        )}
       </div>
     );
   }
@@ -424,6 +491,31 @@ export default function PartnerChatBubble({
           liveChatEnabled={liveChatEnabled}
           onTalkToPerson={handleTalkToPerson}
         />
+
+        {/* Inline support link */}
+        {showSupportLink && !showTicketForm && (
+          <div className="px-4 py-2 border-t border-[var(--app-border)]">
+            <Link
+              href="/dashboard/support"
+              className="font-body text-[11px] text-brand-gold hover:text-brand-gold/80 transition-colors"
+            >
+              Open Support Page &rarr;
+            </Link>
+          </div>
+        )}
+
+        {/* Inline ticket form */}
+        {showTicketForm && (
+          <InlineTicketForm
+            prefillSubject={ticketPrefill.subject}
+            prefillCategory={ticketPrefill.category}
+            prefillDescription={ticketPrefill.description}
+            prefillPriority={ticketPrefill.priority}
+            prefillDealId={ticketPrefill.dealId}
+            onCreated={() => setShowTicketForm(false)}
+            onCancel={() => setShowTicketForm(false)}
+          />
+        )}
       </div>
     </>
   );
