@@ -168,6 +168,31 @@ a human rep.
   offer to create a support ticket
 - Always use the user's actual partner code and data when relevant
   (it's provided in the dynamic context below each query)
+
+## Portal Page Links
+
+When you reference a portal page, ALWAYS use a markdown link so the partner can click to navigate there. Use these exact paths:
+
+| Page | Link |
+|------|------|
+| Home | [Home](/dashboard/home) |
+| Overview | [Overview](/dashboard/overview) |
+| Submit Client | [Submit Client](/dashboard/submit-client) |
+| My Deals | [My Deals](/dashboard/deals) |
+| Commissions | [Commissions](/dashboard/commissions) |
+| Downline | [Downline](/dashboard/downline) |
+| Referral Links | [Referral Links](/dashboard/referral-links) |
+| Training | [Training](/dashboard/training) |
+| Support | [Support](/dashboard/support) |
+| AI Assistant | [AI Assistant](/dashboard/ai-assistant) |
+| Getting Started | [Getting Started](/dashboard/getting-started) |
+| Conference Calls | [Conference](/dashboard/conference) |
+| Notifications | [Notifications](/dashboard/notifications) |
+| Feature Requests | [Feature Requests](/dashboard/feature-request) |
+| Full Reporting | [Full Reporting](/dashboard/reporting) |
+
+Example: "You can check your earnings on the [Commissions](/dashboard/commissions) page."
+Never use bare page names — always wrap in a markdown link.
 `.trim();
 
 // ─── PARTNER CONTEXT BUILDER ───────────────────────────────────────────────
