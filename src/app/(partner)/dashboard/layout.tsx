@@ -28,16 +28,18 @@ const MAIN_NAV: Array<{
   label: string;
   shortLabel: string;
   activePaths?: string[];
+  parentId?: string;
 }> = [
   { id: "home", href: "/dashboard/home", icon: "🏠", label: "Home", shortLabel: "Home" },
+  { id: "notifications", href: "/dashboard/notifications", icon: "🔔", label: "Notifications", shortLabel: "Alerts" },
   { id: "getting-started", href: "/dashboard/getting-started", icon: "⭐", label: "Getting Started", shortLabel: "Start" },
   { id: "overview", href: "/dashboard/overview", icon: "📊", label: "Overview", shortLabel: "Stats" },
   { id: "training", href: "/dashboard/training", icon: "📖", label: "Partner Training", shortLabel: "Learn" },
-  { id: "deals", href: "/dashboard/deals", icon: "📋", label: "My Deals", shortLabel: "Deals" },
-  { id: "commissions", href: "/dashboard/commissions", icon: "💲", label: "Commissions", shortLabel: "Earn" },
   { id: "submit-client", href: "/dashboard/submit-client", icon: "✅", label: "Submit Client", shortLabel: "Submit" },
-  { id: "reporting", href: "/dashboard/reporting", icon: "📈", label: "Full Reporting", shortLabel: "Reports" },
-  { id: "downline", href: "/dashboard/downline", icon: "👥", label: "Downline", shortLabel: "Team" },
+  { id: "reporting", href: "/dashboard/reporting", icon: "📈", label: "Full Reporting", shortLabel: "Reports", activePaths: ["/dashboard/reporting", "/dashboard/deals", "/dashboard/downline", "/dashboard/commissions"] },
+  { id: "deals", href: "/dashboard/deals", icon: "📋", label: "My Deals", shortLabel: "Deals", parentId: "reporting" },
+  { id: "downline", href: "/dashboard/downline", icon: "👥", label: "Downline", shortLabel: "Team", parentId: "reporting" },
+  { id: "commissions", href: "/dashboard/commissions", icon: "💲", label: "Commissions", shortLabel: "Earn", parentId: "reporting" },
   { id: "referral-links", href: "/dashboard/referral-links", icon: "🔗", label: "Referral Links", shortLabel: "Links" },
   {
     id: "communications",
@@ -60,10 +62,6 @@ const MAIN_NAV: Array<{
     shortLabel: "Help",
     activePaths: ["/dashboard/ai-assistant", "/dashboard/support"],
   },
-  // Direct entry for the full notifications log — kept alongside the
-  // Communications group (which still tabs into /dashboard/notifications)
-  // so partners have a one-click shortcut from the sidebar.
-  { id: "notifications", href: "/dashboard/notifications", icon: "🔔", label: "Notifications", shortLabel: "Alerts" },
   { id: "feature-request", href: "/dashboard/feature-request", icon: "💡", label: "Feature Requests", shortLabel: "Ideas" },
 ];
 
@@ -448,24 +446,52 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main Nav */}
       <div className="flex flex-col gap-0.5">
-        {(navOrder.length > 0
-          ? [
-              ...navOrder.map((id) => MAIN_NAV.find((n) => n.id === id)).filter(Boolean) as typeof MAIN_NAV,
-              ...MAIN_NAV.filter((n) => !navOrder.includes(n.id)),
-            ]
-          : MAIN_NAV
-        ).filter((item) => !hiddenNavItems.includes(item.id)).map((item) => (
-          <NavButton
-            key={item.id}
-            item={item}
-            isActive={isActive(item.href, item.activePaths)}
-            onClick={() => navigate(item.href)}
-            collapsed={isCollapsed}
-            customLabel={navLabels[`partner.${item.id}`]}
-            customIcon={navIcons[`partner.${item.id}`] || BUILT_IN_PARTNER_ICONS[item.id]}
-            badgeCount={item.id === "notifications" ? unreadCount : 0}
-          />
-        ))}
+        {(() => {
+          const orderedNav = (navOrder.length > 0
+            ? [
+                ...navOrder.map((id) => MAIN_NAV.find((n) => n.id === id)).filter(Boolean) as typeof MAIN_NAV,
+                ...MAIN_NAV.filter((n) => !navOrder.includes(n.id)),
+              ]
+            : MAIN_NAV
+          ).filter((item) => !hiddenNavItems.includes(item.id));
+
+          const topLevel = orderedNav.filter((item) => !item.parentId);
+          const children = orderedNav.filter((item) => item.parentId);
+
+          return topLevel.map((item) => {
+            const subItems = children.filter((c) => c.parentId === item.id);
+            const parentActive = isActive(item.href, item.activePaths);
+            return (
+              <div key={item.id}>
+                <NavButton
+                  item={item}
+                  isActive={parentActive}
+                  onClick={() => navigate(item.href)}
+                  collapsed={isCollapsed}
+                  customLabel={navLabels[`partner.${item.id}`]}
+                  customIcon={navIcons[`partner.${item.id}`] || BUILT_IN_PARTNER_ICONS[item.id]}
+                  badgeCount={item.id === "notifications" ? unreadCount : 0}
+                />
+                {subItems.length > 0 && parentActive && !isCollapsed && (
+                  <div className="ml-6 mt-0.5 space-y-0.5 border-l border-[var(--app-border)] pl-2">
+                    {subItems.map((sub) => (
+                      <NavButton
+                        key={sub.id}
+                        item={sub}
+                        isActive={pathname === sub.href || pathname.startsWith(sub.href + "/")}
+                        onClick={() => navigate(sub.href)}
+                        collapsed={false}
+                        customLabel={navLabels[`partner.${sub.id}`]}
+                        customIcon={navIcons[`partner.${sub.id}`] || BUILT_IN_PARTNER_ICONS[sub.id]}
+                        badgeCount={0}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          });
+        })()}
       </div>
 
       {/* Spacer */}

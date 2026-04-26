@@ -52,16 +52,16 @@ function compressImage(file: File, maxDim: number, quality: number): Promise<str
 // Any item present there but missing here is rendered on the partner
 // sidebar but is NOT reorderable / hide-able from the admin editor.
 const ALL_NAV_ITEMS = [
-  { id: "notifications", label: "Notifications", icon: "🔔" },
   { id: "home", label: "Home", icon: "🏠" },
+  { id: "notifications", label: "Notifications", icon: "🔔" },
   { id: "getting-started", label: "Getting Started", icon: "⭐" },
   { id: "overview", label: "Overview", icon: "📊" },
   { id: "training", label: "Partner Training", icon: "📖" },
-  { id: "deals", label: "My Deals", icon: "📋" },
-  { id: "commissions", label: "Commissions", icon: "💲" },
   { id: "submit-client", label: "Submit Client", icon: "✅" },
   { id: "reporting", label: "Full Reporting", icon: "📈" },
-  { id: "downline", label: "Downline", icon: "👥" },
+  { id: "deals", label: "  ↳ My Deals", icon: "📋" },
+  { id: "downline", label: "  ↳ Downline", icon: "👥" },
+  { id: "commissions", label: "  ↳ Commissions", icon: "💲" },
   { id: "referral-links", label: "Referral Links", icon: "🔗" },
   // Documents used to be a standalone sidebar item — it now lives as
   // the rightmost tab inside Full Reporting. Removed from the editor
