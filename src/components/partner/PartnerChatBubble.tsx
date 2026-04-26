@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { PERSONAS, resolvePersonaId, type PersonaId } from "@/lib/ai-personas";
 import { useDevice } from "@/lib/useDevice";
 import PersonaSwitcherRow from "./PersonaSwitcherRow";
@@ -27,6 +27,7 @@ export default function PartnerChatBubble({
   aiEnabled,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const device = useDevice();
   const [open, setOpen] = useState(false);
   const [persona, setPersona] = useState<PersonaId>(preferredPersona);
@@ -174,6 +175,7 @@ export default function PartnerChatBubble({
           conversationId: conversationId || undefined,
           message: text.trim(),
           pinnedSpecialist,
+          currentPage: pathname,
         }),
       });
 

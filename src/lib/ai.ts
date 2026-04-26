@@ -292,6 +292,125 @@ older ones via the Deals page.
   }
 }
 
+// ─── PAGE CONTEXT FOR AI ────────────────────────────────────────────────────
+const PAGE_CONTEXT: Record<string, { name: string; description: string; tips: string[] }> = {
+  "/dashboard/home": {
+    name: "Home",
+    description: "Partner dashboard home page with embedded video, announcements, and module widgets.",
+    tips: ["Check recent announcements for updates", "Watch the welcome video if you haven't yet"],
+  },
+  "/dashboard/submit-client": {
+    name: "Submit Client",
+    description: "Form to submit a new client referral. Opens the Frost Law intake iframe.",
+    tips: [
+      "Fill out the client's full legal name and contact info",
+      "Make sure you have the client's consent before submitting",
+      "After submission, you can track the deal on the [My Deals](/dashboard/deals) page",
+    ],
+  },
+  "/dashboard/deals": {
+    name: "My Deals",
+    description: "List of all deals the partner has referred. Shows stage, estimated refund, and commission status.",
+    tips: [
+      "Click any deal row to see full details",
+      "Deals move through stages: New Lead → Qualified → In Progress → Closed Won",
+      "Commission is calculated automatically when a deal closes",
+    ],
+  },
+  "/dashboard/commissions": {
+    name: "Commissions",
+    description: "Commission earnings breakdown — pending, due, and paid amounts.",
+    tips: [
+      "Pending = deal closed but firm hasn't paid Fintella yet",
+      "Due = firm paid, your commission is queued for the next payout batch",
+      "Paid = you've received the funds",
+    ],
+  },
+  "/dashboard/downline": {
+    name: "Downline",
+    description: "Your recruited partners and their deal/commission activity.",
+    tips: [
+      "You earn override commissions on your downline's deals",
+      "Invite new partners from the [Referral Links](/dashboard/referral-links) page",
+    ],
+  },
+  "/dashboard/referral-links": {
+    name: "Referral Links",
+    description: "Your unique referral links for recruiting new partners and sharing with clients.",
+    tips: [
+      "Copy your client referral link to share with potential clients",
+      "Copy your partner recruitment link to invite new downline partners",
+      "Each link tracks conversions automatically",
+    ],
+  },
+  "/dashboard/training": {
+    name: "Partner Training",
+    description: "Training modules, resources, FAQs, and glossary to build your referral knowledge.",
+    tips: [
+      "Complete modules to check them off your Getting Started checklist",
+      "Check the Tariff Refunds FAQ category for product-specific questions",
+      "Download PDF resources for offline reference",
+    ],
+  },
+  "/dashboard/support": {
+    name: "Support",
+    description: "Create and track support tickets. View ticket history and admin responses.",
+    tips: [
+      "Use the category dropdown to route your ticket to the right team",
+      "Select a related deal from the dropdown if your question is about a specific deal",
+      "Set priority to 'high' or 'urgent' only for time-sensitive issues",
+      "You'll get a notification when an admin responds",
+    ],
+  },
+  "/dashboard/getting-started": {
+    name: "Getting Started",
+    description: "Onboarding checklist — complete each step to get fully set up as a partner.",
+    tips: [
+      "Steps are checked off automatically as you complete them",
+      "Sign your agreement first — most other features require an active agreement",
+      "Add your payout info so we can pay your commissions",
+    ],
+  },
+  "/dashboard/conference": {
+    name: "Conference Calls",
+    description: "Weekly live calls schedule. Join directly from the portal.",
+    tips: [
+      "Click 'Join' to enter the live call room",
+      "Past recordings are available for replay if you missed a session",
+    ],
+  },
+  "/dashboard/reporting": {
+    name: "Full Reporting",
+    description: "Comprehensive reporting across deals, commissions, and downline activity.",
+    tips: ["Use the tabs to switch between Deals, Commissions, and Downline reports"],
+  },
+  "/dashboard/settings": {
+    name: "Settings",
+    description: "Profile, address, payout info, security, and notification preferences.",
+    tips: [
+      "Add your address for accurate tax forms",
+      "Set up your payout method (bank, ACH, PayPal)",
+      "Enable two-factor authentication for security",
+    ],
+  },
+  "/dashboard/ai-assistant": {
+    name: "AI Assistant",
+    description: "Full AI conversation view with conversation history sidebar.",
+    tips: ["Switch between Finn, Stella, Tara, and Ollie using the persona picker"],
+  },
+};
+
+export function buildPageContext(pathname: string): string {
+  const page = PAGE_CONTEXT[pathname];
+  if (!page) {
+    const partial = Object.entries(PAGE_CONTEXT).find(([key]) => pathname.startsWith(key));
+    if (!partial) return "";
+    const [, p] = partial;
+    return `\n## Current Page Context\nThe partner is currently on the **${p.name}** page (${pathname}).\n${p.description}\n\n**Helpful tips you can offer:**\n${p.tips.map((t) => `- ${t}`).join("\n")}\n\nIf the partner seems stuck or asks a vague question, proactively offer a relevant tip or step-by-step walkthrough for what they can do on this page.`;
+  }
+  return `\n## Current Page Context\nThe partner is currently on the **${page.name}** page (${pathname}).\n${page.description}\n\n**Helpful tips you can offer:**\n${page.tips.map((t) => `- ${t}`).join("\n")}\n\nIf the partner seems stuck or asks a vague question, proactively offer a relevant tip or step-by-step walkthrough for what they can do on this page.`;
+}
+
 // ─── RATE LIMIT + BUDGET ────────────────────────────────────────────────────
 export async function checkRateLimit(
   userId: string
