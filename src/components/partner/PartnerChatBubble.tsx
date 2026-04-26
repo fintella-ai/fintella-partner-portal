@@ -297,18 +297,24 @@ export default function PartnerChatBubble({
           bottom: isMobile ? "calc(88px + env(safe-area-inset-bottom, 0px))" : 24,
           right: isMobile ? 16 : 24,
           background: "var(--app-bg-secondary)",
-          border: `2px solid ${currentPersona.accentHex}40`,
+          border: `2px solid ${conversationId ? currentPersona.accentHex + "40" : "var(--app-border)"}`,
         }}
-        title={`Chat with ${currentPersona.displayName}`}
+        title={conversationId ? `Chat with ${currentPersona.displayName}` : "Chat with FinnStellaOS"}
       >
-        <Image
-          src={currentPersona.avatarSrc}
-          alt={currentPersona.displayName}
-          width={36}
-          height={36}
-          className="rounded-full"
-          style={{ width: 36, height: 36 }}
-        />
+        {conversationId && messages.length > 0 ? (
+          <Image
+            src={currentPersona.avatarSrc}
+            alt={currentPersona.displayName}
+            width={36}
+            height={36}
+            className="rounded-full"
+            style={{ width: 36, height: 36 }}
+          />
+        ) : (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--app-text-secondary)" }}>
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        )}
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1.5 leading-none">
             {unreadCount > 99 ? "99+" : unreadCount}
