@@ -11,7 +11,8 @@ export type AttentionSource =
   | "invite"
   | "partner"
   | "payout"
-  | "feature";
+  | "feature"
+  | "meeting";
 
 export interface AttentionItem {
   id: string;
@@ -34,6 +35,7 @@ const SOURCE_META: Record<AttentionSource, { icon: string; label: string; accent
   partner:   { icon: "🙋", label: "New Partner", accent: "bg-pink-500/10 text-pink-300 border-pink-500/20" },
   payout:    { icon: "💰", label: "Payout",      accent: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20" },
   feature:   { icon: "💡", label: "Request",     accent: "bg-indigo-500/10 text-indigo-300 border-indigo-500/20" },
+  meeting:   { icon: "📅", label: "Meeting",     accent: "bg-sky-500/10 text-sky-300 border-sky-500/20" },
 };
 
 function relativeAge(iso: string): string {
@@ -109,6 +111,7 @@ export default function AttentionFeedRow({
       <div className={`font-body text-[11px] ${staleBadge} whitespace-nowrap`}>{age}</div>
       <Link
         href={item.href}
+        {...(item.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         className="font-body text-[11px] text-brand-gold border border-brand-gold/30 rounded-lg px-3 py-1.5 hover:bg-brand-gold/10 transition-colors whitespace-nowrap"
       >
         {item.actionLabel} ↗
