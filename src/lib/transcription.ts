@@ -5,10 +5,9 @@
  * the same non-fatal contract as pdf-parse in src/lib/pdf-extraction.ts:
  * returns { text: "" } on any failure, never throws.
  *
- * Phase 2c scope — audio files (mp3, wav, m4a, etc.) up to 25MB
- * (Whisper's upload limit). Video transcription requires audio-track
- * extraction via ffmpeg which Vercel Functions cannot do natively;
- * deferred to Phase 2c.1.
+ * Supports audio files (mp3, wav, m4a, etc.) AND video files (mp4, webm,
+ * mov) up to 25MB — Whisper's upload limit. Whisper accepts video files
+ * directly; no ffmpeg or audio-track extraction needed.
  *
  * Demo-gated: if OPENAI_API_KEY is not set, returns { text: "" }
  * immediately without making any network call. Safe for local dev and
@@ -40,8 +39,8 @@ export async function transcribeAudioFromUrl(
     return { text: "", byteLength: 0, skippedReason: "no_api_key" };
   }
 
-  // Phase 2c scope — audio only. Video is deferred.
-  if (opts.fileType && opts.fileType !== "audio") {
+  const TRANSCRIBABLE_TYPES = new Set(["audio", "video"]);
+  if (opts.fileType && !TRANSCRIBABLE_TYPES.has(opts.fileType)) {
     return { text: "", byteLength: 0, skippedReason: "unsupported_type" };
   }
 

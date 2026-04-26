@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         extractedText = result.text;
         extractedAt = new Date();
       }
-    } else if (fileType === "audio") {
+    } else if (fileType === "audio" || fileType === "video") {
       const result = await transcribeAudioFromUrl(fileUrl, { fileType });
       if (result.text) {
         audioTranscript = result.text;
