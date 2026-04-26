@@ -614,7 +614,7 @@ export default function AdminWorkspacePage() {
           <QuickLink href="/admin/support" label="+ New Ticket" icon="🎫" />
           <QuickLink href="/admin/communications" label="Send SMS" icon="💬" />
           <QuickLink href="/admin/communications" label="Send Email" icon="📧" />
-          <CopyLinkButton url="https://fintella.partners/landing-v2" label="Copy Landing Link" icon="🔗" />
+          <CopyLinkButton url="https://fintella.partners" label="Copy Landing Link" icon="🔗" />
           <QuickLink href="/admin/applications" label="Partner Leads" icon="📩" />
           <QuickLink href="/admin/partners" label="+ Invite Partner" icon="👥" />
           {showPayoutsCard && <QuickLink href="/admin/payouts" label="Run Payout Batch" icon="💰" />}

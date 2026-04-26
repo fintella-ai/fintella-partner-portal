@@ -43,21 +43,21 @@ type Application = {
   bookings: BookingWithSlot[];
 };
 
-type TabId = "all" | "new" | "contacted" | "qualified" | "approved" | "rejected";
+type TabId = "all" | "new" | "meeting_booked" | "no_show" | "approved" | "rejected";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "all", label: "All" },
   { id: "new", label: "New" },
-  { id: "contacted", label: "Contacted" },
-  { id: "qualified", label: "Qualified" },
+  { id: "meeting_booked", label: "Meeting Booked" },
+  { id: "no_show", label: "No Show" },
   { id: "approved", label: "Approved" },
   { id: "rejected", label: "Rejected" },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
   new: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  contacted: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  qualified: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  meeting_booked: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  no_show: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   approved: "bg-green-500/10 text-green-400 border-green-500/20",
   rejected: "bg-red-500/10 text-red-400 border-red-500/20",
 };
@@ -73,6 +73,10 @@ export default function AdminApplicationsPage() {
   const [inviteName, setInviteName] = useState("");
   const [inviteSending, setInviteSending] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [approveApp, setApproveApp] = useState<Application | null>(null);
+  const [approveRate, setApproveRate] = useState(0.20);
+  const [approveReferrer, setApproveReferrer] = useState("");
+  const [approveSending, setApproveSending] = useState(false);
 
   const fetchApps = useCallback(async () => {
     setLoading(true);
@@ -124,19 +128,31 @@ export default function AdminApplicationsPage() {
     }
   }
 
-  async function approveApplication(app: Application) {
-    if (!confirm(`Approve ${app.firstName} ${app.lastName} as a 20% L2 partner under ${app.uplineCode}?\n\nThis creates a recruitment invite and emails the activation link to ${app.email}.`)) return;
-    const res = await fetch(`/api/admin/applications/${app.id}/approve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      flash("ok", `Approved — invite sent to ${app.email}`);
-      fetchApps();
-    } else {
-      flash("err", data.error || "Approval failed");
+  function startApprove(app: Application) {
+    setApproveApp(app);
+    setApproveRate(0.20);
+    setApproveReferrer(app.uplineCode || "");
+  }
+
+  async function submitApproval() {
+    if (!approveApp) return;
+    setApproveSending(true);
+    try {
+      const res = await fetch(`/api/admin/applications/${approveApp.id}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commissionRate: approveRate, uplineCode: approveReferrer || undefined }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        flash("ok", `Approved — invite sent to ${approveApp.email}`);
+        setApproveApp(null);
+        fetchApps();
+      } else {
+        flash("err", data.error || "Approval failed");
+      }
+    } finally {
+      setApproveSending(false);
     }
   }
 
@@ -174,13 +190,13 @@ export default function AdminApplicationsPage() {
         <div>
           <h1 className="text-3xl font-bold">Partner Applications</h1>
           <p className="text-sm text-[var(--app-text-muted)] mt-1">
-            Leads from the public landing page. Review → qualification call → approve → auto-sends invite.
+            Leads from the public landing page. New → Meeting Booked → Approve → auto-sends invite.
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => {
-              navigator.clipboard.writeText("https://fintella.partners/landing-v2");
+              navigator.clipboard.writeText("https://fintella.partners");
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
@@ -303,6 +319,58 @@ export default function AdminApplicationsPage() {
         </div>
       )}
 
+      {approveApp && (
+        <div className="card p-5 space-y-4 border-green-500/30 bg-green-500/[0.03]">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm text-green-400">Approve & Send Invite</h3>
+            <button onClick={() => setApproveApp(null)} className="text-xs text-[var(--app-text-muted)] hover:text-[var(--app-text)]">Cancel</button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Name</label>
+              <div className="text-sm font-medium">{approveApp.firstName} {approveApp.lastName}</div>
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Email</label>
+              <div className="text-sm font-medium">{approveApp.email}</div>
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Commission Rate</label>
+              <select
+                value={approveRate}
+                onChange={(e) => setApproveRate(parseFloat(e.target.value))}
+                className="w-full theme-input rounded-lg px-3 py-2 text-sm"
+              >
+                <option value={0.10}>10%</option>
+                <option value={0.15}>15%</option>
+                <option value={0.20}>20%</option>
+                <option value={0.25}>25%</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Referring Partner Code</label>
+              <input
+                type="text"
+                value={approveReferrer}
+                onChange={(e) => setApproveReferrer(e.target.value)}
+                placeholder="e.g. PTNS4XDMN (optional)"
+                className="w-full theme-input rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              disabled={approveSending}
+              onClick={submitApproval}
+              className="px-4 py-2 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 disabled:opacity-50"
+            >
+              {approveSending ? "Sending…" : `Approve & Send Invite to ${approveApp.email}`}
+            </button>
+            <button onClick={() => setApproveApp(null)} className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm hover:bg-[var(--app-input-bg)]">Cancel</button>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-1 border-b border-[var(--app-border)] overflow-x-auto">
         {TABS.map((t) => {
           const count =
@@ -378,7 +446,7 @@ export default function AdminApplicationsPage() {
                       <span
                         className={`px-2.5 py-1 text-xs rounded-full border ${statusColor}`}
                       >
-                        {app.status}
+                        {app.status.replace(/_/g, " ")}
                       </span>
                       <div className="text-xs text-[var(--app-text-muted)] whitespace-nowrap">
                         {fmtDate(app.createdAt)}
@@ -392,7 +460,7 @@ export default function AdminApplicationsPage() {
                     app={app}
                     onUpdateStatus={updateStatus}
                     onSaveNotes={saveNotes}
-                    onApprove={approveApplication}
+                    onApprove={startApprove}
                     onReject={rejectApplication}
                     onDelete={deleteApplication}
                   />
@@ -500,22 +568,22 @@ function ApplicationDetail({
       </div>
 
       <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--app-border)]">
-        {app.status !== "contacted" && (
-          <button onClick={() => onUpdateStatus(app.id, "contacted")} className="px-3 py-1.5 text-xs rounded-md border border-[var(--app-border)] hover:bg-[var(--app-input-bg)]">
-            Mark Contacted
+        {app.status === "new" && (
+          <button onClick={() => onUpdateStatus(app.id, "meeting_booked")} className="px-3 py-1.5 text-xs rounded-md border border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 font-semibold">
+            📅 Meeting Booked
           </button>
         )}
-        {app.status !== "qualified" && (
-          <button onClick={() => onUpdateStatus(app.id, "qualified")} className="px-3 py-1.5 text-xs rounded-md border border-[var(--app-border)] hover:bg-[var(--app-input-bg)]">
-            Mark Qualified
+        {(app.status === "meeting_booked") && (
+          <button onClick={() => onUpdateStatus(app.id, "no_show")} className="px-3 py-1.5 text-xs rounded-md border border-orange-500/30 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 font-semibold">
+            ⚠️ No Show
           </button>
         )}
-        {app.status !== "approved" && (
+        {app.status !== "approved" && app.status !== "rejected" && (
           <button onClick={() => onApprove(app)} className="px-3 py-1.5 text-xs rounded-md bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 font-semibold">
             ✓ Approve & Send Invite
           </button>
         )}
-        {app.status !== "rejected" && (
+        {app.status !== "rejected" && app.status !== "approved" && (
           <button onClick={() => onReject(app)} className="px-3 py-1.5 text-xs rounded-md bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20">
             ✗ Reject
           </button>
