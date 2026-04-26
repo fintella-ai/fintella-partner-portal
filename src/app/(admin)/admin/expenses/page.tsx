@@ -31,7 +31,6 @@ const CATEGORIES: Category[] = [
       { name: "Vercel (Fintella Portal)", plan: "Pro", monthlyCost: 20, status: "active", startDate: "2026-03-01" },
       { name: "Vercel (Fintella OS)", plan: "Pro Trial", monthlyCost: 0, status: "trial", note: "Check expiry" },
       { name: "Neon Postgres", plan: "Pro", monthlyCost: 19, status: "active", startDate: "2026-03-01" },
-      { name: "Contabo VPS", plan: "Tier 2", monthlyCost: 23, status: "idle", note: "Planned for MinIO", startDate: "2026-04-01" },
       { name: "GitHub", plan: "Free", monthlyCost: 0, status: "active" },
       { name: "Cloudflare", plan: "Free", monthlyCost: 0, status: "active" },
     ],
@@ -45,7 +44,7 @@ const CATEGORIES: Category[] = [
       { name: "Twilio SMS", plan: "Pending", monthlyCost: 0, status: "pending", note: "Waiting on A2P 10DLC approval" },
       { name: "Twilio Voice", plan: "Usage-based", monthlyCost: 5, status: "active", startDate: "2026-04-20" },
       { name: "Sentry", plan: "Team", monthlyCost: 29, status: "active", note: "Error monitoring", startDate: "2026-04-26" },
-      { name: "Google Workspace", plan: "Business Starter", monthlyCost: 7.20, status: "active", note: "Calendar, Meet, Drive, Gmail", startDate: "2026-04-01" },
+      { name: "Google Workspace", plan: "Business Standard", monthlyCost: 14.40, status: "active", note: "Calendar, Meet recording, Drive, Gmail", startDate: "2026-04-01" },
     ],
   },
   {
