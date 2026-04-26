@@ -121,7 +121,7 @@ const DEMO_PROGRESS: ProgressStats = {
 
 const MODULE_CATEGORIES = ["onboarding", "sales", "product", "tools"] as const;
 const RESOURCE_FILE_TYPES = ["pdf", "checklist", "template", "guide"] as const;
-const FAQ_CATEGORIES = ["general", "commissions", "leads", "technical"] as const;
+const FAQ_CATEGORIES = ["general", "commissions", "leads", "technical", "tariff_refunds"] as const;
 
 const categoryBadge: Record<string, string> = {
   onboarding: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
@@ -132,6 +132,7 @@ const categoryBadge: Record<string, string> = {
   commissions: "bg-green-500/10 text-green-400 border border-green-500/20",
   leads: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
   technical: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+  tariff_refunds: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
   pdf: "bg-red-500/10 text-red-400 border border-red-500/20",
   checklist: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
   template: "bg-purple-500/10 text-purple-400 border border-purple-500/20",

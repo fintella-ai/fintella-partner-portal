@@ -380,6 +380,52 @@ Commission amounts are calculated as a percentage of the recovery fee collected 
       sortOrder: 10,
       published: true,
     },
+    // ─── TARIFF REFUND FAQs ──────────────────────────────────────────────────
+    {
+      id: "faq-11",
+      question: "What is IEEPA and how does it affect tariff refunds?",
+      answer:
+        "The International Emergency Economic Powers Act (IEEPA) grants the President authority to impose tariffs under a declared national emergency. Many U.S. importers have paid substantial duties under IEEPA-authorized tariffs — particularly on goods imported from China under Section 301. Through Fintella and our vetted legal partners, businesses can file claims with U.S. Customs and Border Protection to recover overpaid duties on affected imports.",
+      category: "tariff_refunds",
+      sortOrder: 11,
+      published: true,
+    },
+    {
+      id: "faq-12",
+      question: "Who qualifies for a tariff refund?",
+      answer:
+        "Any U.S.-based business that imported goods subject to IEEPA or Section 301 tariffs during the eligible recovery period may qualify for a refund. Key factors include the HTS codes of the imported products, the volume of imports, and whether the duties paid fall within the recoverable categories. Fintella's team evaluates each potential client to determine eligibility — there is no cost or obligation for the initial assessment.",
+      category: "tariff_refunds",
+      sortOrder: 12,
+      published: true,
+    },
+    {
+      id: "faq-13",
+      question: "How long does the tariff refund process take?",
+      answer:
+        "The typical timeline from initial filing to receiving a refund is 6 to 12 months, depending on the complexity of the claim and current processing times at U.S. Customs and Border Protection. Some straightforward claims may resolve faster, while larger or more complex cases can take up to 18 months. Fintella and our vetted legal partners handle the entire process, and partners can track status updates for their referred clients directly in the portal.",
+      category: "tariff_refunds",
+      sortOrder: 13,
+      published: true,
+    },
+    {
+      id: "faq-14",
+      question: "What documents are needed to file a tariff refund claim?",
+      answer:
+        "Clients typically need to provide customs entry summaries (CBP Form 7501), commercial invoices, bills of lading, packing lists, and a power of attorney form authorizing the claim to be filed on their behalf. In some cases, additional documentation such as broker records or customs rulings may be required. Fintella's team guides each client through the document collection process after a lead is converted to an active deal.",
+      category: "tariff_refunds",
+      sortOrder: 14,
+      published: true,
+    },
+    {
+      id: "faq-15",
+      question: "How much can a business recover in tariff refunds?",
+      answer:
+        "Recovery amounts depend on the volume and value of imports subject to recoverable tariffs. Businesses with annual imports of $500K or more in affected goods can often recover tens of thousands to hundreds of thousands of dollars in overpaid duties. The exact amount is determined during the initial analysis by Fintella and our vetted legal partners. There is no upfront cost to the client — fees are contingency-based and only collected when a recovery is successful.",
+      category: "tariff_refunds",
+      sortOrder: 15,
+      published: true,
+    },
   ];
 
   for (const faq of faqs) {
@@ -397,7 +443,7 @@ Commission amounts are calculated as a percentage of the recovery fee collected 
     console.log(`Upserted FAQ: ${faq.id} — ${faq.question}`);
   }
 
-  console.log("\nSeed complete: 8 modules, 5 resources, 10 FAQs.");
+  console.log("\nSeed complete: 8 modules, 5 resources, 15 FAQs.");
 }
 
 main()
