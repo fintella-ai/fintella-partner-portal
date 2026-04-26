@@ -32,6 +32,7 @@ interface Resource {
   fileUrl: string;
   fileType: string;
   fileSize: string | null;
+  category: string | null;
   // moduleId is populated when the resource is attached to a specific
   // training module. Used to surface attached resources inline on the
   // module card (Modules tab) in addition to the Resources tab.
@@ -64,7 +65,7 @@ type Section = "modules" | "resources" | "faq" | "glossary";
 const MODULE_CATEGORIES = ["All", "Onboarding", "Sales", "Product Knowledge", "Tools"];
 
 /** FAQ category filter options. */
-const FAQ_CATEGORIES = ["All", "General", "Commissions", "Leads", "Technical"];
+const FAQ_CATEGORIES = ["All", "General", "Commissions", "Leads", "Technical", "Tariff Refunds"];
 
 /* -------------------------------------------------------------------------- */
 /*  Demo / Fallback Data                                                      */
@@ -82,11 +83,11 @@ const DEMO_MODULES: Module[] = [
 ];
 
 const DEMO_RESOURCES: Resource[] = [
-  { id: "tr-quickstart", title: "IEEPA Tariff Recovery — Partner Quick Start Guide", description: "Everything you need to know to get started as a Fintella partner.", fileUrl: "#", fileType: "pdf", fileSize: "2.4 MB", moduleId: null },
-  { id: "tr-checklist", title: "Qualified Importer Checklist", description: "Use this checklist to quickly assess if a potential client qualifies.", fileUrl: "#", fileType: "checklist", fileSize: "340 KB", moduleId: null },
-  { id: "tr-ratecard", title: "Commission Rate Card", description: "Overview of L1, L2, and L3 commission rates and payment schedules.", fileUrl: "#", fileType: "pdf", fileSize: "180 KB", moduleId: null },
-  { id: "tr-script", title: "Client Conversation Script", description: "Talking points for your first conversation with a potential client.", fileUrl: "#", fileType: "guide", fileSize: "520 KB", moduleId: null },
-  { id: "tr-section301", title: "Section 301 Duties — Reference Sheet", description: "Quick reference for Section 301 tariff categories and recovery eligibility.", fileUrl: "#", fileType: "pdf", fileSize: "890 KB", moduleId: null },
+  { id: "tr-quickstart", title: "IEEPA Tariff Recovery — Partner Quick Start Guide", description: "Everything you need to know to get started as a Fintella partner.", fileUrl: "#", fileType: "pdf", fileSize: "2.4 MB", category: "onboarding", moduleId: null },
+  { id: "tr-checklist", title: "Qualified Importer Checklist", description: "Use this checklist to quickly assess if a potential client qualifies.", fileUrl: "#", fileType: "checklist", fileSize: "340 KB", category: "sales", moduleId: null },
+  { id: "tr-ratecard", title: "Commission Rate Card", description: "Overview of L1, L2, and L3 commission rates and payment schedules.", fileUrl: "#", fileType: "pdf", fileSize: "180 KB", category: "commissions", moduleId: null },
+  { id: "tr-script", title: "Client Conversation Script", description: "Talking points for your first conversation with a potential client.", fileUrl: "#", fileType: "guide", fileSize: "520 KB", category: "sales", moduleId: null },
+  { id: "tr-section301", title: "Section 301 Duties — Reference Sheet", description: "Quick reference for Section 301 tariff categories and recovery eligibility.", fileUrl: "#", fileType: "pdf", fileSize: "890 KB", category: "product", moduleId: null },
 ];
 
 const DEMO_FAQS: FAQItem[] = [
@@ -146,6 +147,9 @@ export default function TrainingPage() {
   // with an iframe embed of the resource so the partner can read without
   // leaving the portal.
   const [viewingResource, setViewingResource] = useState<Resource | null>(null);
+
+  /* ---- Resources category filter ---- */
+  const [activeResourceCategory, setActiveResourceCategory] = useState("All");
 
   /* ---- FAQ state ---- */
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
@@ -331,13 +335,18 @@ export default function TrainingPage() {
   const progress = modules.length > 0 ? Math.round((completedCount / modules.length) * 100) : 0;
 
   const filteredFaqs =
-    activeFaqCategory === "All" ? faqs : faqs.filter((f) => f.category === activeFaqCategory);
+    activeFaqCategory === "All" ? faqs : faqs.filter((f) => f.category?.toLowerCase() === activeFaqCategory.toLowerCase());
 
   const accordionItems: AccordionItem[] = filteredFaqs.map((f) => ({
     id: f.id,
     title: f.question,
     content: f.answer,
   }));
+
+  /** Resource category filter options — derived from actual data. */
+  const resourceCategories = ["All", ...Array.from(new Set(resources.map((r) => r.category).filter(Boolean) as string[]))];
+  const filteredResources =
+    activeResourceCategory === "All" ? resources : resources.filter((r) => r.category?.toLowerCase() === activeResourceCategory.toLowerCase());
 
   /* -------------------------------------------------------------------------- */
   /*  Render                                                                    */
@@ -613,8 +622,28 @@ export default function TrainingPage() {
       {/*  RESOURCES SECTION                                                  */}
       {/* ================================================================== */}
       {!loading && activeSection === "resources" && (
-        <div className={`grid ${device.isMobile ? "grid-cols-1 gap-3" : "grid-cols-2 gap-4"}`}>
-          {resources.map((r) => (
+        <>
+          {/* Resource Category Tabs */}
+          {resourceCategories.length > 1 && (
+            <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
+              {resourceCategories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveResourceCategory(cat)}
+                  className={`font-body text-[11px] tracking-wider uppercase px-4 py-2 rounded-lg border transition-colors whitespace-nowrap ${
+                    activeResourceCategory === cat
+                      ? "bg-brand-gold/10 border-brand-gold/30 text-brand-gold"
+                      : "border-[var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] hover:border-[var(--app-border)]"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className={`grid ${device.isMobile ? "grid-cols-1 gap-3" : "grid-cols-2 gap-4"}`}>
+          {filteredResources.map((r) => (
             <div key={r.id} className={`card ${device.cardPadding}`}>
               <div className="flex items-start gap-3">
                 {/* File type icon */}
@@ -660,7 +689,8 @@ export default function TrainingPage() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       {/* ================================================================== */}

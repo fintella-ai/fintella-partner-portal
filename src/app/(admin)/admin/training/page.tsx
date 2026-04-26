@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useResizableColumns } from "@/components/ui/ResizableTable";
 import GlossaryAdmin from "@/components/admin/GlossaryAdmin";
 import SlidePlayer from "@/components/ui/SlidePlayer";
+import HeyGenOptionsModal, { type HeyGenOptions } from "@/components/admin/HeyGenOptionsModal";
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -121,7 +122,7 @@ const DEMO_PROGRESS: ProgressStats = {
 
 const MODULE_CATEGORIES = ["onboarding", "sales", "product", "tools"] as const;
 const RESOURCE_FILE_TYPES = ["pdf", "checklist", "template", "guide"] as const;
-const FAQ_CATEGORIES = ["general", "commissions", "leads", "technical"] as const;
+const FAQ_CATEGORIES = ["general", "commissions", "leads", "technical", "tariff_refunds"] as const;
 
 const categoryBadge: Record<string, string> = {
   onboarding: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
@@ -132,6 +133,7 @@ const categoryBadge: Record<string, string> = {
   commissions: "bg-green-500/10 text-green-400 border border-green-500/20",
   leads: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
   technical: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+  tariff_refunds: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
   pdf: "bg-red-500/10 text-red-400 border border-red-500/20",
   checklist: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
   template: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
@@ -206,6 +208,7 @@ export default function AdminTrainingPage() {
   const [bulkGenerating, setBulkGenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [generatingHeyGenId, setGeneratingHeyGenId] = useState<string | null>(null);
+  const [heygenModalModule, setHeygenModalModule] = useState<TrainingModule | null>(null);
 
   // Max file size before we refuse to embed — base64 bloats ~33% and
   // Vercel serverless caps request bodies around 4.5MB. Anything bigger
@@ -661,14 +664,13 @@ export default function AdminTrainingPage() {
   };
 
   /** Generate a real HeyGen avatar video for a module */
-  const handleGenerateHeyGen = async (mod: TrainingModule) => {
-    if (!confirm(`Generate a HeyGen avatar video for "${mod.title}"? This takes 2-5 minutes and uses your HeyGen credits.`)) return;
+  const handleGenerateHeyGen = async (mod: TrainingModule, opts: HeyGenOptions) => {
     setGeneratingHeyGenId(mod.id);
     try {
       const res = await fetch(`/api/admin/training/modules/${mod.id}/generate-heygen`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ avatarId: opts.avatarId, mode: opts.mode }),
       });
       const data = await res.json();
       if (data.success && data.videoUrl) {
@@ -1088,7 +1090,7 @@ export default function AdminTrainingPage() {
                           </button>
                         )}
                         <button
-                          onClick={() => handleGenerateHeyGen(mod)}
+                          onClick={() => setHeygenModalModule(mod)}
                           disabled={generatingHeyGenId === mod.id}
                           className="text-xs text-emerald-400/70 hover:text-emerald-400 transition disabled:opacity-50"
                         >
@@ -1198,7 +1200,7 @@ export default function AdminTrainingPage() {
                     </button>
                   )}
                   <button
-                    onClick={() => handleGenerateHeyGen(mod)}
+                    onClick={() => setHeygenModalModule(mod)}
                     disabled={generatingHeyGenId === mod.id}
                     className="text-xs text-emerald-400/70 hover:text-emerald-400 transition disabled:opacity-50"
                   >
@@ -2040,6 +2042,18 @@ export default function AdminTrainingPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {heygenModalModule && (
+        <HeyGenOptionsModal
+          title={heygenModalModule.title}
+          onCancel={() => setHeygenModalModule(null)}
+          onConfirm={(opts) => {
+            const mod = heygenModalModule;
+            setHeygenModalModule(null);
+            handleGenerateHeyGen(mod, opts);
+          }}
+        />
       )}
     </div>
   );
