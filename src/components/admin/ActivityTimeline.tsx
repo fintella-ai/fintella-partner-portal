@@ -56,9 +56,12 @@ function fmt$(n: number | null | undefined): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
+const PAGE_SIZE = 20;
+
 export default function ActivityTimeline({ refreshKey }: { refreshKey: number }) {
-  const [events, setEvents] = useState<ActivityEvent[]>([]);
+  const [allEvents, setAllEvents] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -154,60 +157,96 @@ export default function ActivityTimeline({ refreshKey }: { refreshKey: number })
         });
       }
 
-      // Newest first, keep top 20.
       merged.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
       if (cancelled) return;
-      setEvents(merged.slice(0, 20));
+      setAllEvents(merged);
+      setPage(1);
       setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [refreshKey]);
 
+  const totalPages = Math.max(1, Math.ceil(allEvents.length / PAGE_SIZE));
+  const events = allEvents.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="card">
       <div className="px-4 sm:px-5 py-4 border-b border-[var(--app-border)] flex items-center justify-between">
         <div className="font-body font-semibold text-sm">Recent Activity</div>
-        <div className="font-body text-[11px] theme-text-faint">last {events.length} events · newest first</div>
+        <div className="font-body text-[11px] theme-text-faint">{allEvents.length} events · newest first</div>
       </div>
       {loading ? (
         <div className="px-5 py-8 text-center font-body text-sm theme-text-muted">Loading activity…</div>
-      ) : events.length === 0 ? (
+      ) : allEvents.length === 0 ? (
         <div className="px-5 py-10 text-center">
           <div className="font-body text-sm theme-text-muted">No recent activity to show.</div>
         </div>
       ) : (
-        <ol className="divide-y divide-[var(--app-border)]">
-          {events.map((e) => {
-            const meta = KIND_META[e.kind];
-            return (
-              <li key={e.id} className="px-4 sm:px-5 py-3 flex items-start gap-3 hover:bg-[var(--app-card-bg)] transition-colors">
-                <span className="text-base mt-0.5" aria-hidden>{meta.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Link
-                      href={e.href}
-                      className={`font-body text-[13px] ${meta.accent} hover:underline truncate`}
-                    >
-                      {e.label}
-                    </Link>
-                    {e.amount != null && (
-                      <span className="font-body text-[12px] theme-text-muted">{fmt$(e.amount)}</span>
+        <>
+          <ol className="divide-y divide-[var(--app-border)]">
+            {events.map((e) => {
+              const meta = KIND_META[e.kind];
+              return (
+                <li key={e.id} className="px-4 sm:px-5 py-3 flex items-start gap-3 hover:bg-[var(--app-card-bg)] transition-colors">
+                  <span className="text-base mt-0.5" aria-hidden>{meta.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Link
+                        href={e.href}
+                        className={`font-body text-[13px] ${meta.accent} hover:underline truncate`}
+                      >
+                        {e.label}
+                      </Link>
+                      {e.amount != null && (
+                        <span className="font-body text-[12px] theme-text-muted">{fmt$(e.amount)}</span>
+                      )}
+                    </div>
+                    {e.partnerName && (
+                      <div className="font-body text-[11px] theme-text-muted truncate">
+                        {e.partnerName}
+                        {e.partnerCode && <span className="font-mono theme-text-faint"> · {e.partnerCode}</span>}
+                      </div>
                     )}
                   </div>
-                  {e.partnerName && (
-                    <div className="font-body text-[11px] theme-text-muted truncate">
-                      {e.partnerName}
-                      {e.partnerCode && <span className="font-mono theme-text-faint"> · {e.partnerCode}</span>}
-                    </div>
-                  )}
-                </div>
-                <div className="font-body text-[11px] theme-text-muted whitespace-nowrap shrink-0">
-                  {relativeAge(e.at)}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+                  <div className="font-body text-[11px] theme-text-muted whitespace-nowrap shrink-0">
+                    {relativeAge(e.at)}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          {totalPages > 1 && (
+            <div className="px-4 sm:px-5 py-3 border-t border-[var(--app-border)] flex items-center justify-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="font-body text-[12px] px-2.5 py-1 rounded-md border border-[var(--app-border)] theme-text-secondary hover:bg-brand-gold/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                ‹ Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`font-body text-[12px] min-w-[28px] py-1 rounded-md border transition-colors ${
+                    p === page
+                      ? "bg-brand-gold/15 text-brand-gold border-brand-gold/30 font-semibold"
+                      : "border-[var(--app-border)] theme-text-muted hover:bg-brand-gold/10"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="font-body text-[12px] px-2.5 py-1 rounded-md border border-[var(--app-border)] theme-text-secondary hover:bg-brand-gold/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Next ›
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
