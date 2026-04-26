@@ -871,9 +871,15 @@ async function startLiveChat(
   }
 
   if (onlineAdmins.length === 0) {
-    return err(
-      "No admins are available for live chat right now. Offer the partner a scheduled call or open a support ticket instead."
-    );
+    return ok({
+      success: false,
+      reason: "no_admin_available",
+      message: "No admins are available for live chat right now.",
+      options: [
+        "open a support ticket so someone follows up",
+        "schedule a call for a time that works for you",
+      ],
+    });
   }
 
   // Create ChatSession + seed with partner's opening message.
