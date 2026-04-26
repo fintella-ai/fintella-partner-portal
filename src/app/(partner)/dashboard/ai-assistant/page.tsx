@@ -292,7 +292,7 @@ export default function AiAssistantPage() {
       <PageTabBar
         title="Partner Support"
         tabs={[
-          { label: "PartnerOS AI", href: "/dashboard/ai-assistant" },
+          { label: "FinnStellaOS", href: "/dashboard/ai-assistant" },
           { label: "Support Tickets", href: "/dashboard/support" },
         ]}
       />
@@ -304,7 +304,7 @@ export default function AiAssistantPage() {
               AI Assistant
             </div>
             <h2 className={`font-display ${device.isMobile ? "text-xl" : "text-2xl"} font-bold mb-1 flex items-center gap-2`}>
-              Fintella PartnerOS
+              FinnStellaOS
               <span className="font-body text-[10px] bg-brand-gold/15 text-brand-gold border border-brand-gold/30 rounded-full px-2 py-0.5 tracking-wider uppercase">
                 Beta
               </span>

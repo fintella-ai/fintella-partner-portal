@@ -210,7 +210,7 @@ export default function SupportPage() {
       <PageTabBar
         title="Partner Support"
         tabs={[
-          { label: "PartnerOS AI", href: "/dashboard/ai-assistant" },
+          { label: "FinnStellaOS", href: "/dashboard/ai-assistant" },
           { label: "Support Tickets", href: "/dashboard/support" },
         ]}
       />
