@@ -26,19 +26,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "dealId and either content or an attachment are required" }, { status: 400 });
     }
 
-    // Same per-attachment (~4MB) + combined (~11MB) cap pattern as /api/admin/notes.
-    let total = 0;
     for (const a of attachments) {
       if (typeof a?.url !== "string" || !a.url) {
-        return NextResponse.json({ error: "Each attachment requires a data url" }, { status: 400 });
+        return NextResponse.json({ error: "Each attachment requires a url" }, { status: 400 });
       }
-      if (a.url.length > 5_500_000) {
-        return NextResponse.json({ error: `Attachment ${a.name || ""} too large (max ~4MB each)` }, { status: 413 });
-      }
-      total += a.url.length;
     }
-    if (total > 15_000_000) {
-      return NextResponse.json({ error: "Combined attachment size too large (max ~11MB)" }, { status: 413 });
+    if (attachments.length > 10) {
+      return NextResponse.json({ error: "Max 10 attachments per note" }, { status: 400 });
     }
 
     let authorName = session.user.name || "Admin";

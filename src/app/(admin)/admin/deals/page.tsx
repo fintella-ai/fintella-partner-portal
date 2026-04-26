@@ -1126,17 +1126,14 @@ export default function AdminDealsPage() {
                           setDealNotePosting((p) => ({ ...p, [deal.id]: true }));
                           try {
                             const attachments = await Promise.all(
-                              files.map((f) => new Promise<any>((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => resolve({
-                                  name: f.name,
-                                  url: String(reader.result || ""),
-                                  type: f.type || null,
-                                  size: f.size,
-                                });
-                                reader.onerror = reject;
-                                reader.readAsDataURL(f);
-                              }))
+                              files.map(async (f) => {
+                                const fd = new FormData();
+                                fd.append("file", f);
+                                const up = await fetch("/api/admin/upload", { method: "POST", body: fd });
+                                if (!up.ok) { const e = await up.json().catch(() => ({})); throw new Error(e.error || "Upload failed"); }
+                                const data = await up.json();
+                                return { name: data.name || f.name, url: data.url, type: data.type || f.type || null, size: data.size || f.size };
+                              })
                             );
                             const res = await fetch("/api/admin/deal-notes", {
                               method: "POST",
