@@ -137,6 +137,11 @@ export function GettingStartedChecklist({ variant = "home", onDismissed, onCompl
                   {step.description}
                 </div>
               )}
+              {step.videoUrl && variant === "page" && (
+                <div className="mt-2 rounded-lg overflow-hidden border border-[var(--app-border)]" style={{ aspectRatio: "16/9", maxHeight: 180 }}>
+                  <iframe src={step.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")} className="w-full h-full" allowFullScreen title={`${step.title} video`} />
+                </div>
+              )}
             </div>
             <div className="shrink-0">
               <button

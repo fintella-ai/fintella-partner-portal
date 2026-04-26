@@ -46,6 +46,7 @@ interface StepOverride {
   icon?: string;
   hidden?: boolean;
   order?: number;
+  videoUrl?: string;
 }
 
 interface CustomStep {
@@ -487,6 +488,22 @@ function BuiltInStepCard({
           onChange={(v) => (v ? onChange({ ctaUrl: v }) : onClear("ctaUrl"))}
           mono
         />
+      </div>
+
+      {/* Video URL */}
+      <div className="mt-3">
+        <LabeledInput
+          label="Video URL (optional)"
+          placeholder="https://youtube.com/... or paste HeyGen/Loom/Vimeo URL"
+          value={override.videoUrl ?? ""}
+          onChange={(v) => (v ? onChange({ videoUrl: v }) : onClear("videoUrl"))}
+          mono
+        />
+        {override.videoUrl && (
+          <div className="mt-2 rounded-lg overflow-hidden border border-[var(--app-border)]" style={{ aspectRatio: "16/9", maxHeight: 200 }}>
+            <iframe src={override.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")} className="w-full h-full" allowFullScreen title="Step video preview" />
+          </div>
+        )}
       </div>
     </div>
   );
