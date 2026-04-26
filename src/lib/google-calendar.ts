@@ -376,7 +376,9 @@ export async function freeBusyForInbox(
     if (calListRes.ok) {
       const calListData = (await calListRes.json()) as { items?: Array<{ id: string }> };
       if (calListData.items?.length) {
-        calIds = calListData.items.map((c) => c.id);
+        calIds = calListData.items
+          .filter((c) => !c.id.includes("#holiday@group"))
+          .map((c) => c.id);
       }
     }
   } catch {

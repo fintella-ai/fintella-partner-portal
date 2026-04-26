@@ -54,9 +54,9 @@ const INITIAL_STATS: Stats = {
   featureRequests: 0,
 };
 
-type SectionId = "stats" | "quicklinks" | "tasks_calendar" | "activity";
-const DEFAULT_SECTION_ORDER: SectionId[] = ["stats", "quicklinks", "tasks_calendar", "activity"];
-const LAYOUT_KEY = "fintella.admin.workspace.layout.v2";
+type SectionId = "stats" | "quicklinks" | "calendar" | "tasks_activity";
+const DEFAULT_SECTION_ORDER: SectionId[] = ["stats", "quicklinks", "calendar", "tasks_activity"];
+const LAYOUT_KEY = "fintella.admin.workspace.layout.v3";
 
 function readLayout(): SectionId[] {
   if (typeof window === "undefined") return DEFAULT_SECTION_ORDER;
@@ -454,41 +454,41 @@ export default function AdminWorkspacePage() {
         </div>
       </section>
     ),
-    tasks_calendar: () => (
+    calendar: () => (
       <section
-        key="tasks_calendar"
+        key="calendar"
         draggable={editMode}
-        onDragStart={(e) => onSectionDragStart(e, "tasks_calendar")}
+        onDragStart={(e) => onSectionDragStart(e, "calendar")}
         onDragOver={onSectionDragOver}
-        onDrop={(e) => onSectionDrop(e, "tasks_calendar")}
+        onDrop={(e) => onSectionDrop(e, "calendar")}
         className={`mb-6 ${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move" : ""}`}
       >
         {editMode && (
           <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">
-            ⋮⋮ Tasks + Calendar — drag to reorder
+            ⋮⋮ Calendar — drag to reorder
+          </div>
+        )}
+        <CalendarEmbed />
+      </section>
+    ),
+    tasks_activity: () => (
+      <section
+        key="tasks_activity"
+        draggable={editMode}
+        onDragStart={(e) => onSectionDragStart(e, "tasks_activity")}
+        onDragOver={onSectionDragOver}
+        onDrop={(e) => onSectionDrop(e, "tasks_activity")}
+        className={`mb-6 ${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move" : ""}`}
+      >
+        {editMode && (
+          <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">
+            ⋮⋮ Tasks + Activity — drag to reorder
           </div>
         )}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>{renderAttentionFeed()}</div>
-          <div><CalendarEmbed /></div>
+          <div><ActivityTimeline refreshKey={lastRefreshed?.getTime() || 0} /></div>
         </div>
-      </section>
-    ),
-    activity: () => (
-      <section
-        key="activity"
-        draggable={editMode}
-        onDragStart={(e) => onSectionDragStart(e, "activity")}
-        onDragOver={onSectionDragOver}
-        onDrop={(e) => onSectionDrop(e, "activity")}
-        className={`mb-6 ${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move" : ""}`}
-      >
-        {editMode && (
-          <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">
-            ⋮⋮ Recent Activity — drag to reorder
-          </div>
-        )}
-        <ActivityTimeline refreshKey={lastRefreshed?.getTime() || 0} />
       </section>
     ),
   };
