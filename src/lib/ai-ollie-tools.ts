@@ -304,6 +304,11 @@ export const OLLIE_EXCLUSIVE_TOOLS: Anthropic.Messages.Tool[] = [
       },
       required: ["category", "partnerPhone", "reason"],
     },
+    // cache_control on the last OLLIE_EXCLUSIVE entry marks the cache
+    // breakpoint when the full OLLIE_TOOLS array is passed. Anthropic
+    // caches up to here, saving ~4-5k input tokens per turn after the
+    // first write.
+    cache_control: { type: "ephemeral" } as const,
   },
 ];
 
