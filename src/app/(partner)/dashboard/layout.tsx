@@ -306,6 +306,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [firmSlogan, setFirmSlogan] = useState(DEFAULT_FIRM_SLOGAN);
   const [logoUrl, setLogoUrl] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
+  const [liveWeeklyToday, setLiveWeeklyToday] = useState<{ title: string; href: string } | null>(null);
   const [hiddenNavItems, setHiddenNavItems] = useState<string[]>([]);
   const [navOrder, setNavOrder] = useState<string[]>([]);
   // Partner-scope nav label + icon overrides set by super_admin in /admin/settings.
@@ -338,6 +339,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
+
+  const fetchLiveWeekly = useCallback(() => {
+    fetch("/api/conference", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data?.activeSchedule?.nextCall) { setLiveWeeklyToday(null); return; }
+        const callDate = new Date(data.activeSchedule.nextCall);
+        const now = new Date();
+        const isToday = callDate.getFullYear() === now.getFullYear()
+          && callDate.getMonth() === now.getMonth()
+          && callDate.getDate() === now.getDate();
+        if (!isToday || !data.activeSchedule.isActive) { setLiveWeeklyToday(null); return; }
+        const href = data.activeSchedule.meetLink
+          || data.activeSchedule.joinUrl
+          || "/dashboard/conference";
+        setLiveWeeklyToday({ title: data.activeSchedule.title || "Live Weekly", href });
+      })
+      .catch(() => setLiveWeeklyToday(null));
+  }, []);
+
+  useEffect(() => {
+    fetchLiveWeekly();
+    const id = setInterval(fetchLiveWeekly, 60_000);
+    return () => clearInterval(id);
+  }, [fetchLiveWeekly]);
 
   // Refetch settings when the tab regains focus. Instant propagation from
   // admin save → partner sidebar without a full page reload.
@@ -474,6 +500,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
       </div>
+
+      {/* Live Weekly — day-of-call only, flashing */}
+      {liveWeeklyToday && (
+        <div className="mb-2">
+          <button
+            onClick={() => navigate(liveWeeklyToday.href)}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 transition-colors animate-pulse"
+          >
+            <span className="text-base">🔴</span>
+            {!isCollapsed && (
+              <span className="font-body text-[13px] font-bold tracking-wide">
+                {liveWeeklyToday.title}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Main Nav */}
       <div className="flex flex-col gap-0.5">
