@@ -40,7 +40,7 @@ function localTimeZone(): string {
 export default function CalendarEmbed() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"AGENDA" | "WEEK" | "MONTH">("AGENDA");
+  const [view, setView] = useState<"AGENDA" | "WEEK" | "MONTH">("WEEK");
 
   useEffect(() => {
     fetch("/api/admin/google-calendar/status")
@@ -62,7 +62,9 @@ export default function CalendarEmbed() {
   const src = (() => {
     if (!status) return "";
     const calIds = status.allCalendars?.length
-      ? status.allCalendars.map((c) => c.id)
+      ? status.allCalendars
+          .filter((c) => !c.id.includes("#holiday@group"))
+          .map((c) => c.id)
       : [status.calendarId];
     const srcParams = calIds.map((id) => `src=${encodeURIComponent(id)}`).join("&");
     return `https://calendar.google.com/calendar/embed?${srcParams}&ctz=${encodeURIComponent(tz)}&mode=${view}&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=0&showCalendars=1&showTz=0`;
