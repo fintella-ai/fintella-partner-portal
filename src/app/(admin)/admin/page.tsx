@@ -531,7 +531,7 @@ export default function AdminWorkspacePage() {
       <div className="card">
         <div className="px-4 sm:px-5 pt-4 pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-            <div className="font-body font-semibold text-sm">Needs Attention</div>
+            <div className="font-body font-semibold text-sm">Admin Tasks: Needs Attention</div>
             <div className="font-body text-[11px] theme-text-faint">
               {filteredItems.length} item{filteredItems.length === 1 ? "" : "s"} · oldest first
             </div>
