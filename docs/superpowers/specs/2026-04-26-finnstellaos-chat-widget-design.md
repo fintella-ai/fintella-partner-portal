@@ -144,11 +144,10 @@ In `api/ai/chat/route.ts`:
 - Panel switches to live chat mode (see §5.3)
 
 **If no admin online:**
-- `start_live_chat` tool auto-falls back: calls `create_support_ticket` internally with the conversation summary as the ticket body
-- Creates ticket with `category` from the conversation context + `priority: "normal"`
-- Tool returns `{ success: true, fallback: "ticket", ticketId }`
-- AI responds: "No one's available right now — I've opened a support ticket for you. You'll get a notification when someone responds."
-- No user choice required — the ticket is created automatically
+- `start_live_chat` tool returns `{ success: false, reason: "no_admin_available" }`
+- AI responds: "No one's available for live chat right now. Would you like me to **open a support ticket** so someone follows up, or **schedule a call** for a time that works for you?"
+- Partner chooses → AI calls `create_support_ticket` or `offer_schedule_slots` accordingly
+- The decision is always the partner's — never auto-create a ticket without asking
 
 ### 5.2 AI-Initiated (Tool Call)
 
