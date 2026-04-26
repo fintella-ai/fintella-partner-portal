@@ -68,8 +68,8 @@ export async function PUT(
         // clear any stale audio transcript from a prior fileType
         updateData.audioTranscript = null;
         updateData.transcribedAt = null;
-      } else if (finalType === "audio" && finalUrl) {
-        const result = await transcribeAudioFromUrl(finalUrl, { fileType: "audio" });
+      } else if ((finalType === "audio" || finalType === "video") && finalUrl) {
+        const result = await transcribeAudioFromUrl(finalUrl, { fileType: finalType });
         updateData.audioTranscript = result.text || null;
         updateData.transcribedAt = result.text ? new Date() : null;
         updateData.extractedText = null;
