@@ -531,7 +531,7 @@ export default function AdminWorkspacePage() {
       <div className="card">
         <div className="px-4 sm:px-5 pt-4 pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-            <div className="font-body font-semibold text-sm">Needs Attention</div>
+            <div className="font-body font-semibold text-sm">Admin Tasks: Needs Attention</div>
             <div className="font-body text-[11px] theme-text-faint">
               {filteredItems.length} item{filteredItems.length === 1 ? "" : "s"} · oldest first
             </div>
@@ -619,6 +619,9 @@ export default function AdminWorkspacePage() {
           <QuickLink href="/admin/partners" label="+ Invite Partner" icon="👥" />
           {showPayoutsCard && <QuickLink href="/admin/payouts" label="Run Payout Batch" icon="💰" />}
           <QuickLink href="/admin/conference" label="+ Live Weekly" icon="📹" />
+          <QuickLink href="https://app.heygen.com" label="HeyGen Studio" icon="🎬" />
+          <QuickLink href="https://admin.google.com" label="Google Admin" icon="🏢" />
+          <QuickLink href="https://console.cloud.google.com" label="Google Cloud" icon="☁️" />
         </div>
       </div>
 
