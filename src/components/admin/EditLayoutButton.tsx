@@ -10,17 +10,15 @@ export default function EditLayoutButton() {
   if (!canEdit || device.isMobile) return null;
 
   return (
-    <div className="w-full flex justify-center py-1.5" style={{ background: editMode ? "var(--brand-gold)" : "transparent" }}>
-      <button
-        onClick={toggleEditMode}
-        className={`font-body text-[10px] font-semibold tracking-[1px] uppercase rounded-full px-4 py-1 transition-all ${
-          editMode
-            ? "bg-black/15 text-black hover:bg-black/25"
-            : "bg-brand-gold/10 border border-brand-gold/20 text-brand-gold hover:bg-brand-gold/15"
-        }`}
-      >
-        {editMode ? "✓ Done Editing" : "✎ Edit Layout"}
-      </button>
-    </div>
+    <button
+      onClick={toggleEditMode}
+      className={`fixed top-3 left-1/2 -translate-x-1/2 z-[1001] font-body text-[10px] font-semibold tracking-[1px] uppercase rounded-full px-4 py-1.5 transition-all shadow-lg ${
+        editMode
+          ? "bg-brand-gold text-black hover:bg-yellow-400"
+          : "bg-black/70 backdrop-blur-sm border border-brand-gold/30 text-brand-gold hover:bg-black/90"
+      }`}
+    >
+      {editMode ? "✓ Done Editing" : "✎ Edit Layout"}
+    </button>
   );
 }
