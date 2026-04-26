@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
 
-  const landingUrl = `${process.env.NEXTAUTH_URL || "https://fintella.partners"}/landing-v2`;
+  const landingUrl = (process.env.NEXTAUTH_URL || "https://fintella.partners").replace(/\/$/, "");
   const senderName = (session.user as any).name || undefined;
 
   const result = await sendLandingInviteEmail({
