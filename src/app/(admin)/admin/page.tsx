@@ -25,9 +25,10 @@ import { fmt$ } from "@/lib/format";
  */
 
 const POLL_MS = 60_000;
-type FilterTab = "all" | "messages" | "support" | "onboarding" | "payouts";
+type FilterTab = "all" | "meetings" | "messages" | "support" | "onboarding" | "payouts";
 const FILTER_TABS: Array<{ id: FilterTab; label: string; sources: AttentionSource[] | "all" }> = [
   { id: "all",        label: "All",        sources: "all" },
+  { id: "meetings",   label: "Meetings",   sources: ["meeting"] },
   { id: "messages",   label: "Messages",   sources: ["email", "sms", "chat"] },
   { id: "support",    label: "Support",    sources: ["ticket"] },
   { id: "onboarding", label: "Onboarding", sources: ["agreement", "invite", "partner"] },
@@ -151,6 +152,7 @@ export default function AdminWorkspacePage() {
       partnersRes,
       featuresRes,
       invitesRes,
+      bookingsRes,
     ] = await Promise.allSettled([
       fetch("/api/admin/inbox").then((r) => (r.ok ? r.json() : null)),
       fetch("/api/admin/sms/log").then((r) => (r.ok ? r.json() : null)),
@@ -162,6 +164,7 @@ export default function AdminWorkspacePage() {
       fetch("/api/admin/partners").then((r) => (r.ok ? r.json() : null)),
       fetch("/api/admin/feature-requests").then((r) => (r.ok ? r.json() : null)),
       fetch("/api/admin/invites").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/admin/booking-slots").then((r) => (r.ok ? r.json() : null)),
     ]);
 
     // Each value is either null (endpoint failed / not permitted) or the
@@ -174,6 +177,7 @@ export default function AdminWorkspacePage() {
     const partners = partnersRes.status === "fulfilled" ? partnersRes.value : null;
     const features = featuresRes.status === "fulfilled" ? featuresRes.value : null;
     const invites = invitesRes.status === "fulfilled" ? invitesRes.value : null;
+    const bookingSlots = bookingsRes.status === "fulfilled" ? bookingsRes.value : null;
 
     // ─── Derived stats ─────────────────────────────────────────────
     const emailUnread = inbox?.stats?.unread ?? 0;
@@ -370,6 +374,38 @@ export default function AdminWorkspacePage() {
           createdAt: r.createdAt,
           href: "/admin/features",
           actionLabel: "Review",
+        });
+      }
+    }
+
+    // Today's scheduled meetings (booking slots with confirmed bookings)
+    if (Array.isArray(bookingSlots?.slots)) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      for (const slot of bookingSlots.slots as any[]) {
+        const slotTime = new Date(slot.startsAt).getTime();
+        if (slotTime < todayStart.getTime() || slotTime > todayEnd.getTime()) continue;
+        if (!slot.bookings?.length) continue;
+
+        const time = new Date(slot.startsAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        const endTime = new Date(slot.endsAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        const names = (slot.bookings as any[]).map((b: any) => b.name).join(", ");
+        const meetUrl = slot.location === "google_meet" && slot.googleEventId
+          ? `https://calendar.google.com/calendar/event?eid=${slot.googleEventId}`
+          : null;
+
+        feed.push({
+          id: `meeting:${slot.id}`,
+          source: "meeting",
+          partnerCode: null,
+          partnerName: names || null,
+          summary: `${slot.title} · ${time} – ${endTime}`,
+          createdAt: slot.startsAt,
+          href: meetUrl || "/admin/booking-slots",
+          actionLabel: meetUrl ? "Join" : "View",
         });
       }
     }
