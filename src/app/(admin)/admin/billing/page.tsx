@@ -43,7 +43,7 @@ const CATEGORIES: Category[] = [
       { name: "SendGrid", plan: "Upgraded", cost: "$79/mo", status: "active", note: "Transactional email" },
       { name: "Twilio SMS", plan: "Pending", cost: "$0/mo", status: "pending", note: "Waiting on A2P 10DLC approval" },
       { name: "Twilio Voice", plan: "Usage-based", cost: "~$5/mo", status: "active" },
-      { name: "Anthropic Claude API", plan: "Usage-based", cost: "~$30–50/mo", status: "active", note: "PartnerOS AI" },
+      { name: "Anthropic Claude API", plan: "Usage-based", cost: "~$30–50/mo", status: "active", note: "FinnStellaOS" },
       { name: "Sentry", plan: "Team", cost: "$29/mo", status: "active", note: "Error monitoring — 50K errors, 5GB logs" },
       { name: "Google OAuth", plan: "Free", cost: "$0/mo", status: "active" },
     ],

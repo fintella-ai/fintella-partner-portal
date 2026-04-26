@@ -52,7 +52,7 @@ const CATEGORIES: Category[] = [
     title: "AI & Development",
     icon: "🤖",
     services: [
-      { name: "Anthropic Claude API", plan: "Usage-based", monthlyCost: 40, status: "active", note: "PartnerOS AI + video gen", startDate: "2026-04-20" },
+      { name: "Anthropic Claude API", plan: "Usage-based", monthlyCost: 40, status: "active", note: "FinnStellaOS + video gen", startDate: "2026-04-20" },
       { name: "Claude Code", plan: "Max / Team", monthlyCost: 150, status: "active", note: "Development AI", startDate: "2026-04-01" },
       { name: "HeyGen", plan: "Creator", monthlyCost: 29, status: "active", note: "AI avatar videos", startDate: "2026-04-24" },
     ],

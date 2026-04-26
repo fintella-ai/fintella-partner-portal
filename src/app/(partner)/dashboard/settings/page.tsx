@@ -386,7 +386,7 @@ export default function AccountSettingsPage() {
               AI Assistant
             </div>
             <div className="font-body text-[12px] text-[var(--app-text-muted)] mb-4">
-              Pick the voice you want for your PartnerOS assistant. Both have the same knowledge; only the tone differs.
+              Pick your FinnStellaOS assistant. Both have the same knowledge; only the tone differs.
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {(["finn", "stella"] as const).map((id) => {
