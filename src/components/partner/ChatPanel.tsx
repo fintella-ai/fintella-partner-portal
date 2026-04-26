@@ -27,6 +27,70 @@ const SUGGESTED_PROMPTS = [
   "How do I invite a partner?",
 ];
 
+/** Only allow safe href values — internal paths or https URLs */
+function sanitizeHref(raw: string): string | null {
+  if (raw.startsWith("/")) return raw;
+  if (raw.startsWith("https://")) return raw;
+  if (raw.startsWith("http://")) return raw;
+  return null;
+}
+
+/** Render markdown links [text](url) and **bold** as React elements */
+function renderMessageContent(text: string): React.ReactNode {
+  const linkParts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
+  const elements: React.ReactNode[] = [];
+
+  linkParts.forEach((part, i) => {
+    const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (linkMatch) {
+      const [, label, rawHref] = linkMatch;
+      const href = sanitizeHref(rawHref);
+      if (!href) {
+        elements.push(<span key={`text-${i}`}>{label}</span>);
+      } else if (href.startsWith("/")) {
+        elements.push(
+          <a
+            key={`link-${i}`}
+            href={href}
+            className="text-brand-gold hover:underline font-semibold"
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = href;
+            }}
+          >
+            {label}
+          </a>
+        );
+      } else {
+        elements.push(
+          <a
+            key={`link-${i}`}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-gold hover:underline font-semibold"
+          >
+            {label}
+          </a>
+        );
+      }
+    } else {
+      // Process bold markers within non-link text
+      const boldParts = part.split(/(\*\*[^*]+\*\*)/g);
+      boldParts.forEach((bp, j) => {
+        const boldMatch = bp.match(/^\*\*([^*]+)\*\*$/);
+        if (boldMatch) {
+          elements.push(<strong key={`bold-${i}-${j}`}>{boldMatch[1]}</strong>);
+        } else if (bp) {
+          elements.push(<span key={`text-${i}-${j}`}>{bp}</span>);
+        }
+      });
+    }
+  });
+
+  return elements;
+}
+
 export default function ChatPanel({
   messages,
   sending,
@@ -157,7 +221,7 @@ export default function ChatPanel({
                     }`}
                   >
                     <div className="font-body text-[13px] text-[var(--app-text)] leading-relaxed whitespace-pre-wrap break-words">
-                      {msg.content}
+                      {renderMessageContent(msg.content)}
                     </div>
                     <div className="font-body text-[9px] text-[var(--app-text-muted)] mt-1">
                       {new Date(msg.createdAt).toLocaleTimeString("en-US", {
