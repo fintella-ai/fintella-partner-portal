@@ -619,6 +619,9 @@ export default function AdminWorkspacePage() {
           <QuickLink href="/admin/partners" label="+ Invite Partner" icon="👥" />
           {showPayoutsCard && <QuickLink href="/admin/payouts" label="Run Payout Batch" icon="💰" />}
           <QuickLink href="/admin/conference" label="+ Live Weekly" icon="📹" />
+          <QuickLink href="https://app.heygen.com" label="HeyGen Studio" icon="🎬" />
+          <QuickLink href="https://admin.google.com" label="Google Admin" icon="🏢" />
+          <QuickLink href="https://console.cloud.google.com" label="Google Cloud" icon="☁️" />
         </div>
       </div>
 
