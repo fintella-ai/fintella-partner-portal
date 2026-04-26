@@ -565,7 +565,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <EditLayoutProvider>
     <div className="flex flex-col min-h-screen">
       {/* ── PWA INSTALL PROMPT ── */}
-      {!isSudo && <InstallPrompt />}
+      {/* InstallPrompt popup removed — FintellaAppBanner below is sufficient */}
 
       {/* ── FLASHING "GET THE FINTELLA APP" BANNER ──
           Sits above the layout, auto-hides when installed, and stays

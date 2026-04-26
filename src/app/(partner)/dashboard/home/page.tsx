@@ -121,6 +121,23 @@ export default function HomePage() {
   const device = useDevice();
   const { getSection } = useEditLayout();
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(true);
+
+  // First-time partner redirect: if Getting Started is incomplete, send them there
+  useEffect(() => {
+    const redirected = sessionStorage.getItem("gs-redirect-done");
+    if (redirected) return;
+    fetch("/api/partner/getting-started", { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (d && d.completedCount < d.totalCount && d.totalCount > 0) {
+          sessionStorage.setItem("gs-redirect-done", "1");
+          window.location.href = "/dashboard/getting-started";
+        } else {
+          sessionStorage.setItem("gs-redirect-done", "1");
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
   const [referralOpps, setReferralOpps] = useState<ReferralOpp[]>([]);
