@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   buildUserContext,
+  buildPageContext,
   checkRateLimit,
   generateResponse,
   recordUsage,
@@ -32,10 +33,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { conversationId, message, pinnedSpecialist } = body as {
+    const { conversationId, message, pinnedSpecialist, currentPage } = body as {
       conversationId?: string;
       message?: string;
       pinnedSpecialist?: "tara" | "ollie";
+      currentPage?: string;
     };
 
     if (!message || typeof message !== "string" || !message.trim()) {
@@ -90,7 +92,10 @@ export async function POST(req: NextRequest) {
     ];
 
     // Build per-user dynamic context (not cached, changes frequently)
-    const userContext = await buildUserContext(userId, userType);
+    let userContext = await buildUserContext(userId, userType);
+    if (currentPage) {
+      userContext += buildPageContext(currentPage);
+    }
 
     // Resolve the caller's preferred generalist persona. Partners store it
     // on Partner.preferredGeneralist; admin users on User.preferredGeneralist
