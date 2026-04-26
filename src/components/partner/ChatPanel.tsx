@@ -27,17 +27,27 @@ const SUGGESTED_PROMPTS = [
   "How do I invite a partner?",
 ];
 
+/** Only allow safe href values — internal paths or https URLs */
+function sanitizeHref(raw: string): string | null {
+  if (raw.startsWith("/")) return raw;
+  if (raw.startsWith("https://")) return raw;
+  if (raw.startsWith("http://")) return raw;
+  return null;
+}
+
 /** Render markdown links [text](url) and **bold** as React elements */
 function renderMessageContent(text: string): React.ReactNode {
-  // First split on markdown links
   const linkParts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
   const elements: React.ReactNode[] = [];
 
   linkParts.forEach((part, i) => {
     const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (linkMatch) {
-      const [, label, href] = linkMatch;
-      if (href.startsWith("/")) {
+      const [, label, rawHref] = linkMatch;
+      const href = sanitizeHref(rawHref);
+      if (!href) {
+        elements.push(<span key={`text-${i}`}>{label}</span>);
+      } else if (href.startsWith("/")) {
         elements.push(
           <a
             key={`link-${i}`}
