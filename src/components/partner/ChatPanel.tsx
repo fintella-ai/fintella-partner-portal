@@ -91,6 +91,83 @@ function renderMessageContent(text: string): React.ReactNode {
   return elements;
 }
 
+function isSelectableListItem(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  if (/^- \d{1,2}:\d{2}\s*(AM|PM)/i.test(trimmed)) return true;
+  if (/^- .{3,60}$/.test(trimmed) && !/^- \*\*/.test(trimmed)) return true;
+  if (/^\d+\.\s+.{3,60}$/.test(trimmed)) return true;
+  return false;
+}
+
+function extractListItemText(line: string): string {
+  return line.trim().replace(/^[-•]\s+/, "").replace(/^\d+\.\s+/, "");
+}
+
+function InteractiveMessage({
+  content,
+  onQuickReply,
+  isLastAssistant,
+}: {
+  content: string;
+  onQuickReply: (text: string) => void;
+  isLastAssistant: boolean;
+}) {
+  const lines = content.split("\n");
+  const blocks: React.ReactNode[] = [];
+  let currentText: string[] = [];
+  let listItems: string[] = [];
+
+  const flushText = (key: string) => {
+    if (currentText.length > 0) {
+      blocks.push(
+        <span key={key}>{renderMessageContent(currentText.join("\n"))}</span>
+      );
+      currentText = [];
+    }
+  };
+
+  const flushList = (key: string) => {
+    if (listItems.length > 0) {
+      if (isLastAssistant) {
+        blocks.push(
+          <div key={key} className="flex flex-wrap gap-1.5 my-1.5">
+            {listItems.map((item, j) => (
+              <button
+                key={j}
+                type="button"
+                onClick={() => onQuickReply(item)}
+                className="font-body text-[12px] px-3 py-1.5 rounded-lg bg-brand-gold/10 text-brand-gold border border-brand-gold/20 hover:bg-brand-gold/20 transition-colors text-left"
+              >
+                {renderMessageContent(item)}
+              </button>
+            ))}
+          </div>
+        );
+      } else {
+        blocks.push(
+          <span key={key}>{renderMessageContent(listItems.map((i) => `- ${i}`).join("\n"))}</span>
+        );
+      }
+      listItems = [];
+    }
+  };
+
+  lines.forEach((line, i) => {
+    if (isSelectableListItem(line)) {
+      flushText(`t-${i}`);
+      listItems.push(extractListItemText(line));
+    } else {
+      flushList(`l-${i}`);
+      currentText.push(line);
+    }
+  });
+  flushList("l-end");
+  flushText("t-end");
+
+  return <>{blocks}</>;
+}
+
 export default function ChatPanel({
   messages,
   sending,
@@ -216,7 +293,15 @@ export default function ChatPanel({
                     }`}
                   >
                     <div className="font-body text-[13px] text-[var(--app-text)] leading-relaxed whitespace-pre-wrap break-words">
-                      {renderMessageContent(msg.content)}
+                      {isUser ? (
+                        renderMessageContent(msg.content)
+                      ) : (
+                        <InteractiveMessage
+                          content={msg.content}
+                          onQuickReply={onSend}
+                          isLastAssistant={msg.id === messages.filter((m) => m.role === "assistant").at(-1)?.id}
+                        />
+                      )}
                     </div>
                     <div className="font-body text-[9px] text-[var(--app-text-muted)] mt-1">
                       {new Date(msg.createdAt).toLocaleTimeString("en-US", {
