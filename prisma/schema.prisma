@@ -1541,6 +1541,26 @@ model PartnerApplication {
   @@index([createdAt])
 }
 
+// ─── DEVELOPMENT IDEAS ──────────────────────────────────────────────────
+// Admin-managed idea backlog for future features. Each idea can be
+// brainstormed by an AI agent into a ready-to-paste implementation plan.
+model DevIdea {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  category    String   @default("feature") // feature, optimization, integration, bugfix, research
+  priority    String   @default("medium")  // low, medium, high, critical
+  status      String   @default("idea")    // idea, planning, ready, in_progress, done, parked
+  aiPlan      String?  // AI-generated implementation plan (markdown)
+  aiQuestions String?  // AI-generated clarifying questions (markdown)
+  adminNotes  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([priority])
+}
+
 // ─── PARTNER LEAD LIST ──────────────────────────────────────────────────
 // Admin-managed prospecting list. Stores potential partners to invite
 // later. No automation until the admin clicks "Send Invite" which
