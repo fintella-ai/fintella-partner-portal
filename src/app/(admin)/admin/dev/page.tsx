@@ -10,7 +10,7 @@ const AuditLogPanel = lazy(() => import("../audit-log/page"));
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = "links" | "errors" | "email" | "webhook" | "customapi" | "apilog" | "auditlog" | "commits" | "landing" | "cleanup";
+type Tab = "ideas" | "links" | "errors" | "email" | "webhook" | "customapi" | "apilog" | "auditlog" | "commits" | "landing" | "cleanup";
 
 type Commit = {
   sha: string;
@@ -165,6 +165,229 @@ function statusColor(code: number | null): string {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+// ── Dev Ideas Tab ──
+type DevIdea = {
+  id: string; title: string; description: string; category: string; priority: string;
+  status: string; aiPlan: string | null; aiQuestions: string | null; adminNotes: string | null;
+  createdAt: string; updatedAt: string;
+};
+
+const IDEA_CATS = ["feature", "optimization", "integration", "bugfix", "research"];
+const IDEA_PRI = ["low", "medium", "high", "critical"];
+const IDEA_STATUS = ["idea", "planning", "ready", "in_progress", "done", "parked"];
+const STATUS_BADGE: Record<string, string> = {
+  idea: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  planning: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  ready: "bg-green-500/10 text-green-400 border-green-500/20",
+  in_progress: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  done: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  parked: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+};
+const PRI_BADGE: Record<string, string> = {
+  low: "text-gray-400", medium: "text-blue-400", high: "text-orange-400", critical: "text-red-400",
+};
+
+function DevIdeasTab() {
+  const [ideas, setIdeas] = useState<DevIdea[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ title: "", description: "", category: "feature", priority: "medium", adminNotes: "" });
+  const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [planningId, setPlanningId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const fetchIdeas = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/dev-ideas");
+      if (res.ok) { const data = await res.json(); setIdeas(data.ideas ?? []); }
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchIdeas(); }, [fetchIdeas]);
+
+  async function addIdea() {
+    if (!form.title.trim() || !form.description.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/dev-ideas", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        setForm({ title: "", description: "", category: "feature", priority: "medium", adminNotes: "" });
+        fetchIdeas();
+      }
+    } finally { setSaving(false); }
+  }
+
+  async function generatePlan(id: string) {
+    setPlanningId(id);
+    try {
+      await fetch(`/api/admin/dev-ideas/${id}/plan`, { method: "POST" });
+      fetchIdeas();
+    } finally { setPlanningId(null); }
+  }
+
+  async function updateStatus(id: string, status: string) {
+    await fetch(`/api/admin/dev-ideas/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    fetchIdeas();
+  }
+
+  async function deleteIdea(id: string) {
+    await fetch(`/api/admin/dev-ideas/${id}`, { method: "DELETE" });
+    fetchIdeas();
+  }
+
+  function copyPlan(plan: string, id: string) {
+    navigator.clipboard.writeText(plan);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId((p) => p === id ? null : p), 2000);
+  }
+
+  const filtered = statusFilter === "all" ? ideas : ideas.filter((i) => i.status === statusFilter);
+
+  return (
+    <div className="space-y-4">
+      {/* Add Idea Form */}
+      <div className="card p-5">
+        <h3 className="font-body font-semibold text-sm mb-3">New Development Idea</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Title *</label>
+            <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full theme-input rounded-lg px-3 py-2 text-sm" placeholder="Feature name or idea" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Category</label>
+              <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className="w-full theme-input rounded-lg px-3 py-2 text-sm">
+                {IDEA_CATS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Priority</label>
+              <select value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))} className="w-full theme-input rounded-lg px-3 py-2 text-sm">
+                {IDEA_PRI.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="mb-3">
+          <label className="text-[10px] uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Description *</label>
+          <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className="w-full theme-input rounded-lg px-3 py-2 text-sm min-h-[80px] resize-y" placeholder="Describe what you want built, why it matters, and any specific requirements..." />
+        </div>
+        <div className="mb-3">
+          <label className="text-[10px] uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Notes (optional)</label>
+          <input value={form.adminNotes} onChange={(e) => setForm((f) => ({ ...f, adminNotes: e.target.value }))} className="w-full theme-input rounded-lg px-3 py-2 text-sm" placeholder="Any technical notes, references, or constraints" />
+        </div>
+        <div className="flex justify-end">
+          <button onClick={addIdea} disabled={saving || !form.title.trim() || !form.description.trim()} className="px-5 py-2 rounded-lg bg-[var(--brand-gold)] text-[var(--app-button-gold-text)] text-sm font-semibold hover:opacity-90 disabled:opacity-50">
+            {saving ? "Saving…" : "💡 Add Idea"}
+          </button>
+        </div>
+      </div>
+
+      {/* Filter */}
+      <div className="flex gap-1 overflow-x-auto pb-1">
+        {["all", ...IDEA_STATUS].map((s) => (
+          <button key={s} onClick={() => setStatusFilter(s)} className={`font-body text-[11px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors capitalize ${statusFilter === s ? "bg-brand-gold/15 text-brand-gold" : "theme-text-muted hover:text-[var(--app-text)]"}`}>
+            {s === "in_progress" ? "In Progress" : s} {s !== "all" ? `(${ideas.filter((i) => i.status === s).length})` : `(${ideas.length})`}
+          </button>
+        ))}
+      </div>
+
+      {/* Ideas List */}
+      {loading ? (
+        <div className="text-center py-12 theme-text-muted font-body text-sm">Loading ideas…</div>
+      ) : filtered.length === 0 ? (
+        <div className="card p-12 text-center">
+          <div className="text-5xl mb-3">💡</div>
+          <h3 className="text-lg font-semibold mb-1">No ideas yet</h3>
+          <p className="text-sm theme-text-muted">Add your first development idea above. The AI planner will help you turn it into an implementation-ready prompt.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((idea) => {
+            const isExpanded = expandedId === idea.id;
+            const isPlanning = planningId === idea.id;
+            return (
+              <div key={idea.id} className="card overflow-hidden">
+                <div className="px-5 py-4 cursor-pointer hover:bg-[var(--app-input-bg)] transition" onClick={() => setExpandedId(isExpanded ? null : idea.id)}>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`font-body text-[11px] font-bold ${PRI_BADGE[idea.priority] || "theme-text-muted"}`}>{idea.priority === "critical" ? "🔴" : idea.priority === "high" ? "🟠" : idea.priority === "medium" ? "🔵" : "⚪"}</span>
+                      <span className="font-body text-[14px] font-semibold text-[var(--app-text)] truncate">{idea.title}</span>
+                      <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase border ${STATUS_BADGE[idea.status] || STATUS_BADGE.idea}`}>
+                        {idea.status === "in_progress" ? "In Progress" : idea.status}
+                      </span>
+                      <span className="font-body text-[10px] theme-text-faint capitalize">{idea.category}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {idea.aiPlan && <span className="font-body text-[10px] text-green-400">✓ Plan ready</span>}
+                      <span className="font-body text-[10px] theme-text-faint">{isExpanded ? "▲" : "▼"}</span>
+                    </div>
+                  </div>
+                  <div className="font-body text-[12px] theme-text-secondary mt-1 line-clamp-2">{idea.description}</div>
+                </div>
+
+                {isExpanded && (
+                  <div className="px-5 pb-5 border-t border-[var(--app-border)] pt-4 space-y-4">
+                    {/* Actions */}
+                    <div className="flex gap-2 flex-wrap">
+                      <button onClick={() => generatePlan(idea.id)} disabled={isPlanning} className="font-body text-[12px] px-4 py-2 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition-colors font-medium disabled:opacity-50">
+                        {isPlanning ? "🧠 AI is thinking…" : idea.aiPlan ? "🔄 Regenerate Plan" : "🧠 Generate AI Plan"}
+                      </button>
+                      {IDEA_STATUS.filter((s) => s !== idea.status).map((s) => (
+                        <button key={s} onClick={() => updateStatus(idea.id, s)} className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-[var(--app-border)] theme-text-secondary hover:bg-[var(--app-input-bg)] transition capitalize">
+                          → {s === "in_progress" ? "In Progress" : s}
+                        </button>
+                      ))}
+                      <button onClick={() => deleteIdea(idea.id)} className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10 transition">
+                        Delete
+                      </button>
+                    </div>
+
+                    {/* AI Questions */}
+                    {idea.aiQuestions && (
+                      <div className="bg-purple-500/5 border border-purple-500/20 rounded-lg p-4">
+                        <div className="font-body text-[12px] font-semibold text-purple-300 mb-2">🤔 Clarifying Questions</div>
+                        <div className="font-body text-[12px] theme-text-secondary whitespace-pre-wrap">{idea.aiQuestions}</div>
+                      </div>
+                    )}
+
+                    {/* AI Plan */}
+                    {idea.aiPlan && (
+                      <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-body text-[12px] font-semibold text-green-300">📋 Implementation Plan</div>
+                          <button onClick={() => copyPlan(idea.aiPlan!, idea.id)} className={`font-body text-[11px] px-3 py-1 rounded-lg border transition-colors ${copiedId === idea.id ? "text-green-400 border-green-500/30 bg-green-500/10" : "text-blue-400 border-blue-500/30 hover:bg-blue-500/10"}`}>
+                            {copiedId === idea.id ? "Copied ✓" : "📋 Copy Plan"}
+                          </button>
+                        </div>
+                        <div className="font-body text-[12px] theme-text-secondary whitespace-pre-wrap max-h-[400px] overflow-y-auto">{idea.aiPlan}</div>
+                      </div>
+                    )}
+
+                    {/* Admin Notes */}
+                    {idea.adminNotes && (
+                      <div className="font-body text-[11px] theme-text-faint">
+                        <strong>Notes:</strong> {idea.adminNotes}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Quick Links Tab ──
 function QuickLinksTab({ data }: { data: DevData | null }) {
@@ -1600,6 +1823,7 @@ function WebhookTab() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: "ideas",       label: "Dev Ideas",       icon: "💡" },
   { id: "links",       label: "Quick Links",     icon: "🔗" },
   { id: "errors",      label: "Recent Errors",   icon: "🚨" },
   { id: "email",       label: "Send Test Email", icon: "✉️" },
@@ -1617,7 +1841,7 @@ export default function DevPage() {
   const isSuperAdmin = (session?.user as any)?.role === "super_admin";
   const userEmail = (session?.user as any)?.email || "";
 
-  const [tab, setTab] = useState<Tab>("links");
+  const [tab, setTab] = useState<Tab>("ideas");
   const [data, setData] = useState<DevData | null>(null);
   const [errors, setErrors] = useState<ErrorsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1672,6 +1896,7 @@ export default function DevPage() {
       </div>
 
       {/* Tab content */}
+      {tab === "ideas"     && <DevIdeasTab />}
       {tab === "links"     && <QuickLinksTab data={data} />}
       {tab === "errors"    && <ErrorsTab errors={errors} />}
       {tab === "email"     && <EmailTab userEmail={userEmail} />}
