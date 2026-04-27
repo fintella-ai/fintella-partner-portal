@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { fmtDate } from "@/lib/format";
+import LeadScreenerChat from "@/components/partner/LeadScreenerChat";
 
 type Prospect = {
   id: string; companyName: string; contactName: string; contactEmail: string | null;
@@ -30,6 +32,9 @@ const VOLUME_OPTIONS = ["Under $100K", "$100K-$500K", "$500K-$1M", "$1M+"];
 const SOURCE_OPTIONS = ["referral", "linkedin", "cold_outreach", "ai_screener", "website", "event", "other"];
 
 export default function MyLeadsPage() {
+  const { data: session } = useSession();
+  const partnerCode = (session?.user as any)?.partnerCode || "";
+  const [showScreener, setShowScreener] = useState(false);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, new: 0, contacted: 0, callBooked: 0, qualified: 0, submitted: 0, won: 0, lost: 0 });
   const [loading, setLoading] = useState(true);
@@ -96,13 +101,32 @@ export default function MyLeadsPage() {
             Track your prospects from first contact to firm submission. Your personal sales pipeline.
           </p>
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="px-4 py-2 rounded-lg bg-[var(--brand-gold)] text-[var(--app-button-gold-text)] text-sm font-semibold hover:opacity-90"
-        >
-          + New Lead
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowScreener((v) => !v)}
+            className="px-4 py-2 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-sm font-semibold hover:bg-purple-500/30 transition-colors"
+          >
+            🧠 AI Screen
+          </button>
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="px-4 py-2 rounded-lg bg-[var(--brand-gold)] text-[var(--app-button-gold-text)] text-sm font-semibold hover:opacity-90"
+          >
+            + New Lead
+          </button>
+        </div>
       </div>
+
+      {/* AI Screener (toggle) */}
+      {showScreener && (
+        <div className="mb-6">
+          <LeadScreenerChat
+            partnerCode={partnerCode}
+            onLeadCreated={() => fetchProspects()}
+            onClose={() => setShowScreener(false)}
+          />
+        </div>
+      )}
 
       {/* Pipeline Stats */}
       <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mb-6">
