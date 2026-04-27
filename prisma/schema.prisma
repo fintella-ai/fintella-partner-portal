@@ -1807,3 +1807,35 @@ model AiKnowledgeGap {
   @@index([createdAt])
   @@index([category])
 }
+
+// ─── PARTNER PROSPECT CRM ──────────────────────────────────────────────
+// Each partner tracks their own leads before submitting to the firm.
+// Pipeline: new → contacted → call_booked → qualified → submitted → won → lost
+model PartnerProspect {
+  id               String   @id @default(cuid())
+  partnerCode      String
+  companyName      String
+  contactName      String
+  contactEmail     String?
+  contactPhone     String?
+  industry         String?
+  importVolume     String?  // "Under $100K", "$100K-$500K", "$500K-$1M", "$1M+"
+  productTypes     String?  // what they import
+  annualDuties     String?  // estimated annual tariff duties
+  stage            String   @default("new") // new, contacted, call_booked, qualified, submitted, won, lost
+  score            Int      @default(0) // 0-100 AI-assigned lead score
+  source           String?  // "referral", "linkedin", "cold_outreach", "ai_screener", "website", "event"
+  notes            String?
+  nextFollowUpAt   DateTime?
+  callBookedAt     DateTime?
+  submittedAt      DateTime?
+  lostReason       String?
+  dealId           String?  // linked Deal.id once submitted
+  aiScreeningData  String?  // JSON: AI screening questions + answers
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([partnerCode])
+  @@index([stage])
+  @@index([nextFollowUpAt])
+}
