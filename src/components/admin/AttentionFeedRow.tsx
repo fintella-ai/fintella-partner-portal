@@ -23,6 +23,9 @@ export interface AttentionItem {
   createdAt: string;
   href: string;
   actionLabel: string;
+  taskStatus?: "new" | "in_process" | "completed";
+  dueAt?: string;
+  assignee?: string;
 }
 
 const SOURCE_META: Record<AttentionSource, { icon: string; label: string; accent: string }> = {
@@ -77,14 +80,38 @@ export default function AttentionFeedRow({
       : "theme-text-muted";
   const canSelect = !!(onSelectPartner && item.partnerCode);
 
+  const statusBadge = item.taskStatus === "in_process"
+    ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+    : item.taskStatus === "completed"
+    ? "bg-green-500/10 text-green-400 border-green-500/20"
+    : item.taskStatus === "new"
+    ? "bg-red-500/10 text-red-400 border-red-500/20"
+    : null;
+
+  const dueLabel = item.dueAt ? (() => {
+    const diff = new Date(item.dueAt).getTime() - Date.now();
+    if (diff < 0) return "overdue";
+    const mins = Math.floor(diff / 60_000);
+    if (mins < 1) return "due now";
+    if (mins < 60) return `due ${mins}m`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `due ${hrs}h`;
+    return `due ${Math.floor(hrs / 24)}d`;
+  })() : null;
+
   return (
-    <div className="grid grid-cols-[auto_1fr_auto_auto] gap-3 items-center px-4 sm:px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors">
+    <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 items-center px-4 sm:px-5 py-3 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors">
       <div className="text-lg" aria-hidden>{meta.icon}</div>
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-0.5">
           <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase border ${meta.accent}`}>
             {meta.label}
           </span>
+          {statusBadge && (
+            <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase border ${statusBadge}`}>
+              {item.taskStatus === "in_process" ? "In Process" : item.taskStatus === "completed" ? "Done" : "New"}
+            </span>
+          )}
           {item.partnerName && (
             canSelect ? (
               <button
@@ -107,7 +134,15 @@ export default function AttentionFeedRow({
         <div className="font-body text-[13px] text-[var(--app-text-secondary)] truncate">
           {item.summary}
         </div>
+        {item.assignee && (
+          <div className="font-body text-[10px] theme-text-faint mt-0.5">Assigned: {item.assignee}</div>
+        )}
       </div>
+      {dueLabel && (
+        <div className={`font-body text-[10px] font-semibold whitespace-nowrap ${dueLabel === "overdue" ? "text-red-400" : dueLabel === "due now" ? "text-orange-400" : "theme-text-muted"}`}>
+          {dueLabel}
+        </div>
+      )}
       <div className={`font-body text-[11px] ${staleBadge} whitespace-nowrap`}>{age}</div>
       <Link
         href={item.href}

@@ -25,14 +25,21 @@ import { fmt$ } from "@/lib/format";
  */
 
 const POLL_MS = 60_000;
-type FilterTab = "all" | "meetings" | "messages" | "support" | "onboarding" | "payouts";
-const FILTER_TABS: Array<{ id: FilterTab; label: string; sources: AttentionSource[] | "all" }> = [
-  { id: "all",        label: "All",        sources: "all" },
-  { id: "meetings",   label: "Meetings",   sources: ["meeting"] },
-  { id: "messages",   label: "Messages",   sources: ["email", "sms", "chat"] },
-  { id: "support",    label: "Support",    sources: ["ticket"] },
-  { id: "onboarding", label: "Onboarding", sources: ["agreement", "invite", "partner"] },
-  { id: "payouts",    label: "Payouts",    sources: ["payout"] },
+type TaskFilter = "all_tasks" | "meetings" | "overdue";
+const TASK_TABS: Array<{ id: TaskFilter; label: string; sources: AttentionSource[] | "all_realtime" | "overdue" }> = [
+  { id: "all_tasks",  label: "All",       sources: "all_realtime" },
+  { id: "meetings",   label: "Meetings",  sources: ["meeting"] },
+  { id: "overdue",    label: "Overdue",   sources: "overdue" },
+];
+const REALTIME_SOURCES = new Set<AttentionSource>(["meeting" as const, "chat" as const, "ticket" as const]);
+
+type AttentionFilter = "all_attention" | "messages" | "support" | "onboarding" | "payouts";
+const ATTENTION_TABS: Array<{ id: AttentionFilter; label: string; sources: AttentionSource[] | "all_attention" }> = [
+  { id: "all_attention", label: "All",        sources: "all_attention" },
+  { id: "messages",      label: "Messages",   sources: ["email", "sms"] },
+  { id: "support",       label: "Support",    sources: ["ticket"] },
+  { id: "onboarding",    label: "Onboarding", sources: ["agreement", "invite", "partner"] },
+  { id: "payouts",       label: "Payouts",    sources: ["payout"] },
 ];
 
 interface Stats {
@@ -55,9 +62,9 @@ const INITIAL_STATS: Stats = {
   featureRequests: 0,
 };
 
-type SectionId = "stats" | "quicklinks" | "calendar" | "tasks_activity";
-const DEFAULT_SECTION_ORDER: SectionId[] = ["stats", "quicklinks", "calendar", "tasks_activity"];
-const LAYOUT_KEY = "fintella.admin.workspace.layout.v3";
+type SectionId = "stats" | "quicklinks" | "calendar" | "tasks_activity" | "needs_attention";
+const DEFAULT_SECTION_ORDER: SectionId[] = ["stats", "quicklinks", "calendar", "tasks_activity", "needs_attention"];
+const LAYOUT_KEY = "fintella.admin.workspace.layout.v4";
 
 function readLayout(): SectionId[] {
   if (typeof window === "undefined") return DEFAULT_SECTION_ORDER;
@@ -85,7 +92,8 @@ export default function AdminWorkspacePage() {
   const [items, setItems] = useState<AttentionItem[]>([]);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterTab>("all");
+  const [taskFilter, setTaskFilter] = useState<TaskFilter>("all_tasks");
+  const [attentionFilter, setAttentionFilter] = useState<AttentionFilter>("all_attention");
 
   // Right-rail partner context drawer state
   const [drawerPartnerCode, setDrawerPartnerCode] = useState<string | null>(null);
@@ -228,10 +236,11 @@ export default function AdminWorkspacePage() {
     // ─── Build the unified Needs-Attention feed ────────────────────
     const feed: AttentionItem[] = [];
 
-    // Emails: unread inbound
+    // Emails: unread inbound — due in 24h
     if (Array.isArray(inbox?.emails)) {
       for (const e of inbox.emails as any[]) {
         if (e.read) continue;
+        const dueAt = new Date(new Date(e.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString();
         feed.push({
           id: `email:${e.id}`,
           source: "email",
@@ -241,6 +250,8 @@ export default function AdminWorkspacePage() {
           createdAt: e.createdAt,
           href: "/admin/communications",
           actionLabel: "Reply",
+          taskStatus: "new",
+          dueAt,
         });
       }
     }
@@ -262,35 +273,48 @@ export default function AdminWorkspacePage() {
       }
     }
 
-    // Live chat sessions with unread partner messages
+    // Live chat sessions — all active as tasks, closed as completed
     if (Array.isArray(chat?.sessions)) {
       for (const c of chat.sessions as any[]) {
-        if (!c.unreadCount) continue;
+        const isActive = c.status === "active";
+        const hasUnread = (c.unreadCount || 0) > 0;
+        if (!isActive && !hasUnread) continue;
         feed.push({
           id: `chat:${c.id}`,
           source: "chat",
           partnerCode: c.partnerCode || null,
           partnerName: c.partnerName || null,
-          summary: c.lastMessagePreview || `${c.unreadCount} unread message${c.unreadCount === 1 ? "" : "s"}`,
+          summary: hasUnread
+            ? `${c.unreadCount} unread message${c.unreadCount === 1 ? "" : "s"}`
+            : c.lastMessage?.slice(0, 80) || "Live chat session",
           createdAt: c.lastMessageAt || c.updatedAt || c.createdAt,
           href: "/admin/support",
-          actionLabel: "Open",
+          actionLabel: hasUnread ? "Reply" : "View",
+          taskStatus: hasUnread ? "new" : isActive ? "in_process" : "completed",
+          dueAt: c.createdAt,
         });
       }
     }
 
-    // Open tickets
-    for (const t of openTicketList as any[]) {
-      feed.push({
-        id: `ticket:${t.id}`,
-        source: "ticket",
-        partnerCode: t.partnerCode || null,
-        partnerName: t.partnerName || null,
-        summary: t.subject || "(no subject)",
-        createdAt: t.updatedAt || t.createdAt,
-        href: `/admin/support?ticketId=${t.id}`,
-        actionLabel: "Review",
-      });
+    // Support tickets — open/in_progress as tasks, resolved as completed
+    if (Array.isArray(tickets?.tickets)) {
+      for (const t of tickets.tickets as any[]) {
+        const status = t.status as string;
+        const isResolved = status === "resolved" || status === "closed";
+        const isNew = status === "open";
+        feed.push({
+          id: `ticket:${t.id}`,
+          source: "ticket",
+          partnerCode: t.partnerCode || null,
+          partnerName: t.partnerName || null,
+          summary: `${t.subject || "(no subject)"}${t.priority === "urgent" ? " ⚡" : t.priority === "high" ? " 🔥" : ""}`,
+          createdAt: t.updatedAt || t.createdAt,
+          href: `/admin/support?ticketId=${t.id}`,
+          actionLabel: isResolved ? "Done" : "Review",
+          taskStatus: isResolved ? "completed" : isNew ? "new" : "in_process",
+          dueAt: t.createdAt,
+        });
+      }
     }
 
     // Unsigned agreements (need admin nudge)
@@ -411,8 +435,9 @@ export default function AdminWorkspacePage() {
     }
 
     // Oldest first — most stale bubbles to the top, top 50 shown.
+    for (const item of feed) { item.assignee = adminName; }
     feed.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    setItems(feed.slice(0, 50));
+    setItems(feed.slice(0, 100));
 
     setLastRefreshed(new Date());
     setLoading(false);
@@ -424,12 +449,37 @@ export default function AdminWorkspacePage() {
     return () => clearInterval(id);
   }, [loadWorkspace]);
 
-  const filteredItems = useMemo(() => {
-    const active = FILTER_TABS.find((t) => t.id === filter);
-    if (!active || active.sources === "all") return items;
+  const todayStart = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }, []);
+
+  const taskItems = useMemo(() => {
+    const todaysItems = items.filter((i) => {
+      const isRealtime = REALTIME_SOURCES.has(i.source);
+      const isToday = new Date(i.createdAt).getTime() >= todayStart;
+      return isRealtime || (isToday && (i.source === "email" || i.source === "sms"));
+    });
+    const active = TASK_TABS.find((t) => t.id === taskFilter);
+    if (!active || active.sources === "all_realtime") return todaysItems;
+    if (active.sources === "overdue") {
+      const cutoff = Date.now() - 48 * 60 * 60 * 1000;
+      return items.filter((i) => new Date(i.createdAt).getTime() < cutoff && i.taskStatus !== "completed");
+    }
     const allowed = new Set(active.sources);
-    return items.filter((i) => allowed.has(i.source));
-  }, [filter, items]);
+    return todaysItems.filter((i) => allowed.has(i.source));
+  }, [taskFilter, items, todayStart]);
+
+  const attentionItems = useMemo(() => {
+    const olderItems = items.filter((i) => {
+      const isRealtime = REALTIME_SOURCES.has(i.source);
+      const isToday = new Date(i.createdAt).getTime() >= todayStart;
+      if (isRealtime) return false;
+      if ((i.source === "email" || i.source === "sms") && isToday) return false;
+      return true;
+    });
+    const active = ATTENTION_TABS.find((t) => t.id === attentionFilter);
+    if (!active || active.sources === "all_attention") return olderItems;
+    const allowed = new Set(active.sources);
+    return olderItems.filter((i) => allowed.has(i.source));
+  }, [attentionFilter, items, todayStart]);
 
   const showMessagingCard = permissions.canEditDeals || role === "super_admin" || role === "admin" || role === "partner_support";
   const showPayoutsCard = permissions.canEditPayouts;
@@ -483,9 +533,6 @@ export default function AdminWorkspacePage() {
             <QuickLink href="/admin/partners" label="+ Invite Partner" icon="👥" />
             {showPayoutsCard && <QuickLink href="/admin/payouts" label="Run Payout Batch" icon="💰" />}
             <QuickLink href="/admin/conference" label="+ Live Weekly" icon="📹" />
-            <QuickLink href="https://app.heygen.com" label="HeyGen Studio" icon="🎬" />
-            <QuickLink href="https://admin.google.com" label="Google Admin" icon="🏢" />
-            <QuickLink href="https://console.cloud.google.com" label="Google Cloud" icon="☁️" />
           </div>
         </div>
       </section>
@@ -522,9 +569,26 @@ export default function AdminWorkspacePage() {
           </div>
         )}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>{renderAttentionFeed()}</div>
+          <div>{renderTasksFeed()}</div>
           <div><ActivityTimeline refreshKey={lastRefreshed?.getTime() || 0} /></div>
         </div>
+      </section>
+    ),
+    needs_attention: () => (
+      <section
+        key="needs_attention"
+        draggable={editMode}
+        onDragStart={(e) => onSectionDragStart(e, "needs_attention")}
+        onDragOver={onSectionDragOver}
+        onDrop={(e) => onSectionDrop(e, "needs_attention")}
+        className={`mb-6 ${editMode ? "rounded-lg ring-1 ring-brand-gold/25 p-2 cursor-move" : ""}`}
+      >
+        {editMode && (
+          <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">
+            ⋮⋮ Needs Attention — drag to reorder
+          </div>
+        )}
+        {renderNeedsAttention()}
       </section>
     ),
   };
@@ -578,27 +642,23 @@ export default function AdminWorkspacePage() {
     );
   }
 
-  function renderAttentionFeed() {
+  function renderTasksFeed() {
     return (
       <div className="card">
         <div className="px-4 sm:px-5 pt-4 pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-            <div className="font-body font-semibold text-sm">Admin Tasks: Needs Attention</div>
+            <div className="font-body font-semibold text-sm">Admin Tasks</div>
             <div className="font-body text-[11px] theme-text-faint">
-              {filteredItems.length} item{filteredItems.length === 1 ? "" : "s"} · oldest first
+              {taskItems.length} task{taskItems.length === 1 ? "" : "s"} today
             </div>
           </div>
           <div className="flex gap-1 overflow-x-auto pb-1">
-            {FILTER_TABS.filter((t) => {
-              if (t.id === "payouts") return showPayoutsCard;
-              if (t.id === "messages") return showMessagingCard;
-              return true;
-            }).map((t) => (
+            {TASK_TABS.map((t) => (
               <button
                 key={t.id}
-                onClick={() => setFilter(t.id)}
+                onClick={() => setTaskFilter(t.id)}
                 className={`font-body text-[12px] font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
-                  filter === t.id
+                  taskFilter === t.id
                     ? "bg-brand-gold/15 text-brand-gold"
                     : "theme-text-muted hover:text-[var(--app-text)] hover:bg-[var(--app-card-bg)]"
                 }`}
@@ -610,16 +670,60 @@ export default function AdminWorkspacePage() {
         </div>
         <div className="border-t border-[var(--app-border)]">
           {loading ? (
-            <div className="px-5 py-8 text-center font-body text-sm theme-text-muted">Scanning the portal…</div>
-          ) : filteredItems.length === 0 ? (
-            <div className="px-5 py-10 text-center">
-              <div className="font-body text-sm theme-text-muted mb-1">🎉 Nothing urgent.</div>
-              <div className="font-body text-[11px] theme-text-faint">
-                No pending messages, tickets, onboarding, or payouts in this filter.
-              </div>
+            <div className="px-5 py-8 text-center font-body text-sm theme-text-muted">Scanning…</div>
+          ) : taskItems.length === 0 ? (
+            <div className="px-5 py-8 text-center">
+              <div className="font-body text-sm theme-text-muted">✅ All clear — no tasks right now.</div>
             </div>
           ) : (
-            filteredItems.map((item) => (
+            taskItems.map((item) => (
+              <AttentionFeedRow key={item.id} item={item} onSelectPartner={openPartnerDrawer} />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function renderNeedsAttention() {
+    return (
+      <div className="card">
+        <div className="px-4 sm:px-5 pt-4 pb-2">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <div className="font-body font-semibold text-sm">Needs Attention</div>
+            <div className="font-body text-[11px] theme-text-faint">
+              {attentionItems.length} item{attentionItems.length === 1 ? "" : "s"} · oldest first
+            </div>
+          </div>
+          <div className="flex gap-1 overflow-x-auto pb-1">
+            {ATTENTION_TABS.filter((t) => {
+              if (t.id === "payouts") return showPayoutsCard;
+              if (t.id === "messages") return showMessagingCard;
+              return true;
+            }).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setAttentionFilter(t.id)}
+                className={`font-body text-[12px] font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
+                  attentionFilter === t.id
+                    ? "bg-brand-gold/15 text-brand-gold"
+                    : "theme-text-muted hover:text-[var(--app-text)] hover:bg-[var(--app-card-bg)]"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="border-t border-[var(--app-border)]">
+          {loading ? (
+            <div className="px-5 py-8 text-center font-body text-sm theme-text-muted">Scanning…</div>
+          ) : attentionItems.length === 0 ? (
+            <div className="px-5 py-8 text-center">
+              <div className="font-body text-sm theme-text-muted">🎉 Nothing needs attention.</div>
+            </div>
+          ) : (
+            attentionItems.map((item) => (
               <AttentionFeedRow key={item.id} item={item} onSelectPartner={openPartnerDrawer} />
             ))
           )}
