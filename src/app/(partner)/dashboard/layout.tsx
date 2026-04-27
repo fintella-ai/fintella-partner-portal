@@ -41,6 +41,7 @@ const MAIN_NAV: Array<{
   { id: "deals", href: "/dashboard/deals", icon: "📋", label: "My Deals", shortLabel: "Deals", parentId: "reporting" },
   { id: "downline", href: "/dashboard/downline", icon: "👥", label: "Downline", shortLabel: "Team", parentId: "reporting" },
   { id: "commissions", href: "/dashboard/commissions", icon: "💲", label: "Commissions", shortLabel: "Earn", parentId: "reporting" },
+  { id: "my-leads", href: "/dashboard/my-leads", icon: "🎯", label: "My Leads", shortLabel: "Leads" },
   { id: "referral-links", href: "/dashboard/referral-links", icon: "🔗", label: "Referral Links", shortLabel: "Links" },
   {
     id: "communications",
