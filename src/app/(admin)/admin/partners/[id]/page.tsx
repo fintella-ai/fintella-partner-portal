@@ -782,7 +782,7 @@ export default function PartnerDetailPage() {
           {(() => {
             const base = "https://referral.frostlawaz.com/l/ANNEXATIONPR/";
             const link = partner.corporatePartner
-              ? `${base}?ep=${partner.partnerCode}`
+              ? `${base}?utm_content=${partner.partnerCode}&ep=[insert_your_code_here]`
               : `${base}?utm_content=${partner.partnerCode}`;
             return (
               <div
@@ -794,7 +794,7 @@ export default function PartnerDetailPage() {
               </div>
             );
           })()}
-          <p className="font-body text-[10px] text-[var(--app-text-muted)] mt-1">Click to copy. {partner.corporatePartner ? "Uses ?ep= for corporate enterprise tracking." : "Uses ?utm_content= for standard partner tracking."}</p>
+          <p className="font-body text-[10px] text-[var(--app-text-muted)] mt-1">Click to copy. {partner.corporatePartner ? "Corporate link — partner replaces [insert_your_code_here] with their own EP code." : "Standard partner tracking link."}</p>
         </div>
 
         {/* Code History */}
