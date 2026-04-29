@@ -396,7 +396,104 @@ export default function InternalLeadsPage() {
             </button>
           )}
         </div>
+      ) : leadTab === "broker" ? (
+        /* ── BROKER TABLE VIEW ── */
+        <div className="overflow-x-auto border border-[var(--app-border)] rounded-xl">
+          <table className="w-full text-[12px]">
+            <thead className="bg-[var(--app-input-bg)] sticky top-0 z-10">
+              <tr>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Filer Code</th>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Broker Name</th>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Location</th>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Phone</th>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Type</th>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Email</th>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Email Status</th>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Lead Status</th>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((lead) => {
+                const notes = lead.notes || "";
+                const filerMatch = notes.match(/Filer Code: (\w+)/);
+                const locationMatch = notes.match(/Location: (.+)/);
+                const phoneType = notes.includes("Phone Type: mobile") ? "mobile" : notes.includes("Phone Type: landline") ? "landline" : notes.includes("Phone Type: voip") ? "voip" : null;
+                const emailVerdict = notes.includes("Email Verdict: Valid") ? "Valid" : notes.includes("Email Verdict: Risky") ? "Risky" : notes.includes("Email Verdict: Invalid") ? "Invalid" : null;
+                const realEmail = !lead.email.includes("@import.placeholder") ? lead.email : "";
+
+                return (
+                  <tr key={lead.id} className="border-t border-[var(--app-border)] hover:bg-[var(--app-input-bg)] transition">
+                    <td className="px-3 py-2.5 font-mono text-blue-400 whitespace-nowrap">{filerMatch?.[1] || "—"}</td>
+                    <td className="px-3 py-2.5 font-semibold whitespace-nowrap">{lead.firstName} {lead.lastName}</td>
+                    <td className="px-3 py-2.5 text-[var(--app-text-muted)] whitespace-nowrap">{locationMatch?.[1] || "—"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{lead.phone || "—"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {phoneType ? (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase ${
+                          phoneType === "mobile" ? "bg-green-500/15 text-green-400" :
+                          phoneType === "landline" ? "bg-gray-500/15 text-gray-400" :
+                          "bg-blue-500/15 text-blue-400"
+                        }`}>
+                          {phoneType === "mobile" ? "📱 Mobile" : phoneType === "landline" ? "☎️ Land" : "🌐 VoIP"}
+                        </span>
+                      ) : <span className="text-[var(--app-text-faint)]">—</span>}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{realEmail || <span className="text-[var(--app-text-faint)]">—</span>}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {emailVerdict ? (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase ${
+                          emailVerdict === "Valid" ? "bg-green-500/15 text-green-400" :
+                          emailVerdict === "Risky" ? "bg-yellow-500/15 text-yellow-400" :
+                          "bg-red-500/15 text-red-400"
+                        }`}>
+                          {emailVerdict === "Valid" ? "✅ Valid" : emailVerdict === "Risky" ? "⚠️ Risky" : "❌ Invalid"}
+                        </span>
+                      ) : <span className="text-[var(--app-text-faint)]">—</span>}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      <select
+                        value={lead.status}
+                        onChange={(e) => updateLead(lead.id, { status: e.target.value })}
+                        className={`text-[10px] px-2 py-1 rounded-full font-semibold uppercase border appearance-none cursor-pointer ${STAGE_BADGES[lead.status] || STAGE_BADGES.new}`}
+                      >
+                        <option value="prospect">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="call_booked">Call Booked</option>
+                        <option value="qualified">Qualified</option>
+                        <option value="invited">Invited</option>
+                        <option value="signed_up">Converted</option>
+                        <option value="skipped">Lost</option>
+                      </select>
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      <div className="flex gap-1">
+                        {lead.status !== "invited" && lead.status !== "signed_up" && (
+                          <button
+                            onClick={() => sendInvite(lead.id)}
+                            className="text-[10px] px-2 py-1 rounded-lg bg-brand-gold/20 text-brand-gold border border-brand-gold/30 hover:bg-brand-gold/30 transition"
+                            title="Send partner invite"
+                          >
+                            Invite
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteLead(lead.id)}
+                          className="text-[10px] px-2 py-1 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10 transition"
+                          title="Delete lead"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : (
+        /* ── CARD VIEW (Referral Partners / All) ── */
         <div className="space-y-2">
           {filtered.map((lead) => {
             const isExpanded = expandedId === lead.id;
@@ -421,34 +518,10 @@ export default function InternalLeadsPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="font-semibold text-sm truncate">{lead.firstName} {lead.lastName}</div>
-                        <div className="text-[12px] text-[var(--app-text-muted)] truncate flex items-center gap-1">
-                          <span>{lead.email.includes("@import.placeholder") ? "" : lead.email}</span>
-                          {lead.phone && <span>{lead.email.includes("@import.placeholder") ? "" : " · "}{lead.phone}</span>}
-                          {lead.phone && (
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase ${
-                              (lead.notes || "").includes("Phone Type: mobile") ? "bg-green-500/15 text-green-400" :
-                              (lead.notes || "").includes("Phone Type: landline") ? "bg-gray-500/15 text-gray-400" :
-                              (lead.notes || "").includes("Phone Type: voip") ? "bg-blue-500/15 text-blue-400" :
-                              "bg-white/5 text-[var(--app-text-faint)]"
-                            }`}>
-                              {(lead.notes || "").includes("Phone Type: mobile") ? "📱 Mobile" :
-                               (lead.notes || "").includes("Phone Type: landline") ? "☎️ Landline" :
-                               (lead.notes || "").includes("Phone Type: voip") ? "🌐 VoIP" : ""}
-                            </span>
-                          )}
-                          {!lead.email.includes("@import.placeholder") && (lead.notes || "").includes("Email Verdict:") && (
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase ${
-                              (lead.notes || "").includes("Email Verdict: Valid") ? "bg-green-500/15 text-green-400" :
-                              (lead.notes || "").includes("Email Verdict: Risky") ? "bg-yellow-500/15 text-yellow-400" :
-                              (lead.notes || "").includes("Email Verdict: Invalid") ? "bg-red-500/15 text-red-400" :
-                              "bg-white/5 text-[var(--app-text-faint)]"
-                            }`}>
-                              {(lead.notes || "").includes("Email Verdict: Valid") ? "✅ Valid" :
-                               (lead.notes || "").includes("Email Verdict: Risky") ? "⚠️ Risky" :
-                               (lead.notes || "").includes("Email Verdict: Invalid") ? "❌ Invalid" : ""}
-                            </span>
-                          )}
-                          {locationMatch && <span> · {locationMatch[1]}</span>}
+                        <div className="text-[12px] text-[var(--app-text-muted)] truncate">
+                          {lead.email.includes("@import.placeholder") ? "" : lead.email}
+                          {lead.phone ? `${lead.email.includes("@import.placeholder") ? "" : " · "}${lead.phone}` : ""}
+                          {locationMatch ? ` · ${locationMatch[1]}` : ""}
                         </div>
                       </div>
                     </div>
