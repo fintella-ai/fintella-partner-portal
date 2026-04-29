@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/sendgrid";
 import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
 
-const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 const PORTAL_URL =
   process.env.PORTAL_URL?.replace(/\/+$/, "") ||
