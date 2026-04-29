@@ -291,6 +291,7 @@ ${opts.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacit
         <h1 style="font-family:Georgia,serif;font-size:22px;font-weight:600;color:#0a0a0a;margin:0 0 16px;">${escapeHtml(opts.heading)}</h1>
         <div style="font-size:14px;line-height:1.6;color:#333;">${opts.bodyHtml}</div>
         ${cta}
+        <p style="font-size:12px;color:#666;margin-top:24px;padding-top:16px;border-top:1px solid #eee;">Please remember to bookmark the Fintella Partner Portal Login URL: <a href="${PORTAL_URL}/login" style="color:${BRAND_GOLD};text-decoration:none;">${PORTAL_URL.replace(/^https?:\/\//, "")}/login</a></p>
       </td></tr>
       <tr><td style="background:#fafafa;padding:20px 32px;border-top:1px solid #e5e5e5;font-size:11px;color:#888;font-family:Helvetica,Arial,sans-serif;line-height:1.5;">
         You're receiving this because you have a partner account at ${escapeHtml(FIRM_SHORT)}.<br>
@@ -312,6 +313,8 @@ function buildText(opts: ShellOpts): string {
     lines.push("");
     lines.push(`${opts.ctaLabel}: ${opts.ctaUrl}`);
   }
+  lines.push("");
+  lines.push(`Please remember to bookmark the Fintella Partner Portal Login URL: ${PORTAL_URL}/login`);
   lines.push("");
   lines.push("—");
   lines.push(`${FIRM_NAME} · ${PORTAL_URL.replace(/^https?:\/\//, "")}`);
@@ -859,14 +862,18 @@ export async function sendL1InviteEmail(opts: {
   toEmail: string;
   toName: string | null;
   signupUrl: string;
+  commissionRate?: number;
 }): Promise<SendEmailResult> {
   const name = opts.toName || "there";
+  const ratePct = opts.commissionRate ? `${Math.round(opts.commissionRate * 100)}%` : "20%";
   const vars: Record<string, string> = {
     firstName: name,
     signupUrl: opts.signupUrl,
     portalUrl: PORTAL_URL,
     firmShort: FIRM_SHORT,
     firmName: FIRM_NAME,
+    commissionRate: ratePct,
+    commissionRatePct: ratePct,
   };
 
   const tpl = await loadTemplate("l1_invite");
@@ -897,12 +904,12 @@ export async function sendL1InviteEmail(opts: {
   const heading = `You've been invited to join ${FIRM_SHORT}`;
   const bodyHtml = `
     <p>Hi ${escapeHtml(name)},</p>
-    <p>You've been invited to become a Partner with ${escapeHtml(FIRM_NAME)}. As a partner, you'll earn 25% of the firm fee on every client referral you send us.</p>
+    <p>You've been invited to become a Partner with ${escapeHtml(FIRM_NAME)}. As a partner, you'll earn ${ratePct} of the firm fee on every client referral you send us.</p>
     <p>Click the button below to create your account. The process takes about two minutes — you'll fill out a short form and sign your partnership agreement digitally.</p>
     <p style="font-size:12px;color:#888;">This invitation link expires in 7 days.</p>`;
   const bodyText = `Hi ${name},
 
-You've been invited to become a Partner with ${FIRM_NAME}. As a partner, you'll earn 25% of the firm fee on every client referral you send us.
+You've been invited to become a Partner with ${FIRM_NAME}. As a partner, you'll earn ${ratePct} of the firm fee on every client referral you send us.
 
 Use the link below to create your account and sign your partnership agreement (takes about two minutes):
 ${opts.signupUrl}
@@ -910,7 +917,7 @@ ${opts.signupUrl}
 This invitation link expires in 7 days.`;
 
   const { html, text } = emailShell({
-    preheader: `You've been invited to join ${FIRM_SHORT} as a Partner — earn 25% per deal.`,
+    preheader: `You've been invited to join ${FIRM_SHORT} as a Partner — earn ${ratePct} per deal.`,
     heading,
     bodyHtml,
     bodyText,
