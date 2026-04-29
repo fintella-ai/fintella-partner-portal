@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
       annualImportValue, importerOfRecord, businessEntityType,
       affiliateNotes, ein,
       utmSource, utmMedium, utmCampaign, utmTerm, utmAdGroup,
+      qualified, disqualifyReason,
     } = body;
 
     if (!companyName?.trim() || !contactName?.trim() || !email?.trim()) {
@@ -68,6 +69,8 @@ export async function POST(req: NextRequest) {
         utmAdGroup: utmAdGroup || null,
         dealId: existingDeal?.id || null,
         dealStage: existingDeal?.stage || null,
+        qualified: qualified !== false,
+        disqualifyReason: disqualifyReason || null,
       },
     });
 
