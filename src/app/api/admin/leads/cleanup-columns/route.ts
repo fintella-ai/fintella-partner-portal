@@ -79,6 +79,24 @@ export async function POST() {
       }
     }
 
+    // 0b. Extract broker name from location + fix city/state order
+    // Pattern: location="HI, COREY YAMA", lastName="HONOLULU"
+    // Should be: name=COREY YAMA, location=HONOLULU, HI
+    const US_STATES = new Set(["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC","PR","VI","GU"]);
+    const locParts = newLocation.match(/^([A-Z]{2}),\s*(.+)$/);
+    if (locParts && US_STATES.has(locParts[1])) {
+      const stateCode = locParts[1];
+      const afterState = locParts[2].trim();
+      if (afterState && !/^\d/.test(afterState) && !PHONE_REGEX.test(afterState) && !EMAIL_REGEX.test(afterState)) {
+        // afterState is a broker name, and lead.lastName might be the city
+        const cityCandidate = lead.lastName && lead.lastName !== "Broker" && /^[A-Z\s]+$/.test(lead.lastName) ? lead.lastName : null;
+        newFirstName = afterState;
+        newLastName = "Broker";
+        newLocation = cityCandidate ? `${cityCandidate}, ${stateCode}` : stateCode;
+        changed = true;
+      }
+    }
+
     // 1. Extract email from phone field (e.g. "100 xbclarke@williamsclarke.com" or "218 xjmolina@wjbyrnes.com")
     const emailInPhone = currentPhone.match(EMAIL_REGEX);
     if (emailInPhone) {
