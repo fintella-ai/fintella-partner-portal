@@ -73,6 +73,8 @@ export default function InternalLeadsPage() {
   const [lookingUp, setLookingUp] = useState(false);
   const [validatingEmails, setValidatingEmails] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  const [bulkEmailing, setBulkEmailing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function flash(tone: "ok" | "err", msg: string) {
@@ -116,6 +118,49 @@ export default function InternalLeadsPage() {
     if (!confirm("Delete this lead?")) return;
     const res = await fetch(`/api/admin/leads/${id}`, { method: "DELETE" });
     if (res.ok) { fetchLeads(); flash("ok", "Lead removed"); }
+  }
+
+  async function sendBrokerEmail(id: string) {
+    setSendingEmailId(id);
+    try {
+      const res = await fetch("/api/admin/leads/send-broker-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId: id }),
+      });
+      const data = await res.json();
+      if (res.ok) { fetchLeads(); flash("ok", `Email sent (${data.status})`); }
+      else flash("err", data.error || "Failed to send");
+    } catch { flash("err", "Network error"); }
+    finally { setSendingEmailId(null); }
+  }
+
+  async function bulkSendBrokerEmails() {
+    const emailable = filtered.filter((l) =>
+      !l.email.includes("@import.placeholder") &&
+      l.status === "prospect" &&
+      isBrokerLead(l) &&
+      (l.notes || "").includes("Email Verdict: Valid")
+    );
+    if (emailable.length === 0) { flash("err", "No new broker leads with verified emails. Run 'Validate Emails' first."); return; }
+    if (!confirm(`Send recruitment email to ${emailable.length} verified brokers? This will move them all to "Contacted".`)) return;
+    setBulkEmailing(true);
+    let sent = 0;
+    let failed = 0;
+    for (const lead of emailable) {
+      try {
+        const res = await fetch("/api/admin/leads/send-broker-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ leadId: lead.id }),
+        });
+        if (res.ok) sent++;
+        else failed++;
+      } catch { failed++; }
+    }
+    fetchLeads();
+    flash("ok", `Bulk email: ${sent} sent, ${failed} failed`);
+    setBulkEmailing(false);
   }
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -270,6 +315,13 @@ export default function InternalLeadsPage() {
             className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
           >
             {validatingEmails ? "Validating..." : "✉️ Validate Emails"}
+          </button>
+          <button
+            onClick={bulkSendBrokerEmails}
+            disabled={bulkEmailing}
+            className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
+          >
+            {bulkEmailing ? "Sending..." : "📧 Email All New"}
           </button>
           <button
             onClick={() => { setImportOpen(true); setImportData([]); setImportResult(null); }}
@@ -468,6 +520,16 @@ export default function InternalLeadsPage() {
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       <div className="flex gap-1">
+                        {realEmail && lead.status === "prospect" && (lead.notes || "").includes("Email Verdict: Valid") && (
+                          <button
+                            onClick={() => sendBrokerEmail(lead.id)}
+                            disabled={sendingEmailId === lead.id}
+                            className="text-[10px] px-2 py-1 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition disabled:opacity-50"
+                            title="Send recruitment email"
+                          >
+                            {sendingEmailId === lead.id ? "..." : "Email"}
+                          </button>
+                        )}
                         {lead.status !== "invited" && lead.status !== "signed_up" && (
                           <button
                             onClick={() => sendInvite(lead.id)}
