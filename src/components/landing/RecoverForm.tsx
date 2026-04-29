@@ -72,8 +72,22 @@ export default function RecoverForm({ partnerCode }: Props) {
           partnerCode,
         }),
       });
-      if (res.ok) setStep("done");
-      else {
+      if (res.ok) {
+        // Redirect to Frost Law form with pre-filled params
+        const names = form.contactName.trim().split(/\s+/);
+        const frostParams = new URLSearchParams({
+          ...(names[0] ? { first_name: names[0] } : {}),
+          ...(names.length > 1 ? { last_name: names.slice(1).join(" ") } : {}),
+          ...(form.email ? { email: form.email } : {}),
+          ...(form.phone ? { phone: form.phone } : {}),
+          ...(form.companyName ? { company: form.companyName } : {}),
+          ...(selectedCategory ? { service_of_interest: selectedCategory.label } : {}),
+          ...(partnerCode ? { utm_content: partnerCode } : {}),
+        });
+        const frostUrl = `https://referral.frostlawaz.com/l/ANNEXATIONPR/?${frostParams.toString()}`;
+        window.location.href = frostUrl;
+        return;
+      } else {
         const data = await res.json().catch(() => ({ error: "Something went wrong" }));
         setError(data.error || "Something went wrong.");
       }
@@ -265,7 +279,7 @@ export default function RecoverForm({ partnerCode }: Props) {
         </>
       )}
 
-      {/* Done */}
+      {/* Done — fallback if redirect didn't fire */}
       {step === "done" && (
         <div className="text-center py-8">
           <div className="text-4xl mb-4">✅</div>
@@ -274,13 +288,19 @@ export default function RecoverForm({ partnerCode }: Props) {
             Estimated recovery: <strong className="text-green-400">{fmt$(totalRecovery)}</strong>
           </p>
           <p className="text-sm text-white/50 mb-4">
-            A tariff recovery specialist will contact you within 24 hours to review your eligibility and outline next steps.
+            Redirecting you to complete your filing...
           </p>
-          <div className="text-xs text-white/30 space-y-1">
-            <p>📋 {selectedCategory?.label} · HTS {selectedCategory?.code}</p>
-            <p>📅 Entry period: {selectedPeriod?.label}</p>
-            <p>⏱️ Expected processing: 60-90 days via CAPE</p>
-          </div>
+          <a
+            href={`https://referral.frostlawaz.com/l/ANNEXATIONPR/?${new URLSearchParams({
+              ...(form.contactName.split(/\s+/)[0] ? { first_name: form.contactName.split(/\s+/)[0] } : {}),
+              ...(form.email ? { email: form.email } : {}),
+              ...(partnerCode ? { utm_content: partnerCode } : {}),
+            }).toString()}`}
+            className="inline-block px-6 py-3 rounded-xl font-semibold text-sm text-black"
+            style={{ background: "#c4a050" }}
+          >
+            Continue to Filing →
+          </a>
         </div>
       )}
     </div>
