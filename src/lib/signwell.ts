@@ -487,6 +487,82 @@ export async function getCompletedDocumentFields(
 }
 
 /**
+ * Map SignWell completed-document field values to PartnerProfile payout columns.
+ *
+ * Accepts both prefixed ("partner_bank_name") and non-prefixed ("bank_name")
+ * api_ids — the admin can name the SignWell template fields either way.
+ * Returns `{ profileData, partnerData }` where profileData is the
+ * PartnerProfile upsert payload and partnerData holds TIN/SSN for the
+ * Partner row itself.
+ */
+export function mapSignWellFieldsToPayoutData(fields: Record<string, string>): {
+  profileData: Record<string, any>;
+  partnerData: Record<string, string>;
+} {
+  const f = (key: string) =>
+    fields[`partner_${key}`] || fields[key] || "";
+
+  const profileData: Record<string, any> = {};
+  const partnerData: Record<string, string> = {};
+
+  // TIN / SSN → Partner row
+  if (f("tin")) partnerData.tin = f("tin");
+  if (f("ssn")) partnerData.ssn = f("ssn");
+
+  // Payout method — checkbox or text field
+  const wireOn = f("payout_wire") === "true" || f("payout_wire") === "on";
+  const achOn = f("payout_ach") === "true" || f("payout_ach") === "on";
+  const checkOn = f("payout_check") === "true" || f("payout_check") === "on";
+  if (wireOn) profileData.payoutMethod = "wire";
+  else if (achOn) profileData.payoutMethod = "ach";
+  else if (checkOn) profileData.payoutMethod = "check";
+  else if (f("payout_method")) profileData.payoutMethod = f("payout_method").toLowerCase();
+
+  // Bank details — accept Wire OR ACH section naming
+  const bankName = f("bank_name") || f("ach_bank_name");
+  const routingNumber = f("routing_number") || f("ach_routing_number");
+  const accountNumber = f("account_number") || f("ach_account_number");
+  const beneficiaryName = f("beneficiary_name") || f("account_holder_name") || f("ach_account_holder");
+  if (bankName) profileData.bankName = bankName;
+  if (f("bank_address")) profileData.bankAddress = f("bank_address");
+  if (routingNumber) profileData.routingNumber = routingNumber;
+  if (accountNumber) profileData.accountNumber = accountNumber;
+  if (beneficiaryName) profileData.beneficiaryName = beneficiaryName;
+  if (f("wire_memo")) profileData.wireMemo = f("wire_memo");
+
+  // Bank branch address fields
+  if (f("bank_street")) profileData.bankStreet = f("bank_street");
+  if (f("bank_street2")) profileData.bankStreet2 = f("bank_street2");
+  if (f("bank_city")) profileData.bankCity = f("bank_city");
+  if (f("bank_state")) profileData.bankState = f("bank_state");
+  if (f("bank_zip")) profileData.bankZip = f("bank_zip");
+
+  // Check mailing address
+  if (f("check_payee") || f("check_payee_name")) profileData.checkPayeeName = f("check_payee") || f("check_payee_name");
+  if (f("check_street")) profileData.checkStreet = f("check_street");
+  if (f("check_street2")) profileData.checkStreet2 = f("check_street2");
+  if (f("check_city")) profileData.checkCity = f("check_city");
+  if (f("check_state")) profileData.checkState = f("check_state");
+  if (f("check_zip")) profileData.checkZip = f("check_zip");
+
+  // Account entity (business/personal) + account type (checking/savings)
+  const entity = (f("account_entity")).toLowerCase().trim();
+  if (entity) profileData.accountEntity = entity;
+  const isBusiness = entity === "business";
+  const isChecking = f("account_checking") === "true" || f("account_checking") === "on";
+  const isSavings = f("account_savings") === "true" || f("account_savings") === "on";
+  if (isChecking) {
+    profileData.accountType = isBusiness ? "business_checking" : "checking";
+  } else if (isSavings) {
+    profileData.accountType = isBusiness ? "business_savings" : "savings";
+  } else if (f("account_type")) {
+    profileData.accountType = f("account_type").toLowerCase();
+  }
+
+  return { profileData, partnerData };
+}
+
+/**
  * Get the embedded signing URL for a specific recipient on a document.
  */
 export async function getEmbeddedSigningUrl(
