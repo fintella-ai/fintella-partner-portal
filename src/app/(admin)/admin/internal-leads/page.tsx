@@ -93,6 +93,8 @@ export default function InternalLeadsPage() {
   const [syncing, setSyncing] = useState(false);
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [bulkEmailing, setBulkEmailing] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
   const [emailEngagement, setEmailEngagement] = useState<Record<string, { status: string; sentAt: string }>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -174,32 +176,36 @@ export default function InternalLeadsPage() {
     );
     if (emailable.length === 0) { flash("err", "No new broker leads with good emails to contact."); return; }
 
+    const now = new Date();
+    let defaultDate = "";
+    for (let d = 1; d < 15; d++) {
+      const c = new Date(now.getTime() + d * 86400000);
+      if (c.getDay() === 2 || c.getDay() === 4) {
+        defaultDate = c.toISOString().split("T")[0];
+        break;
+      }
+    }
+    setScheduleDate(defaultDate);
+    setScheduleModalOpen(true);
+  }
+
+  async function confirmSchedule() {
+    const emailable = filtered.filter((l) => hasGoodEmail(l) && l.status === "prospect" && isBrokerLead(l));
     const batch = emailable.slice(0, BATCH_SIZE);
     const remaining = emailable.length - batch.length;
-    const nextDay = (() => {
-      const now = new Date();
-      for (let d = 0; d < 8; d++) {
-        const c = new Date(now.getTime() + d * 86400000);
-        const dow = c.getDay();
-        if ((dow === 2 || dow === 4) && (d > 0 || c.getHours() < 9))
-          return c.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
-      }
-      return "next Tue/Thu";
-    })();
-    const msg = `Schedule ${batch.length} emails for ${nextDay} at 9 AM in each broker's timezone? (Best B2B open rates)${remaining > 0 ? `\n\n${remaining} more available next batch.` : ""}`;
-
-    if (!confirm(msg)) return;
     setBulkEmailing(true);
+    setScheduleModalOpen(false);
     try {
       const res = await fetch("/api/admin/leads/schedule-broker-emails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: batch.map((l) => l.id) }),
+        body: JSON.stringify({ leadIds: batch.map((l) => l.id), preferredDate: scheduleDate || undefined }),
       });
       const data = await res.json();
       if (res.ok) {
         fetchLeads();
-        flash("ok", `Scheduled ${data.scheduled} emails for optimal send times${remaining > 0 ? ` — ${remaining} remaining` : ""}`);
+        const dates = Object.keys(data.sendTimes || {}).join(", ");
+        flash("ok", `Scheduled ${data.scheduled} emails for ${dates}${remaining > 0 ? ` — ${remaining} remaining` : ""}`);
       } else flash("err", data.error || "Scheduling failed");
     } catch { flash("err", "Network error"); }
     setBulkEmailing(false);
@@ -859,6 +865,48 @@ export default function InternalLeadsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Schedule Email Modal */}
+      {scheduleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md bg-[var(--app-bg-secondary)] border border-[var(--app-border)] rounded-2xl p-6">
+            <h3 className="text-lg font-bold mb-4">Schedule Email Batch</h3>
+            <p className="text-sm text-[var(--app-text-muted)] mb-4">
+              Choose a send date. Emails go out at 9 AM in each broker&apos;s local timezone. Best days: Tuesday &amp; Thursday.
+            </p>
+            <div className="mb-4">
+              <label className="text-[10px] uppercase tracking-wider text-[var(--app-text-muted)] mb-1 block">Send Date</label>
+              <input
+                type="date"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                className="w-full theme-input rounded-lg px-3 py-2.5 text-sm"
+              />
+              {scheduleDate && (() => {
+                const d = new Date(scheduleDate + "T12:00:00");
+                const dow = d.getDay();
+                const isTueThu = dow === 2 || dow === 4;
+                return !isTueThu ? (
+                  <p className="text-[11px] text-yellow-400 mt-1">⚠️ {d.toLocaleDateString("en-US", { weekday: "long" })} is not a Tue/Thu — open rates may be lower.</p>
+                ) : (
+                  <p className="text-[11px] text-green-400 mt-1">✓ {d.toLocaleDateString("en-US", { weekday: "long" })} — optimal send day.</p>
+                );
+              })()}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setScheduleModalOpen(false)} className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-muted)]">Cancel</button>
+              <button
+                onClick={confirmSchedule}
+                disabled={!scheduleDate}
+                className="px-4 py-2 rounded-lg bg-[var(--brand-gold)] text-[var(--app-button-gold-text)] text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+              >
+                Schedule {BATCH_SIZE} Emails
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
