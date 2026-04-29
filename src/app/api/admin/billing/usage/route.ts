@@ -31,9 +31,31 @@ export async function GET(req: NextRequest) {
         const data = await res.json();
         const records = data.usage_records || [];
         const totalCost = records.reduce((sum: number, r: any) => sum + parseFloat(r.price || "0"), 0);
-        const callCount = records.find((r: any) => r.category === "calls")?.count || 0;
-        const smsCount = records.find((r: any) => r.category === "sms")?.count || 0;
-        results.twilio = { thisMonth: totalCost, calls: parseInt(callCount), sms: parseInt(smsCount), status: "ok" };
+        const callsRecord = records.find((r: any) => r.category === "calls");
+        const smsRecord = records.find((r: any) => r.category === "sms");
+        const smsInbound = records.find((r: any) => r.category === "sms-inbound");
+        const lookupsRecord = records.find((r: any) => r.category === "lookups");
+        const callMinutes = records.find((r: any) => r.category === "calls-inbound" || r.category === "calls")?.usage || "0";
+        results.twilio = {
+          thisMonth: totalCost,
+          calls: parseInt(callsRecord?.count || "0"),
+          callsCost: parseFloat(callsRecord?.price || "0"),
+          callMinutes: parseFloat(callMinutes),
+          sms: parseInt(smsRecord?.count || "0"),
+          smsCost: parseFloat(smsRecord?.price || "0"),
+          smsInbound: parseInt(smsInbound?.count || "0"),
+          lookups: parseInt(lookupsRecord?.count || "0"),
+          lookupsCost: parseFloat(lookupsRecord?.price || "0"),
+          breakdown: records.filter((r: any) => parseFloat(r.price || "0") > 0).map((r: any) => ({
+            category: r.category,
+            description: r.description,
+            count: parseInt(r.count || "0"),
+            usage: r.usage,
+            unit: r.usage_unit,
+            cost: parseFloat(r.price || "0"),
+          })),
+          status: "ok",
+        };
       } else {
         results.twilio = { status: "error", code: res.status };
       }
