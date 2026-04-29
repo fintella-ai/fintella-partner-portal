@@ -459,7 +459,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
                 title="Complete Your Filing"
                 allow="camera; microphone; geolocation"
                 sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation"
-                style={{ top: -350, left: 0, width: "100%", height: "calc(100% + 700px)" }}
+                style={{ top: -680, left: 0, width: "100%", height: "calc(100% + 1100px)" }}
               />
             </div>
             <button onClick={() => setStep("contact")} className="w-full mt-3 py-2 text-xs text-white/40 hover:text-white/60">← Back to edit details</button>
