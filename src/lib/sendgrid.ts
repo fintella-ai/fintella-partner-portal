@@ -291,6 +291,7 @@ ${opts.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacit
         <h1 style="font-family:Georgia,serif;font-size:22px;font-weight:600;color:#0a0a0a;margin:0 0 16px;">${escapeHtml(opts.heading)}</h1>
         <div style="font-size:14px;line-height:1.6;color:#333;">${opts.bodyHtml}</div>
         ${cta}
+        <p style="font-size:12px;color:#666;margin-top:24px;padding-top:16px;border-top:1px solid #eee;">Please remember to bookmark the Fintella Partner Portal Login URL: <a href="${PORTAL_URL}/login" style="color:${BRAND_GOLD};text-decoration:none;">${PORTAL_URL.replace(/^https?:\/\//, "")}/login</a></p>
       </td></tr>
       <tr><td style="background:#fafafa;padding:20px 32px;border-top:1px solid #e5e5e5;font-size:11px;color:#888;font-family:Helvetica,Arial,sans-serif;line-height:1.5;">
         You're receiving this because you have a partner account at ${escapeHtml(FIRM_SHORT)}.<br>
@@ -312,6 +313,8 @@ function buildText(opts: ShellOpts): string {
     lines.push("");
     lines.push(`${opts.ctaLabel}: ${opts.ctaUrl}`);
   }
+  lines.push("");
+  lines.push(`Please remember to bookmark the Fintella Partner Portal Login URL: ${PORTAL_URL}/login`);
   lines.push("");
   lines.push("—");
   lines.push(`${FIRM_NAME} · ${PORTAL_URL.replace(/^https?:\/\//, "")}`);
