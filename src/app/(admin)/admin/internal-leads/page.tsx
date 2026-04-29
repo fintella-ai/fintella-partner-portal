@@ -9,13 +9,15 @@ type Lead = {
   status: string; inviteId: string | null; createdAt: string; updatedAt: string;
 };
 
-type LeadTab = "all" | "referral" | "broker";
+type LeadTab = "all" | "referral" | "broker" | "bad_email" | "bad_phone";
 type Stage = "all" | "new" | "contacted" | "call_booked" | "qualified" | "submitted" | "converted" | "lost";
 
 const LEAD_TABS: { id: LeadTab; label: string }[] = [
   { id: "all", label: "All Leads" },
   { id: "referral", label: "Referral Partners" },
   { id: "broker", label: "Customs Brokers" },
+  { id: "bad_email", label: "Bad/No Email" },
+  { id: "bad_phone", label: "Bad/No Phone" },
 ];
 
 const STAGES: { id: Stage; label: string }[] = [
@@ -230,9 +232,18 @@ export default function InternalLeadsPage() {
     }
   }
 
+  function hasBadEmail(l: Lead): boolean {
+    return l.email.includes("@import.placeholder") || (l.notes || "").includes("Email Verdict: Invalid") || (l.notes || "").includes("Email Verdict: Risky");
+  }
+  function hasBadPhone(l: Lead): boolean {
+    return !l.phone || (l.notes || "").includes("Phone Type: unknown");
+  }
+
   const typeFiltered = leads.filter((l) => {
-    if (leadTab === "broker") return isBrokerLead(l);
+    if (leadTab === "broker") return isBrokerLead(l) && !hasBadEmail(l) && !hasBadPhone(l);
     if (leadTab === "referral") return isReferralLead(l);
+    if (leadTab === "bad_email") return hasBadEmail(l);
+    if (leadTab === "bad_phone") return !l.phone || hasBadPhone(l);
     return true;
   });
 
@@ -366,7 +377,13 @@ export default function InternalLeadsPage() {
           >
             {t.label}
             <span className="ml-1.5 text-[10px] text-[var(--app-text-faint)]">
-              ({leads.filter((l) => t.id === "all" ? true : t.id === "broker" ? isBrokerLead(l) : isReferralLead(l)).length})
+              ({leads.filter((l) => {
+                if (t.id === "broker") return isBrokerLead(l) && !hasBadEmail(l) && !hasBadPhone(l);
+                if (t.id === "referral") return isReferralLead(l);
+                if (t.id === "bad_email") return hasBadEmail(l);
+                if (t.id === "bad_phone") return !l.phone || hasBadPhone(l);
+                return true;
+              }).length})
             </span>
           </button>
         ))}
@@ -429,13 +446,15 @@ export default function InternalLeadsPage() {
         <div className="text-center py-12 font-body text-sm text-[var(--app-text-muted)]">Loading leads...</div>
       ) : filtered.length === 0 ? (
         <div className="card p-12 text-center">
-          <div className="text-5xl mb-3">{leadTab === "broker" ? "🚢" : "📊"}</div>
+          <div className="text-5xl mb-3">{leadTab === "broker" ? "🚢" : leadTab === "bad_email" ? "✉️" : leadTab === "bad_phone" ? "📞" : "📊"}</div>
           <h3 className="text-lg font-semibold mb-1">
-            {leadTab === "broker" ? "No customs broker leads yet" : leadTab === "referral" ? "No referral partner leads yet" : "No internal leads yet"}
+            {leadTab === "broker" ? "No customs broker leads yet" : leadTab === "referral" ? "No referral partner leads yet" : leadTab === "bad_email" ? "No leads with bad/missing emails" : leadTab === "bad_phone" ? "No leads with bad/missing phones" : "No internal leads yet"}
           </h3>
           <p className="text-sm text-[var(--app-text-muted)]">
             {leadTab === "broker"
               ? "Import the CBP broker listing CSV to start building your customs broker pipeline."
+              : leadTab === "bad_email" ? "Leads with invalid, risky, or missing emails will appear here after validation."
+              : leadTab === "bad_phone" ? "Leads with no phone number or unknown phone types will appear here."
               : "Leads from /recover and direct outreach will appear here."
             }
           </p>
@@ -448,7 +467,7 @@ export default function InternalLeadsPage() {
             </button>
           )}
         </div>
-      ) : leadTab === "broker" ? (
+      ) : (leadTab === "broker" || leadTab === "bad_email" || leadTab === "bad_phone") ? (
         /* ── BROKER TABLE VIEW ── */
         <div className="overflow-x-auto border border-[var(--app-border)] rounded-xl">
           <table className="w-full text-[12px]">
