@@ -19,7 +19,7 @@ export async function POST() {
   const SID = process.env.TWILIO_ACCOUNT_SID;
   const TOKEN = process.env.TWILIO_AUTH_TOKEN;
 
-  const leads = await prisma.partnerLead.findMany({
+  const unchecked = await prisma.partnerLead.findMany({
     where: {
       phone: { not: null },
       NOT: { notes: { contains: "Phone Type:" } },
@@ -28,17 +28,35 @@ export async function POST() {
     take: 100,
   });
 
+  const unknown = unchecked.length < 100
+    ? await prisma.partnerLead.findMany({
+        where: {
+          phone: { not: null },
+          notes: { contains: "Phone Type: unknown" },
+        },
+        select: { id: true, phone: true, notes: true },
+        take: 100 - unchecked.length,
+      })
+    : [];
+
+  const leads = [...unchecked, ...unknown];
+
   if (leads.length === 0) {
     return NextResponse.json({ looked_up: 0, message: "All leads with phones already have type data" });
+  }
+
+  function stripOldPhoneType(notes: string): string {
+    return notes.split("\n").filter((l) => !l.startsWith("Phone Type:")).join("\n");
   }
 
   if (!SID || !TOKEN) {
     let updated = 0;
     for (const lead of leads) {
+      const clean = stripOldPhoneType(lead.notes || "");
       await prisma.partnerLead.update({
         where: { id: lead.id },
         data: {
-          notes: [lead.notes || "", "Phone Type: unknown (Twilio not configured)"].filter(Boolean).join("\n"),
+          notes: [clean, "Phone Type: unknown (Twilio not configured)"].filter(Boolean).join("\n"),
         },
       });
       updated++;
@@ -67,10 +85,11 @@ export async function POST() {
       const data = await res.json();
       const lineType = data.line_type_intelligence?.type || "unknown";
 
+      const clean = stripOldPhoneType(lead.notes || "");
       await prisma.partnerLead.update({
         where: { id: lead.id },
         data: {
-          notes: [lead.notes || "", `Phone Type: ${lineType}`].filter(Boolean).join("\n"),
+          notes: [clean, `Phone Type: ${lineType}`].filter(Boolean).join("\n"),
         },
       });
       looked_up++;

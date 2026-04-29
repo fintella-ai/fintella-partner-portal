@@ -7,8 +7,10 @@ const ADMIN_ROLES = ["super_admin", "admin"];
 
 /**
  * POST /api/admin/leads/validate-emails
- * Batch email validation using SendGrid Email Validation API.
- * Processes up to 50 leads per call that don't yet have validation data.
+ * Batch email validation. Processes leads that:
+ * 1. Don't have any Email Verdict yet, OR
+ * 2. Have "Email Verdict: unknown" (needs re-validation)
+ * Up to 50 per call.
  */
 export async function POST() {
   const session = await auth();
@@ -16,7 +18,7 @@ export async function POST() {
   if (!ADMIN_ROLES.includes((session.user as any).role))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const leads = await prisma.partnerLead.findMany({
+  const unchecked = await prisma.partnerLead.findMany({
     where: {
       NOT: [
         { email: { contains: "@import.placeholder" } },
@@ -26,6 +28,19 @@ export async function POST() {
     select: { id: true, email: true, notes: true },
     take: 50,
   });
+
+  const unknown = unchecked.length < 50
+    ? await prisma.partnerLead.findMany({
+        where: {
+          notes: { contains: "Email Verdict: unknown" },
+          NOT: { email: { contains: "@import.placeholder" } },
+        },
+        select: { id: true, email: true, notes: true },
+        take: 50 - unchecked.length,
+      })
+    : [];
+
+  const leads = [...unchecked, ...unknown];
 
   if (leads.length === 0) {
     return NextResponse.json({ validated: 0, message: "All leads with real emails already validated" });
@@ -39,10 +54,15 @@ export async function POST() {
       const result = await validateEmail(lead.email);
       const tag = `Email Verdict: ${result.verdict} (${result.method}, score: ${result.score.toFixed(2)}${result.isDisposable ? ", disposable" : ""})`;
 
+      const existingNotes = (lead.notes || "")
+        .split("\n")
+        .filter((line) => !line.startsWith("Email Verdict:"))
+        .join("\n");
+
       await prisma.partnerLead.update({
         where: { id: lead.id },
         data: {
-          notes: [lead.notes || "", tag].filter(Boolean).join("\n"),
+          notes: [existingNotes, tag].filter(Boolean).join("\n"),
         },
       });
       validated++;
