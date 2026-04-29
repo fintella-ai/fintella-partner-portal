@@ -11,7 +11,7 @@ type Lead = {
 };
 
 type LeadTab = "all" | "referral" | "broker";
-type SubTab = "all" | "scheduled" | "good_email" | "good_sms" | "good_phone" | "bad_email" | "bad_phone";
+type SubTab = "all" | "scheduled" | "good_email" | "good_sms" | "good_phone" | "not_validated" | "bad_email" | "bad_phone";
 type Stage = "all" | "new" | "scheduled" | "contacted" | "needs_review" | "submitted" | "converted" | "lost";
 
 const LEAD_TABS: { id: LeadTab; label: string }[] = [
@@ -26,12 +26,14 @@ const BROKER_SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "good_email", label: "Good Email" },
   { id: "good_sms", label: "Good SMS" },
   { id: "good_phone", label: "Good Calling" },
+  { id: "not_validated", label: "Unverified" },
   { id: "bad_email", label: "Bad/No Email" },
   { id: "bad_phone", label: "Bad/No Phone" },
 ];
 
 const REFERRAL_SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "all", label: "All" },
+  { id: "not_validated", label: "Unverified" },
   { id: "bad_email", label: "Bad/No Email" },
   { id: "bad_phone", label: "Bad/No Phone" },
 ];
@@ -97,6 +99,8 @@ export default function InternalLeadsPage() {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [emailEngagement, setEmailEngagement] = useState<Record<string, { status: string; sentAt: string }>>({});
+  const [tablePage, setTablePage] = useState(1);
+  const TABLE_PAGE_SIZE = 50;
   const fileRef = useRef<HTMLInputElement>(null);
 
   function flash(tone: "ok" | "err", msg: string) {
@@ -314,11 +318,19 @@ export default function InternalLeadsPage() {
     return !!l.scheduledSendAt && !l.emailSentAt && l.status === "prospect";
   }
 
+  function isNotValidated(l: Lead): boolean {
+    const notes = l.notes || "";
+    const hasEmailCheck = notes.includes("Email Verdict:");
+    const hasPhoneCheck = notes.includes("Phone Type:");
+    return (!hasEmailCheck && !l.email.includes("@import.placeholder")) || (!hasPhoneCheck && !!l.phone);
+  }
+
   function applySubFilter(list: Lead[]): Lead[] {
     if (subTab === "scheduled") return list.filter(isScheduled);
     if (subTab === "good_email") return list.filter((l) => hasGoodEmail(l) && !isScheduled(l));
     if (subTab === "good_sms") return list.filter(hasGoodSms);
     if (subTab === "good_phone") return list.filter(hasGoodCalling);
+    if (subTab === "not_validated") return list.filter(isNotValidated);
     if (subTab === "bad_email") return list.filter(hasBadEmail);
     if (subTab === "bad_phone") return list.filter(hasBadPhone);
     return list;
@@ -342,6 +354,9 @@ export default function InternalLeadsPage() {
       return l.status === stage;
     })
     .filter((l) => !q || `${l.firstName} ${l.lastName} ${l.email} ${l.phone || ""} ${l.notes || ""}`.toLowerCase().includes(q));
+
+  const totalTablePages = Math.ceil(filtered.length / TABLE_PAGE_SIZE);
+  const paginated = filtered.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE);
 
   const stats = {
     total: typeFiltered.length,
@@ -391,7 +406,12 @@ export default function InternalLeadsPage() {
             onClick={async () => {
               setLookingUp(true);
               try {
-                const res = await fetch("/api/admin/leads/lookup-phones", { method: "POST" });
+                const ids = paginated.map((l) => l.id);
+                const res = await fetch("/api/admin/leads/lookup-phones", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ leadIds: ids }),
+                });
                 const data = await res.json();
                 flash("ok", `Phone lookup: ${data.looked_up} classified${data.demo ? " (demo mode)" : ""}`);
                 fetchLeads();
@@ -401,13 +421,18 @@ export default function InternalLeadsPage() {
             disabled={lookingUp}
             className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
           >
-            {lookingUp ? "Looking up..." : "📞 Phone Types"}
+            {lookingUp ? "Looking up..." : `📞 Phone Types (${paginated.length})`}
           </button>
           <button
             onClick={async () => {
               setValidatingEmails(true);
               try {
-                const res = await fetch("/api/admin/leads/validate-emails", { method: "POST" });
+                const ids = paginated.map((l) => l.id);
+                const res = await fetch("/api/admin/leads/validate-emails", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ leadIds: ids }),
+                });
                 const data = await res.json();
                 flash("ok", `Email validation: ${data.validated} checked`);
                 fetchLeads();
@@ -417,7 +442,7 @@ export default function InternalLeadsPage() {
             disabled={validatingEmails}
             className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
           >
-            {validatingEmails ? "Validating..." : "✉️ Validate Emails"}
+            {validatingEmails ? "Validating..." : `✉️ Validate (${paginated.length})`}
           </button>
           {leadTab === "broker" && subTab === "good_email" && (
             <button
@@ -466,7 +491,7 @@ export default function InternalLeadsPage() {
         {LEAD_TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => { setLeadTab(t.id); setSubTab("all"); setStage("all"); }}
+            onClick={() => { setLeadTab(t.id); setSubTab("all"); setStage("all"); setTablePage(1); }}
             className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap transition border-b-2 ${
               leadTab === t.id
                 ? "border-[var(--brand-gold)] text-[var(--app-text)]"
@@ -495,12 +520,13 @@ export default function InternalLeadsPage() {
               : st.id === "good_email" ? parentLeads.filter((l) => hasGoodEmail(l) && !isScheduled(l)).length
               : st.id === "good_sms" ? parentLeads.filter(hasGoodSms).length
               : st.id === "good_phone" ? parentLeads.filter(hasGoodCalling).length
+              : st.id === "not_validated" ? parentLeads.filter(isNotValidated).length
               : st.id === "bad_email" ? parentLeads.filter(hasBadEmail).length
               : parentLeads.filter(hasBadPhone).length;
             return (
               <button
                 key={st.id}
-                onClick={() => setSubTab(st.id)}
+                onClick={() => { setSubTab(st.id); setTablePage(1); }}
                 className={`font-body text-[11px] px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${
                   subTab === st.id ? "bg-brand-gold/15 text-brand-gold font-semibold" : "text-[var(--app-text-muted)] hover:text-[var(--app-text)]"
                 }`}
@@ -549,7 +575,7 @@ export default function InternalLeadsPage() {
         <input
           type="search"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setTablePage(1); }}
           placeholder="Search leads..."
           className="flex-1 min-w-[200px] theme-input rounded-lg px-4 py-2.5 text-sm"
         />
@@ -557,7 +583,7 @@ export default function InternalLeadsPage() {
           {STAGES.map((s) => (
             <button
               key={s.id}
-              onClick={() => setStage(s.id)}
+              onClick={() => { setStage(s.id); setTablePage(1); }}
               className={`font-body text-[11px] px-3 py-2 rounded-lg whitespace-nowrap transition-colors ${
                 stage === s.id ? "bg-brand-gold/15 text-brand-gold font-semibold" : "text-[var(--app-text-muted)] hover:text-[var(--app-text)]"
               }`}
@@ -621,7 +647,7 @@ export default function InternalLeadsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((lead) => {
+              \{paginated.map((lead) => {
                 const notes = lead.notes || "";
                 const filerMatch = notes.match(/Filer Code: (\w+)/);
                 const locationMatch = notes.match(/Location: (.+)/);
@@ -755,7 +781,7 @@ export default function InternalLeadsPage() {
       ) : (
         /* ── CARD VIEW (Referral Partners / All) ── */
         <div className="space-y-2">
-          {filtered.map((lead) => {
+          \{paginated.map((lead) => {
             const isExpanded = expandedId === lead.id;
             const isEditing = editingId === lead.id;
             const isBroker = isBrokerLead(lead);
@@ -867,6 +893,34 @@ export default function InternalLeadsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalTablePages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <span className="font-body text-[11px] text-[var(--app-text-muted)]">
+            Showing {(tablePage - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(tablePage * TABLE_PAGE_SIZE, filtered.length)} of {filtered.length}
+          </span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setTablePage((p) => Math.max(1, p - 1))}
+              disabled={tablePage === 1}
+              className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-[var(--app-border)] disabled:opacity-30 hover:bg-[var(--app-input-bg)] transition"
+            >
+              ← Prev
+            </button>
+            <span className="font-body text-[11px] px-3 py-1.5 text-[var(--app-text-muted)]">
+              {tablePage} / {totalTablePages}
+            </span>
+            <button
+              onClick={() => setTablePage((p) => Math.min(totalTablePages, p + 1))}
+              disabled={tablePage === totalTablePages}
+              className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-[var(--app-border)] disabled:opacity-30 hover:bg-[var(--app-input-bg)] transition"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
 
