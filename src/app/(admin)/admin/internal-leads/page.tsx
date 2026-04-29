@@ -71,6 +71,8 @@ export default function InternalLeadsPage() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
   const [lookingUp, setLookingUp] = useState(false);
+  const [validatingEmails, setValidatingEmails] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function flash(tone: "ok" | "err", msg: string) {
@@ -220,7 +222,23 @@ export default function InternalLeadsPage() {
             Direct leads from ads and outreach — your internal funnel before opening to partners.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={async () => {
+              setSyncing(true);
+              try {
+                const res = await fetch("/api/cron/cbp-broker-sync");
+                const data = await res.json();
+                flash("ok", `CBP sync: ${data.synced} new brokers imported`);
+                fetchLeads();
+              } catch { flash("err", "Sync failed"); }
+              finally { setSyncing(false); }
+            }}
+            disabled={syncing}
+            className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
+          >
+            {syncing ? "Syncing..." : "🔄 Sync CBP"}
+          </button>
           <button
             onClick={async () => {
               setLookingUp(true);
@@ -235,7 +253,23 @@ export default function InternalLeadsPage() {
             disabled={lookingUp}
             className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
           >
-            {lookingUp ? "Looking up..." : "📞 Lookup Phone Types"}
+            {lookingUp ? "Looking up..." : "📞 Phone Types"}
+          </button>
+          <button
+            onClick={async () => {
+              setValidatingEmails(true);
+              try {
+                const res = await fetch("/api/admin/leads/validate-emails", { method: "POST" });
+                const data = await res.json();
+                flash("ok", `Email validation: ${data.validated} checked`);
+                fetchLeads();
+              } catch { flash("err", "Validation failed"); }
+              finally { setValidatingEmails(false); }
+            }}
+            disabled={validatingEmails}
+            className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
+          >
+            {validatingEmails ? "Validating..." : "✉️ Validate Emails"}
           </button>
           <button
             onClick={() => { setImportOpen(true); setImportData([]); setImportResult(null); }}
@@ -247,7 +281,7 @@ export default function InternalLeadsPage() {
             onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/recover`); setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000); }}
             className={`px-4 py-2 rounded-lg border text-sm transition-colors ${copiedLink ? "text-green-400 border-green-500/30 bg-green-500/10" : "border-[var(--app-border)] text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)]"}`}
           >
-            {copiedLink ? "Copied ✓" : "🔗 Copy Funnel Link"}
+            {copiedLink ? "Copied ✓" : "🔗 Copy Funnel"}
           </button>
           <a
             href="/recover"
@@ -255,7 +289,7 @@ export default function InternalLeadsPage() {
             rel="noopener noreferrer"
             className="px-4 py-2 rounded-lg bg-[var(--brand-gold)] text-[var(--app-button-gold-text)] text-sm font-semibold hover:opacity-90"
           >
-            Open /recover ↗
+            /recover ↗
           </a>
         </div>
       </div>
@@ -400,6 +434,18 @@ export default function InternalLeadsPage() {
                               {(lead.notes || "").includes("Phone Type: mobile") ? "📱 Mobile" :
                                (lead.notes || "").includes("Phone Type: landline") ? "☎️ Landline" :
                                (lead.notes || "").includes("Phone Type: voip") ? "🌐 VoIP" : ""}
+                            </span>
+                          )}
+                          {!lead.email.includes("@import.placeholder") && (lead.notes || "").includes("Email Verdict:") && (
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase ${
+                              (lead.notes || "").includes("Email Verdict: Valid") ? "bg-green-500/15 text-green-400" :
+                              (lead.notes || "").includes("Email Verdict: Risky") ? "bg-yellow-500/15 text-yellow-400" :
+                              (lead.notes || "").includes("Email Verdict: Invalid") ? "bg-red-500/15 text-red-400" :
+                              "bg-white/5 text-[var(--app-text-faint)]"
+                            }`}>
+                              {(lead.notes || "").includes("Email Verdict: Valid") ? "✅ Valid" :
+                               (lead.notes || "").includes("Email Verdict: Risky") ? "⚠️ Risky" :
+                               (lead.notes || "").includes("Email Verdict: Invalid") ? "❌ Invalid" : ""}
                             </span>
                           )}
                           {locationMatch && <span> · {locationMatch[1]}</span>}
