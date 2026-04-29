@@ -603,11 +603,12 @@ export default function AdminPartnersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mb-6">
         {[
           { label: "Total Partners", value: total, color: "text-[var(--app-text)]" },
           { label: "Active", value: active, color: "text-green-400" },
           { label: "Pending", value: pending, color: "text-yellow-400" },
+          { label: "Unsigned", value: unsignedCount, color: "text-orange-400" },
           { label: "Invited", value: invitedCount, color: "text-blue-400" },
           { label: "Blocked", value: blocked, color: "text-red-400" },
         ].map((s) => (
@@ -1459,7 +1460,7 @@ export default function AdminPartnersPage() {
                   </div>
                   <div className="font-body text-[12px] text-center truncate">
                     {(() => {
-                      if (!p.referredByPartnerCode) return <span className="text-brand-gold/60 font-semibold">Fintella</span>;
+                      if (!p.referredByPartnerCode) return <span className="text-brand-gold/60 font-semibold cursor-default" onClick={(e) => e.stopPropagation()}>Fintella</span>;
                       const upline = partnersByCode[p.referredByPartnerCode];
                       if (!upline) return <span className="text-[var(--app-text-muted)]">{p.referredByPartnerCode}</span>;
                       return (
