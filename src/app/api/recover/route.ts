@@ -4,14 +4,21 @@ import { prisma } from "@/lib/prisma";
 /**
  * POST /api/recover
  * Public endpoint — client-facing refund calculator form submission.
- * Creates a PartnerLead (admin lead list) for internal tracking.
- * If partnerCode is provided (via ?ref= or utm_content), also creates
- * a PartnerProspect in that partner's CRM pipeline.
+ * Creates a Deal (direct client for tariff refund service) in the admin
+ * deals pipeline, NOT a PartnerLead (which is for partner recruitment).
+ * If partnerCode is provided (via ?ref= or utm_content), the deal is
+ * attributed to that partner for commission tracking.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { companyName, contactName, email, phone, importProducts, estimatedDuties, estimatedRefund, partnerCode } = body;
+    const {
+      companyName, contactName, email, phone, importProducts,
+      estimatedDuties, estimatedRefund, partnerCode, entryPeriod,
+      htsCategory, title, city, state, importsGoods, importCountries,
+      annualImportValue, importerOfRecord, businessEntityType,
+      affiliateNotes, ein,
+    } = body;
 
     if (!companyName?.trim() || !contactName?.trim() || !email?.trim()) {
       return NextResponse.json({ error: "Company name, contact name, and email are required" }, { status: 400 });
@@ -25,53 +32,71 @@ export async function POST(req: NextRequest) {
     const firstName = names[0] || contactName.trim();
     const lastName = names.slice(1).join(" ") || "";
 
-    // Create admin lead for internal tracking
-    await prisma.partnerLead.create({
-      data: {
-        firstName,
-        lastName,
-        email: email.trim().toLowerCase(),
-        phone: phone?.trim() || null,
-        commissionRate: 0.25,
-        tier: "l1",
-        referredByCode: partnerCode || null,
-        notes: [
-          `Source: /recover landing page`,
-          importProducts ? `Imports: ${importProducts}` : null,
-          estimatedDuties ? `Est. duties: $${Number(estimatedDuties).toLocaleString()}` : null,
-          estimatedRefund ? `Est. refund: $${Number(estimatedRefund).toLocaleString()}` : null,
-          partnerCode ? `Referred by: ${partnerCode}` : "Direct (no partner referral)",
-        ].filter(Boolean).join("\n"),
-      },
-    });
-
-    // If a partner referred this lead, also add to their personal CRM pipeline
+    // Snapshot the L1 commission rate if a partner referred this client
+    let l1RateSnapshot: number | null = null;
     if (partnerCode) {
       const partner = await prisma.partner.findUnique({
         where: { partnerCode },
-        select: { partnerCode: true, status: true },
+        select: { commissionRate: true },
       });
-
-      if (partner && partner.status === "active") {
-        await prisma.partnerProspect.create({
-          data: {
-            partnerCode,
-            companyName: companyName.trim(),
-            contactName: contactName.trim(),
-            contactEmail: email.trim().toLowerCase(),
-            contactPhone: phone?.trim() || null,
-            productTypes: importProducts?.trim() || null,
-            annualDuties: estimatedDuties ? `$${Number(estimatedDuties).toLocaleString()}` : null,
-            stage: "new",
-            score: estimatedDuties && estimatedDuties >= 250000 ? 60 : estimatedDuties >= 50000 ? 40 : 20,
-            source: "website",
-            notes: `Submitted via /recover calculator. Est. refund: $${Number(estimatedRefund || 0).toLocaleString()}`,
-          },
-        }).catch(() => {});
-      }
+      l1RateSnapshot = partner?.commissionRate ?? null;
     }
 
-    return NextResponse.json({ success: true }, { status: 201 });
+    // Create a Deal — this is a direct client, not a partner lead
+    const deal = await prisma.deal.create({
+      data: {
+        dealName: `${firstName} ${lastName} — ${companyName}`.trim(),
+        partnerCode: partnerCode || "UNATTRIBUTED",
+        stage: "lead_submitted",
+        serviceOfInterest: "Tariff Refund Support",
+        clientFirstName: firstName,
+        clientLastName: lastName,
+        clientName: `${firstName} ${lastName}`.trim(),
+        clientEmail: email.trim().toLowerCase(),
+        clientPhone: phone?.trim() || null,
+        clientTitle: title?.trim() || null,
+        legalEntityName: companyName.trim(),
+        businessCity: city?.trim() || null,
+        businessState: state?.trim() || null,
+        importsGoods: importsGoods || importProducts || null,
+        importCountries: importCountries || null,
+        annualImportValue: annualImportValue || (estimatedDuties ? `$${Number(estimatedDuties).toLocaleString()}` : null),
+        importerOfRecord: importerOfRecord || null,
+        affiliateNotes: affiliateNotes || null,
+        l1CommissionRate: l1RateSnapshot,
+        estimatedRefundAmount: estimatedRefund ? Number(estimatedRefund) : 0,
+        notes: [
+          `Source: /recover landing page`,
+          importProducts ? `Import category: ${importProducts}` : null,
+          htsCategory ? `HTS: ${htsCategory}` : null,
+          entryPeriod ? `Entry period: ${entryPeriod}` : null,
+          estimatedDuties ? `Est. duties: $${Number(estimatedDuties).toLocaleString()}` : null,
+          businessEntityType ? `Entity type: ${businessEntityType}` : null,
+          ein ? `EIN: ${ein}` : null,
+          partnerCode ? `Referred by: ${partnerCode}` : "Direct (no partner referral)",
+        ].filter(Boolean).join(" | "),
+      },
+    });
+
+    // Notify admins
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ["super_admin", "admin"] } },
+      select: { email: true },
+    });
+    for (const admin of admins) {
+      await prisma.notification.create({
+        data: {
+          recipientType: "admin",
+          recipientId: admin.email,
+          type: "new_deal",
+          title: "New Client from Landing Page",
+          message: `${firstName} ${lastName} (${companyName}) submitted via /recover. ${partnerCode ? `Referred by ${partnerCode}.` : "Direct lead."}`,
+          link: `/admin/deals?deal=${deal.id}`,
+        },
+      }).catch(() => {});
+    }
+
+    return NextResponse.json({ success: true, dealId: deal.id }, { status: 201 });
   } catch (err) {
     console.error("[api/recover] error:", err);
     return NextResponse.json({ error: "Failed to submit. Please try again." }, { status: 500 });
