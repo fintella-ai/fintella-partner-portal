@@ -24,8 +24,8 @@ const BROKER_SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "scheduled", label: "Scheduled" },
   { id: "good_email", label: "Good Email" },
-  { id: "good_sms", label: "Good SMS" },
-  { id: "good_phone", label: "Good Calling" },
+  { id: "good_sms", label: "SMS Ready" },
+  { id: "good_phone", label: "Call Only" },
   { id: "not_validated", label: "Unverified" },
   { id: "bad_email", label: "Bad/No Email" },
   { id: "bad_phone", label: "Bad/No Phone" },
@@ -308,10 +308,18 @@ export default function InternalLeadsPage() {
   }
   function hasGoodSms(l: Lead): boolean {
     const t = getPhoneType(l);
-    return !!l.phone && (t === "mobile" || t === "fixedVoip" || t === "nonFixedVoip" || t === "voip" || t === "personal");
+    if (!l.phone || !t) return false;
+    const isSmsType = t === "mobile" || t === "fixedVoip" || t === "nonFixedVoip" || t === "voip" || t === "personal";
+    if (!isSmsType) return false;
+    const digits = l.phone.replace(/[^0-9]/g, "");
+    return digits.length >= 10 && digits.length <= 11;
   }
   function hasGoodCalling(l: Lead): boolean {
-    return !!l.phone && !hasFailedPhone(l);
+    const t = getPhoneType(l);
+    if (!l.phone || !t) return false;
+    if (hasGoodSms(l)) return false;
+    const digits = l.phone.replace(/[^0-9]/g, "");
+    return (t === "landline" || t === "tollFree") && digits.length >= 10 && digits.length <= 11;
   }
 
   function isScheduled(l: Lead): boolean {
