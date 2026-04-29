@@ -83,10 +83,10 @@ export default function AdminDealsPage() {
   const isSuperAdmin = (session?.user as any)?.role === "super_admin";
   const isStarSuperAdmin = isStarSuperAdminEmail((session?.user as any)?.email);
 
-  // 9 columns: Deal, Partner, Stage, Refund, Fee%, Firm Fee, Comm%, Commission, Date
+  // 10 columns: Deal, Partner, Service, Stage, Refund, Fee%, Firm Fee, Comm%, Commission, Date
   const { columnWidths: dealCols, getResizeHandler: dealResize } = useResizableColumns(
-    [200, 140, 120, 120, 70, 110, 70, 110, 100],
-    { storageKey: "deals" }
+    [200, 140, 130, 120, 120, 70, 110, 70, 110, 100],
+    { storageKey: "deals-v2" }
   );
   const dealGridCols = dealCols.map((w) => `${w}px`).join(" ");
 
@@ -102,6 +102,7 @@ export default function AdminDealsPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
+  const [serviceFilter, setServiceFilter] = useState("all");
   const [partnerFilter, setPartnerFilter] = useState("");
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -265,7 +266,8 @@ export default function AdminDealsPage() {
   }, [deepLinkDealId, deals.length, expandedId]);
 
   // Sort deals
-  const sorted = [...deals].sort((a, b) => {
+  const serviceFiltered = serviceFilter === "all" ? deals : deals.filter((d) => d.serviceOfInterest === serviceFilter);
+  const sorted = [...serviceFiltered].sort((a, b) => {
     let aVal: any = a[sortField];
     let bVal: any = b[sortField];
     if (typeof aVal === "string") aVal = aVal.toLowerCase();
@@ -650,6 +652,16 @@ export default function AdminDealsPage() {
         </select>
         <select
           className={`${inputClass} w-full sm:w-48`}
+          value={serviceFilter}
+          onChange={(e) => setServiceFilter(e.target.value)}
+        >
+          <option value="all" className="bg-[var(--app-bg)]">All Services</option>
+          <option value="Kwong Penalty Abatement" className="bg-[var(--app-bg)]">Kwong Penalty Abatement</option>
+          <option value="Tariff Refund Support" className="bg-[var(--app-bg)]">Tariff Refund Support</option>
+          <option value="ERC Support" className="bg-[var(--app-bg)]">ERC Support</option>
+        </select>
+        <select
+          className={`${inputClass} w-full sm:w-48`}
           value={partnerFilter}
           onChange={(e) => setPartnerFilter(e.target.value)}
         >
@@ -671,7 +683,7 @@ export default function AdminDealsPage() {
 
       {/* ═══ DESKTOP TABLE ═══ */}
       <div className="card hidden md:block overflow-x-auto">
-        <div className="min-w-[1320px]">
+        <div className="min-w-[1450px]">
         {/* Header — 9 columns: Deal / Partner / Stage / Refund / Firm Fee % /
             Firm Fee / Commission % / Commission / Date. The two rate columns
             (Firm Fee % + Commission %) sit immediately before their dollar-
@@ -684,26 +696,27 @@ export default function AdminDealsPage() {
             Deal{sortIcon("dealName")}<span {...dealResize(0)} />
           </button>
           <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center">Partner<span {...dealResize(1)} /></div>
+          <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center">Service<span {...dealResize(2)} /></div>
           <button onClick={() => toggleSort("stage")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Stage{sortIcon("stage")}<span {...dealResize(2)} />
+            Stage{sortIcon("stage")}<span {...dealResize(3)} />
           </button>
           <button onClick={() => toggleSort("estimatedRefundAmount")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Refund{sortIcon("estimatedRefundAmount")}<span {...dealResize(3)} />
+            Refund{sortIcon("estimatedRefundAmount")}<span {...dealResize(4)} />
           </button>
           <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center" title="Firm fee rate as a percentage of the deal refund">
-            Fee %<span {...dealResize(4)} />
+            Fee %<span {...dealResize(5)} />
           </div>
           <button onClick={() => toggleSort("firmFeeAmount")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Firm Fee{sortIcon("firmFeeAmount")}<span {...dealResize(5)} />
+            Firm Fee{sortIcon("firmFeeAmount")}<span {...dealResize(6)} />
           </button>
           <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center" title="Commission rate as a percentage of the firm fee (per the partner's tier)">
-            Comm %<span {...dealResize(6)} />
+            Comm %<span {...dealResize(7)} />
           </div>
           <button onClick={() => toggleSort("l1CommissionAmount")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Commission{sortIcon("l1CommissionAmount")}<span {...dealResize(7)} />
+            Commission{sortIcon("l1CommissionAmount")}<span {...dealResize(8)} />
           </button>
           <button onClick={() => toggleSort("createdAt")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)]">
-            Date{sortIcon("createdAt")}<span {...dealResize(8)} />
+            Date{sortIcon("createdAt")}<span {...dealResize(9)} />
           </button>
         </div>
 
@@ -750,6 +763,9 @@ export default function AdminDealsPage() {
                     <div className="font-mono text-[10px] text-[var(--app-text-muted)] mt-0.5 truncate">{deal.partnerCode}</div>
                   </>
                 )}
+              </div>
+              <div className="font-body text-[11px] text-[var(--app-text-secondary)] text-center truncate" title={deal.serviceOfInterest || ""}>
+                {deal.serviceOfInterest || "—"}
               </div>
               <div className="text-center"><StageBadge stage={deal.stage} /></div>
               <div className="font-body text-[13px] text-[var(--app-text)] text-center">{fmt$(fin.refund)}</div>
@@ -1351,6 +1367,9 @@ export default function AdminDealsPage() {
                 </div>
                 <StageBadge stage={deal.stage} />
               </div>
+              {deal.serviceOfInterest && (
+                <div className="font-body text-[11px] text-[var(--app-text-secondary)] mt-1">{deal.serviceOfInterest}</div>
+              )}
               <div className="grid grid-cols-3 gap-2 mt-3">
                 <div>
                   <div className="font-body text-[9px] text-[var(--app-text-muted)] uppercase tracking-wider">Refund</div>
