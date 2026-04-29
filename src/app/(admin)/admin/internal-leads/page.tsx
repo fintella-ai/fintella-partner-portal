@@ -26,14 +26,14 @@ const BROKER_SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "good_email", label: "Good Email" },
   { id: "good_sms", label: "Good SMS" },
   { id: "good_phone", label: "Good Calling" },
-  { id: "not_validated", label: "Not Validated" },
+  { id: "not_validated", label: "Unverified" },
   { id: "bad_email", label: "Bad/No Email" },
   { id: "bad_phone", label: "Bad/No Phone" },
 ];
 
 const REFERRAL_SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "not_validated", label: "Not Validated" },
+  { id: "not_validated", label: "Unverified" },
   { id: "bad_email", label: "Bad/No Email" },
   { id: "bad_phone", label: "Bad/No Phone" },
 ];
@@ -406,7 +406,12 @@ export default function InternalLeadsPage() {
             onClick={async () => {
               setLookingUp(true);
               try {
-                const res = await fetch("/api/admin/leads/lookup-phones", { method: "POST" });
+                const ids = paginated.map((l) => l.id);
+                const res = await fetch("/api/admin/leads/lookup-phones", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ leadIds: ids }),
+                });
                 const data = await res.json();
                 flash("ok", `Phone lookup: ${data.looked_up} classified${data.demo ? " (demo mode)" : ""}`);
                 fetchLeads();
@@ -416,13 +421,18 @@ export default function InternalLeadsPage() {
             disabled={lookingUp}
             className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
           >
-            {lookingUp ? "Looking up..." : "📞 Phone Types"}
+            {lookingUp ? "Looking up..." : `📞 Phone Types (${paginated.length})`}
           </button>
           <button
             onClick={async () => {
               setValidatingEmails(true);
               try {
-                const res = await fetch("/api/admin/leads/validate-emails", { method: "POST" });
+                const ids = paginated.map((l) => l.id);
+                const res = await fetch("/api/admin/leads/validate-emails", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ leadIds: ids }),
+                });
                 const data = await res.json();
                 flash("ok", `Email validation: ${data.validated} checked`);
                 fetchLeads();
@@ -432,7 +442,7 @@ export default function InternalLeadsPage() {
             disabled={validatingEmails}
             className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
           >
-            {validatingEmails ? "Validating..." : "✉️ Validate Emails"}
+            {validatingEmails ? "Validating..." : `✉️ Validate (${paginated.length})`}
           </button>
           {leadTab === "broker" && subTab === "good_email" && (
             <button
