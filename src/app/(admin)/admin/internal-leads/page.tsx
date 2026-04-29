@@ -89,12 +89,23 @@ export default function InternalLeadsPage() {
   const [syncing, setSyncing] = useState(false);
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [bulkEmailing, setBulkEmailing] = useState(false);
+  const [emailEngagement, setEmailEngagement] = useState<Record<string, { status: string; sentAt: string }>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
   function flash(tone: "ok" | "err", msg: string) {
     setBanner({ tone, msg });
     setTimeout(() => setBanner(null), 4000);
   }
+
+  const fetchEngagement = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/leads/email-engagement");
+      if (res.ok) {
+        const data = await res.json();
+        setEmailEngagement(data.engagement || {});
+      }
+    } catch {}
+  }, []);
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -106,7 +117,7 @@ export default function InternalLeadsPage() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchLeads(); }, [fetchLeads]);
+  useEffect(() => { fetchLeads(); fetchEngagement(); }, [fetchLeads, fetchEngagement]);
 
   async function updateLead(id: string, updates: Record<string, any>) {
     const res = await fetch(`/api/admin/leads/${id}`, {
@@ -563,7 +574,8 @@ export default function InternalLeadsPage() {
                 <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Phone</th>
                 <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Type</th>
                 <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Email</th>
-                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Email Status</th>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Validation</th>
+                <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Email Sent</th>
                 <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Lead Status</th>
                 <th className="px-3 py-2.5 text-left text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider font-semibold">Actions</th>
               </tr>
@@ -606,6 +618,32 @@ export default function InternalLeadsPage() {
                           {emailVerdict === "Valid" ? "✅ Valid" : emailVerdict === "Risky" ? "⚠️ Risky" : "❌ Invalid"}
                         </span>
                       ) : <span className="text-[var(--app-text-faint)]">—</span>}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {(() => {
+                        const eng = emailEngagement[lead.email.toLowerCase()];
+                        if (!eng) return <span className="text-[var(--app-text-faint)]">—</span>;
+                        const s = eng.status;
+                        const badge = s === "click" ? "bg-green-500/15 text-green-400"
+                          : s === "open" ? "bg-blue-500/15 text-blue-400"
+                          : s === "delivered" ? "bg-cyan-500/15 text-cyan-400"
+                          : s === "sent" || s === "processed" ? "bg-gray-500/15 text-gray-400"
+                          : s === "bounce" || s === "dropped" ? "bg-red-500/15 text-red-400"
+                          : s === "spamreport" ? "bg-red-500/15 text-red-400"
+                          : s === "demo" ? "bg-yellow-500/15 text-yellow-400"
+                          : "bg-white/5 text-[var(--app-text-faint)]";
+                        const label = s === "click" ? "🔗 Clicked"
+                          : s === "open" ? "👁 Opened"
+                          : s === "delivered" ? "📬 Delivered"
+                          : s === "sent" || s === "processed" ? "📤 Sent"
+                          : s === "bounce" ? "🔴 Bounced"
+                          : s === "dropped" ? "🚫 Dropped"
+                          : s === "spamreport" ? "⚠️ Spam"
+                          : s === "demo" ? "🧪 Demo"
+                          : s === "deferred" ? "⏳ Deferred"
+                          : s;
+                        return <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase ${badge}`}>{label}</span>;
+                      })()}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       <select
