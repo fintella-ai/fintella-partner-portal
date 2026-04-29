@@ -12,7 +12,7 @@ type Lead = {
 
 type LeadTab = "all" | "referral" | "broker";
 type SubTab = "all" | "scheduled" | "good_email" | "good_sms" | "good_phone" | "bad_email" | "bad_phone";
-type Stage = "all" | "new" | "contacted" | "needs_review" | "submitted" | "converted" | "lost";
+type Stage = "all" | "new" | "scheduled" | "contacted" | "needs_review" | "submitted" | "converted" | "lost";
 
 const LEAD_TABS: { id: LeadTab; label: string }[] = [
   { id: "all", label: "All Leads" },
@@ -39,6 +39,7 @@ const REFERRAL_SUB_TABS: { id: SubTab; label: string }[] = [
 const STAGES: { id: Stage; label: string }[] = [
   { id: "all", label: "All" },
   { id: "new", label: "New" },
+  { id: "scheduled", label: "Scheduled" },
   { id: "contacted", label: "Contacted" },
   { id: "needs_review", label: "Needs Review" },
   { id: "submitted", label: "Invited" },
@@ -334,6 +335,7 @@ export default function InternalLeadsPage() {
     .filter((l) => {
       if (stage === "all") return true;
       if (stage === "new") return l.status === "prospect" && !isScheduled(l);
+      if (stage === "scheduled") return isScheduled(l);
       if (stage === "converted") return l.status === "signed_up" || l.status === "converted";
       if (stage === "submitted") return l.status === "invited" || l.status === "submitted";
       if (stage === "lost") return l.status === "skipped" || l.status === "lost";
