@@ -69,8 +69,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(clientEmail)) {
+    if (!clientEmail.includes("@") || clientEmail.length > 254) {
       return NextResponse.json(
         { error: "Invalid email format" },
         { status: 400, headers: cors }
