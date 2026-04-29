@@ -404,17 +404,14 @@ export default function RecoverForm({ partnerCode }: Props) {
               <p className="text-sm text-white/50">Your details have been pre-filled. Review and submit below.</p>
               <p className="text-sm text-white/40 mt-1">Estimated recovery: <strong className="text-green-400">{fmt$(totalRecovery)}</strong></p>
             </div>
-            <div
-              className="overflow-hidden relative rounded-xl border border-white/10"
-              style={{ height: "72vh", minHeight: 700, background: "#fff" }}
-            >
+            <div className="rounded-xl border border-white/10 overflow-hidden" style={{ background: "#fff" }}>
               <iframe
                 src={frostUrl}
-                className="w-full border-0 absolute"
+                className="w-full border-0"
                 title="Complete Your Filing"
                 allow="camera; microphone; geolocation"
-                sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
-                style={{ top: -680, left: 0, width: "100%", height: "calc(100% + 1100px)" }}
+                sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation"
+                style={{ width: "100%", height: "85vh", minHeight: 800 }}
               />
             </div>
             <button onClick={() => setStep("contact")} className="w-full mt-3 py-2 text-xs text-white/40 hover:text-white/60">← Back to edit details</button>
