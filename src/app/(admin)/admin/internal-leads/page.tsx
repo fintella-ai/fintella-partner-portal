@@ -155,12 +155,11 @@ export default function InternalLeadsPage() {
 
   async function bulkSendBrokerEmails() {
     const emailable = filtered.filter((l) =>
-      !l.email.includes("@import.placeholder") &&
+      hasGoodEmail(l) &&
       l.status === "prospect" &&
-      isBrokerLead(l) &&
-      (l.notes || "").includes("Email Verdict: Valid")
+      isBrokerLead(l)
     );
-    if (emailable.length === 0) { flash("err", "No new broker leads with verified emails. Run 'Validate Emails' first."); return; }
+    if (emailable.length === 0) { flash("err", "No new broker leads with good emails to contact."); return; }
 
     const batch = emailable.slice(0, BATCH_SIZE);
     const remaining = emailable.length - batch.length;
@@ -265,16 +264,21 @@ export default function InternalLeadsPage() {
     return hasNoEmail(l) || hasFailedEmail(l);
   }
   function hasGoodEmail(l: Lead): boolean {
-    return !hasNoEmail(l) && (l.notes || "").includes("Email Verdict: Valid");
+    return !hasNoEmail(l) && !hasFailedEmail(l);
+  }
+  function getPhoneType(l: Lead): string | null {
+    const match = (l.notes || "").match(/Phone Type: (\S+)/);
+    return match ? match[1] : null;
   }
   function hasFailedPhone(l: Lead): boolean {
-    return (l.notes || "").includes("Phone Type: unknown");
+    const t = getPhoneType(l);
+    return t === "unknown" || t === "unknown (Twilio not configured)";
   }
   function hasBadPhone(l: Lead): boolean {
     return !l.phone || hasFailedPhone(l);
   }
   function hasGoodPhone(l: Lead): boolean {
-    return !!l.phone && ((l.notes || "").includes("Phone Type: mobile") || (l.notes || "").includes("Phone Type: landline") || (l.notes || "").includes("Phone Type: voip"));
+    return !!l.phone && !hasFailedPhone(l);
   }
 
   function applySubFilter(list: Lead[]): Lead[] {
@@ -371,13 +375,15 @@ export default function InternalLeadsPage() {
           >
             {validatingEmails ? "Validating..." : "✉️ Validate Emails"}
           </button>
-          <button
-            onClick={bulkSendBrokerEmails}
-            disabled={bulkEmailing}
-            className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
-          >
-            {bulkEmailing ? "Sending..." : `📧 Email Next ${BATCH_SIZE}`}
-          </button>
+          {leadTab === "broker" && subTab === "good_email" && (
+            <button
+              onClick={bulkSendBrokerEmails}
+              disabled={bulkEmailing}
+              className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition disabled:opacity-50"
+            >
+              {bulkEmailing ? "Sending..." : `📧 Email Next ${BATCH_SIZE}`}
+            </button>
+          )}
           <button
             onClick={() => { setImportOpen(true); setImportData([]); setImportResult(null); }}
             className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition"
@@ -563,7 +569,8 @@ export default function InternalLeadsPage() {
                 const notes = lead.notes || "";
                 const filerMatch = notes.match(/Filer Code: (\w+)/);
                 const locationMatch = notes.match(/Location: (.+)/);
-                const phoneType = notes.includes("Phone Type: mobile") ? "mobile" : notes.includes("Phone Type: landline") ? "landline" : notes.includes("Phone Type: voip") ? "voip" : null;
+                const phoneTypeMatch = notes.match(/Phone Type: (\S+)/);
+                const phoneType = phoneTypeMatch?.[1] && !phoneTypeMatch[1].startsWith("unknown") ? phoneTypeMatch[1] : null;
                 const emailVerdict = notes.includes("Email Verdict: Valid") ? "Valid" : notes.includes("Email Verdict: Risky") ? "Risky" : notes.includes("Email Verdict: Invalid") ? "Invalid" : null;
                 const realEmail = !lead.email.includes("@import.placeholder") ? lead.email : "";
 
@@ -580,7 +587,7 @@ export default function InternalLeadsPage() {
                           phoneType === "landline" ? "bg-gray-500/15 text-gray-400" :
                           "bg-blue-500/15 text-blue-400"
                         }`}>
-                          {phoneType === "mobile" ? "📱 Mobile" : phoneType === "landline" ? "☎️ Land" : "🌐 VoIP"}
+                          {phoneType === "mobile" ? "📱 Mobile" : phoneType === "landline" ? "☎️ Land" : `📞 ${phoneType}`}
                         </span>
                       ) : <span className="text-[var(--app-text-faint)]">—</span>}
                     </td>
@@ -613,7 +620,7 @@ export default function InternalLeadsPage() {
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       <div className="flex gap-1">
-                        {realEmail && lead.status === "prospect" && (lead.notes || "").includes("Email Verdict: Valid") && (
+                        {realEmail && lead.status === "prospect" && hasGoodEmail(lead) && (
                           <button
                             onClick={() => sendBrokerEmail(lead.id)}
                             disabled={sendingEmailId === lead.id}
