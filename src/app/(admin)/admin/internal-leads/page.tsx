@@ -9,13 +9,26 @@ type Lead = {
   status: string; inviteId: string | null; createdAt: string; updatedAt: string;
 };
 
-type LeadTab = "all" | "referral" | "broker" | "bad_email" | "bad_phone";
+type LeadTab = "all" | "referral" | "broker";
+type SubTab = "all" | "good_email" | "good_phone" | "bad_email" | "bad_phone";
 type Stage = "all" | "new" | "contacted" | "call_booked" | "qualified" | "submitted" | "converted" | "lost";
 
 const LEAD_TABS: { id: LeadTab; label: string }[] = [
   { id: "all", label: "All Leads" },
   { id: "referral", label: "Referral Partners" },
   { id: "broker", label: "Customs Brokers" },
+];
+
+const BROKER_SUB_TABS: { id: SubTab; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "good_email", label: "Good Email" },
+  { id: "good_phone", label: "Good Phone" },
+  { id: "bad_email", label: "Bad/No Email" },
+  { id: "bad_phone", label: "Bad/No Phone" },
+];
+
+const REFERRAL_SUB_TABS: { id: SubTab; label: string }[] = [
+  { id: "all", label: "All" },
   { id: "bad_email", label: "Bad/No Email" },
   { id: "bad_phone", label: "Bad/No Phone" },
 ];
@@ -60,6 +73,7 @@ export default function InternalLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [leadTab, setLeadTab] = useState<LeadTab>("all");
+  const [subTab, setSubTab] = useState<SubTab>("all");
   const [stage, setStage] = useState<Stage>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -247,17 +261,35 @@ export default function InternalLeadsPage() {
   function hasFailedEmail(l: Lead): boolean {
     return (l.notes || "").includes("Email Verdict: Invalid") || (l.notes || "").includes("Email Verdict: Risky");
   }
+  function hasBadEmail(l: Lead): boolean {
+    return hasNoEmail(l) || hasFailedEmail(l);
+  }
+  function hasGoodEmail(l: Lead): boolean {
+    return !hasNoEmail(l) && (l.notes || "").includes("Email Verdict: Valid");
+  }
   function hasFailedPhone(l: Lead): boolean {
     return (l.notes || "").includes("Phone Type: unknown");
   }
+  function hasBadPhone(l: Lead): boolean {
+    return !l.phone || hasFailedPhone(l);
+  }
+  function hasGoodPhone(l: Lead): boolean {
+    return !!l.phone && ((l.notes || "").includes("Phone Type: mobile") || (l.notes || "").includes("Phone Type: landline") || (l.notes || "").includes("Phone Type: voip"));
+  }
 
-  const typeFiltered = leads.filter((l) => {
+  function applySubFilter(list: Lead[]): Lead[] {
+    if (subTab === "good_email") return list.filter(hasGoodEmail);
+    if (subTab === "good_phone") return list.filter(hasGoodPhone);
+    if (subTab === "bad_email") return list.filter(hasBadEmail);
+    if (subTab === "bad_phone") return list.filter(hasBadPhone);
+    return list;
+  }
+
+  const typeFiltered = applySubFilter(leads.filter((l) => {
     if (leadTab === "broker") return isBrokerLead(l);
     if (leadTab === "referral") return isReferralLead(l);
-    if (leadTab === "bad_email") return hasNoEmail(l) || hasFailedEmail(l);
-    if (leadTab === "bad_phone") return !l.phone || hasFailedPhone(l);
     return true;
-  });
+  }));
 
   const q = search.toLowerCase().trim();
   const filtered = typeFiltered
@@ -380,7 +412,7 @@ export default function InternalLeadsPage() {
         {LEAD_TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => { setLeadTab(t.id); setStage("all"); }}
+            onClick={() => { setLeadTab(t.id); setSubTab("all"); setStage("all"); }}
             className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap transition border-b-2 ${
               leadTab === t.id
                 ? "border-[var(--brand-gold)] text-[var(--app-text)]"
@@ -392,14 +424,37 @@ export default function InternalLeadsPage() {
               ({leads.filter((l) => {
                 if (t.id === "broker") return isBrokerLead(l);
                 if (t.id === "referral") return isReferralLead(l);
-                if (t.id === "bad_email") return hasNoEmail(l) || hasFailedEmail(l);
-                if (t.id === "bad_phone") return !l.phone || hasFailedPhone(l);
                 return true;
               }).length})
             </span>
           </button>
         ))}
       </div>
+
+      {/* Sub-tabs (under Brokers or Referral Partners) */}
+      {(leadTab === "broker" || leadTab === "referral") && (
+        <div className="flex gap-1 overflow-x-auto mb-2">
+          {(leadTab === "broker" ? BROKER_SUB_TABS : REFERRAL_SUB_TABS).map((st) => {
+            const parentLeads = leads.filter((l) => leadTab === "broker" ? isBrokerLead(l) : isReferralLead(l));
+            const count = st.id === "all" ? parentLeads.length
+              : st.id === "good_email" ? parentLeads.filter(hasGoodEmail).length
+              : st.id === "good_phone" ? parentLeads.filter(hasGoodPhone).length
+              : st.id === "bad_email" ? parentLeads.filter(hasBadEmail).length
+              : parentLeads.filter(hasBadPhone).length;
+            return (
+              <button
+                key={st.id}
+                onClick={() => setSubTab(st.id)}
+                className={`font-body text-[11px] px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${
+                  subTab === st.id ? "bg-brand-gold/15 text-brand-gold font-semibold" : "text-[var(--app-text-muted)] hover:text-[var(--app-text)]"
+                }`}
+              >
+                {st.label} <span className="text-[9px] text-[var(--app-text-faint)]">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
@@ -458,15 +513,22 @@ export default function InternalLeadsPage() {
         <div className="text-center py-12 font-body text-sm text-[var(--app-text-muted)]">Loading leads...</div>
       ) : filtered.length === 0 ? (
         <div className="card p-12 text-center">
-          <div className="text-5xl mb-3">{leadTab === "broker" ? "🚢" : leadTab === "bad_email" ? "✉️" : leadTab === "bad_phone" ? "📞" : "📊"}</div>
+          <div className="text-5xl mb-3">{leadTab === "broker" ? "🚢" : leadTab === "referral" ? "🤝" : "📊"}</div>
           <h3 className="text-lg font-semibold mb-1">
-            {leadTab === "broker" ? "No customs broker leads yet" : leadTab === "referral" ? "No referral partner leads yet" : leadTab === "bad_email" ? "No leads with bad/missing emails" : leadTab === "bad_phone" ? "No leads with bad/missing phones" : "No internal leads yet"}
+            {subTab !== "all"
+              ? `No ${subTab.replace("_", " ")} leads found`
+              : leadTab === "broker" ? "No customs broker leads yet"
+              : leadTab === "referral" ? "No referral partner leads yet"
+              : "No internal leads yet"
+            }
           </h3>
           <p className="text-sm text-[var(--app-text-muted)]">
-            {leadTab === "broker"
+            {leadTab === "broker" && subTab === "all"
               ? "Import the CBP broker listing CSV to start building your customs broker pipeline."
-              : leadTab === "bad_email" ? "Leads with invalid, risky, or missing emails will appear here after validation."
-              : leadTab === "bad_phone" ? "Leads with no phone number or unknown phone types will appear here."
+              : subTab === "good_email" ? "Run 'Validate Emails' to identify leads with verified email addresses."
+              : subTab === "good_phone" ? "Run 'Phone Types' to identify leads with verified phone numbers."
+              : subTab === "bad_email" ? "Leads with invalid, risky, or missing emails will appear here after validation."
+              : subTab === "bad_phone" ? "Leads with no phone or unknown phone types will appear here."
               : "Leads from /recover and direct outreach will appear here."
             }
           </p>
@@ -479,7 +541,7 @@ export default function InternalLeadsPage() {
             </button>
           )}
         </div>
-      ) : (leadTab === "broker" || leadTab === "bad_email" || leadTab === "bad_phone") ? (
+      ) : leadTab === "broker" ? (
         /* ── BROKER TABLE VIEW ── */
         <div className="overflow-x-auto border border-[var(--app-border)] rounded-xl">
           <table className="w-full text-[12px]">
