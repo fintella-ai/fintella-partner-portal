@@ -197,6 +197,7 @@ function DevIdeasTab() {
   const [planningId, setPlanningId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [subTab, setSubTab] = useState<"submit" | "pending" | "completed">("pending");
 
   const fetchIdeas = useCallback(async () => {
     try {
@@ -249,11 +250,29 @@ function DevIdeasTab() {
     setTimeout(() => setCopiedId((p) => p === id ? null : p), 2000);
   }
 
-  const filtered = statusFilter === "all" ? ideas : ideas.filter((i) => i.status === statusFilter);
+  const pendingIdeas = ideas.filter((i) => !["done", "parked"].includes(i.status));
+  const completedIdeas = ideas.filter((i) => ["done", "parked"].includes(i.status));
+  const filtered = statusFilter === "all"
+    ? (subTab === "completed" ? completedIdeas : pendingIdeas)
+    : (subTab === "completed" ? completedIdeas : pendingIdeas).filter((i) => i.status === statusFilter);
 
   return (
     <div className="space-y-4">
-      {/* Add Idea Form */}
+      {/* Sub-tabs */}
+      <div className="flex gap-1 border-b border-[var(--app-border)]">
+        {([
+          { id: "submit" as const, label: "Submit New Idea" },
+          { id: "pending" as const, label: `Pending Ideas (${pendingIdeas.length})` },
+          { id: "completed" as const, label: `Completed (${completedIdeas.length})` },
+        ]).map((t) => (
+          <button key={t.id} onClick={() => setSubTab(t.id)} className={`font-body text-[12px] font-medium px-4 py-2.5 whitespace-nowrap transition border-b-2 ${subTab === t.id ? "border-brand-gold text-brand-gold" : "border-transparent theme-text-muted hover:text-[var(--app-text)]"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Submit New Idea */}
+      {subTab === "submit" && (
       <div className="card p-5">
         <h3 className="font-body font-semibold text-sm mb-3">New Development Idea</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -290,7 +309,11 @@ function DevIdeasTab() {
           </button>
         </div>
       </div>
+      )}
 
+      {/* Ideas Lists (Pending + Completed) */}
+      {(subTab === "pending" || subTab === "completed") && (
+      <>
       {/* Filter */}
       <div className="flex gap-1 overflow-x-auto pb-1">
         {["all", ...IDEA_STATUS].map((s) => (
@@ -331,7 +354,7 @@ function DevIdeasTab() {
                       <span className="font-body text-[10px] theme-text-faint">{isExpanded ? "▲" : "▼"}</span>
                     </div>
                   </div>
-                  <div className="font-body text-[12px] theme-text-secondary mt-1 line-clamp-2">{idea.description}</div>
+                  <div className={`font-body text-[12px] theme-text-secondary mt-1 whitespace-pre-wrap ${isExpanded ? "" : "line-clamp-2"}`}>{idea.description}</div>
                 </div>
 
                 {isExpanded && (
@@ -384,6 +407,8 @@ function DevIdeasTab() {
             );
           })}
         </div>
+      )}
+      </>
       )}
     </div>
   );
