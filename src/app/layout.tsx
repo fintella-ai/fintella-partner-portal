@@ -55,6 +55,17 @@ export default function RootLayout({
       {/* Anti-flash: set data-theme before first paint so there's no flicker */}
       <head>
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));var p=localStorage.getItem('portalTheme');if(p&&p!=='default'){document.documentElement.setAttribute('data-portal-theme',p);}}catch(e){}` }} />
+        {process.env.NEXT_PUBLIC_GOOGLE_ADS_ID && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}`} />
+            <script dangerouslySetInnerHTML={{ __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}');
+            ` }} />
+          </>
+        )}
       </head>
       <body className="antialiased">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-[var(--brand-gold)] focus:text-black focus:font-semibold">Skip to main content</a>

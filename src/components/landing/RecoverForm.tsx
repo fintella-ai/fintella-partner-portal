@@ -31,15 +31,24 @@ function fmt$(n: number): string {
 
 interface Props {
   partnerCode: string | null;
+  utmParams?: {
+    utm_source: string | null;
+    utm_medium: string | null;
+    utm_campaign: string | null;
+    utm_content: string | null;
+    utm_term: string | null;
+    utm_adgroup: string | null;
+  };
 }
 
-export default function RecoverForm({ partnerCode }: Props) {
-  const [step, setStep] = useState<"product" | "duties" | "timing" | "result" | "contact" | "done">("product");
+export default function RecoverForm({ partnerCode, utmParams }: Props) {
+  const [step, setStep] = useState<"product" | "duties" | "timing" | "result" | "contact" | "not_qualified" | "done">("product");
   const [selectedCategory, setSelectedCategory] = useState<typeof HTS_CATEGORIES[0] | null>(null);
   const [customDuties, setCustomDuties] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState<typeof ENTRY_PERIODS[0] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [qualificationResult, setQualificationResult] = useState<{ qualified: boolean; reason: string | null } | null>(null);
   const [form, setForm] = useState({
     companyName: "", contactName: "", email: "", phone: "",
     title: "", city: "", state: "", importerOfRecord: "", ein: "",
@@ -54,6 +63,13 @@ export default function RecoverForm({ partnerCode }: Props) {
   const totalRecovery = estimatedRefund + estimatedInterest;
   const dailyInterest = Math.round(dutiesAmount * 0.07 / 365);
 
+  function checkQualification(): { qualified: boolean; reason: string | null } {
+    if (dutiesAmount > 0 && dutiesAmount < 10000) {
+      return { qualified: false, reason: "low_duties" };
+    }
+    return { qualified: true, reason: null };
+  }
+
   async function submit() {
     if (!form.companyName.trim() || !form.contactName.trim() || !form.email.trim() || !form.city.trim() || !form.state.trim()) {
       setError("Please fill in all required fields.");
@@ -62,6 +78,7 @@ export default function RecoverForm({ partnerCode }: Props) {
     setSaving(true);
     setError("");
     try {
+      const qual = checkQualification();
       const res = await fetch("/api/recover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,9 +90,28 @@ export default function RecoverForm({ partnerCode }: Props) {
           entryPeriod: selectedPeriod?.label,
           htsCategory: selectedCategory?.code,
           partnerCode,
+          utmSource: utmParams?.utm_source || null,
+          utmMedium: utmParams?.utm_medium || null,
+          utmCampaign: utmParams?.utm_campaign || null,
+          utmTerm: utmParams?.utm_term || null,
+          utmAdGroup: utmParams?.utm_adgroup || null,
+          qualified: qual.qualified,
+          disqualifyReason: qual.reason,
         }),
       });
       if (res.ok) {
+        setQualificationResult(qual);
+        if (!qual.qualified) {
+          setStep("not_qualified");
+          return;
+        }
+        if (typeof window !== "undefined" && (window as any).gtag) {
+          (window as any).gtag("event", "conversion", {
+            send_to: process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL || undefined,
+            value: totalRecovery,
+            currency: "USD",
+          });
+        }
         setStep("done");
       } else {
         const data = await res.json().catch(() => ({ error: "Something went wrong" }));
@@ -90,7 +126,7 @@ export default function RecoverForm({ partnerCode }: Props) {
   return (
     <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
       {/* Progress bar */}
-      {step !== "done" && (
+      {step !== "done" && step !== "not_qualified" && (
         <div className="flex gap-1 mb-6">
           {[1, 2, 3, 4, 5].map((s) => (
             <div key={s} className={`h-1 flex-1 rounded-full transition-all ${s <= progress ? "bg-[#c4a050]" : "bg-white/10"}`} />
@@ -373,6 +409,23 @@ export default function RecoverForm({ partnerCode }: Props) {
           </button>
           <button onClick={() => setStep("result")} className="w-full mt-2 py-2 text-xs text-white/40 hover:text-white/60">← Back to estimate</button>
         </>
+      )}
+
+      {/* Not qualified — soft rejection */}
+      {step === "not_qualified" && (
+        <div className="text-center py-8">
+          <div className="text-4xl mb-4">📋</div>
+          <h2 className="font-display text-xl mb-2" style={{ color: "#c4a050" }}>Thank You for Your Interest</h2>
+          <p className="text-sm text-white/60 mb-4">
+            Based on your import profile, you may not meet the minimum threshold for the IEEPA tariff refund program at this time.
+          </p>
+          <p className="text-sm text-white/50 mb-6">
+            We&apos;ve saved your information and will reach out if eligibility criteria change. You can also contact us directly for a manual review.
+          </p>
+          <a href="mailto:support@fintella.partners" className="inline-block px-6 py-3 rounded-xl font-semibold text-sm text-black" style={{ background: "#c4a050" }}>
+            Contact Us for Manual Review
+          </a>
+        </div>
       )}
 
       {/* Done — embedded Frost Law form with pre-filled data */}

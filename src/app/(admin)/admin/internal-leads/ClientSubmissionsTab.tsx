@@ -44,6 +44,9 @@ interface Stats {
   byPartner: Record<string, number>;
   bySource: Record<string, number>;
   funnel: { submitted: number; qualified: number; disqualified: number; engaged: number; inProcess: number; won: number };
+  byUtmSource?: Record<string, number>;
+  byUtmCampaign?: Record<string, number>;
+  byQualification?: { qualified: number; disqualified: number };
 }
 
 const STAGE_COLORS: Record<string, string> = {
@@ -66,6 +69,7 @@ export default function ClientSubmissionsTab() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [stageFilter, setStageFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
@@ -184,6 +188,66 @@ export default function ClientSubmissionsTab() {
         </div>
       )}
 
+      {/* Source Attribution Dashboard */}
+      {stats && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          {/* By UTM Source */}
+          {stats.byUtmSource && Object.keys(stats.byUtmSource).length > 0 && (
+            <div className="card p-4">
+              <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">By Source</div>
+              <div className="space-y-2">
+                {Object.entries(stats.byUtmSource).sort(([,a], [,b]) => b - a).map(([source, count]) => (
+                  <div key={source} className="flex items-center justify-between">
+                    <span className="font-body text-[12px] text-[var(--app-text-secondary)] capitalize">{source}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-1.5 rounded-full bg-[var(--app-input-bg)] overflow-hidden">
+                        <div className="h-full rounded-full bg-blue-500/60" style={{ width: `${(count / stats.total) * 100}%` }} />
+                      </div>
+                      <span className="font-body text-[12px] text-[var(--app-text-secondary)] w-8 text-right">{count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* By UTM Campaign */}
+          {stats.byUtmCampaign && Object.keys(stats.byUtmCampaign).length > 0 && (
+            <div className="card p-4">
+              <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">By Campaign</div>
+              <div className="space-y-2">
+                {Object.entries(stats.byUtmCampaign).sort(([,a], [,b]) => b - a).map(([campaign, count]) => (
+                  <div key={campaign} className="flex items-center justify-between">
+                    <span className="font-body text-[12px] text-[var(--app-text-secondary)] truncate max-w-[120px]" title={campaign}>{campaign}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-1.5 rounded-full bg-[var(--app-input-bg)] overflow-hidden">
+                        <div className="h-full rounded-full bg-purple-500/60" style={{ width: `${(count / stats.total) * 100}%` }} />
+                      </div>
+                      <span className="font-body text-[12px] text-[var(--app-text-secondary)] w-8 text-right">{count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Qualification */}
+          {stats.byQualification && (
+            <div className="card p-4">
+              <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">Qualification</div>
+              <div className="flex items-center justify-around pt-2">
+                <div className="text-center">
+                  <div className="font-display text-2xl text-green-400">{stats.byQualification.qualified}</div>
+                  <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mt-1">Qualified</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-display text-2xl text-red-400">{stats.byQualification.disqualified}</div>
+                  <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mt-1">Screened Out</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Pipeline stage tabs */}
       <div className="mb-4 border-b border-[var(--app-border)] overflow-x-auto">
         <div className="flex gap-1 min-w-max">
@@ -212,19 +276,32 @@ export default function ClientSubmissionsTab() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="mb-4">
+      {/* Search + Source Filter */}
+      <div className="mb-4 flex gap-3">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, email, company, partner code..."
-          className="w-full bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-4 py-2.5 text-[var(--app-text)] font-body text-sm outline-none focus:border-brand-gold/40 transition-colors placeholder:text-[var(--app-text-muted)]"
+          className="flex-1 bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-4 py-2.5 text-[var(--app-text)] font-body text-sm outline-none focus:border-brand-gold/40 transition-colors placeholder:text-[var(--app-text-muted)]"
         />
+        <select
+          value={sourceFilter}
+          onChange={(e) => setSourceFilter(e.target.value)}
+          className="bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-3 py-2.5 text-sm text-[var(--app-text)]"
+        >
+          <option value="all">All Sources</option>
+          <option value="google">Google Ads</option>
+          <option value="meta">Meta Ads</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="email">Email</option>
+          <option value="direct">Direct</option>
+        </select>
       </div>
 
       {(() => {
         const filtered = submissions
           .filter((s) => stageFilter === "all" || (s.dealStage || "pending") === stageFilter)
+          .filter((s) => sourceFilter === "all" || ((s as any).utmSource || "direct") === sourceFilter)
           .filter((s) => {
             if (!search) return true;
             const q = search.toLowerCase();
@@ -256,6 +333,7 @@ export default function ClientSubmissionsTab() {
                 <th className="px-4 py-3 text-center">Location</th>
                 <th className="px-4 py-3 text-center">Est. Refund</th>
                 <th className="px-4 py-3 text-center">Partner</th>
+                <th className="px-4 py-3 text-center">Source</th>
                 <th className="px-4 py-3 text-center">Deal Stage</th>
                 <th className="px-4 py-3 text-center">Match</th>
                 <th className="px-4 py-3 text-center">Date</th>
@@ -275,6 +353,12 @@ export default function ClientSubmissionsTab() {
                   </td>
                   <td className="px-4 py-3 text-center text-[13px] text-green-400 font-semibold">{fmt$(s.estimatedRefund)}</td>
                   <td className="px-4 py-3 text-center text-[12px] font-mono text-[var(--app-text-secondary)]">{s.partnerCode || "Direct"}</td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="text-[12px] text-[var(--app-text-secondary)] capitalize">{(s as any).utmSource || "direct"}</div>
+                    {(s as any).utmCampaign && (
+                      <div className="text-[10px] text-[var(--app-text-muted)]">{(s as any).utmCampaign}</div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     {s.dealStage ? (
                       <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase border ${STAGE_COLORS[s.dealStage] || STAGE_COLORS.pending}`}>
