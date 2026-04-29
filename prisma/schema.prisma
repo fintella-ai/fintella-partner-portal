@@ -80,6 +80,9 @@ model Partner {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
+  widgetSessions  WidgetSession[]
+  widgetReferrals WidgetReferral[]
+
   @@index([email])
   @@index([referredByPartnerCode])
   @@index([engagementTier])
@@ -1914,4 +1917,50 @@ model PartnerProspect {
   @@index([partnerCode])
   @@index([stage])
   @@index([nextFollowUpAt])
+}
+
+// ─── TMS WIDGET EMBED (CargoWise / Magaya / generic browser) ────────────────
+model WidgetSession {
+  id          String   @id @default(cuid())
+  partnerId   String
+  apiKeyHash  String   @unique
+  apiKeyHint  String
+  origin      String?
+  platform    String
+  lastSeenAt  DateTime?
+  createdAt   DateTime @default(now())
+  isActive    Boolean  @default(true)
+
+  partner     Partner  @relation(fields: [partnerId], references: [id])
+  referrals   WidgetReferral[]
+
+  @@index([partnerId])
+}
+
+model WidgetReferral {
+  id                    String   @id @default(cuid())
+  widgetSessionId       String
+  partnerId             String
+  clientCompanyName     String
+  clientContactName     String
+  clientEmail           String
+  clientPhone           String?
+  estimatedImportValue  String?
+  importDateRange       String?
+  htsCodes              String[]
+  entryCount            Int?
+  status                String   @default("submitted")
+  tmsReference          String?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  referralId            String?
+
+  widgetSession WidgetSession @relation(fields: [widgetSessionId], references: [id])
+  partner       Partner      @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@index([widgetSessionId])
+  @@index([status])
+  @@index([clientEmail, partnerId])
 }
