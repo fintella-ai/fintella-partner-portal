@@ -83,6 +83,19 @@ export async function GET() {
     byPartner[pc] = (byPartner[pc] || 0) + 1;
   }
 
+  const byUtmSource: Record<string, number> = {};
+  const byUtmCampaign: Record<string, number> = {};
+  const byQualification = { qualified: 0, disqualified: 0 };
+
+  for (const s of submissions) {
+    const src = (s as any).utmSource || "direct";
+    byUtmSource[src] = (byUtmSource[src] || 0) + 1;
+    const camp = (s as any).utmCampaign || "(none)";
+    byUtmCampaign[camp] = (byUtmCampaign[camp] || 0) + 1;
+    if ((s as any).qualified === false) byQualification.disqualified++;
+    else byQualification.qualified++;
+  }
+
   // Conversion funnel
   const funnel = {
     submitted: total,
@@ -95,6 +108,6 @@ export async function GET() {
 
   return NextResponse.json({
     submissions,
-    stats: { total, linked, unlinked: total - linked, byStage, bySource, byPartner, funnel },
+    stats: { total, linked, unlinked: total - linked, byStage, bySource, byPartner, byUtmSource, byUtmCampaign, byQualification, funnel },
   });
 }
