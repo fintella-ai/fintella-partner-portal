@@ -587,7 +587,7 @@ export default function AdminPartnersPage() {
     { key: "signed", label: "Signed", count: signedCount },
     { key: "unsigned", label: "Unsigned", count: unsignedCount },
     { key: "none_agreement", label: "None", count: noneCount },
-    { key: "invited", label: "Invited" },
+    { key: "invited", label: "Invited", count: invitedCount },
     { key: "blocked", label: "Blocked" },
   ];
 
