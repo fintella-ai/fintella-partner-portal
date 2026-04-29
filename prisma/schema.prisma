@@ -817,6 +817,7 @@ model EnterprisePartner {
   totalRate       Float                      // e.g. 0.30 for 30%
   overrideRate    Float                      // totalRate - 0.25 (auto-calculated, stored for convenience)
   applyToAll      Boolean  @default(false)   // if true, override applies to ALL partners in the portal (no need to add individual codes)
+  excludedCodes   String[] @default([])      // partner codes excluded from applyToAll (e.g. the EP's own code for direct deals)
   status          String   @default("active") // active, inactive
   notes           String?
   createdBy       String?                    // admin email who created

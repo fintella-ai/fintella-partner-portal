@@ -1222,10 +1222,15 @@ export default function PartnerDetailPage() {
                 <div className="font-body text-sm font-semibold text-[var(--app-text)]">
                   {enterprisePartner.applyToAll ? "All Partners" : `${enterprisePartner.overrides?.length || 0} L1 Partners`}
                 </div>
+                {enterprisePartner.excludedCodes?.length > 0 && (
+                  <div className="font-body text-[10px] text-[var(--app-text-muted)] mt-1">
+                    Excluded: {enterprisePartner.excludedCodes.join(", ")}
+                  </div>
+                )}
               </div>
             </div>
             <div className="font-body text-[10px] text-[var(--app-text-faint)] mt-3">
-              Confidential — this information is only visible to admins and the enterprise partner. Managed in Revenue &gt; Custom Commissions.
+              Does not apply to your own direct deals. Confidential — visible to admins and the enterprise partner only. Managed in Revenue &gt; Custom Commissions.
             </div>
           </div>
         )}

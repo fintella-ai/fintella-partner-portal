@@ -18,6 +18,7 @@ type EnterprisePartnerData = {
   totalRate: number;
   overrideRate: number;
   applyToAll: boolean;
+  excludedCodes: string[];
   status: string;
   notes: string | null;
   createdAt: string;
@@ -376,9 +377,84 @@ export default function CustomCommissionsPage() {
                       )}
 
                       {ep.applyToAll && (
-                        <div className="mb-4 p-3 rounded-lg bg-green-500/5 border border-green-500/10">
-                          <div className="font-body text-sm text-green-400 font-semibold mb-0.5">Global Override Active</div>
-                          <div className="font-body text-[11px] theme-text-muted">This enterprise partner earns a {Math.round(ep.overrideRate * 100)}% override on ALL partner deals in the portal.</div>
+                        <div className="mb-4 space-y-3">
+                          <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/10">
+                            <div className="font-body text-sm text-green-400 font-semibold mb-0.5">Global Override Active</div>
+                            <div className="font-body text-[11px] theme-text-muted">
+                              This enterprise partner earns a {Math.round(ep.overrideRate * 100)}% override on ALL partner deals in the portal.
+                              {ep.excludedCodes?.length > 0 && ` Excluded: ${ep.excludedCodes.join(", ")}.`}
+                              {" "}Does not apply to the EP&apos;s own direct deals.
+                            </div>
+                          </div>
+                          {isSuperAdmin && (
+                            <div>
+                              <div className="font-body text-[11px] tracking-[1.5px] uppercase theme-text-muted mb-1">Excluded Partner Codes</div>
+                              <div className="font-body text-[10px] theme-text-muted mb-2">These partner codes are excluded from the global override even when &quot;Apply to All&quot; is on.</div>
+                              <div className="flex gap-2">
+                                <input
+                                  className="flex-1 theme-input rounded-lg px-3 py-2 font-body text-sm outline-none focus:border-brand-gold/40"
+                                  placeholder="Partner code to exclude..."
+                                  id={`exclude-input-${ep.partnerCode}`}
+                                  onKeyDown={async (e) => {
+                                    if (e.key !== "Enter") return;
+                                    const input = e.currentTarget;
+                                    const code = input.value.trim().toUpperCase();
+                                    if (!code) return;
+                                    const current = ep.excludedCodes || [];
+                                    if (current.includes(code)) { input.value = ""; return; }
+                                    await fetch("/api/admin/enterprise", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ action: "update", partnerCode: ep.partnerCode, excludedCodes: [...current, code] }),
+                                    });
+                                    input.value = "";
+                                    fetchEnterprises();
+                                  }}
+                                />
+                                <button
+                                  onClick={async () => {
+                                    const input = document.getElementById(`exclude-input-${ep.partnerCode}`) as HTMLInputElement;
+                                    const code = input?.value.trim().toUpperCase();
+                                    if (!code) return;
+                                    const current = ep.excludedCodes || [];
+                                    if (current.includes(code)) { input.value = ""; return; }
+                                    await fetch("/api/admin/enterprise", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ action: "update", partnerCode: ep.partnerCode, excludedCodes: [...current, code] }),
+                                    });
+                                    input.value = "";
+                                    fetchEnterprises();
+                                  }}
+                                  className="font-body text-[11px] px-3 py-2 rounded-lg bg-brand-gold/20 text-brand-gold border border-brand-gold/30 hover:bg-brand-gold/30 transition"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                              {ep.excludedCodes?.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {ep.excludedCodes.map((code: string) => (
+                                    <span key={code} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-body text-[10px] font-semibold">
+                                      {code}
+                                      <button
+                                        onClick={async () => {
+                                          await fetch("/api/admin/enterprise", {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ action: "update", partnerCode: ep.partnerCode, excludedCodes: (ep.excludedCodes || []).filter((c: string) => c !== code) }),
+                                          });
+                                          fetchEnterprises();
+                                        }}
+                                        className="hover:text-red-300"
+                                      >
+                                        ✕
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
 

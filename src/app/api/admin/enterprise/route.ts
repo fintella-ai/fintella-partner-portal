@@ -282,6 +282,7 @@ export async function POST(req: NextRequest) {
         data.overrideRate = rate;
       }
       if (body.applyToAll !== undefined) data.applyToAll = body.applyToAll;
+      if (body.excludedCodes !== undefined) data.excludedCodes = body.excludedCodes;
       if (status !== undefined) data.status = status;
       if (notes !== undefined) data.notes = notes;
 
