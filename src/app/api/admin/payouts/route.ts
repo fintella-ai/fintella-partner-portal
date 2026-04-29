@@ -170,9 +170,10 @@ export async function GET(req: NextRequest) {
       for (const ep of enterprises) {
         // Get applicable deals
         const l1Codes = ep.overrides.map((o) => o.l1PartnerCode);
+        const excluded = new Set([ep.partnerCode, ...(ep.excludedCodes || [])]);
         const epDeals = ep.applyToAll
-          ? allDeals.filter((d) => d.partnerCode !== ep.partnerCode)
-          : allDeals.filter((d) => l1Codes.includes(d.partnerCode));
+          ? allDeals.filter((d) => !excluded.has(d.partnerCode))
+          : allDeals.filter((d) => l1Codes.includes(d.partnerCode) && !excluded.has(d.partnerCode));
 
         for (const deal of epDeals) {
           // Skip deals that already have a persisted EP CommissionLedger
