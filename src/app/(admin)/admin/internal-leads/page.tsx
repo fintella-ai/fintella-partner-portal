@@ -6,11 +6,12 @@ import { fmtDate } from "@/lib/format";
 type Lead = {
   id: string; firstName: string; lastName: string; email: string; phone: string | null;
   commissionRate: number; tier: string; referredByCode: string | null; notes: string | null;
-  status: string; inviteId: string | null; createdAt: string; updatedAt: string;
+  status: string; inviteId: string | null; scheduledSendAt: string | null; emailSentAt: string | null;
+  createdAt: string; updatedAt: string;
 };
 
 type LeadTab = "all" | "referral" | "broker";
-type SubTab = "all" | "good_email" | "good_phone" | "bad_email" | "bad_phone";
+type SubTab = "all" | "scheduled" | "good_email" | "good_phone" | "bad_email" | "bad_phone";
 type Stage = "all" | "new" | "contacted" | "needs_review" | "submitted" | "converted" | "lost";
 
 const LEAD_TABS: { id: LeadTab; label: string }[] = [
@@ -21,6 +22,7 @@ const LEAD_TABS: { id: LeadTab; label: string }[] = [
 
 const BROKER_SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "all", label: "All" },
+  { id: "scheduled", label: "Scheduled" },
   { id: "good_email", label: "Good Email" },
   { id: "good_phone", label: "Good Phone" },
   { id: "bad_email", label: "Bad/No Email" },
@@ -47,6 +49,7 @@ const STAGE_BADGES: Record<string, string> = {
   new: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   prospect: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   contacted: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  scheduled: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
   needs_review: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   submitted: "bg-brand-gold/10 text-brand-gold border-brand-gold/20",
   invited: "bg-brand-gold/10 text-brand-gold border-brand-gold/20",
@@ -285,8 +288,13 @@ export default function InternalLeadsPage() {
     return !!l.phone && !hasFailedPhone(l);
   }
 
+  function isScheduled(l: Lead): boolean {
+    return !!l.scheduledSendAt && !l.emailSentAt && l.status === "prospect";
+  }
+
   function applySubFilter(list: Lead[]): Lead[] {
-    if (subTab === "good_email") return list.filter(hasGoodEmail);
+    if (subTab === "scheduled") return list.filter(isScheduled);
+    if (subTab === "good_email") return list.filter((l) => hasGoodEmail(l) && !isScheduled(l));
     if (subTab === "good_phone") return list.filter(hasGoodPhone);
     if (subTab === "bad_email") return list.filter(hasBadEmail);
     if (subTab === "bad_phone") return list.filter(hasBadPhone);
@@ -303,7 +311,7 @@ export default function InternalLeadsPage() {
   const filtered = typeFiltered
     .filter((l) => {
       if (stage === "all") return true;
-      if (stage === "new") return l.status === "prospect";
+      if (stage === "new") return l.status === "prospect" && !isScheduled(l);
       if (stage === "converted") return l.status === "signed_up" || l.status === "converted";
       if (stage === "submitted") return l.status === "invited" || l.status === "submitted";
       if (stage === "lost") return l.status === "skipped" || l.status === "lost";
@@ -313,7 +321,8 @@ export default function InternalLeadsPage() {
 
   const stats = {
     total: typeFiltered.length,
-    new: typeFiltered.filter((l) => l.status === "prospect").length,
+    new: typeFiltered.filter((l) => l.status === "prospect" && !isScheduled(l)).length,
+    scheduled: typeFiltered.filter(isScheduled).length,
     contacted: typeFiltered.filter((l) => l.status === "contacted").length,
     needsReview: typeFiltered.filter((l) => l.status === "needs_review").length,
     invited: typeFiltered.filter((l) => l.status === "invited" || l.status === "submitted").length,
@@ -458,7 +467,8 @@ export default function InternalLeadsPage() {
           {(leadTab === "broker" ? BROKER_SUB_TABS : REFERRAL_SUB_TABS).map((st) => {
             const parentLeads = leads.filter((l) => leadTab === "broker" ? isBrokerLead(l) : isReferralLead(l));
             const count = st.id === "all" ? parentLeads.length
-              : st.id === "good_email" ? parentLeads.filter(hasGoodEmail).length
+              : st.id === "scheduled" ? parentLeads.filter(isScheduled).length
+              : st.id === "good_email" ? parentLeads.filter((l) => hasGoodEmail(l) && !isScheduled(l)).length
               : st.id === "good_phone" ? parentLeads.filter(hasGoodPhone).length
               : st.id === "bad_email" ? parentLeads.filter(hasBadEmail).length
               : parentLeads.filter(hasBadPhone).length;
@@ -478,7 +488,7 @@ export default function InternalLeadsPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-3 sm:grid-cols-7 gap-3 mb-6">
         <div className="card p-3 text-center">
           <div className="font-display text-xl font-bold text-[var(--app-text)]">{stats.total}</div>
           <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider">Total</div>
@@ -486,6 +496,10 @@ export default function InternalLeadsPage() {
         <div className="card p-3 text-center">
           <div className="font-display text-xl font-bold text-blue-400">{stats.new}</div>
           <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider">New</div>
+        </div>
+        <div className="card p-3 text-center">
+          <div className="font-display text-xl font-bold text-indigo-400">{stats.scheduled}</div>
+          <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider">Scheduled</div>
         </div>
         <div className="card p-3 text-center">
           <div className="font-display text-xl font-bold text-purple-400">{stats.contacted}</div>
@@ -621,6 +635,14 @@ export default function InternalLeadsPage() {
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       {(() => {
+                        if (lead.scheduledSendAt && !lead.emailSentAt) {
+                          const d = new Date(lead.scheduledSendAt);
+                          return (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-indigo-500/15 text-indigo-400" title={d.toLocaleString()}>
+                              ⏱ {d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} {d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                            </span>
+                          );
+                        }
                         const eng = emailEngagement[lead.email.toLowerCase()];
                         if (!eng) return <span className="text-[var(--app-text-faint)]">—</span>;
                         const s = eng.status;
