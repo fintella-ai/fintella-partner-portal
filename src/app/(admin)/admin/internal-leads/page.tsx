@@ -46,6 +46,7 @@ export default function InternalLeadsPage() {
   const [editNotes, setEditNotes] = useState("");
   const [search, setSearch] = useState("");
   const [banner, setBanner] = useState<{ tone: "ok" | "err"; msg: string } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   function flash(tone: "ok" | "err", msg: string) {
     setBanner({ tone, msg });
@@ -115,6 +116,22 @@ export default function InternalLeadsPage() {
           <p className="font-body text-[13px] text-[var(--app-text-muted)]">
             Direct leads from ads and outreach — your internal funnel before opening to partners.
           </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/recover`); setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000); }}
+            className={`px-4 py-2 rounded-lg border text-sm transition-colors ${copiedLink ? "text-green-400 border-green-500/30 bg-green-500/10" : "border-[var(--app-border)] text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)]"}`}
+          >
+            {copiedLink ? "Copied ✓" : "🔗 Copy Funnel Link"}
+          </button>
+          <a
+            href="/recover"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 rounded-lg bg-[var(--brand-gold)] text-[var(--app-button-gold-text)] text-sm font-semibold hover:opacity-90"
+          >
+            Open /recover ↗
+          </a>
         </div>
       </div>
 

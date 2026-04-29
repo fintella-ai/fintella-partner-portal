@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#c4a050" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <!-- funnel top -->
+  <path d="M3 4h18"/>
+  <!-- funnel body -->
+  <path d="M3 4l6 8v6l6 0v-6l6-8"/>
+  <!-- drop -->
+  <circle cx="12" cy="21" r="1"/>
+</svg>
