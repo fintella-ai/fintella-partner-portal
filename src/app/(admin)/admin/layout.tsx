@@ -53,6 +53,7 @@ const BUILT_IN_ADMIN_ICONS: Record<string, string> = {
   features: "/icons/features-lightbulb.svg",
   users: "/icons/users-shield-key.svg",
   applications: "/icons/applications-inbox.svg",
+  "internal-leads": "/icons/internal-leads-funnel.svg",
   gettingStartedEditor: "/icons/getting-started-checklist.svg",
 };
 
