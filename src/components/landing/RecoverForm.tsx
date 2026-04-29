@@ -437,26 +437,21 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
         if (form.email) p.email = form.email;
         if (form.phone) p.phone = form.phone;
         if (form.companyName) p.company = form.companyName;
-        if (form.title) p.business_title = form.title;
+        if (form.title) p.jobtitle = form.title;
         if (form.city) p.city = form.city;
         if (form.state) p.state = form.state;
-        if (form.importerOfRecord) p.importer_of_record = form.importerOfRecord;
         if (form.ein) p.company_ein = form.ein;
         p.service_of_interest = "Tariff Refund Support";
-        if (form.businessEntityType) p.business_entity_type = form.businessEntityType;
-        if (form.importsGoods) p.imports_goods = form.importsGoods;
+        if (form.businessEntityType) p.company_business_entity = form.businessEntityType;
+        if (form.importsGoods) p.import_good_to_us = form.importsGoods;
         if (form.importCountries) p.import_countries = form.importCountries;
         if (form.annualImportValue) p.annual_import_value = form.annualImportValue;
+        if (form.importerOfRecord) p.importer_of_record = form.importerOfRecord;
         if (form.affiliateNotes) p.affiliate_notes = form.affiliateNotes;
         if (partnerCode) p.utm_content = partnerCode;
         const frostUrl = `https://referral.frostlawaz.com/l/ANNEXATIONPR/?${new URLSearchParams(p).toString()}`;
         return (
           <div>
-            <div className="text-center mb-4">
-              <h2 className="font-display text-xl mb-1" style={{ color: "#c4a050" }}>Complete Your Filing</h2>
-              <p className="text-sm text-white/50">Your details have been pre-filled. Review and submit below.</p>
-              <p className="text-sm text-white/40 mt-1">Estimated recovery: <strong className="text-green-400">{fmt$(totalRecovery)}</strong></p>
-            </div>
             <div className="rounded-xl border border-white/10 overflow-hidden" style={{ background: "#fff" }}>
               <iframe
                 src={frostUrl}
