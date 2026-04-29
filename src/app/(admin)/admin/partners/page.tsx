@@ -1459,7 +1459,7 @@ export default function AdminPartnersPage() {
                   </div>
                   <div className="font-body text-[12px] text-center truncate">
                     {(() => {
-                      if (!p.referredByPartnerCode) return <span className="text-[var(--app-text-muted)]">—</span>;
+                      if (!p.referredByPartnerCode) return <span className="text-brand-gold/60 font-semibold">Fintella</span>;
                       const upline = partnersByCode[p.referredByPartnerCode];
                       if (!upline) return <span className="text-[var(--app-text-muted)]">{p.referredByPartnerCode}</span>;
                       return (
