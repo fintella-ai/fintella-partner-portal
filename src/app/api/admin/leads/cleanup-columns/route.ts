@@ -19,7 +19,7 @@ export async function POST() {
 
   const leads = await prisma.partnerLead.findMany({
     where: { notes: { contains: "CBP Broker Listing" } },
-    select: { id: true, phone: true, email: true, notes: true },
+    select: { id: true, firstName: true, lastName: true, phone: true, email: true, notes: true },
   });
 
   let fixed = 0;
@@ -33,6 +33,34 @@ export async function POST() {
     let currentEmail = lead.email || "";
     let newLocation = location;
     let changed = false;
+    let newFirstName = lead.firstName;
+    let newLastName = lead.lastName;
+
+    // 0. Fix firstName/lastName when filer code ended up as firstName
+    const filerInNotes = notes.match(/Filer Code: (\w+)/);
+    if (filerInNotes) {
+      const filerCode = filerInNotes[1];
+      // If firstName matches the filer code exactly, it's misaligned —
+      // the real broker name is missing and lastName has the city
+      if (lead.firstName.toUpperCase() === filerCode.toUpperCase() && lead.lastName) {
+        // lastName is likely the city name from the CBP CSV offset
+        // Set name to the filer code as company name since we don't have the real broker name
+        newFirstName = filerCode;
+        newLastName = "Broker";
+        changed = true;
+      }
+      // If firstName looks like a short code (1-4 chars, all uppercase/mixed)
+      // and doesn't match filer code but looks like it could be one
+      else if (lead.firstName.length <= 6 && /^[A-Za-z0-9]+$/.test(lead.firstName) && lead.firstName === lead.firstName.toUpperCase()) {
+        // Check if it might be a name that happens to be short and uppercase — skip those
+        const commonNames = new Set(["JOHN", "PAUL", "MARK", "ADAM", "ALAN", "ALEX", "CARL", "DALE", "DAVE", "DEAN", "ERIC", "FRED", "GARY", "GLEN", "GREG", "JACK", "JAKE", "JANE", "JEAN", "JEFF", "JOEL", "JOSE", "JUAN", "KARL", "KENT", "KIRK", "KURT", "KYLE", "LEON", "LORI", "LUKE", "LYNN", "MARY", "MATT", "MIKE", "NEIL", "NICK", "NOEL", "NORM", "OMAR", "OTTO", "OWEN", "PETE", "PHIL", "REED", "RICK", "ROSS", "RUBY", "RUSS", "RUTH", "RYAN", "SARA", "SEAN", "SETH", "STAN", "TODD", "TONY", "TROY", "WADE", "WALT"]);
+        if (!commonNames.has(lead.firstName)) {
+          newFirstName = filerCode;
+          newLastName = "Broker";
+          changed = true;
+        }
+      }
+    }
 
     // 1. Extract email from phone field (e.g. "100 xbclarke@williamsclarke.com" or "218 xjmolina@wjbyrnes.com")
     const emailInPhone = currentPhone.match(EMAIL_REGEX);
@@ -83,6 +111,8 @@ export async function POST() {
     const updates: any = { notes: newNotes };
     if (currentPhone !== (lead.phone || "").trim()) updates.phone = currentPhone || null;
     if (currentEmail !== lead.email) updates.email = currentEmail;
+    if (newFirstName !== lead.firstName) updates.firstName = newFirstName;
+    if (newLastName !== lead.lastName) updates.lastName = newLastName;
 
     await prisma.partnerLead.update({ where: { id: lead.id }, data: updates });
     fixed++;
