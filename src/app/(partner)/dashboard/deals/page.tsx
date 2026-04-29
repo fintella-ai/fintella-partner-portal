@@ -163,15 +163,10 @@ export default function DealsPage() {
           /* ── Desktop/Tablet: Grid table (horizontal scroll on narrow viewports) ── */
           <div className="overflow-x-auto">
             <div className="min-w-[1140px]">
-            {/* Header — 8 columns: Client/Deal / Stage / Est. Refund /
-                Firm Fee (%) / Firm Fee / Commission (%) / Commission / Status.
-                Each rate column sits immediately before its dollar-amount
-                counterpart so the eye reads "20% × $X = $Y" left to right.
-                Client / Deal stays left (long name + date subline);
-                everything else is centered (matches /admin/deals layout).
-                gap-6 + min-w-[1140px] (was 940) to absorb the two new cols. */}
-            <div className="grid grid-cols-[2fr_1fr_1fr_0.55fr_1fr_0.65fr_1fr_0.7fr] gap-6 px-6 py-3 border-b border-[var(--app-border)]">
-              {["Client / Deal", "Stage", "Est. Refund", "Firm Fee (%)", "Firm Fee", "Commission (%)", "Commission", "Status"].map((h) => (
+            {/* Header — 9 columns: Client/Deal / Service / Stage / Est. Refund /
+                Firm Fee (%) / Firm Fee / Commission (%) / Commission / Status. */}
+            <div className="grid grid-cols-[2fr_0.9fr_1fr_1fr_0.55fr_1fr_0.65fr_1fr_0.7fr] gap-6 px-6 py-3 border-b border-[var(--app-border)]">
+              {["Client / Deal", "Service", "Stage", "Est. Refund", "Firm Fee (%)", "Firm Fee", "Commission (%)", "Commission", "Status"].map((h) => (
                 <div key={h} className={`font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Client / Deal" ? "" : "text-center"}`}>{h}</div>
               ))}
             </div>
@@ -184,13 +179,14 @@ export default function DealsPage() {
               return (
               <div key={deal.id}>
                 <div
-                  className={`grid grid-cols-[2fr_1fr_1fr_0.55fr_1fr_0.65fr_1fr_0.7fr] gap-6 px-6 py-4 border-b border-[var(--app-border)] items-center hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
+                  className={`grid grid-cols-[2fr_0.9fr_1fr_1fr_0.55fr_1fr_0.65fr_1fr_0.7fr] gap-6 px-6 py-4 border-b border-[var(--app-border)] items-center hover:bg-[var(--app-card-bg)] transition-colors cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
                   onClick={() => toggleExpand(deal.id)}
                 >
                   <div>
                     <div className="font-body text-[13px] font-medium text-[var(--app-text)] truncate">{deal.dealName}</div>
                     <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5 truncate">{fmtDateTime(deal.createdAt)}</div>
                   </div>
+                  <div className="font-body text-[11px] text-[var(--app-text-secondary)] text-center truncate">{deal.serviceOfInterest || "—"}</div>
                   <div className="text-center"><StageBadge stage={deal.stage} /></div>
                   <div className="font-body text-[13px] text-[var(--app-text)] text-center">{fmt$(fin.refund)}</div>
                   <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">
