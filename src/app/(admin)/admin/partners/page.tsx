@@ -611,13 +611,14 @@ export default function AdminPartnersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-7 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-8 gap-3 mb-6">
         {[
           { label: "Total Partners", value: total, color: "text-[var(--app-text)]" },
           { label: "Active", value: active, color: "text-green-400" },
           { label: "Pending", value: pending, color: "text-yellow-400" },
           { label: "Signed", value: signedCount, color: "text-emerald-400" },
           { label: "Unsigned", value: unsignedCount, color: "text-orange-400" },
+          { label: "None", value: noneCount, color: "text-red-400" },
           { label: "Invited", value: invitedCount, color: "text-blue-400" },
           { label: "Blocked", value: blocked, color: "text-red-400" },
         ].map((s) => (
