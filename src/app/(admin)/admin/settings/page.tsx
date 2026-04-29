@@ -91,6 +91,7 @@ const ALL_ADMIN_NAV_ITEMS = [
   { id: "client-leads", label: "Client Leads", icon: "🎯" },
   { id: "partner-leads", label: "Partner Leads", icon: "🤝" },
   { id: "deals", label: "Deals", icon: "📋" },
+  { id: "widget-referrals", label: "Widget Referrals", icon: "🔌" },
   { id: "reporting", label: "Reporting", icon: "📈" },
   { id: "communications", label: "Communications", icon: "💬" },
   { id: "internalChats", label: "Internal Chats", icon: "💬" },
