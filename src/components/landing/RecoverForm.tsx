@@ -105,6 +105,13 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
           setStep("not_qualified");
           return;
         }
+        if (typeof window !== "undefined" && (window as any).gtag) {
+          (window as any).gtag("event", "conversion", {
+            send_to: process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL || undefined,
+            value: totalRecovery,
+            currency: "USD",
+          });
+        }
         setStep("done");
       } else {
         const data = await res.json().catch(() => ({ error: "Something went wrong" }));
