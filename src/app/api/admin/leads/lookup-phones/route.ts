@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -6,11 +6,9 @@ const ADMIN_ROLES = ["super_admin", "admin"];
 
 /**
  * POST /api/admin/leads/lookup-phones
- * Bulk phone type lookup using Twilio Lookup API.
- * Updates lead notes with "Phone Type: mobile|landline|voip".
- * Demo-gated: returns mock results if TWILIO_ACCOUNT_SID is unset.
+ * Looks up phone types for specific leads (by ID) or auto-picks unchecked ones.
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!ADMIN_ROLES.includes((session.user as any).role))
@@ -19,30 +17,34 @@ export async function POST() {
   const SID = process.env.TWILIO_ACCOUNT_SID;
   const TOKEN = process.env.TWILIO_AUTH_TOKEN;
 
-  const unchecked = await prisma.partnerLead.findMany({
-    where: {
-      phone: { not: null },
-      NOT: { notes: { contains: "Phone Type:" } },
-    },
-    select: { id: true, phone: true, notes: true },
-    take: 100,
-  });
+  let body: any = {};
+  try { body = await req.json(); } catch {}
+  const requestedIds: string[] | undefined = body?.leadIds;
 
-  const unknown = unchecked.length < 100
-    ? await prisma.partnerLead.findMany({
-        where: {
-          phone: { not: null },
-          notes: { contains: "Phone Type: unknown" },
-        },
-        select: { id: true, phone: true, notes: true },
-        take: 100 - unchecked.length,
-      })
-    : [];
-
-  const leads = [...unchecked, ...unknown];
+  let leads;
+  if (Array.isArray(requestedIds) && requestedIds.length > 0) {
+    leads = await prisma.partnerLead.findMany({
+      where: { id: { in: requestedIds }, phone: { not: null } },
+      select: { id: true, phone: true, notes: true },
+    });
+  } else {
+    const unchecked = await prisma.partnerLead.findMany({
+      where: { phone: { not: null }, NOT: { notes: { contains: "Phone Type:" } } },
+      select: { id: true, phone: true, notes: true },
+      take: 100,
+    });
+    const unknown = unchecked.length < 100
+      ? await prisma.partnerLead.findMany({
+          where: { phone: { not: null }, notes: { contains: "Phone Type: unknown" } },
+          select: { id: true, phone: true, notes: true },
+          take: 100 - unchecked.length,
+        })
+      : [];
+    leads = [...unchecked, ...unknown];
+  }
 
   if (leads.length === 0) {
-    return NextResponse.json({ looked_up: 0, message: "All leads with phones already have type data" });
+    return NextResponse.json({ looked_up: 0, message: "No leads to look up" });
   }
 
   function stripOldPhoneType(notes: string): string {
@@ -55,13 +57,11 @@ export async function POST() {
       const clean = stripOldPhoneType(lead.notes || "");
       await prisma.partnerLead.update({
         where: { id: lead.id },
-        data: {
-          notes: [clean, "Phone Type: unknown (Twilio not configured)"].filter(Boolean).join("\n"),
-        },
+        data: { notes: [clean, "Phone Type: unknown (Twilio not configured)"].filter(Boolean).join("\n") },
       });
       updated++;
     }
-    return NextResponse.json({ looked_up: updated, demo: true, message: "Twilio not configured — marked as unknown. Set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN to enable carrier lookup." });
+    return NextResponse.json({ looked_up: updated, demo: true, message: "Twilio not configured" });
   }
 
   let looked_up = 0;
@@ -71,7 +71,6 @@ export async function POST() {
   for (const lead of leads) {
     const phone = (lead.phone || "").replace(/[^+\d]/g, "");
     if (!phone || phone.length < 10) continue;
-
     const formatted = phone.startsWith("+") ? phone : `+1${phone.replace(/^1/, "")}`;
 
     try {
@@ -79,23 +78,16 @@ export async function POST() {
         `https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(formatted)}?Fields=line_type_intelligence`,
         { headers: { Authorization: `Basic ${auth64}` } }
       );
-
       if (!res.ok) { errors++; continue; }
-
       const data = await res.json();
       const lineType = data.line_type_intelligence?.type || "unknown";
-
       const clean = stripOldPhoneType(lead.notes || "");
       await prisma.partnerLead.update({
         where: { id: lead.id },
-        data: {
-          notes: [clean, `Phone Type: ${lineType}`].filter(Boolean).join("\n"),
-        },
+        data: { notes: [clean, `Phone Type: ${lineType}`].filter(Boolean).join("\n") },
       });
       looked_up++;
-    } catch {
-      errors++;
-    }
+    } catch { errors++; }
   }
 
   return NextResponse.json({ looked_up, errors, remaining: leads.length - looked_up - errors });
