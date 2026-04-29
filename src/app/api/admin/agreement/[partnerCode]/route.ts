@@ -7,6 +7,8 @@ import {
   isSignWellConfigured,
   buildPartnerTemplateFields,
   resolveAgreementTemplateId,
+  getCompletedDocumentFields,
+  mapSignWellFieldsToPayoutData,
 } from "@/lib/signwell";
 import { sendAgreementReadyEmail } from "@/lib/sendgrid";
 import { sendAgreementReadySms } from "@/lib/twilio";
@@ -142,6 +144,51 @@ export async function GET(
         cosignerUrl,
         signwellStatus: doc.status,
         recipients: recipients.map((r: any) => ({ name: r.name, email: r.email, status: r.status })),
+      });
+    }
+
+    // Sync payout: re-extract fields from signed agreement and populate PartnerProfile
+    if (action === "sync_payout") {
+      const agreement = await prisma.partnershipAgreement.findFirst({
+        where: { partnerCode: params.partnerCode, status: { in: ["signed", "approved"] } },
+        orderBy: { version: "desc" },
+      });
+      if (!agreement?.signwellDocumentId) {
+        return NextResponse.json({ error: "No signed agreement with SignWell document ID" }, { status: 404 });
+      }
+
+      const fields = await getCompletedDocumentFields(agreement.signwellDocumentId);
+      if (!fields || Object.keys(fields).length === 0) {
+        return NextResponse.json({ error: "No fields returned from SignWell — check template api_ids", extractedFields: {} }, { status: 404 });
+      }
+
+      const { profileData, partnerData } = mapSignWellFieldsToPayoutData(fields);
+
+      if (Object.keys(partnerData).length > 0) {
+        await prisma.partner.update({
+          where: { partnerCode: params.partnerCode },
+          data: partnerData,
+        });
+      }
+
+      let saved = 0;
+      if (Object.keys(profileData).length > 0) {
+        profileData.payoutLockedAt = new Date();
+        profileData.payoutLockedBy = "agreement";
+        await prisma.partnerProfile.upsert({
+          where: { partnerCode: params.partnerCode },
+          update: profileData,
+          create: { partnerCode: params.partnerCode, ...profileData },
+        });
+        saved = Object.keys(profileData).length;
+      }
+
+      return NextResponse.json({
+        ok: true,
+        saved,
+        extractedFields: fields,
+        mappedProfile: profileData,
+        mappedPartner: partnerData,
       });
     }
 

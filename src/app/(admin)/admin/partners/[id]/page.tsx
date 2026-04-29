@@ -1241,7 +1241,33 @@ export default function PartnerDetailPage() {
       {activeTab === "payout" && (<>
       {/* ─── PAYOUT INFORMATION ─────────────────────────────────── */}
       <div className="card p-5 sm:p-6 mb-6">
-        <div className="font-body font-semibold text-sm mb-4">Payout Information</div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="font-body font-semibold text-sm">Payout Information</div>
+          {agreement?.status === "signed" && (
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/admin/agreement/${partner.partnerCode}?action=sync_payout`);
+                  const data = await res.json();
+                  if (res.ok && data.saved > 0) {
+                    fetchPartner();
+                    setSaved(true);
+                    setTimeout(() => setSaved(false), 3000);
+                    alert(`Synced ${data.saved} payout fields from signed agreement`);
+                  } else if (res.ok && data.saved === 0) {
+                    alert("No payout fields found in SignWell document — check template api_ids (e.g. bank_name, routing_number, account_number)");
+                  } else {
+                    alert(data.error || "Sync failed");
+                  }
+                } catch { alert("Network error"); }
+              }}
+              className="font-body text-[11px] text-blue-400/70 border border-blue-400/20 rounded-lg px-3 py-1.5 hover:bg-blue-400/10 transition-colors"
+              title="Re-extract payout fields from the signed SignWell agreement"
+            >
+              🔄 Sync from Agreement
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
             <label className={labelClass}>Payout Method</label>
