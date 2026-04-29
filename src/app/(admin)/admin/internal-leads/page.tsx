@@ -696,7 +696,10 @@ export default function InternalLeadsPage() {
 
                 const rawPhone = lead.phone || "";
                 const extMatch = rawPhone.match(/\s*x(\d+)$/i);
-                const displayPhone = extMatch ? rawPhone.replace(extMatch[0], "").trim() : rawPhone;
+                const basePhone = extMatch ? rawPhone.replace(extMatch[0], "").trim() : rawPhone;
+                const phoneDigits = basePhone.replace(/[^0-9]/g, "");
+                const e164 = phoneDigits.length === 10 ? `+1${phoneDigits}` : phoneDigits.length === 11 && phoneDigits.startsWith("1") ? `+${phoneDigits}` : phoneDigits.length > 0 ? `+${phoneDigits}` : "";
+                const displayPhone = e164 || basePhone;
                 const displayExt = extMatch ? extMatch[1] : "";
                 const isJustExt = !extMatch && /^\d{1,4}$/.test(rawPhone.trim());
                 const brokerTitle = lead.lastName === "Broker" ? "" : lead.lastName?.replace(/^Broker\s*/i, "") || "";
@@ -708,9 +711,9 @@ export default function InternalLeadsPage() {
                     <td className="px-3 py-2.5 text-[var(--app-text-muted)] whitespace-nowrap text-[11px]">{lead.lastName === "Broker" ? lead.lastName : "—"}</td>
                     <td className="px-3 py-2.5 text-[var(--app-text-muted)] whitespace-nowrap">{locationMatch?.[1] || "—"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
-                      {isJustExt || !displayPhone ? "—" : (
-                        <a href={`tel:${displayPhone.replace(/[^+\d]/g, "")}`} className="text-brand-gold hover:underline" title="Click to call">
-                          📞 {displayPhone}
+                      {isJustExt || !e164 ? "—" : (
+                        <a href={`tel:${e164}`} className="text-brand-gold hover:underline" title="Click to call">
+                          📞 {e164}
                         </a>
                       )}
                     </td>
