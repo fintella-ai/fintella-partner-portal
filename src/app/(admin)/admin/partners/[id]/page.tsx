@@ -1404,6 +1404,26 @@ export default function PartnerDetailPage() {
               >
                 {sendingAgreement ? "Sending..." : "Send Agreement"}
               </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/admin/agreement/${partner.partnerCode}?action=refresh`);
+                    const data = await res.json();
+                    if (res.ok) {
+                      fetchPartner();
+                      if (data.cosignerUrl) {
+                        window.open(data.cosignerUrl, "_blank");
+                      }
+                      alert(`Status: ${data.status}${data.cosignerUrl ? " — Co-sign link opened in new tab" : ""}\n\nRecipients:\n${data.recipients?.map((r: any) => `${r.name}: ${r.status}`).join("\n") || "None"}`);
+                    } else {
+                      alert(data.error || "Refresh failed");
+                    }
+                  } catch { alert("Network error"); }
+                }}
+                className="font-body text-[11px] text-blue-400/70 border border-blue-400/20 rounded-lg px-3 py-1.5 hover:bg-blue-400/10 transition-colors"
+              >
+                🔄 Refresh Status
+              </button>
             </div>
             <label className={`font-body text-[11px] text-green-400/70 border border-green-400/20 rounded-lg px-3 py-1.5 hover:bg-green-400/10 transition-colors cursor-pointer ${uploadingAgreement ? "opacity-50 pointer-events-none" : ""}`}>
               {uploadingAgreement ? "Uploading..." : "Upload Agreement"}

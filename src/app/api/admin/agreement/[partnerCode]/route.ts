@@ -62,6 +62,60 @@ export async function GET(
       return NextResponse.json({ cosignerUrl: null });
     }
 
+    // Refresh: query SignWell for actual document status + co-sign URL
+    if (action === "refresh") {
+      const SIGNWELL_API_KEY = process.env.SIGNWELL_API_KEY || "";
+      if (!SIGNWELL_API_KEY) return NextResponse.json({ error: "SignWell not configured" }, { status: 400 });
+
+      const agreement = await prisma.partnershipAgreement.findFirst({
+        where: { partnerCode: params.partnerCode, status: { in: ["pending", "viewed", "partner_signed"] } },
+        orderBy: { version: "desc" },
+      });
+      if (!agreement?.signwellDocumentId) return NextResponse.json({ error: "No active agreement found" }, { status: 404 });
+
+      const docRes = await fetch(`https://www.signwell.com/api/v1/documents/${agreement.signwellDocumentId}`, {
+        headers: { "X-Api-Key": SIGNWELL_API_KEY },
+      });
+      if (!docRes.ok) return NextResponse.json({ error: "Failed to fetch from SignWell" }, { status: 502 });
+
+      const doc = await docRes.json();
+      const recipients = doc.recipients || [];
+      const allSigned = recipients.every((r: any) => r.status === "completed");
+      const partnerSigned = recipients.length > 0 && recipients[0]?.status === "completed";
+
+      let newStatus = agreement.status;
+      if (allSigned && doc.status === "completed") {
+        newStatus = "signed";
+      } else if (partnerSigned) {
+        newStatus = "partner_signed";
+      } else if (doc.status === "viewed" || recipients.some((r: any) => r.status === "viewed")) {
+        newStatus = "viewed";
+      }
+
+      const settings = await prisma.portalSettings.findUnique({ where: { id: "global" } });
+      const cosignerEmail = settings?.fintellaSignerEmail;
+      const cosignerRecipient = doc.recipients_with_urls?.find((r: any) => r.email === cosignerEmail)
+        || doc.recipients_with_urls?.[1];
+      const cosignerUrl = cosignerRecipient?.embedded_signing_url || null;
+
+      if (newStatus !== agreement.status || cosignerUrl) {
+        await prisma.partnershipAgreement.update({
+          where: { id: agreement.id },
+          data: {
+            status: newStatus,
+            ...(cosignerUrl ? { cosignerSigningUrl: cosignerUrl } : {}),
+          },
+        });
+      }
+
+      return NextResponse.json({
+        status: newStatus,
+        cosignerUrl,
+        signwellStatus: doc.status,
+        recipients: recipients.map((r: any) => ({ name: r.name, email: r.email, status: r.status })),
+      });
+    }
+
     const agreements = await prisma.partnershipAgreement.findMany({
       where: { partnerCode: params.partnerCode },
       orderBy: { version: "desc" },
