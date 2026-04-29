@@ -164,10 +164,35 @@ export default function ExpensesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {liveUsage.twilio?.status === "ok" && (
               <div className="rounded-xl border border-[var(--app-border)] p-4">
-                <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">Twilio</div>
+                <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">Twilio (Total)</div>
                 <div className="font-display text-lg font-bold text-blue-400">${liveUsage.twilio.thisMonth?.toFixed(2)}</div>
+                <div className="font-body text-[11px] theme-text-muted mt-1">this month</div>
+              </div>
+            )}
+            {liveUsage.twilio?.status === "ok" && liveUsage.twilio.calls > 0 && (
+              <div className="rounded-xl border border-[var(--app-border)] p-4">
+                <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">Voice Calls</div>
+                <div className="font-display text-lg font-bold text-cyan-400">{liveUsage.twilio.calls}</div>
                 <div className="font-body text-[11px] theme-text-muted mt-1">
-                  {liveUsage.twilio.calls} calls · {liveUsage.twilio.sms} SMS
+                  ${liveUsage.twilio.callsCost?.toFixed(2)} · {liveUsage.twilio.callMinutes?.toFixed(0)} min
+                </div>
+              </div>
+            )}
+            {liveUsage.twilio?.status === "ok" && (
+              <div className="rounded-xl border border-[var(--app-border)] p-4">
+                <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">SMS</div>
+                <div className="font-display text-lg font-bold text-green-400">{liveUsage.twilio.sms}</div>
+                <div className="font-body text-[11px] theme-text-muted mt-1">
+                  ${liveUsage.twilio.smsCost?.toFixed(2)} · {liveUsage.twilio.smsInbound || 0} inbound
+                </div>
+              </div>
+            )}
+            {liveUsage.twilio?.status === "ok" && liveUsage.twilio.lookups > 0 && (
+              <div className="rounded-xl border border-[var(--app-border)] p-4">
+                <div className="font-body text-[10px] uppercase tracking-wider theme-text-muted mb-2">Phone Lookups</div>
+                <div className="font-display text-lg font-bold text-purple-400">{liveUsage.twilio.lookups}</div>
+                <div className="font-body text-[11px] theme-text-muted mt-1">
+                  ${liveUsage.twilio.lookupsCost?.toFixed(2)} · $0.005/each
                 </div>
               </div>
             )}
@@ -215,6 +240,29 @@ export default function ExpensesPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Twilio Detailed Breakdown */}
+      {liveUsage?.twilio?.status === "ok" && liveUsage.twilio.breakdown?.length > 0 && (
+        <div className="card mb-6 overflow-hidden">
+          <div className="px-5 py-3 border-b border-[var(--app-border)] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span>📞</span>
+              <span className="font-body text-[13px] font-semibold">Twilio Usage Breakdown (This Month)</span>
+            </div>
+            <span className="font-body text-[12px] text-blue-400 font-semibold">${liveUsage.twilio.thisMonth?.toFixed(2)}</span>
+          </div>
+          <div>
+            {liveUsage.twilio.breakdown.map((item: any, i: number) => (
+              <div key={i} className="flex items-center gap-4 px-5 py-2.5 border-b border-[var(--app-border)] last:border-0 text-[12px]">
+                <div className="flex-1 font-body text-[var(--app-text)]">{item.description || item.category}</div>
+                <div className="font-body theme-text-muted w-16 text-right">{item.count}</div>
+                <div className="font-body theme-text-muted w-20 text-right">{item.usage} {item.unit}</div>
+                <div className="font-body font-semibold text-blue-400 w-20 text-right">${item.cost.toFixed(2)}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
