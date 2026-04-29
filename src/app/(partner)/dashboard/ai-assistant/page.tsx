@@ -449,9 +449,9 @@ export default function AiAssistantPage() {
             </div>
 
             {showEmptyState ? (
-              <div className="h-full flex flex-col items-center justify-center text-center px-4">
-                <div className="text-5xl mb-3">🤖</div>
-                <div className="font-display text-xl font-bold mb-1">How can I help?</div>
+              <div className="flex flex-col items-center text-center px-4 pt-8 sm:pt-16">
+                <div className="text-5xl mb-4">🤖</div>
+                <div className="font-display text-xl font-bold mb-2">How can I help?</div>
                 <div className="font-body text-[12px] text-[var(--app-text-muted)] mb-6 max-w-md">
                   I have access to your partner data and can answer questions about your deals, commissions, and how the portal works.
                 </div>
