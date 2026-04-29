@@ -76,7 +76,8 @@ export async function GET(req: NextRequest) {
             email: email || `no-email-${filerCode}@import.placeholder`,
             phone: fullPhone || null,
             commissionRate: 0.20,
-            tier: "l1",
+            tier: "l2",
+            referredByCode: "PTNS4XDMN",
             notes: [
               "Source: CBP Broker Listing (auto-sync)",
               filerCode ? `Filer Code: ${filerCode}` : null,

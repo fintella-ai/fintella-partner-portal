@@ -89,7 +89,7 @@ export default function InternalLeadsPage() {
       const res = await fetch("/api/admin/leads");
       if (res.ok) {
         const data = await res.json();
-        setLeads((data.leads ?? []).filter((l: Lead) => !l.referredByCode));
+        setLeads(data.leads ?? []);
       }
     } finally { setLoading(false); }
   }, []);
