@@ -35,6 +35,7 @@ interface CalcEntry {
     deadlineDays?: number;
     isUrgent?: boolean;
   };
+  routingBucket?: "self_file" | "legal_required" | "not_applicable";
 }
 
 interface CalcSummary {
@@ -49,9 +50,22 @@ interface CalcSummary {
   deadlineDays: number | null;
 }
 
+interface RoutingBucketSummary {
+  count: number;
+  totalRefund: number;
+  totalInterest: number;
+}
+
+interface RoutingSummary {
+  selfFile: RoutingBucketSummary;
+  legalRequired: RoutingBucketSummary;
+  notApplicable: RoutingBucketSummary;
+}
+
 interface CalcResult {
   summary: CalcSummary;
   entries: CalcEntry[];
+  routingSummary?: RoutingSummary;
 }
 
 /* ── Country flag emoji helper ─────────────────────────────────────── */
@@ -695,6 +709,9 @@ function CalculatorInner() {
                   </span>
                 </div>
               </div>
+              <p className="text-xs mt-2" style={{ color: "var(--app-text-faint)" }}>
+                Commission rates vary by partnership tier and agreement. Displayed rate is illustrative only.
+              </p>
             </div>
 
             {/* CTA buttons */}
@@ -726,6 +743,175 @@ function CalculatorInner() {
               </button>
             </div>
           </div>
+
+          {/* Disclaimer A — below results card */}
+          <p className="text-xs mt-4 px-2" style={{ color: "var(--app-text-faint)" }}>
+            These estimates are for informational purposes only and do not constitute legal, tax, or customs advice. Actual refund amounts are determined by CBP and may differ. Fintella is not a law firm, customs broker, or licensed professional. Consult a qualified professional before making filing decisions.
+          </p>
+
+          {/* ── Entry Analysis — Routing Summary ──────────────────── */}
+          {result.routingSummary && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--app-text)" }}>
+                Entry Analysis
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Self-File Card */}
+                {result.routingSummary.selfFile.count > 0 && (
+                  <div
+                    className="rounded-xl border p-5"
+                    style={{
+                      borderColor: "rgba(34,197,94,0.3)",
+                      background: "rgba(34,197,94,0.05)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">&#x1F7E2;</span>
+                      <span className="text-base font-semibold" style={{ color: "#22c55e" }}>
+                        {result.routingSummary.selfFile.count} Self-File Ready
+                      </span>
+                    </div>
+                    <p className="text-sm mb-1" style={{ color: "var(--app-text-secondary)" }}>
+                      Estimated refund:{" "}
+                      <span className="font-semibold" style={{ color: "#22c55e" }}>
+                        {usdFmt.format(result.routingSummary.selfFile.totalRefund)}
+                      </span>
+                    </p>
+                    <p className="text-xs mb-4" style={{ color: "var(--app-text-muted)" }}>
+                      These entries are eligible for CAPE Phase 1. Download the CSV and upload to your ACE Portal.
+                    </p>
+                    <Link
+                      href="/apply"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                      style={{
+                        background: "rgba(34,197,94,0.15)",
+                        color: "#22c55e",
+                        border: "1px solid rgba(34,197,94,0.25)",
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      CAPE CSV available in partner portal
+                    </Link>
+                  </div>
+                )}
+
+                {/* Legal Required Card */}
+                {result.routingSummary.legalRequired.count > 0 && (
+                  <div
+                    className="rounded-xl border p-5"
+                    style={{
+                      borderColor: "rgba(239,68,68,0.3)",
+                      background: "rgba(239,68,68,0.05)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">&#x1F534;</span>
+                      <span className="text-base font-semibold" style={{ color: "#ef4444" }}>
+                        {result.routingSummary.legalRequired.count} Need Legal Counsel
+                      </span>
+                    </div>
+                    <p className="text-sm mb-1" style={{ color: "var(--app-text-secondary)" }}>
+                      Estimated refund:{" "}
+                      <span className="font-semibold" style={{ color: "#ef4444" }}>
+                        {usdFmt.format(result.routingSummary.legalRequired.totalRefund)}
+                      </span>
+                    </p>
+                    <p className="text-xs mb-4" style={{ color: "var(--app-text-muted)" }}>
+                      These entries require Court of International Trade representation — they are excluded from CAPE Phase 1 self-filing.
+                    </p>
+                    <button
+                      onClick={() => {
+                        try {
+                          localStorage.setItem(
+                            "tie_routing_data",
+                            JSON.stringify({
+                              routingSummary: result.routingSummary,
+                              legalEntries: result.entries.filter(
+                                (e) => e.routingBucket === "legal_required",
+                              ),
+                              timestamp: Date.now(),
+                            }),
+                          );
+                        } catch {}
+                        window.location.href = "/apply";
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                      style={{
+                        background: "rgba(239,68,68,0.15)",
+                        color: "#ef4444",
+                        border: "1px solid rgba(239,68,68,0.25)",
+                      }}
+                    >
+                      Submit to Legal Partner
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                      </svg>
+                    </button>
+
+                    {/* Per-status breakdown of legal entries */}
+                    {(() => {
+                      const legalEntries = result.entries.filter(
+                        (e) => e.routingBucket === "legal_required",
+                      );
+                      const statusCounts: Record<string, number> = {};
+                      for (const e of legalEntries) {
+                        const reason = e.eligibility.reason || "Unknown";
+                        statusCounts[reason] = (statusCounts[reason] || 0) + 1;
+                      }
+                      const breakdowns = Object.entries(statusCounts);
+                      if (breakdowns.length === 0) return null;
+                      return (
+                        <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(239,68,68,0.15)" }}>
+                          {breakdowns.map(([reason, count]) => (
+                            <p key={reason} className="text-xs" style={{ color: "var(--app-text-muted)" }}>
+                              {count} {count === 1 ? "entry" : "entries"}: {reason}
+                            </p>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Disclaimer C — Submit to Legal Partner */}
+                    <p className="text-xs mt-3" style={{ color: "var(--app-text-faint)" }}>
+                      By submitting, you authorize Fintella to share this entry data with our vetted legal partner. This is a referral, not legal representation. Attorney-client relationship is established directly with the legal partner. Referral fee per AZ Admin. Order 2020-180.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Not Applicable Card — only if count > 0 */}
+              {result.routingSummary.notApplicable.count > 0 && (
+                <div
+                  className="rounded-xl border p-5 mt-4"
+                  style={{
+                    borderColor: "rgba(107,114,128,0.3)",
+                    background: "rgba(107,114,128,0.05)",
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg" style={{ opacity: 0.6 }}>&#x26AA;</span>
+                    <span className="text-base font-semibold" style={{ color: "var(--app-text-muted)" }}>
+                      {result.routingSummary.notApplicable.count} Not Applicable
+                    </span>
+                  </div>
+                  <p className="text-sm" style={{ color: "var(--app-text-muted)" }}>
+                    Estimated value:{" "}
+                    <span className="font-semibold">
+                      {usdFmt.format(result.routingSummary.notApplicable.totalRefund)}
+                    </span>
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: "var(--app-text-faint)" }}>
+                    These entries do not qualify for an IEEPA tariff refund under current regulations.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </section>
       )}
 
@@ -827,6 +1013,10 @@ function CalculatorInner() {
             Terms
           </Link>
         </div>
+        {/* Disclaimer D — tariff rate sourcing */}
+        <p className="text-xs mt-4 max-w-2xl mx-auto px-4" style={{ color: "var(--app-text-faint)" }}>
+          IEEPA tariff rates sourced from Federal Register executive orders and CBP guidance. Rate data covers Feb 1, 2025 &ndash; Feb 23, 2026. Report errors to support@fintella.partners.
+        </p>
       </footer>
     </div>
   );

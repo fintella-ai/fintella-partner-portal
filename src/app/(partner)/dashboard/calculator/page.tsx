@@ -17,6 +17,20 @@ interface EntryRow {
   rateLoading: boolean;
 }
 
+type RoutingBucket = "self_file" | "legal_required" | "not_applicable";
+
+interface RoutingBucketSummary {
+  count: number;
+  totalRefund: number;
+  totalInterest: number;
+}
+
+interface RoutingSummary {
+  selfFile: RoutingBucketSummary;
+  legalRequired: RoutingBucketSummary;
+  notApplicable: RoutingBucketSummary;
+}
+
 interface CalcResult {
   index: number;
   countryOfOrigin: string;
@@ -33,6 +47,7 @@ interface CalcResult {
     deadlineDays?: number;
     isUrgent?: boolean;
   };
+  routingBucket?: RoutingBucket;
 }
 
 interface CalcSummary {
@@ -285,6 +300,7 @@ function QuickEstimateTab({ commissionRate }: { commissionRate: number }) {
   const [countries, setCountries] = useState<CountryOption[]>(FALLBACK_COUNTRIES);
   const [results, setResults] = useState<CalcResult[] | null>(null);
   const [summary, setSummary] = useState<CalcSummary | null>(null);
+  const [routingSummary, setRoutingSummary] = useState<RoutingSummary | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -391,6 +407,7 @@ function QuickEstimateTab({ commissionRate }: { commissionRate: number }) {
     setCalculating(true);
     setResults(null);
     setSummary(null);
+    setRoutingSummary(null);
 
     try {
       const res = await fetch("/api/tariff/calculate", {
@@ -409,6 +426,7 @@ function QuickEstimateTab({ commissionRate }: { commissionRate: number }) {
         const data = await res.json();
         setResults(data.entries || []);
         setSummary(data.summary || null);
+        setRoutingSummary(data.routingSummary || null);
       }
     } catch {
       // silent
@@ -632,15 +650,53 @@ function QuickEstimateTab({ commissionRate }: { commissionRate: number }) {
         </div>
       )}
 
+      {/* Routing summary cards */}
+      {routingSummary && (results?.length ?? 0) > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {routingSummary.selfFile.count > 0 && (
+            <div className="rounded-xl p-4 bg-green-500/10 border border-green-500/20">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                <span className="font-body text-[13px] font-semibold text-green-400">
+                  {routingSummary.selfFile.count} Self-File Ready
+                </span>
+              </div>
+              <div className="font-display text-lg font-bold text-green-400">
+                {fmt$(routingSummary.selfFile.totalRefund)}
+              </div>
+              <p className="font-body text-[11px] text-[var(--app-text-muted)] mt-1">
+                Eligible for CAPE Phase 1 self-filing via ACE Portal
+              </p>
+            </div>
+          )}
+          {routingSummary.legalRequired.count > 0 && (
+            <div className="rounded-xl p-4 bg-red-500/10 border border-red-500/20">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                <span className="font-body text-[13px] font-semibold text-red-400">
+                  {routingSummary.legalRequired.count} Need Legal Counsel
+                </span>
+              </div>
+              <div className="font-display text-lg font-bold text-red-400">
+                {fmt$(routingSummary.legalRequired.totalRefund)}
+              </div>
+              <p className="font-body text-[11px] text-[var(--app-text-muted)] mt-1">
+                Requires CIT representation — excluded from CAPE Phase 1
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Results table */}
       {results && results.length > 0 && (
         <div>
           <h3 className="font-body font-semibold text-sm mb-3">Results</h3>
           <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <table className="w-full min-w-[800px]">
+            <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-[var(--app-border)]">
-                  {["#", "Country", "Date", "Value", "Rate", "Refund", "Interest", "Status", "Deadline"].map((h) => (
+                  {["#", "Country", "Date", "Value", "Rate", "Refund", "Interest", "Status", "Route", "Deadline"].map((h) => (
                     <th
                       key={h}
                       className="font-body text-[10px] text-[var(--app-text-muted)] tracking-wider uppercase text-left py-2 px-3 first:pl-4"
@@ -682,6 +738,9 @@ function QuickEstimateTab({ commissionRate }: { commissionRate: number }) {
                     <td className="py-2.5 px-3">
                       <EligibilityBadge status={r.eligibility.status} />
                     </td>
+                    <td className="py-2.5 px-3">
+                      <RoutingBadge bucket={r.routingBucket} status={r.eligibility.status} />
+                    </td>
                     <td className="font-body text-[13px] py-2.5 px-3">
                       {r.eligibility.deadlineDays != null ? (
                         <span
@@ -694,7 +753,7 @@ function QuickEstimateTab({ commissionRate }: { commissionRate: number }) {
                           {r.eligibility.deadlineDays}d
                         </span>
                       ) : (
-                        <span className="text-[var(--app-text-muted)]">—</span>
+                        <span className="text-[var(--app-text-muted)]">--</span>
                       )}
                     </td>
                   </tr>
@@ -702,6 +761,21 @@ function QuickEstimateTab({ commissionRate }: { commissionRate: number }) {
               </tbody>
             </table>
           </div>
+
+          {/* Results disclaimer */}
+          <p className="font-body text-[11px] text-[var(--app-text-muted)]/60 mt-4 leading-relaxed">
+            These estimates are for informational purposes only and do not constitute legal, tax, or customs advice. Actual refund amounts are determined by CBP and may differ. Fintella is not a law firm, customs broker, or licensed professional. Consult a qualified professional before making filing decisions.
+          </p>
+
+          {/* Commission disclaimer */}
+          <p className="font-body text-[11px] text-[var(--app-text-muted)]/60 mt-2 leading-relaxed">
+            Commission rates vary by partnership tier and agreement. Displayed rate is illustrative and based on your current agreement.
+          </p>
+
+          {/* Rate data disclaimer */}
+          <p className="font-body text-[11px] text-[var(--app-text-muted)]/60 mt-2 leading-relaxed">
+            IEEPA tariff rates sourced from Federal Register executive orders and CBP guidance. Rate data covers Feb 1, 2025 &ndash; Feb 23, 2026. Report errors to support@fintella.partners.
+          </p>
         </div>
       )}
     </div>
@@ -718,6 +792,7 @@ function BulkUploadTab({ commissionRate }: { commissionRate: number }) {
   const [headers, setHeaders] = useState<string[]>([]);
   const [results, setResults] = useState<CalcResult[] | null>(null);
   const [summary, setSummary] = useState<CalcSummary | null>(null);
+  const [routingSummary, setRoutingSummary] = useState<RoutingSummary | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState("");
@@ -801,6 +876,7 @@ function BulkUploadTab({ commissionRate }: { commissionRate: number }) {
         const data = await res.json();
         setResults(data.entries || []);
         setSummary(data.summary || null);
+        setRoutingSummary(data.routingSummary || null);
       } else {
         const data = await res.json().catch(() => ({}));
         setError((data as { error?: string }).error || "Calculation failed");
@@ -979,6 +1055,7 @@ function BulkUploadTab({ commissionRate }: { commissionRate: number }) {
               onClick={() => {
                 setResults(null);
                 setSummary(null);
+                setRoutingSummary(null);
                 setParsedRows(null);
                 setHeaders([]);
                 setFile(null);
@@ -1016,11 +1093,49 @@ function BulkUploadTab({ commissionRate }: { commissionRate: number }) {
             </div>
           )}
 
+          {/* Routing summary cards */}
+          {routingSummary && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              {routingSummary.selfFile.count > 0 && (
+                <div className="rounded-xl p-4 bg-green-500/10 border border-green-500/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                    <span className="font-body text-[13px] font-semibold text-green-400">
+                      {routingSummary.selfFile.count} Self-File Ready
+                    </span>
+                  </div>
+                  <div className="font-display text-lg font-bold text-green-400">
+                    {fmt$(routingSummary.selfFile.totalRefund)}
+                  </div>
+                  <p className="font-body text-[11px] text-[var(--app-text-muted)] mt-1">
+                    Eligible for CAPE Phase 1 self-filing via ACE Portal
+                  </p>
+                </div>
+              )}
+              {routingSummary.legalRequired.count > 0 && (
+                <div className="rounded-xl p-4 bg-red-500/10 border border-red-500/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                    <span className="font-body text-[13px] font-semibold text-red-400">
+                      {routingSummary.legalRequired.count} Need Legal Counsel
+                    </span>
+                  </div>
+                  <div className="font-display text-lg font-bold text-red-400">
+                    {fmt$(routingSummary.legalRequired.totalRefund)}
+                  </div>
+                  <p className="font-body text-[11px] text-[var(--app-text-muted)] mt-1">
+                    Requires CIT representation — excluded from CAPE Phase 1
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <table className="w-full min-w-[800px]">
+            <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-[var(--app-border)]">
-                  {["#", "Country", "Date", "Value", "Rate", "Refund", "Interest", "Status", "Deadline"].map((h) => (
+                  {["#", "Country", "Date", "Value", "Rate", "Refund", "Interest", "Status", "Route", "Deadline"].map((h) => (
                     <th
                       key={h}
                       className="font-body text-[10px] text-[var(--app-text-muted)] tracking-wider uppercase text-left py-2 px-3"
@@ -1062,13 +1177,16 @@ function BulkUploadTab({ commissionRate }: { commissionRate: number }) {
                     <td className="py-2.5 px-3">
                       <EligibilityBadge status={r.eligibility.status} />
                     </td>
+                    <td className="py-2.5 px-3">
+                      <RoutingBadge bucket={r.routingBucket} status={r.eligibility.status} />
+                    </td>
                     <td className="font-body text-[13px] py-2.5 px-3">
                       {r.eligibility.deadlineDays != null ? (
                         <span className={r.eligibility.isUrgent ? "text-red-400 font-semibold" : "text-[var(--app-text-muted)]"}>
                           {r.eligibility.deadlineDays}d
                         </span>
                       ) : (
-                        <span className="text-[var(--app-text-muted)]">—</span>
+                        <span className="text-[var(--app-text-muted)]">--</span>
                       )}
                     </td>
                   </tr>
@@ -1102,6 +1220,17 @@ function BulkUploadTab({ commissionRate }: { commissionRate: number }) {
               Save as Dossier
             </button>
           </div>
+
+          {/* Disclaimers */}
+          <p className="font-body text-[11px] text-[var(--app-text-muted)]/60 mt-4 leading-relaxed">
+            These estimates are for informational purposes only and do not constitute legal, tax, or customs advice. Actual refund amounts are determined by CBP and may differ. Fintella is not a law firm, customs broker, or licensed professional. Consult a qualified professional before making filing decisions.
+          </p>
+          <p className="font-body text-[11px] text-[var(--app-text-muted)]/60 mt-2 leading-relaxed">
+            Commission rates vary by partnership tier and agreement. Displayed rate is illustrative and based on your current agreement.
+          </p>
+          <p className="font-body text-[11px] text-[var(--app-text-muted)]/60 mt-2 leading-relaxed">
+            IEEPA tariff rates sourced from Federal Register executive orders and CBP guidance. Rate data covers Feb 1, 2025 &ndash; Feb 23, 2026. Report errors to support@fintella.partners.
+          </p>
         </div>
       )}
     </div>
@@ -1299,6 +1428,33 @@ function EligibilityBadge({ status }: { status: string }) {
       }`}
     >
       {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  );
+}
+
+function RoutingBadge({ bucket, status }: { bucket?: RoutingBucket; status: string }) {
+  // Derive routing from bucket if available, otherwise fall back to eligibility status
+  const route = bucket
+    ? bucket
+    : status === "eligible"
+    ? "self_file"
+    : status.startsWith("excluded_") && !status.startsWith("excluded_date")
+    ? "legal_required"
+    : "not_applicable";
+
+  const config: Record<string, { bg: string; text: string; label: string }> = {
+    self_file:      { bg: "bg-green-500/10", text: "text-green-400", label: "Self-File" },
+    legal_required: { bg: "bg-red-500/10",   text: "text-red-400",   label: "Legal" },
+    not_applicable: { bg: "bg-white/5",      text: "text-white/50",  label: "N/A" },
+  };
+
+  const c = config[route] || config.not_applicable;
+
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-body font-medium ${c.bg} ${c.text}`}
+    >
+      {c.label}
     </span>
   );
 }

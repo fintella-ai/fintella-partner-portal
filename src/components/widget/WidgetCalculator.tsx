@@ -229,6 +229,17 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
             </div>
           </div>
 
+          {/* Routing note */}
+          <p className={`text-xs font-medium ${
+            result.eligibility === "eligible"
+              ? "text-emerald-600"
+              : "text-red-600"
+          }`}>
+            {result.eligibility === "eligible"
+              ? "✓ Eligible for self-filing via CAPE"
+              : "⚠ This entry requires legal review"}
+          </p>
+
           {/* CTA button */}
           <button
             onClick={handleReferral}
