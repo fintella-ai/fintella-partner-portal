@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect, useCallback, Suspense, lazy } from "react";
+import { useState, useEffect, useCallback, Suspense, lazy, type DragEvent } from "react";
 import WidgetDashboard from "@/components/widget/WidgetDashboard";
 import WidgetReferralForm from "@/components/widget/WidgetReferralForm";
 import WidgetHowItWorks from "@/components/widget/WidgetHowItWorks";
@@ -50,6 +50,37 @@ function WidgetContent() {
     estimatedImportValue?: string;
     importDateRange?: string;
   } | null>(null);
+  const [globalDragOver, setGlobalDragOver] = useState(false);
+  const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
+
+  const handleGlobalDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes("Files")) setGlobalDragOver(true);
+  }, []);
+
+  const handleGlobalDragLeave = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const { clientX, clientY } = e;
+    if (clientX <= rect.left || clientX >= rect.right || clientY <= rect.top || clientY >= rect.bottom) {
+      setGlobalDragOver(false);
+    }
+  }, []);
+
+  const handleGlobalDrop = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setGlobalDragOver(false);
+    const files = Array.from(e.dataTransfer.files).filter((f) =>
+      ["application/pdf", "image/png", "image/jpeg"].includes(f.type)
+    );
+    if (files.length > 0) {
+      setDroppedFiles(files);
+      setTab("calc");
+    }
+  }, []);
 
   const handleCalcToReferral = (data: { estimatedImportValue: string; importDateRange: string }) => {
     setReferralPrefill(data);
@@ -136,7 +167,31 @@ function WidgetContent() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+    <div
+      style={{ display: "flex", flexDirection: "column", height: "100vh", position: "relative" }}
+      onDragOver={handleGlobalDragOver}
+      onDragLeave={handleGlobalDragLeave}
+      onDrop={handleGlobalDrop}
+    >
+      {/* ─── Global drop overlay ─── */}
+      {globalDragOver && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 50,
+          background: "rgba(6,10,20,0.85)", backdropFilter: "blur(8px)",
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          gap: 12, border: "2px dashed rgba(196,160,80,0.5)", borderRadius: RADII.lg, margin: 8,
+          pointerEvents: "none",
+        }}>
+          <div style={{ fontSize: 40 }}>📄</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: W.gold, fontFamily: "'DM Serif Display', Georgia, serif" }}>
+            Drop documents to analyze
+          </div>
+          <div style={{ fontSize: 12, color: W.textDim }}>
+            PDF, PNG, or JPG — we&apos;ll extract entries automatically
+          </div>
+        </div>
+      )}
+
       {/* ─── Header ─── */}
       <div
         style={{
@@ -239,6 +294,8 @@ function WidgetContent() {
               token={auth.token}
               commissionRate={rate}
               onSubmitAsReferral={handleCalcToReferral}
+              droppedFiles={droppedFiles}
+              onDroppedFilesConsumed={() => setDroppedFiles(null)}
             />
           </Suspense>
         )}

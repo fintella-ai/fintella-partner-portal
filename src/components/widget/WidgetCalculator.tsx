@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useRef, useCallback, type FormEvent, type DragEvent } from "react";
+import { useState, useRef, useCallback, useEffect, type FormEvent, type DragEvent } from "react";
 import { W, RADII, glassCardStyle, goldButtonStyle, inputStyle } from "./widget-theme";
 
 interface Props {
   token: string;
   commissionRate: number;
   onSubmitAsReferral: (data: { estimatedImportValue: string; importDateRange: string; documentUrls?: string[] }) => void;
+  droppedFiles?: File[] | null;
+  onDroppedFilesConsumed?: () => void;
 }
 
 // Top importing countries affected by IEEPA — compact list for widget
@@ -110,7 +112,7 @@ type WidgetMode = "manual" | "upload";
 
 // Style constants now imported from ./widget-theme (W, RADII, SHADOWS, helpers)
 
-export default function WidgetCalculator({ token, commissionRate, onSubmitAsReferral }: Props) {
+export default function WidgetCalculator({ token, commissionRate, onSubmitAsReferral, droppedFiles, onDroppedFilesConsumed }: Props) {
   // --- Manual mode state ---
   const [countryOfOrigin, setCountryOfOrigin] = useState("");
   const [entryDate, setEntryDate] = useState("");
@@ -280,6 +282,14 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
       handleUpload(validateFiles(files));
     }
   }, [handleUpload]);
+
+  useEffect(() => {
+    if (droppedFiles && droppedFiles.length > 0) {
+      setMode("upload");
+      handleUpload(droppedFiles);
+      onDroppedFilesConsumed?.();
+    }
+  }, [droppedFiles, onDroppedFilesConsumed, handleUpload]);
 
   const downloadCsv = (csv: string, filename: string) => {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
