@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { extractFromPdf, extractFromImage } from "@/lib/document-intake";
 import { lookupCombinedRate, calculateIeepaDuty, calculateInterest, checkEligibility, getRoutingBucket } from "@/lib/tariff-calculator";
-import { runAudit, generateCleanCapeEntries, formatCapeCSV, generateAuditReportCSV, type AuditEntry } from "@/lib/tariff-audit";
+import { runDoubleAudit, generateCleanCapeEntries, formatCapeCSV, generateAuditReportCSV, type AuditEntry } from "@/lib/tariff-audit";
 import { classifyHtsCode, detectTariffStacking } from "@/lib/hts-classifier";
 import { prisma } from "@/lib/prisma";
 
@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
     eligibility: e.eligibility.status,
   }));
 
-  const auditResult = runAudit(auditEntries);
+  const auditResult = runDoubleAudit(auditEntries);
   const cleanEntries = generateCleanCapeEntries(auditEntries, auditResult);
   const capeCsv = cleanEntries.length > 0 ? formatCapeCSV(cleanEntries) : "";
   const auditReportCsv = generateAuditReportCSV(auditResult);
