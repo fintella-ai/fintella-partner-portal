@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useRef, useCallback, type FormEvent, type DragEvent } from "react";
-import { W, RADII, glassCardStyle, goldButtonStyle, inputStyle } from "./widget-theme";
+import { useState, useRef, useCallback, useEffect, type FormEvent, type DragEvent } from "react";
+import { W, RADII, SHADOWS, glassCardStyle, goldButtonStyle, goldGradientStyle, inputStyle } from "./widget-theme";
 
 interface Props {
   token: string;
   commissionRate: number;
   onSubmitAsReferral: (data: { estimatedImportValue: string; importDateRange: string; documentUrls?: string[] }) => void;
+  droppedFiles?: File[] | null;
+  onDroppedFilesConsumed?: () => void;
 }
 
 // Top importing countries affected by IEEPA — compact list for widget
@@ -110,7 +112,7 @@ type WidgetMode = "manual" | "upload";
 
 // Style constants now imported from ./widget-theme (W, RADII, SHADOWS, helpers)
 
-export default function WidgetCalculator({ token, commissionRate, onSubmitAsReferral }: Props) {
+export default function WidgetCalculator({ token, commissionRate, onSubmitAsReferral, droppedFiles, onDroppedFilesConsumed }: Props) {
   // --- Manual mode state ---
   const [countryOfOrigin, setCountryOfOrigin] = useState("");
   const [entryDate, setEntryDate] = useState("");
@@ -281,6 +283,14 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
     }
   }, [handleUpload]);
 
+  useEffect(() => {
+    if (droppedFiles && droppedFiles.length > 0) {
+      setMode("upload");
+      handleUpload(droppedFiles);
+      onDroppedFilesConsumed?.();
+    }
+  }, [droppedFiles, onDroppedFilesConsumed, handleUpload]);
+
   const downloadCsv = (csv: string, filename: string) => {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -407,261 +417,369 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
     </div>
   );
 
-  // --- Document results ---
+  // --- Document results (fintech report layout) ---
   const renderDocResults = () => {
     if (!docResult) return null;
     const { summary, entries, audit, filingPackage, warnings } = docResult;
 
+    // Country lookup helper for flag emojis
+    const countryFlag = (code: string) => {
+      const match = COUNTRIES.find((c) => c.code === code);
+      return match ? match.flag : "";
+    };
+
+    // Map routing bucket to display label
+    const routeLabel = (bucket: string) =>
+      bucket === "self_file" ? "CAPE" : bucket === "legal_required" ? "Legal" : "N/A";
+
+    // Audit score color by threshold
+    const auditColor = audit.score >= 80 ? W.green : audit.score >= 50 ? W.amber : W.red;
+
+    // Referral value bucket mapping
+    const handleDocReferral = () => {
+      let valueBucket = "<$50K";
+      if (summary.totalEnteredValue >= 2_000_000) valueBucket = "$2M+";
+      else if (summary.totalEnteredValue >= 500_000) valueBucket = "$500K-$2M";
+      else if (summary.totalEnteredValue >= 50_000) valueBucket = "$50K-$500K";
+
+      onSubmitAsReferral({
+        estimatedImportValue: valueBucket,
+        importDateRange: entries.length > 0 ? entries[0].entryDate : new Date().toISOString().slice(0, 10),
+      });
+    };
+
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {/* Summary cards */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+        {/* ── Section 1: Report Header ── */}
+        <div style={{ padding: "12px 14px 10px", ...glassCardStyle(), boxShadow: SHADOWS.card }}>
+          {docResult.importerName && (
+            <p
+              style={{
+                margin: "0 0 4px",
+                fontSize: 16,
+                fontFamily: "'DM Serif Display', serif",
+                ...goldGradientStyle(),
+              }}
+            >
+              Report for {docResult.importerName}
+            </p>
+          )}
+          <p style={{ margin: 0, fontSize: 11, color: W.textDim }}>
+            Analyzed {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          </p>
+          <div style={{ marginTop: 8, height: 1, background: "rgba(255,255,255,0.06)" }} />
+        </div>
+
+        {/* ── Section 2: Summary Cards (3-column grid) ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-          {/* Total refund */}
+          {/* Total Refund — gold left border */}
           <div
             style={{
-              background: W.greenBg,
-              border: `1px solid ${"rgba(34,197,94,0.2)"}`,
-              borderRadius: RADII.lg,
-              padding: "10px 8px",
+              ...glassCardStyle(),
+              borderLeft: "3px solid #c4a050",
+              padding: "12px 8px",
               textAlign: "center",
+              boxShadow: SHADOWS.card,
             }}
           >
-            <p style={{ fontSize: 10, color: W.green, fontWeight: 600, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <p style={{ fontSize: 10, color: W.textDim, fontWeight: 600, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Total Refund
             </p>
-            <p style={{ fontSize: 16, fontWeight: 700, color: W.green, margin: 0 }}>
+            <p
+              style={{
+                fontSize: 20,
+                fontWeight: 700,
+                fontFamily: "'DM Serif Display', serif",
+                margin: 0,
+                ...goldGradientStyle(),
+              }}
+            >
               {fmtUsd(summary.totalEstimatedRefund)}
             </p>
           </div>
-          {/* Self-file */}
+          {/* Eligible (self-file) */}
           <div
             style={{
-              background: W.bgCard,
-              border: `1px solid ${W.border}`,
-              borderRadius: RADII.lg,
-              padding: "10px 8px",
+              ...glassCardStyle(),
+              padding: "12px 8px",
               textAlign: "center",
+              boxShadow: SHADOWS.card,
             }}
           >
-            <p style={{ fontSize: 10, color: W.textSecondary, fontWeight: 600, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <p style={{ fontSize: 10, color: W.textDim, fontWeight: 600, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Eligible
             </p>
-            <p style={{ fontSize: 16, fontWeight: 700, color: W.text, margin: 0 }}>
+            <p style={{ fontSize: 20, fontWeight: 700, fontFamily: "'DM Serif Display', serif", color: W.text, margin: 0 }}>
               {summary.selfFileCount}
             </p>
           </div>
-          {/* Needs legal */}
+          {/* Needs Legal */}
           <div
             style={{
-              background: summary.needsLegalCount > 0 ? W.redBg : W.bgCard,
-              border: `1px solid ${summary.needsLegalCount > 0 ? "rgba(239,68,68,0.2)" : W.border}`,
-              borderRadius: RADII.lg,
-              padding: "10px 8px",
+              ...glassCardStyle(),
+              padding: "12px 8px",
               textAlign: "center",
+              boxShadow: SHADOWS.card,
+              ...(summary.needsLegalCount > 0
+                ? { background: W.redBg, border: `1px solid rgba(239,68,68,0.2)` }
+                : {}),
             }}
           >
-            <p style={{ fontSize: 10, color: summary.needsLegalCount > 0 ? W.red : W.textSecondary, fontWeight: 600, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <p style={{ fontSize: 10, color: summary.needsLegalCount > 0 ? W.red : W.textDim, fontWeight: 600, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Needs Legal
             </p>
-            <p style={{ fontSize: 16, fontWeight: 700, color: summary.needsLegalCount > 0 ? W.red : W.text, margin: 0 }}>
+            <p style={{ fontSize: 20, fontWeight: 700, fontFamily: "'DM Serif Display', serif", color: summary.needsLegalCount > 0 ? W.red : W.text, margin: 0 }}>
               {summary.needsLegalCount}
             </p>
           </div>
         </div>
 
-        {/* Audit score bar */}
+        {/* ── Section 3: Filing Readiness (audit health bar) ── */}
         <div
           style={{
-            background: W.bgCard,
-            border: `1px solid ${W.border}`,
-            borderRadius: RADII.lg,
-            padding: "8px 12px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
+            ...glassCardStyle(),
+            padding: "12px 14px",
+            boxShadow: SHADOWS.card,
           }}
         >
-          <span style={{ fontSize: 11, color: W.textSecondary, flexShrink: 0 }}>Audit</span>
-          <div style={{ flex: 1, height: 6, background: W.border, borderRadius: 3, overflow: "hidden" }}>
-            <div
+          <p style={{ fontSize: 12, color: W.textSecondary, fontWeight: 600, margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            Filing Readiness
+          </p>
+          {/* Progress bar row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1, height: 8, background: W.border, borderRadius: RADII.full, overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${Math.min(audit.score, 100)}%`,
+                  height: "100%",
+                  borderRadius: RADII.full,
+                  background: auditColor,
+                  transition: "width 0.5s ease",
+                }}
+              />
+            </div>
+            <span
               style={{
-                width: `${Math.min(audit.score, 100)}%`,
-                height: "100%",
-                borderRadius: 3,
-                background: audit.score >= 80 ? W.green : audit.score >= 50 ? W.amber : W.red,
-                transition: "width 0.5s",
+                fontSize: 14,
+                fontWeight: 700,
+                color: auditColor,
+                flexShrink: 0,
+                minWidth: 32,
+                textAlign: "right",
               }}
-            />
+            >
+              {audit.score}
+            </span>
           </div>
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: audit.score >= 80 ? W.green : audit.score >= 50 ? W.amber : W.red,
-              flexShrink: 0,
-              minWidth: 32,
-              textAlign: "right",
-            }}
-          >
-            {audit.score}
-          </span>
+          {/* Error/warning badges + passed indicator */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            {audit.errors.length > 0 && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "2px 8px",
+                  borderRadius: RADII.full,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  background: W.redBg,
+                  color: W.red,
+                  border: `1px solid rgba(239,68,68,0.2)`,
+                }}
+              >
+                {audit.errors.length} error{audit.errors.length !== 1 ? "s" : ""}
+              </span>
+            )}
+            {audit.warnings.length > 0 && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "2px 8px",
+                  borderRadius: RADII.full,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  background: W.amberBg,
+                  color: W.amber,
+                  border: `1px solid rgba(245,158,11,0.2)`,
+                }}
+              >
+                {audit.warnings.length} warning{audit.warnings.length !== 1 ? "s" : ""}
+              </span>
+            )}
+            {audit.passed && (
+              <span style={{ fontSize: 11, color: W.green, fontWeight: 600 }}>
+                {"✓"} Ready to file
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Warnings */}
+        {/* ── Warnings (global) ── */}
         {warnings.length > 0 && (
           <div
             style={{
               background: W.amberBg,
-              border: `1px solid ${"rgba(245,158,11,0.2)"}`,
+              border: `1px solid rgba(245,158,11,0.2)`,
               borderRadius: RADII.sm,
-              padding: "6px 10px",
+              padding: "8px 12px",
             }}
           >
             {warnings.map((w, i) => (
-              <p key={i} style={{ fontSize: 11, color: W.amber, margin: i > 0 ? "2px 0 0" : 0 }}>
+              <p key={i} style={{ fontSize: 11, color: W.amber, margin: i > 0 ? "4px 0 0" : 0 }}>
                 {w}
               </p>
             ))}
           </div>
         )}
 
-        {/* Entries table */}
-        <div
-          style={{
-            border: `1px solid ${W.border}`,
-            borderRadius: RADII.lg,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              overflowX: "auto",
-              WebkitOverflowScrolling: "touch",
-            }}
-          >
-            <table
+        {/* ── Section 4: Entry Breakdown (stacked glass cards) ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <p style={{ fontSize: 12, color: W.textSecondary, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            Entry Breakdown
+          </p>
+          {entries.map((entry) => (
+            <div
+              key={entry.index}
               style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: 11,
-                minWidth: 480,
+                ...glassCardStyle(),
+                padding: "10px 12px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                boxShadow: SHADOWS.card,
+                ...(entry.needsReview
+                  ? { borderLeft: `3px solid ${W.amber}` }
+                  : {}),
               }}
             >
-              <thead>
-                <tr style={{ background: W.bgCard }}>
-                  {["Entry #", "Country", "Date", "Value", "Rate", "Refund", "Route", "Conf."].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "6px 6px",
-                        textAlign: "left",
-                        fontWeight: 600,
-                        color: W.textSecondary,
-                        borderBottom: `1px solid ${W.border}`,
-                        whiteSpace: "nowrap",
-                        fontSize: 10,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.3px",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((entry) => (
-                  <tr
-                    key={entry.index}
+              {/* Left: Entry # + country badge */}
+              <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 40 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: W.textSecondary }}>
+                  {entry.entryNumber || `#${entry.index + 1}`}
+                </span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 2,
+                    padding: "1px 6px",
+                    borderRadius: RADII.full,
+                    fontSize: 10,
+                    background: W.bgCard,
+                    border: `1px solid ${W.border}`,
+                    color: W.textSecondary,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {countryFlag(entry.countryOfOrigin) || entry.countryOfOrigin}
+                  {countryFlag(entry.countryOfOrigin) && (
+                    <span style={{ fontSize: 9 }}>{entry.countryOfOrigin}</span>
+                  )}
+                </span>
+                {entry.needsReview && (
+                  <span style={{ fontSize: 12, lineHeight: 1 }} title="Needs review">{"⚠️"}</span>
+                )}
+              </div>
+              {/* Middle: date, value, rate, confidence */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "baseline" }}>
+                  <span style={{ fontSize: 11, color: W.text }}>{entry.entryDate}</span>
+                  <span style={{ fontSize: 11, color: W.textDim }}>{"·"}</span>
+                  <span style={{ fontSize: 11, color: W.text, fontWeight: 600 }}>{fmtUsd(entry.enteredValue)}</span>
+                  <span style={{ fontSize: 11, color: W.textDim }}>{"·"}</span>
+                  <span style={{ fontSize: 11, color: W.textSecondary }}>{fmtPct(entry.combinedRate)}</span>
+                </div>
+                {/* Eligibility status */}
+                <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
                     style={{
-                      borderBottom: `1px solid ${W.border}`,
-                      background: entry.needsReview ? W.amberBg : "transparent",
+                      fontSize: 10,
+                      color: entry.eligibility.status === "eligible" ? W.green : W.amber,
                     }}
                   >
-                    <td style={{ padding: "6px", color: W.text, whiteSpace: "nowrap" }}>
-                      {entry.entryNumber || `#${entry.index + 1}`}
-                    </td>
-                    <td style={{ padding: "6px", color: W.text }}>
-                      {entry.countryOfOrigin}
-                    </td>
-                    <td style={{ padding: "6px", color: W.text, whiteSpace: "nowrap" }}>
-                      {entry.entryDate}
-                    </td>
-                    <td style={{ padding: "6px", color: W.text, whiteSpace: "nowrap" }}>
-                      {fmtUsd(entry.enteredValue)}
-                    </td>
-                    <td style={{ padding: "6px", color: W.text }}>
-                      {fmtPct(entry.combinedRate)}
-                    </td>
-                    <td style={{ padding: "6px", color: W.green, fontWeight: 600, whiteSpace: "nowrap" }}>
-                      {fmtUsd(entry.estimatedRefund)}
-                    </td>
-                    <td style={{ padding: "6px" }}>
-                      <span
-                        style={{
-                          display: "inline-block",
-                          padding: "2px 6px",
-                          borderRadius: 4,
-                          fontSize: 10,
-                          fontWeight: 600,
-                          background: entry.routingBucket === "self_file"
-                            ? W.greenBg
-                            : entry.routingBucket === "legal_required"
-                            ? W.redBg
-                            : W.bgCard,
-                          color: entry.routingBucket === "self_file"
-                            ? W.green
-                            : entry.routingBucket === "legal_required"
-                            ? W.red
-                            : W.textSecondary,
-                          border: `1px solid ${
-                            entry.routingBucket === "self_file"
-                              ? "rgba(34,197,94,0.2)"
-                              : entry.routingBucket === "legal_required"
-                              ? "rgba(239,68,68,0.2)"
-                              : W.border
-                          }`,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {entry.routingBucket === "self_file"
-                          ? "CAPE"
-                          : entry.routingBucket === "legal_required"
-                          ? "Legal"
-                          : "N/A"}
-                      </span>
-                    </td>
-                    <td style={{ padding: "6px" }}>
-                      {entry.needsReview ? (
-                        <span
-                          style={{
-                            color: W.amber,
-                            fontSize: 10,
-                            fontWeight: 600,
-                          }}
-                          title={`Confidence: ${Math.round(entry.confidence * 100)}% — review recommended`}
-                        >
-                          {Math.round(entry.confidence * 100)}%
-                        </span>
-                      ) : (
-                        <span style={{ color: W.textDim, fontSize: 10 }}>
-                          {Math.round(entry.confidence * 100)}%
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    {entry.eligibility.reason}
+                  </span>
+                  {entry.eligibility.isUrgent && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: W.red,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      URGENT
+                    </span>
+                  )}
+                  {entry.eligibility.deadlineDays != null && (
+                    <span style={{ fontSize: 9, color: W.textDim }}>
+                      {entry.eligibility.deadlineDays}d left
+                    </span>
+                  )}
+                </div>
+                {/* Confidence */}
+                <div style={{ marginTop: 2 }}>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      color: entry.needsReview ? W.amber : W.textDim,
+                      fontWeight: entry.needsReview ? 600 : 400,
+                    }}
+                    title={entry.needsReview ? `Confidence: ${Math.round(entry.confidence * 100)}% — review recommended` : undefined}
+                  >
+                    Confidence: {Math.round(entry.confidence * 100)}%
+                  </span>
+                </div>
+              </div>
+              {/* Right: refund + routing badge */}
+              <div style={{ flexShrink: 0, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: W.green }}>
+                  {fmtUsd(entry.estimatedRefund)}
+                </span>
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "2px 8px",
+                    borderRadius: RADII.full,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    background: entry.routingBucket === "self_file"
+                      ? W.greenBg
+                      : entry.routingBucket === "legal_required"
+                      ? W.redBg
+                      : W.bgCard,
+                    color: entry.routingBucket === "self_file"
+                      ? W.green
+                      : entry.routingBucket === "legal_required"
+                      ? W.red
+                      : W.textSecondary,
+                    border: `1px solid ${
+                      entry.routingBucket === "self_file"
+                        ? "rgba(34,197,94,0.2)"
+                        : entry.routingBucket === "legal_required"
+                        ? "rgba(239,68,68,0.2)"
+                        : W.border
+                    }`,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {routeLabel(entry.routingBucket)}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Low confidence warning */}
+        {/* Low confidence aggregate warning */}
         {summary.lowConfidenceCount > 0 && (
           <div
             style={{
               background: W.amberBg,
-              border: `1px solid ${"rgba(245,158,11,0.2)"}`,
+              border: `1px solid rgba(245,158,11,0.2)`,
               borderRadius: RADII.sm,
               padding: "6px 10px",
               display: "flex",
@@ -669,85 +787,108 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
               gap: 6,
             }}
           >
-            <span style={{ fontSize: 14 }}>{"⚠️"}</span>
+            <span style={{ fontSize: 14, lineHeight: 1 }}>{"⚠️"}</span>
             <span style={{ fontSize: 11, color: W.amber }}>
               {summary.lowConfidenceCount} {summary.lowConfidenceCount === 1 ? "entry has" : "entries have"} low confidence — review highlighted rows
             </span>
           </div>
         )}
 
-        {/* Action buttons */}
-        <div style={{ display: "flex", gap: 6 }}>
-          {filingPackage.capeCsv && (
-            <button
-              type="button"
-              onClick={() => downloadCsv(filingPackage.capeCsv, "cape-entries.csv")}
-              style={{
-                flex: 1,
-                padding: "8px 0",
-                fontSize: 12,
-                fontWeight: 600,
-                border: `1px solid ${"rgba(34,197,94,0.2)"}`,
-                borderRadius: RADII.sm,
-                cursor: "pointer",
-                background: W.greenBg,
-                color: W.green,
-                transition: "opacity 0.15s",
-              }}
-              onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.opacity = "0.85"; }}
-              onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.opacity = "1"; }}
-            >
-              Download CAPE CSV
-            </button>
-          )}
-          {filingPackage.auditReportCsv && (
-            <button
-              type="button"
-              onClick={() => downloadCsv(filingPackage.auditReportCsv, "audit-report.csv")}
-              style={{
-                flex: 1,
-                padding: "8px 0",
-                fontSize: 12,
-                fontWeight: 600,
-                border: `1px solid ${W.border}`,
-                borderRadius: RADII.sm,
-                cursor: "pointer",
-                background: W.bgCard,
-                color: W.text,
-                transition: "opacity 0.15s",
-              }}
-              onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.opacity = "0.85"; }}
-              onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.opacity = "1"; }}
-            >
-              Download Audit Report
-            </button>
-          )}
+        {/* ── Section 5: Export ── */}
+        <div
+          style={{
+            ...glassCardStyle(),
+            padding: "12px 14px",
+            boxShadow: SHADOWS.card,
+          }}
+        >
+          <p style={{ fontSize: 12, color: W.textSecondary, fontWeight: 600, margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            Export
+          </p>
+          <div style={{ display: "flex", gap: 6 }}>
+            {filingPackage.capeCsv && (
+              <button
+                type="button"
+                onClick={() => downloadCsv(filingPackage.capeCsv, "cape-entries.csv")}
+                style={{
+                  flex: 1,
+                  padding: "8px 0",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  border: `1px solid rgba(34,197,94,0.2)`,
+                  borderRadius: RADII.sm,
+                  cursor: "pointer",
+                  background: W.greenBg,
+                  color: W.green,
+                  transition: "opacity 0.15s",
+                }}
+                onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.opacity = "0.85"; }}
+                onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.opacity = "1"; }}
+              >
+                CAPE CSV
+              </button>
+            )}
+            {filingPackage.auditReportCsv && (
+              <button
+                type="button"
+                onClick={() => downloadCsv(filingPackage.auditReportCsv, "audit-report.csv")}
+                style={{
+                  flex: 1,
+                  padding: "8px 0",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  border: `1px solid ${W.border}`,
+                  borderRadius: RADII.sm,
+                  cursor: "pointer",
+                  background: W.bgCard,
+                  color: W.text,
+                  transition: "opacity 0.15s",
+                }}
+                onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.opacity = "0.85"; }}
+                onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.opacity = "1"; }}
+              >
+                Audit Report
+              </button>
+            )}
+          </div>
+          {/* Upload another */}
+          <button
+            type="button"
+            onClick={() => {
+              setDocResult(null);
+              setUploadError(null);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              padding: "8px 0",
+              fontSize: 12,
+              fontWeight: 600,
+              border: `1px solid ${W.border}`,
+              borderRadius: RADII.sm,
+              cursor: "pointer",
+              background: "transparent",
+              color: W.textSecondary,
+              transition: "color 0.15s",
+            }}
+            onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.color = W.text; }}
+            onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.color = W.textSecondary; }}
+          >
+            Upload Another
+          </button>
         </div>
 
-        {/* Upload another */}
+        {/* ── Section 6: Submit as Referral CTA ── */}
         <button
           type="button"
-          onClick={() => {
-            setDocResult(null);
-            setUploadError(null);
-            if (fileInputRef.current) fileInputRef.current.value = "";
-          }}
-          style={{
-            width: "100%",
-            padding: "8px 0",
-            fontSize: 12,
-            fontWeight: 600,
-            border: `1px solid ${W.border}`,
-            borderRadius: RADII.sm,
-            cursor: "pointer",
-            background: "transparent",
-            color: W.textSecondary,
-            transition: "color 0.15s",
-          }}
-          onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.color = W.text; }}
-          onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.color = W.textSecondary; }}
+          onClick={handleDocReferral}
+          style={{ ...goldButtonStyle(), fontSize: 15, padding: "16px 28px" }}
         >
-          Upload Another Document
+          Submit as Referral — Earn {commissionRate}%
+          <svg style={{ width: 16, height: 16, display: "inline", marginLeft: 8, verticalAlign: "middle" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
         </button>
       </div>
     );
