@@ -1476,9 +1476,9 @@ function DossiersTab() {
       <table className="w-full min-w-[700px]">
         <thead>
           <tr className="border-b border-[var(--app-border)]">
-            {["Client Company", "Entries", "Est. Refund", "Status", "Source", "Created"].map((h) => (
+            {["Client Company", "Entries", "Est. Refund", "Status", "Source", "Created", ""].map((h) => (
               <th
-                key={h}
+                key={h || "actions"}
                 className="font-body text-[10px] text-[var(--app-text-muted)] tracking-wider uppercase text-left py-2 px-3 first:pl-4"
               >
                 {h}
@@ -1517,6 +1517,11 @@ function DossiersTab() {
                 </td>
                 <td className="font-body text-[13px] py-3 px-3 text-[var(--app-text-muted)]">
                   {fmtDate(d.createdAt)}
+                </td>
+                <td className="py-3 px-3">
+                  {(d._count?.entries ?? 0) > 0 && (
+                    <PdfDownloadButton dossierId={d.id} clientCompany={d.clientCompany} />
+                  )}
                 </td>
               </tr>
             );
@@ -1764,6 +1769,90 @@ function AuditScoreCard({ audit }: { audit: AuditResult }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   PDF DOWNLOAD BUTTON
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function PdfDownloadButton({ results, audit, dossierId, clientCompany }: {
+  results?: CalcResult[];
+  audit?: AuditResult;
+  dossierId?: string;
+  clientCompany?: string;
+}) {
+  const [generating, setGenerating] = useState(false);
+
+  async function handleDownloadPdf() {
+    setGenerating(true);
+    try {
+      let res: Response;
+
+      if (dossierId) {
+        res = await fetch(`/api/partner/dossiers/${dossierId}/pdf`);
+      } else if (results && audit) {
+        const entries = results.map((r) => ({
+          entryNumber: r.entryNumber || null,
+          countryOfOrigin: r.countryOfOrigin,
+          entryDate: r.entryDate,
+          enteredValue: r.enteredValue,
+          ieepaRate: r.combinedRate,
+          estimatedDuty: r.estimatedDuty,
+          estimatedInterest: r.estimatedInterest,
+          eligibility: r.eligibility.status,
+          rateBreakdown: r.rateBreakdown,
+          deadlineDays: r.eligibility.deadlineDays ?? null,
+          isUrgent: r.eligibility.isUrgent ?? false,
+        }));
+        res = await fetch("/api/tariff/pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entries, clientCompany: clientCompany || "Quick Estimate" }),
+        });
+      } else {
+        return;
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "PDF generation failed" }));
+        alert(err.error || "Failed to generate PDF");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1]
+        || `fintella-recovery-analysis-${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleDownloadPdf}
+      disabled={generating}
+      className="font-body text-[12px] font-medium px-4 py-2 rounded-lg bg-[var(--brand-gold)]/20 text-[var(--brand-gold)] hover:bg-[var(--brand-gold)]/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+    >
+      {generating ? (
+        <>
+          <span className="w-3 h-3 border-2 border-[var(--brand-gold)]/30 border-t-[var(--brand-gold)] rounded-full animate-spin" />
+          Generating PDF...
+        </>
+      ) : (
+        <>
+          <span>📄</span>
+          Generate Client Summary PDF
+        </>
+      )}
+    </button>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    FILING PACKAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -1873,12 +1962,7 @@ function FilingPackageSection({ audit, results }: { audit: AuditResult; results:
       </div>
 
       <div className="mt-4 pt-3 border-t border-[var(--app-border)]">
-        <button
-          disabled
-          className="font-body text-[12px] px-4 py-2 rounded-lg bg-white/5 border border-[var(--app-border)] text-[var(--app-text-muted)] cursor-not-allowed"
-        >
-          Generate Client Summary PDF — coming soon (Phase 2)
-        </button>
+        <PdfDownloadButton results={results} audit={audit} />
       </div>
     </div>
   );
