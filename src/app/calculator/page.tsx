@@ -68,6 +68,33 @@ interface CalcResult {
   routingSummary?: RoutingSummary;
 }
 
+interface AuditCheck {
+  id: string;
+  category: "format" | "entry" | "eligibility" | "risk";
+  severity: "error" | "warning" | "info";
+  passed: boolean;
+  message: string;
+  detail?: string;
+  entryIndex?: number;
+  entryNumber?: string;
+  fix?: string;
+}
+
+interface AuditResult {
+  passed: boolean;
+  score: number;
+  checks: AuditCheck[];
+  errors: AuditCheck[];
+  warnings: AuditCheck[];
+  info: AuditCheck[];
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    warnings: number;
+  };
+}
+
 /* ── Country flag emoji helper ─────────────────────────────────────── */
 
 function countryFlag(code: string): string {
@@ -155,6 +182,8 @@ function CalculatorInner() {
   const [result, setResult] = useState<CalcResult | null>(null);
   const [calcError, setCalcError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
+  const [auditExpanded, setAuditExpanded] = useState(false);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -191,6 +220,8 @@ function CalculatorInner() {
     setCalcError(null);
     setCalculating(true);
     setResult(null);
+    setAuditResult(null);
+    setAuditExpanded(false);
     setShowResults(false);
 
     const count = Math.max(1, Math.min(500, parseInt(numEntries) || 1));
@@ -217,6 +248,20 @@ function CalculatorInner() {
 
       const data: CalcResult = await res.json();
       setResult(data);
+
+      // Fire-and-forget audit call — graceful degradation on failure
+      const entriesPayload = entries.map((e) => ({
+        ...e,
+        ieepaRate: data.entries[0]?.combinedRate ?? 0,
+      }));
+      fetch("/api/tariff/audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entries: entriesPayload }),
+      })
+        .then((r) => r.json())
+        .then((audit: AuditResult) => setAuditResult(audit))
+        .catch(() => {});
 
       // Persist to localStorage for /apply flow
       try {
@@ -714,25 +759,11 @@ function CalculatorInner() {
               </p>
             </div>
 
-            {/* CTA buttons */}
-            <div className="p-6 flex flex-col sm:flex-row gap-3">
-              <Link
-                href="/apply"
-                className="flex-1 h-12 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-200"
-                style={{
-                  background: "var(--accent-gradient)",
-                  color: "#ffffff",
-                  boxShadow: "0 4px 14px rgba(79,110,247,0.3)",
-                }}
-              >
-                Submit This Client
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </Link>
+            {/* Calculate Another button */}
+            <div className="p-6">
               <button
                 onClick={handleReset}
-                className="flex-1 h-12 rounded-xl font-semibold text-base border transition-all duration-200"
+                className="w-full h-12 rounded-xl font-semibold text-base border transition-all duration-200"
                 style={{
                   borderColor: "var(--app-border)",
                   color: "var(--app-text-secondary)",
@@ -749,45 +780,320 @@ function CalculatorInner() {
             These estimates are for informational purposes only and do not constitute legal, tax, or customs advice. Actual refund amounts are determined by CBP and may differ. Fintella is not a law firm, customs broker, or licensed professional. Consult a qualified professional before making filing decisions.
           </p>
 
-          {/* ── Entry Analysis — Routing Summary ──────────────────── */}
-          {result.routingSummary && (
+          {/* ── Pre-Submission Audit Score ───────────────────────────── */}
+          {auditResult && (
             <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--app-text)" }}>
-                Entry Analysis
-              </h3>
+              <div
+                className="rounded-xl border p-5"
+                style={{
+                  borderColor: auditResult.score >= 80
+                    ? "rgba(34,197,94,0.3)"
+                    : auditResult.score >= 50
+                      ? "rgba(234,179,8,0.3)"
+                      : "rgba(239,68,68,0.3)",
+                  background: auditResult.score >= 80
+                    ? "rgba(34,197,94,0.05)"
+                    : auditResult.score >= 50
+                      ? "rgba(234,179,8,0.05)"
+                      : "rgba(239,68,68,0.05)",
+                }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold"
+                      style={{
+                        background: auditResult.score >= 80
+                          ? "rgba(34,197,94,0.15)"
+                          : auditResult.score >= 50
+                            ? "rgba(234,179,8,0.15)"
+                            : "rgba(239,68,68,0.15)",
+                        color: auditResult.score >= 80
+                          ? "#22c55e"
+                          : auditResult.score >= 50
+                            ? "#eab308"
+                            : "#ef4444",
+                      }}
+                    >
+                      {auditResult.score}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: "var(--app-text)" }}>
+                        Pre-Submission Audit: {auditResult.score}/100
+                      </p>
+                      <p className="text-xs" style={{ color: "var(--app-text-muted)" }}>
+                        Passed {auditResult.summary.passed} of {auditResult.summary.total} checks
+                        {auditResult.summary.warnings > 0 && (
+                          <span style={{ color: "#eab308" }}>
+                            {" "}&middot; {auditResult.summary.warnings} warning{auditResult.summary.warnings !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                        {auditResult.summary.failed > 0 && (
+                          <span style={{ color: "#ef4444" }}>
+                            {" "}&middot; {auditResult.summary.failed} error{auditResult.summary.failed !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setAuditExpanded(!auditExpanded)}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                    style={{
+                      background: "var(--app-input-bg)",
+                      color: "var(--app-text-secondary)",
+                      border: "1px solid var(--app-border)",
+                    }}
+                  >
+                    {auditExpanded ? "Hide Details" : "View Details"}
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="inline ml-1 transition-transform"
+                      style={{ transform: auditExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Self-File Card */}
-                {result.routingSummary.selfFile.count > 0 && (
+                {/* Expanded audit details */}
+                {auditExpanded && (
+                  <div className="mt-3 pt-3 space-y-4" style={{ borderTop: "1px solid var(--app-border)" }}>
+                    {(["format", "entry", "eligibility", "risk"] as const).map((category) => {
+                      const categoryChecks = auditResult.checks.filter((c) => c.category === category);
+                      if (categoryChecks.length === 0) return null;
+                      const categoryLabel = {
+                        format: "Format",
+                        entry: "Entry",
+                        eligibility: "Eligibility",
+                        risk: "Risk",
+                      }[category];
+                      return (
+                        <div key={category}>
+                          <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--app-text-muted)" }}>
+                            {categoryLabel}
+                          </p>
+                          <div className="space-y-1.5">
+                            {categoryChecks.map((check, idx) => (
+                              <div key={`${check.id}-${idx}`} className="flex items-start gap-2">
+                                <span className="flex-shrink-0 mt-0.5">
+                                  {check.severity === "error" && !check.passed ? (
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444"><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" /></svg>
+                                  ) : check.severity === "warning" ? (
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#eab308"><path d="M12 2L1 21h22L12 2z" /><text x="12" y="18" textAnchor="middle" fill="#000" fontSize="14" fontWeight="bold">!</text></svg>
+                                  ) : (
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e"><circle cx="12" cy="12" r="10" /><path d="M8 12l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                  )}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs" style={{ color: "var(--app-text-secondary)" }}>
+                                    {check.message}
+                                  </p>
+                                  {check.fix && !check.passed && (
+                                    <p className="text-xs mt-0.5" style={{ color: "var(--app-text-faint)" }}>
+                                      Fix: {check.fix}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Audit disclaimer */}
+                <p className="text-xs mt-3" style={{ color: "var(--app-text-faint)" }}>
+                  This audit checks for common CAPE filing errors based on publicly available CBP guidance. It does not guarantee acceptance by CBP.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Three-Option Routing ────────────────────────────────── */}
+          {result.routingSummary && (() => {
+            const selfCount = result.routingSummary!.selfFile.count;
+            const legalCount = result.routingSummary!.legalRequired.count;
+            const totalEligible = selfCount + legalCount;
+            const totalRefund = result.routingSummary!.selfFile.totalRefund + result.routingSummary!.legalRequired.totalRefund;
+            const naCount = result.routingSummary!.notApplicable.count;
+
+            return (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--app-text)" }}>
+                  Filing Options
+                </h3>
+
+                {/* ── Option 1: RECOMMENDED — Full Legal Review (full width) ── */}
+                <div
+                  className="relative rounded-xl border-2 p-6 mb-4"
+                  style={{
+                    borderColor: "rgba(139,92,246,0.5)",
+                    background: "rgba(139,92,246,0.05)",
+                  }}
+                >
+                  {/* Star badge */}
+                  <div
+                    className="absolute -top-3 right-4 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase"
+                    style={{
+                      background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                      color: "#ffffff",
+                      boxShadow: "0 2px 8px rgba(139,92,246,0.3)",
+                    }}
+                  >
+                    RECOMMENDED
+                  </div>
+
+                  <h4 className="text-base font-semibold mb-2" style={{ color: "var(--app-text)" }}>
+                    Full Legal Review + Filing Support
+                  </h4>
+                  <p className="text-sm mb-4" style={{ color: "var(--app-text-secondary)" }}>
+                    Submit all {totalEligible} {totalEligible === 1 ? "entry" : "entries"} ({usdFmt.format(totalRefund)} estimated refund) to our legal partner. They review your data, coordinate CAPE filing, handle any rejections, file protective CIT claims, and fight offset diversions.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 mb-5">
+                    {[
+                      "Pre-filing compliance review",
+                      "Offset defense (19 CFR §24.72)",
+                      "Rejection handling — instant CIT escalation",
+                      "Interest verification — maximize recovery",
+                      "Protective CIT filing for deadline protection",
+                      "$0 upfront — contingency-based",
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e" className="flex-shrink-0">
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M8 12l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-sm" style={{ color: "var(--app-text-secondary)" }}>
+                          {item}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      try {
+                        localStorage.setItem(
+                          "tie_legal_submission",
+                          JSON.stringify({
+                            country,
+                            entryDate,
+                            enteredValue: parseInputValue(valueInput),
+                            numEntries: Math.max(1, Math.min(500, parseInt(numEntries) || 1)),
+                            entryType,
+                            summary: result.summary,
+                            routingSummary: result.routingSummary,
+                            entries: result.entries,
+                            auditResult: auditResult || null,
+                            timestamp: Date.now(),
+                          }),
+                        );
+                      } catch {}
+                      window.location.href = "/apply";
+                    }}
+                    className="w-full h-12 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-200"
+                    style={{
+                      background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                      color: "#ffffff",
+                      boxShadow: "0 4px 14px rgba(139,92,246,0.3)",
+                    }}
+                  >
+                    Submit All Entries for Legal Review
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                  {/* Disclaimer C — Legal referral */}
+                  <p className="text-xs mt-3" style={{ color: "var(--app-text-faint)" }}>
+                    By submitting, you authorize Fintella to share this entry data with our vetted legal partner for review. This is a referral, not legal representation. Attorney-client relationship is established directly with the legal partner. Referral fee per AZ Admin. Order 2020-180.
+                  </p>
+                </div>
+
+                {/* ── Options 2 & 3 side-by-side ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Option 2: Self-File */}
                   <div
                     className="rounded-xl border p-5"
                     style={{
-                      borderColor: "rgba(34,197,94,0.3)",
-                      background: "rgba(34,197,94,0.05)",
+                      borderColor: "var(--app-card-border)",
+                      background: "var(--app-card-bg)",
                     }}
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg">&#x1F7E2;</span>
-                      <span className="text-base font-semibold" style={{ color: "#22c55e" }}>
-                        {result.routingSummary.selfFile.count} Self-File Ready
-                      </span>
+                    <h4 className="text-sm font-semibold mb-1" style={{ color: "var(--app-text)" }}>
+                      Self-File ({selfCount} eligible {selfCount === 1 ? "entry" : "entries"})
+                    </h4>
+                    <p className="text-xs mb-3" style={{ color: "var(--app-text-muted)" }}>
+                      Download CAPE CSV and file yourself in ACE Portal.
+                      {legalCount > 0 && (
+                        <span>
+                          {" "}{legalCount} {legalCount === 1 ? "entry needs" : "entries need"} legal counsel and {legalCount === 1 ? "is" : "are"} not included.
+                        </span>
+                      )}
+                    </p>
+
+                    <div className="space-y-1.5 mb-4">
+                      {[
+                        "No offset protection",
+                        "No rejection handling",
+                        "No compliance review",
+                      ].map((item) => (
+                        <div key={item} className="flex items-center gap-2">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                            <path d="M12 2L1 21h22L12 2zM12 9v4M12 17h.01" />
+                          </svg>
+                          <span className="text-xs" style={{ color: "var(--app-text-muted)" }}>
+                            {item}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <p className="text-sm mb-1" style={{ color: "var(--app-text-secondary)" }}>
-                      Estimated refund:{" "}
-                      <span className="font-semibold" style={{ color: "#22c55e" }}>
-                        {usdFmt.format(result.routingSummary.selfFile.totalRefund)}
-                      </span>
-                    </p>
-                    <p className="text-xs mb-4" style={{ color: "var(--app-text-muted)" }}>
-                      These entries are eligible for CAPE Phase 1. Download the CSV and upload to your ACE Portal.
-                    </p>
-                    <Link
-                      href="/apply"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+
+                    <button
+                      onClick={() => {
+                        // Filter to self-file entries with entry numbers
+                        const selfEntries = result.entries.filter(
+                          (e) => e.routingBucket === "self_file",
+                        );
+                        // Public calculator entries won't have entry numbers —
+                        // inform user that entry numbers are required
+                        const withNumbers = selfEntries.filter(
+                          (e) => (e as unknown as { entryNumber?: string }).entryNumber,
+                        );
+                        if (withNumbers.length === 0) {
+                          alert(
+                            "Entry numbers required for CAPE CSV. Use the partner portal for full filing package.",
+                          );
+                          return;
+                        }
+                        // Generate CSV
+                        const csv = "Entry Number\n" + withNumbers
+                          .map((e) => (e as unknown as { entryNumber: string }).entryNumber)
+                          .join("\n");
+                        const blob = new Blob([csv], { type: "text/csv" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `cape-entries-${new Date().toISOString().slice(0, 10)}.csv`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="w-full h-10 rounded-lg text-sm font-medium border transition-colors flex items-center justify-center gap-2"
                       style={{
-                        background: "rgba(34,197,94,0.15)",
-                        color: "#22c55e",
-                        border: "1px solid rgba(34,197,94,0.25)",
+                        borderColor: "var(--app-border)",
+                        color: "var(--app-text-secondary)",
+                        background: "transparent",
                       }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -795,123 +1101,145 @@ function CalculatorInner() {
                         <polyline points="7 10 12 15 17 10" />
                         <line x1="12" y1="15" x2="12" y2="3" />
                       </svg>
-                      CAPE CSV available in partner portal
-                    </Link>
+                      Download CAPE CSV
+                    </button>
                   </div>
-                )}
 
-                {/* Legal Required Card */}
-                {result.routingSummary.legalRequired.count > 0 && (
-                  <div
-                    className="rounded-xl border p-5"
-                    style={{
-                      borderColor: "rgba(239,68,68,0.3)",
-                      background: "rgba(239,68,68,0.05)",
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg">&#x1F534;</span>
-                      <span className="text-base font-semibold" style={{ color: "#ef4444" }}>
-                        {result.routingSummary.legalRequired.count} Need Legal Counsel
-                      </span>
-                    </div>
-                    <p className="text-sm mb-1" style={{ color: "var(--app-text-secondary)" }}>
-                      Estimated refund:{" "}
-                      <span className="font-semibold" style={{ color: "#ef4444" }}>
-                        {usdFmt.format(result.routingSummary.legalRequired.totalRefund)}
-                      </span>
-                    </p>
-                    <p className="text-xs mb-4" style={{ color: "var(--app-text-muted)" }}>
-                      These entries require Court of International Trade representation — they are excluded from CAPE Phase 1 self-filing.
-                    </p>
-                    <button
-                      onClick={() => {
-                        try {
-                          localStorage.setItem(
-                            "tie_routing_data",
-                            JSON.stringify({
-                              routingSummary: result.routingSummary,
-                              legalEntries: result.entries.filter(
-                                (e) => e.routingBucket === "legal_required",
-                              ),
-                              timestamp: Date.now(),
-                            }),
-                          );
-                        } catch {}
-                        window.location.href = "/apply";
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                  {/* Option 3: Split Approach */}
+                  {selfCount > 0 && legalCount > 0 && (
+                    <div
+                      className="rounded-xl border p-5"
                       style={{
-                        background: "rgba(239,68,68,0.15)",
-                        color: "#ef4444",
-                        border: "1px solid rgba(239,68,68,0.25)",
+                        borderColor: "var(--app-card-border)",
+                        background: "var(--app-card-bg)",
                       }}
                     >
-                      Submit to Legal Partner
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 12h14M12 5l7 7-7 7" />
-                      </svg>
-                    </button>
+                      <h4 className="text-sm font-semibold mb-1" style={{ color: "var(--app-text)" }}>
+                        Split Approach
+                      </h4>
+                      <p className="text-xs mb-3" style={{ color: "var(--app-text-muted)" }}>
+                        Self-file {selfCount} eligible {selfCount === 1 ? "entry" : "entries"} ({usdFmt.format(result.routingSummary!.selfFile.totalRefund)}).
+                        Submit {legalCount} complex {legalCount === 1 ? "entry" : "entries"} ({usdFmt.format(result.routingSummary!.legalRequired.totalRefund)}) to legal partner.
+                      </p>
 
-                    {/* Per-status breakdown of legal entries */}
-                    {(() => {
-                      const legalEntries = result.entries.filter(
-                        (e) => e.routingBucket === "legal_required",
-                      );
-                      const statusCounts: Record<string, number> = {};
-                      for (const e of legalEntries) {
-                        const reason = e.eligibility.reason || "Unknown";
-                        statusCounts[reason] = (statusCounts[reason] || 0) + 1;
-                      }
-                      const breakdowns = Object.entries(statusCounts);
-                      if (breakdowns.length === 0) return null;
-                      return (
-                        <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(239,68,68,0.15)" }}>
-                          {breakdowns.map(([reason, count]) => (
-                            <p key={reason} className="text-xs" style={{ color: "var(--app-text-muted)" }}>
-                              {count} {count === 1 ? "entry" : "entries"}: {reason}
-                            </p>
-                          ))}
-                        </div>
-                      );
-                    })()}
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => {
+                            const selfEntries = result.entries.filter(
+                              (e) => e.routingBucket === "self_file",
+                            );
+                            const withNumbers = selfEntries.filter(
+                              (e) => (e as unknown as { entryNumber?: string }).entryNumber,
+                            );
+                            if (withNumbers.length === 0) {
+                              alert(
+                                "Entry numbers required for CAPE CSV. Use the partner portal for full filing package.",
+                              );
+                              return;
+                            }
+                            const csv = "Entry Number\n" + withNumbers
+                              .map((e) => (e as unknown as { entryNumber: string }).entryNumber)
+                              .join("\n");
+                            const blob = new Blob([csv], { type: "text/csv" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `cape-entries-${new Date().toISOString().slice(0, 10)}.csv`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="w-full h-10 rounded-lg text-sm font-medium border transition-colors flex items-center justify-center gap-2"
+                          style={{
+                            borderColor: "var(--app-border)",
+                            color: "var(--app-text-secondary)",
+                            background: "transparent",
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
+                          Download CSV
+                        </button>
+                        <button
+                          onClick={() => {
+                            try {
+                              localStorage.setItem(
+                                "tie_legal_submission",
+                                JSON.stringify({
+                                  country,
+                                  entryDate,
+                                  enteredValue: parseInputValue(valueInput),
+                                  numEntries: legalCount,
+                                  entryType,
+                                  summary: result.summary,
+                                  routingSummary: result.routingSummary,
+                                  entries: result.entries.filter(
+                                    (e) => e.routingBucket === "legal_required",
+                                  ),
+                                  auditResult: auditResult || null,
+                                  timestamp: Date.now(),
+                                }),
+                              );
+                            } catch {}
+                            window.location.href = "/apply";
+                          }}
+                          className="w-full h-10 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                          style={{
+                            background: "rgba(139,92,246,0.15)",
+                            color: "#a78bfa",
+                            border: "1px solid rgba(139,92,246,0.25)",
+                          }}
+                        >
+                          Submit Complex to Legal
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                    {/* Disclaimer C — Submit to Legal Partner */}
-                    <p className="text-xs mt-3" style={{ color: "var(--app-text-faint)" }}>
-                      By submitting, you authorize Fintella to share this entry data with our vetted legal partner. This is a referral, not legal representation. Attorney-client relationship is established directly with the legal partner. Referral fee per AZ Admin. Order 2020-180.
-                    </p>
+                  {/* If no split scenario, fill second column with Not Applicable info */}
+                  {(selfCount === 0 || legalCount === 0) && naCount > 0 && (
+                    <div
+                      className="rounded-xl border p-5"
+                      style={{
+                        borderColor: "var(--app-card-border)",
+                        background: "var(--app-card-bg)",
+                      }}
+                    >
+                      <h4 className="text-sm font-semibold mb-1" style={{ color: "var(--app-text-muted)" }}>
+                        {naCount} Not Applicable
+                      </h4>
+                      <p className="text-xs" style={{ color: "var(--app-text-faint)" }}>
+                        These entries do not qualify for an IEEPA tariff refund under current regulations. Estimated value: {usdFmt.format(result.routingSummary!.notApplicable.totalRefund)}.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Not Applicable — shown below if split scenario used the second column */}
+                {selfCount > 0 && legalCount > 0 && naCount > 0 && (
+                  <div
+                    className="rounded-xl border p-4 mt-4"
+                    style={{
+                      borderColor: "rgba(107,114,128,0.2)",
+                      background: "rgba(107,114,128,0.03)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm" style={{ opacity: 0.5 }}>&#x26AA;</span>
+                      <span className="text-sm" style={{ color: "var(--app-text-muted)" }}>
+                        {naCount} {naCount === 1 ? "entry" : "entries"} not applicable for IEEPA refund ({usdFmt.format(result.routingSummary!.notApplicable.totalRefund)})
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
-
-              {/* Not Applicable Card — only if count > 0 */}
-              {result.routingSummary.notApplicable.count > 0 && (
-                <div
-                  className="rounded-xl border p-5 mt-4"
-                  style={{
-                    borderColor: "rgba(107,114,128,0.3)",
-                    background: "rgba(107,114,128,0.05)",
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg" style={{ opacity: 0.6 }}>&#x26AA;</span>
-                    <span className="text-base font-semibold" style={{ color: "var(--app-text-muted)" }}>
-                      {result.routingSummary.notApplicable.count} Not Applicable
-                    </span>
-                  </div>
-                  <p className="text-sm" style={{ color: "var(--app-text-muted)" }}>
-                    Estimated value:{" "}
-                    <span className="font-semibold">
-                      {usdFmt.format(result.routingSummary.notApplicable.totalRefund)}
-                    </span>
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: "var(--app-text-faint)" }}>
-                    These entries do not qualify for an IEEPA tariff refund under current regulations.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+            );
+          })()}
         </section>
       )}
 
