@@ -301,6 +301,44 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
     URL.revokeObjectURL(url);
   };
 
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!docResult) return;
+    setDownloadingPdf(true);
+    try {
+      const res = await fetch("/api/widget/report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          entries: docResult.entries,
+          summary: docResult.summary,
+          audit: docResult.audit,
+          clientCompany: docResult.importerName || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "PDF generation failed" }));
+        setUploadError(err.error || "PDF generation failed");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "fintella-audit-report.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setUploadError("Failed to download PDF report");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   const switchMode = (newMode: WidgetMode) => {
     setMode(newMode);
     // Clear upload state when switching away
@@ -851,6 +889,26 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
               </button>
             )}
           </div>
+          {/* Gold PDF Report download */}
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={downloadingPdf}
+            style={{
+              ...goldButtonStyle(downloadingPdf),
+              width: "100%",
+              marginTop: 8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            <svg style={{ width: 16, height: 16, flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {downloadingPdf ? "Generating PDF..." : "Download PDF Report"}
+          </button>
           {/* Upload another */}
           <button
             type="button"

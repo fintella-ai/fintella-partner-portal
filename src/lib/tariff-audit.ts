@@ -422,19 +422,19 @@ export function runCrossValidation(entries: AuditEntry[]): AuditCheck[] {
     byCountry.set(country, group);
   }
 
-  for (const [country, group] of byCountry) {
+  for (const [country, group] of Array.from(byCountry.entries())) {
     if (group.length < 2) continue;
 
-    const rates = new Set(group.map((e) => e.ieepaRate ?? 0));
+    const rates = new Set<number>(group.map((e: AuditEntry) => e.ieepaRate ?? 0));
     if (rates.size <= 1) continue;
 
     // Check if any pair of entries with different rates does NOT cross a boundary
-    const dates = group.map((e) => toDate(e.entryDate));
-    const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
-    const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
+    const dates: Date[] = group.map((e: AuditEntry) => toDate(e.entryDate));
+    const minDate = new Date(Math.min(...dates.map((d: Date) => d.getTime())));
+    const maxDate = new Date(Math.max(...dates.map((d: Date) => d.getTime())));
 
     if (!crossesRateChangeBoundary(minDate, maxDate)) {
-      const rateValues = Array.from(rates).map((r) => `${(r * 100).toFixed(1)}%`).join(", ");
+      const rateValues = Array.from(rates).map((r: number) => `${(r * 100).toFixed(1)}%`).join(", ");
       checks.push({
         id: "XVAL_RATE_CONSISTENCY",
         category: "cross_validation",
