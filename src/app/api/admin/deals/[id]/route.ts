@@ -86,6 +86,12 @@ export async function PUT(
     if (body.notes !== undefined) data.notes = body.notes || null;
     if (body.affiliateNotes !== undefined) data.affiliateNotes = body.affiliateNotes || null;
     if (body.closeDate !== undefined) data.closeDate = body.closeDate ? new Date(body.closeDate) : null;
+    if (body.externalDealId !== undefined) data.externalDealId = strOrNull(body.externalDealId);
+    if (body.companyEin !== undefined) data.companyEin = strOrNull(body.companyEin);
+    if (body.businessStreetAddress !== undefined) data.businessStreetAddress = strOrNull(body.businessStreetAddress);
+    if (body.businessStreetAddress2 !== undefined) data.businessStreetAddress2 = strOrNull(body.businessStreetAddress2);
+    if (body.businessZip !== undefined) data.businessZip = strOrNull(body.businessZip);
+    if (body.closedLostReason !== undefined) data.closedLostReason = strOrNull(body.closedLostReason);
 
     // EP Level 1 — only super_admin may change this. Reject the whole
     // request if a non-super_admin tries, rather than silently dropping
