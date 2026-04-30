@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef, useCallback, type FormEvent, type DragEvent } from "react";
+import { W, RADII, glassCardStyle, goldButtonStyle, inputStyle } from "./widget-theme";
 
 interface Props {
   token: string;
   commissionRate: number;
-  onSubmitAsReferral: (data: { estimatedImportValue: string; importDateRange: string }) => void;
+  onSubmitAsReferral: (data: { estimatedImportValue: string; importDateRange: string; documentUrls?: string[] }) => void;
 }
 
 // Top importing countries affected by IEEPA — compact list for widget
@@ -107,27 +108,7 @@ interface DocIntakeResult {
 
 type WidgetMode = "manual" | "upload";
 
-// --- Inline style constants (dark theme for embedded widget) ---
-const COLORS = {
-  bg: "#0a0a0a",
-  bgCard: "#141414",
-  bgHover: "#1a1a1a",
-  border: "#2a2a2a",
-  text: "#e5e5e5",
-  textMuted: "#999",
-  textDim: "#666",
-  gold: "#c4a050",
-  goldDim: "#a08030",
-  green: "#16a34a",
-  greenBg: "#052e16",
-  greenBorder: "#14532d",
-  red: "#dc2626",
-  redBg: "#2a0a0a",
-  redBorder: "#7f1d1d",
-  yellow: "#eab308",
-  yellowBg: "#2a2400",
-  yellowBorder: "#713f12",
-} as const;
+// Style constants now imported from ./widget-theme (W, RADII, SHADOWS, helpers)
 
 export default function WidgetCalculator({ token, commissionRate, onSubmitAsReferral }: Props) {
   // --- Manual mode state ---
@@ -330,9 +311,9 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
     <div
       style={{
         display: "flex",
-        borderRadius: 8,
+        borderRadius: RADII.md,
         overflow: "hidden",
-        border: `1px solid ${COLORS.border}`,
+        border: `1px solid ${W.border}`,
         marginBottom: 12,
       }}
     >
@@ -349,8 +330,8 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
             border: "none",
             cursor: "pointer",
             transition: "all 0.15s",
-            background: mode === m ? COLORS.gold : COLORS.bgCard,
-            color: mode === m ? "#000" : COLORS.textMuted,
+            background: mode === m ? W.gold : W.bgCard,
+            color: mode === m ? "#000" : W.textSecondary,
           }}
         >
           {m === "manual" ? "Manual Entry" : "Upload Document"}
@@ -367,13 +348,13 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
       onDrop={handleDrop}
       onClick={() => fileInputRef.current?.click()}
       style={{
-        border: `2px dashed ${dragActive ? COLORS.gold : COLORS.border}`,
-        borderRadius: 8,
+        border: `2px dashed ${dragActive ? W.gold : W.border}`,
+        borderRadius: RADII.lg,
         padding: "24px 16px",
         textAlign: "center",
         cursor: "pointer",
         transition: "all 0.2s",
-        background: dragActive ? "rgba(196, 160, 80, 0.05)" : COLORS.bgCard,
+        background: dragActive ? "rgba(196, 160, 80, 0.05)" : W.bgCard,
       }}
     >
       <input
@@ -387,10 +368,10 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
       <div style={{ fontSize: 28, marginBottom: 8 }}>
         {dragActive ? "\u{1F4E5}" : "\u{1F4C4}"}
       </div>
-      <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, margin: "0 0 4px" }}>
+      <p style={{ fontSize: 13, fontWeight: 600, color: W.text, margin: "0 0 4px" }}>
         Drop CF 7501 here
       </p>
-      <p style={{ fontSize: 11, color: COLORS.textMuted, margin: 0 }}>
+      <p style={{ fontSize: 11, color: W.textSecondary, margin: 0 }}>
         PDF, PNG, or JPG — up to 10 files
       </p>
     </div>
@@ -402,26 +383,24 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
       style={{
         textAlign: "center",
         padding: "32px 16px",
-        background: COLORS.bgCard,
-        borderRadius: 8,
-        border: `1px solid ${COLORS.border}`,
+        ...glassCardStyle(),
       }}
     >
       <div
         style={{
           width: 32,
           height: 32,
-          border: `3px solid ${COLORS.border}`,
-          borderTopColor: COLORS.gold,
+          border: `3px solid ${W.border}`,
+          borderTopColor: W.gold,
           borderRadius: "50%",
           margin: "0 auto 12px",
           animation: "widget-spin 0.8s linear infinite",
         }}
       />
-      <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.gold, margin: "0 0 4px" }}>
+      <p style={{ fontSize: 13, fontWeight: 600, color: W.gold, margin: "0 0 4px" }}>
         AI is reading your document...
       </p>
-      <p style={{ fontSize: 11, color: COLORS.textMuted, margin: 0 }}>
+      <p style={{ fontSize: 11, color: W.textSecondary, margin: 0 }}>
         Extracting entries, rates, and eligibility
       </p>
       <style>{`@keyframes widget-spin { to { transform: rotate(360deg); } }`}</style>
@@ -440,51 +419,51 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
           {/* Total refund */}
           <div
             style={{
-              background: COLORS.greenBg,
-              border: `1px solid ${COLORS.greenBorder}`,
-              borderRadius: 8,
+              background: W.greenBg,
+              border: `1px solid ${"rgba(34,197,94,0.2)"}`,
+              borderRadius: RADII.lg,
               padding: "10px 8px",
               textAlign: "center",
             }}
           >
-            <p style={{ fontSize: 10, color: COLORS.green, fontWeight: 600, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <p style={{ fontSize: 10, color: W.green, fontWeight: 600, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Total Refund
             </p>
-            <p style={{ fontSize: 16, fontWeight: 700, color: COLORS.green, margin: 0 }}>
+            <p style={{ fontSize: 16, fontWeight: 700, color: W.green, margin: 0 }}>
               {fmtUsd(summary.totalEstimatedRefund)}
             </p>
           </div>
           {/* Self-file */}
           <div
             style={{
-              background: COLORS.bgCard,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 8,
+              background: W.bgCard,
+              border: `1px solid ${W.border}`,
+              borderRadius: RADII.lg,
               padding: "10px 8px",
               textAlign: "center",
             }}
           >
-            <p style={{ fontSize: 10, color: COLORS.textMuted, fontWeight: 600, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <p style={{ fontSize: 10, color: W.textSecondary, fontWeight: 600, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Eligible
             </p>
-            <p style={{ fontSize: 16, fontWeight: 700, color: COLORS.text, margin: 0 }}>
+            <p style={{ fontSize: 16, fontWeight: 700, color: W.text, margin: 0 }}>
               {summary.selfFileCount}
             </p>
           </div>
           {/* Needs legal */}
           <div
             style={{
-              background: summary.needsLegalCount > 0 ? COLORS.redBg : COLORS.bgCard,
-              border: `1px solid ${summary.needsLegalCount > 0 ? COLORS.redBorder : COLORS.border}`,
-              borderRadius: 8,
+              background: summary.needsLegalCount > 0 ? W.redBg : W.bgCard,
+              border: `1px solid ${summary.needsLegalCount > 0 ? "rgba(239,68,68,0.2)" : W.border}`,
+              borderRadius: RADII.lg,
               padding: "10px 8px",
               textAlign: "center",
             }}
           >
-            <p style={{ fontSize: 10, color: summary.needsLegalCount > 0 ? COLORS.red : COLORS.textMuted, fontWeight: 600, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <p style={{ fontSize: 10, color: summary.needsLegalCount > 0 ? W.red : W.textSecondary, fontWeight: 600, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Needs Legal
             </p>
-            <p style={{ fontSize: 16, fontWeight: 700, color: summary.needsLegalCount > 0 ? COLORS.red : COLORS.text, margin: 0 }}>
+            <p style={{ fontSize: 16, fontWeight: 700, color: summary.needsLegalCount > 0 ? W.red : W.text, margin: 0 }}>
               {summary.needsLegalCount}
             </p>
           </div>
@@ -493,23 +472,23 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
         {/* Audit score bar */}
         <div
           style={{
-            background: COLORS.bgCard,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 8,
+            background: W.bgCard,
+            border: `1px solid ${W.border}`,
+            borderRadius: RADII.lg,
             padding: "8px 12px",
             display: "flex",
             alignItems: "center",
             gap: 10,
           }}
         >
-          <span style={{ fontSize: 11, color: COLORS.textMuted, flexShrink: 0 }}>Audit</span>
-          <div style={{ flex: 1, height: 6, background: COLORS.border, borderRadius: 3, overflow: "hidden" }}>
+          <span style={{ fontSize: 11, color: W.textSecondary, flexShrink: 0 }}>Audit</span>
+          <div style={{ flex: 1, height: 6, background: W.border, borderRadius: 3, overflow: "hidden" }}>
             <div
               style={{
                 width: `${Math.min(audit.score, 100)}%`,
                 height: "100%",
                 borderRadius: 3,
-                background: audit.score >= 80 ? COLORS.green : audit.score >= 50 ? COLORS.yellow : COLORS.red,
+                background: audit.score >= 80 ? W.green : audit.score >= 50 ? W.amber : W.red,
                 transition: "width 0.5s",
               }}
             />
@@ -518,7 +497,7 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: audit.score >= 80 ? COLORS.green : audit.score >= 50 ? COLORS.yellow : COLORS.red,
+              color: audit.score >= 80 ? W.green : audit.score >= 50 ? W.amber : W.red,
               flexShrink: 0,
               minWidth: 32,
               textAlign: "right",
@@ -532,14 +511,14 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
         {warnings.length > 0 && (
           <div
             style={{
-              background: COLORS.yellowBg,
-              border: `1px solid ${COLORS.yellowBorder}`,
-              borderRadius: 6,
+              background: W.amberBg,
+              border: `1px solid ${"rgba(245,158,11,0.2)"}`,
+              borderRadius: RADII.sm,
               padding: "6px 10px",
             }}
           >
             {warnings.map((w, i) => (
-              <p key={i} style={{ fontSize: 11, color: COLORS.yellow, margin: i > 0 ? "2px 0 0" : 0 }}>
+              <p key={i} style={{ fontSize: 11, color: W.amber, margin: i > 0 ? "2px 0 0" : 0 }}>
                 {w}
               </p>
             ))}
@@ -549,8 +528,8 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
         {/* Entries table */}
         <div
           style={{
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 8,
+            border: `1px solid ${W.border}`,
+            borderRadius: RADII.lg,
             overflow: "hidden",
           }}
         >
@@ -569,7 +548,7 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
               }}
             >
               <thead>
-                <tr style={{ background: COLORS.bgCard }}>
+                <tr style={{ background: W.bgCard }}>
                   {["Entry #", "Country", "Date", "Value", "Rate", "Refund", "Route", "Conf."].map((h) => (
                     <th
                       key={h}
@@ -577,8 +556,8 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
                         padding: "6px 6px",
                         textAlign: "left",
                         fontWeight: 600,
-                        color: COLORS.textMuted,
-                        borderBottom: `1px solid ${COLORS.border}`,
+                        color: W.textSecondary,
+                        borderBottom: `1px solid ${W.border}`,
                         whiteSpace: "nowrap",
                         fontSize: 10,
                         textTransform: "uppercase",
@@ -595,26 +574,26 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
                   <tr
                     key={entry.index}
                     style={{
-                      borderBottom: `1px solid ${COLORS.border}`,
-                      background: entry.needsReview ? COLORS.yellowBg : "transparent",
+                      borderBottom: `1px solid ${W.border}`,
+                      background: entry.needsReview ? W.amberBg : "transparent",
                     }}
                   >
-                    <td style={{ padding: "6px", color: COLORS.text, whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "6px", color: W.text, whiteSpace: "nowrap" }}>
                       {entry.entryNumber || `#${entry.index + 1}`}
                     </td>
-                    <td style={{ padding: "6px", color: COLORS.text }}>
+                    <td style={{ padding: "6px", color: W.text }}>
                       {entry.countryOfOrigin}
                     </td>
-                    <td style={{ padding: "6px", color: COLORS.text, whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "6px", color: W.text, whiteSpace: "nowrap" }}>
                       {entry.entryDate}
                     </td>
-                    <td style={{ padding: "6px", color: COLORS.text, whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "6px", color: W.text, whiteSpace: "nowrap" }}>
                       {fmtUsd(entry.enteredValue)}
                     </td>
-                    <td style={{ padding: "6px", color: COLORS.text }}>
+                    <td style={{ padding: "6px", color: W.text }}>
                       {fmtPct(entry.combinedRate)}
                     </td>
-                    <td style={{ padding: "6px", color: COLORS.green, fontWeight: 600, whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "6px", color: W.green, fontWeight: 600, whiteSpace: "nowrap" }}>
                       {fmtUsd(entry.estimatedRefund)}
                     </td>
                     <td style={{ padding: "6px" }}>
@@ -626,21 +605,21 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
                           fontSize: 10,
                           fontWeight: 600,
                           background: entry.routingBucket === "self_file"
-                            ? COLORS.greenBg
+                            ? W.greenBg
                             : entry.routingBucket === "legal_required"
-                            ? COLORS.redBg
-                            : COLORS.bgCard,
+                            ? W.redBg
+                            : W.bgCard,
                           color: entry.routingBucket === "self_file"
-                            ? COLORS.green
+                            ? W.green
                             : entry.routingBucket === "legal_required"
-                            ? COLORS.red
-                            : COLORS.textMuted,
+                            ? W.red
+                            : W.textSecondary,
                           border: `1px solid ${
                             entry.routingBucket === "self_file"
-                              ? COLORS.greenBorder
+                              ? "rgba(34,197,94,0.2)"
                               : entry.routingBucket === "legal_required"
-                              ? COLORS.redBorder
-                              : COLORS.border
+                              ? "rgba(239,68,68,0.2)"
+                              : W.border
                           }`,
                           whiteSpace: "nowrap",
                         }}
@@ -656,7 +635,7 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
                       {entry.needsReview ? (
                         <span
                           style={{
-                            color: COLORS.yellow,
+                            color: W.amber,
                             fontSize: 10,
                             fontWeight: 600,
                           }}
@@ -665,7 +644,7 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
                           {Math.round(entry.confidence * 100)}%
                         </span>
                       ) : (
-                        <span style={{ color: COLORS.textDim, fontSize: 10 }}>
+                        <span style={{ color: W.textDim, fontSize: 10 }}>
                           {Math.round(entry.confidence * 100)}%
                         </span>
                       )}
@@ -681,9 +660,9 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
         {summary.lowConfidenceCount > 0 && (
           <div
             style={{
-              background: COLORS.yellowBg,
-              border: `1px solid ${COLORS.yellowBorder}`,
-              borderRadius: 6,
+              background: W.amberBg,
+              border: `1px solid ${"rgba(245,158,11,0.2)"}`,
+              borderRadius: RADII.sm,
               padding: "6px 10px",
               display: "flex",
               alignItems: "center",
@@ -691,7 +670,7 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
             }}
           >
             <span style={{ fontSize: 14 }}>{"⚠️"}</span>
-            <span style={{ fontSize: 11, color: COLORS.yellow }}>
+            <span style={{ fontSize: 11, color: W.amber }}>
               {summary.lowConfidenceCount} {summary.lowConfidenceCount === 1 ? "entry has" : "entries have"} low confidence — review highlighted rows
             </span>
           </div>
@@ -708,11 +687,11 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
                 padding: "8px 0",
                 fontSize: 12,
                 fontWeight: 600,
-                border: `1px solid ${COLORS.greenBorder}`,
-                borderRadius: 6,
+                border: `1px solid ${"rgba(34,197,94,0.2)"}`,
+                borderRadius: RADII.sm,
                 cursor: "pointer",
-                background: COLORS.greenBg,
-                color: COLORS.green,
+                background: W.greenBg,
+                color: W.green,
                 transition: "opacity 0.15s",
               }}
               onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.opacity = "0.85"; }}
@@ -730,11 +709,11 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
                 padding: "8px 0",
                 fontSize: 12,
                 fontWeight: 600,
-                border: `1px solid ${COLORS.border}`,
-                borderRadius: 6,
+                border: `1px solid ${W.border}`,
+                borderRadius: RADII.sm,
                 cursor: "pointer",
-                background: COLORS.bgCard,
-                color: COLORS.text,
+                background: W.bgCard,
+                color: W.text,
                 transition: "opacity 0.15s",
               }}
               onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.opacity = "0.85"; }}
@@ -758,15 +737,15 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
             padding: "8px 0",
             fontSize: 12,
             fontWeight: 600,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 6,
+            border: `1px solid ${W.border}`,
+            borderRadius: RADII.sm,
             cursor: "pointer",
             background: "transparent",
-            color: COLORS.textMuted,
+            color: W.textSecondary,
             transition: "color 0.15s",
           }}
-          onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.color = COLORS.text; }}
-          onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.color = COLORS.textMuted; }}
+          onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.color = W.text; }}
+          onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.color = W.textSecondary; }}
         >
           Upload Another Document
         </button>
@@ -775,28 +754,37 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
   };
 
   return (
-    <div style={{ padding: 16, background: COLORS.bg, minHeight: "100%" }}>
+    <div style={{ padding: 16, background: W.bg, minHeight: "100%" }}>
       {renderModeTabs()}
 
       {/* === MANUAL ENTRY MODE (existing, unchanged layout) === */}
       {mode === "manual" && (
         <>
-          <form onSubmit={handleCalculate} className="space-y-3">
+          <form onSubmit={handleCalculate} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded px-3 py-2">
+              <div
+                style={{
+                  background: W.redBg,
+                  border: `1px solid ${"rgba(239,68,68,0.2)"}`,
+                  borderRadius: RADII.sm,
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  color: W.red,
+                }}
+              >
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Country of Origin <span className="text-red-500">*</span>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: W.textSecondary, marginBottom: 4 }}>
+                Country of Origin <span style={{ color: W.red }}>*</span>
               </label>
               <select
                 required
                 value={countryOfOrigin}
                 onChange={(e) => setCountryOfOrigin(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white"
+                style={{ ...inputStyle() }}
               >
                 <option value="">Select country...</option>
                 {COUNTRIES.map((c) => (
@@ -807,10 +795,10 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Entry Date <span className="text-red-500">*</span>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: W.textSecondary, marginBottom: 4 }}>
+                  Entry Date <span style={{ color: W.red }}>*</span>
                 </label>
                 <input
                   type="date"
@@ -819,12 +807,12 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
                   onChange={(e) => setEntryDate(e.target.value)}
                   min="2025-02-01"
                   max="2026-02-23"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none"
+                  style={{ ...inputStyle() }}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Entered Value (USD) <span className="text-red-500">*</span>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: W.textSecondary, marginBottom: 4 }}>
+                  Entered Value (USD) <span style={{ color: W.red }}>*</span>
                 </label>
                 <input
                   type="number"
@@ -834,7 +822,7 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
                   value={enteredValue}
                   onChange={(e) => setEnteredValue(e.target.value)}
                   placeholder="100,000"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none"
+                  style={{ ...inputStyle() }}
                 />
               </div>
             </div>
@@ -842,71 +830,88 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
             <button
               type="submit"
               disabled={calculating}
-              className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-semibold rounded-lg transition-colors text-sm"
+              style={{ ...goldButtonStyle(calculating) }}
             >
               {calculating ? "Calculating..." : "Calculate Refund"}
             </button>
           </form>
 
           {result && (
-            <div className="mt-4 space-y-3">
+            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
               {/* Main refund card */}
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-center">
-                <p className="text-xs font-medium text-emerald-600 uppercase tracking-wide mb-1">
+              <div
+                style={{
+                  background: W.greenBg,
+                  border: `1px solid ${"rgba(34,197,94,0.2)"}`,
+                  borderRadius: RADII.lg,
+                  padding: 16,
+                  textAlign: "center",
+                }}
+              >
+                <p style={{ fontSize: 12, fontWeight: 600, color: W.green, textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px" }}>
                   Estimated Refund
                 </p>
-                <p className="text-3xl font-bold text-emerald-700">
+                <p style={{ fontSize: 28, fontWeight: 700, color: W.green, margin: 0 }}>
                   {fmtUsd(result.estimatedRefund)}
                 </p>
-                <p className="text-xs text-emerald-500 mt-1">
+                <p style={{ fontSize: 12, color: W.green, opacity: 0.8, marginTop: 4, marginBottom: 0 }}>
                   {fmtUsd(result.ieepaDuty)} duty + {fmtUsd(result.estimatedInterest)} interest
                 </p>
               </div>
 
               {/* Rate breakdown */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Combined IEEPA Rate</span>
-                  <span className="font-semibold text-gray-800">{fmtPct(result.ieepaRate)}</span>
+              <div
+                style={{
+                  ...glassCardStyle(),
+                  padding: 12,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                  <span style={{ color: W.textSecondary }}>Combined IEEPA Rate</span>
+                  <span style={{ fontWeight: 600, color: W.text }}>{fmtPct(result.ieepaRate)}</span>
                 </div>
                 {result.rateBreakdown.fentanyl != null && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-400 pl-2">Fentanyl</span>
-                    <span className="text-gray-600">{fmtPct(result.rateBreakdown.fentanyl)}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                    <span style={{ color: W.textDim, paddingLeft: 8 }}>Fentanyl</span>
+                    <span style={{ color: W.textSecondary }}>{fmtPct(result.rateBreakdown.fentanyl)}</span>
                   </div>
                 )}
                 {result.rateBreakdown.reciprocal != null && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-400 pl-2">Reciprocal</span>
-                    <span className="text-gray-600">{fmtPct(result.rateBreakdown.reciprocal)}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                    <span style={{ color: W.textDim, paddingLeft: 8 }}>Reciprocal</span>
+                    <span style={{ color: W.textSecondary }}>{fmtPct(result.rateBreakdown.reciprocal)}</span>
                   </div>
                 )}
                 {result.rateBreakdown.section122 != null && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-400 pl-2">Section 122</span>
-                    <span className="text-gray-600">{fmtPct(result.rateBreakdown.section122)}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                    <span style={{ color: W.textDim, paddingLeft: 8 }}>Section 122</span>
+                    <span style={{ color: W.textSecondary }}>{fmtPct(result.rateBreakdown.section122)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-xs pt-1 border-t border-gray-200">
-                  <span className="text-gray-500">Eligibility</span>
-                  <span className={`font-medium ${result.eligibility === "eligible" ? "text-emerald-600" : "text-orange-600"}`}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, paddingTop: 4, borderTop: `1px solid ${W.border}` }}>
+                  <span style={{ color: W.textSecondary }}>Eligibility</span>
+                  <span style={{ fontWeight: 500, color: result.eligibility === "eligible" ? W.green : W.amber }}>
                     {result.eligibility === "eligible" ? "Eligible" : "Review Needed"}
                   </span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Your Commission</span>
-                  <span className="font-semibold text-amber-600">
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                  <span style={{ color: W.textSecondary }}>Your Commission</span>
+                  <span style={{ fontWeight: 600, color: W.gold }}>
                     {fmtUsd(result.estimatedRefund * commissionRate / 100)}
                   </span>
                 </div>
               </div>
 
               {/* Routing note */}
-              <p className={`text-xs font-medium ${
-                result.eligibility === "eligible"
-                  ? "text-emerald-600"
-                  : "text-red-600"
-              }`}>
+              <p style={{
+                fontSize: 12,
+                fontWeight: 500,
+                margin: 0,
+                color: result.eligibility === "eligible" ? W.green : W.red,
+              }}>
                 {result.eligibility === "eligible"
                   ? auditSummary
                     ? `✓ Ready to file — audit score: ${auditSummary.score}`
@@ -919,10 +924,10 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
               {/* CTA button */}
               <button
                 onClick={handleReferral}
-                className="w-full py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg transition-colors text-sm flex items-center justify-center gap-1.5"
+                style={{ ...goldButtonStyle() }}
               >
                 Submit as Referral
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg style={{ width: 16, height: 16, display: "inline", marginLeft: 6, verticalAlign: "middle" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </button>
@@ -937,12 +942,12 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
           {uploadError && (
             <div
               style={{
-                background: COLORS.redBg,
-                border: `1px solid ${COLORS.redBorder}`,
-                borderRadius: 6,
+                background: W.redBg,
+                border: `1px solid ${"rgba(239,68,68,0.2)"}`,
+                borderRadius: RADII.sm,
                 padding: "8px 10px",
                 fontSize: 12,
-                color: COLORS.red,
+                color: W.red,
               }}
             >
               {uploadError}

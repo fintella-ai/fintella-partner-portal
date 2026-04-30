@@ -1,3 +1,5 @@
+import { W, RADII, glassCardStyle, goldGradientStyle } from "./widget-theme";
+
 export default function WidgetHowItWorks({ commissionRate }: { commissionRate: number }) {
   const steps = [
     {
@@ -18,38 +20,74 @@ export default function WidgetHowItWorks({ commissionRate }: { commissionRate: n
   ];
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="space-y-4">
+    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {steps.map((step, i) => (
-          <div key={i} className="flex gap-3">
-            <div className="shrink-0 w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center text-xl">
+          <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div style={{
+              flexShrink: 0, width: 40, height: 40, borderRadius: RADII.md,
+              background: "rgba(196,160,80,0.1)", border: "1px solid rgba(196,160,80,0.15)",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+            }}>
               {step.icon}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold">
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, color: W.gold,
+                  background: "rgba(196,160,80,0.12)", padding: "3px 8px",
+                  borderRadius: RADII.full, letterSpacing: 0.5,
+                }}>
                   STEP {i + 1}
                 </span>
-                <h3 className="text-sm font-semibold text-gray-800">{step.title}</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: W.text, margin: 0 }}>
+                  {step.title}
+                </h3>
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">{step.desc}</p>
+              <p style={{ fontSize: 13, color: W.textSecondary, margin: 0, lineHeight: 1.4 }}>
+                {step.desc}
+              </p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-4 text-center">
-        <div className="text-3xl font-bold text-amber-600">$47,000</div>
-        <div className="text-xs text-amber-700 mt-1">Average client refund</div>
+      <div style={{
+        ...glassCardStyle(),
+        borderColor: "rgba(196,160,80,0.15)",
+        padding: 20, textAlign: "center",
+      }}>
+        <div style={{
+          ...goldGradientStyle(),
+          fontSize: 36, fontWeight: 700, fontFamily: "'DM Serif Display', Georgia, serif",
+          letterSpacing: -0.5,
+        }}>
+          $47,000
+        </div>
+        <div style={{ fontSize: 12, color: W.gold, marginTop: 4, fontWeight: 500 }}>
+          Average client refund
+        </div>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-        <h4 className="text-xs font-semibold text-gray-700">Who qualifies?</h4>
-        <ul className="text-xs text-gray-500 space-y-1">
-          <li className="flex gap-1.5"><span className="text-green-500">✓</span> U.S. importers of record</li>
-          <li className="flex gap-1.5"><span className="text-green-500">✓</span> Paid tariffs under IEEPA, Section 232, or 301</li>
-          <li className="flex gap-1.5"><span className="text-green-500">✓</span> Imported within the eligible recovery window</li>
-          <li className="flex gap-1.5"><span className="text-green-500">✓</span> Documented entries with CBP</li>
+      <div style={{
+        ...glassCardStyle(), padding: 14,
+        display: "flex", flexDirection: "column", gap: 10,
+      }}>
+        <h4 style={{ fontSize: 12, fontWeight: 600, color: W.textSecondary, margin: 0, textTransform: "uppercase", letterSpacing: 0.5 }}>
+          Who qualifies?
+        </h4>
+        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+          {[
+            "U.S. importers of record",
+            "Paid tariffs under IEEPA, Section 232, or 301",
+            "Imported within the eligible recovery window",
+            "Documented entries with CBP",
+          ].map((item) => (
+            <li key={item} style={{ display: "flex", gap: 8, fontSize: 13, color: W.textSecondary }}>
+              <span style={{ color: W.green, flexShrink: 0 }}>✓</span>
+              {item}
+            </li>
+          ))}
         </ul>
       </div>
     </div>
