@@ -60,7 +60,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { clientCompanyName, clientContactName, clientEmail, clientPhone,
             estimatedImportValue, importDateRange, htsCodes, entryCount,
-            tmsReference } = body;
+            tmsReference, notes, calculatorData } = body;
+
+    // Build final notes, appending calculator estimate if provided
+    let finalNotes = (notes as string) || "";
+    if (calculatorData) {
+      const calcSummary = `[Calculator Estimate] Country: ${calculatorData.countryOfOrigin}, Value: $${Number(calculatorData.enteredValue).toLocaleString()}, IEEPA Rate: ${(Number(calculatorData.ieepaRate) * 100).toFixed(1)}%, Est. Refund: $${Number(calculatorData.estimatedRefund).toLocaleString()}, Interest: $${Number(calculatorData.estimatedInterest).toLocaleString()}`;
+      finalNotes = finalNotes ? `${finalNotes}\n\n${calcSummary}` : calcSummary;
+    }
 
     if (!clientCompanyName || !clientContactName || !clientEmail) {
       return NextResponse.json(
@@ -107,6 +114,7 @@ export async function POST(req: NextRequest) {
         htsCodes: Array.isArray(htsCodes) ? htsCodes : [],
         entryCount: entryCount ? parseInt(entryCount, 10) : null,
         tmsReference: tmsReference?.trim() || null,
+        notes: finalNotes || null,
       },
     });
 

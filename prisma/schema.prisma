@@ -8,6 +8,70 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ─── TARIFF INTELLIGENCE ENGINE ENUMS ────────────────────────────────────────
+
+enum IeepaRateType {
+  fentanyl
+  reciprocal
+  section122
+}
+
+enum DossierStatus {
+  draft
+  analyzing
+  ready
+  submitted
+  converted
+}
+
+enum DossierSource {
+  public_calculator
+  widget
+  portal
+  csv_upload
+  document_ai
+  manual
+}
+
+enum LiquidationStatus {
+  unliquidated
+  liquidated
+  final
+  unknown
+}
+
+enum EntryEligibility {
+  eligible
+  excluded_type
+  excluded_expired
+  excluded_adcvd
+  excluded_protest
+  unknown
+}
+
+enum DocType {
+  cf7501
+  cf7501_continuation
+  commercial_invoice
+  ace_report
+  cargowise_export
+  cape_csv
+  other
+}
+
+enum DocStatus {
+  uploaded
+  processing
+  extracted
+  failed
+}
+
+enum ExtractedFrom {
+  manual
+  csv
+  document_ai
+}
+
 // ─── ADMIN USERS ─────────────────────────────────────────────────────────────
 model User {
   id                    String   @id @default(cuid())
@@ -83,6 +147,7 @@ model Partner {
 
   widgetSessions  WidgetSession[]
   widgetReferrals WidgetReferral[]
+  tariffDossiers  TariffDossier[]
 
   @@index([email])
   @@index([referredByPartnerCode])
@@ -809,6 +874,8 @@ model Deal {
   idempotencyKey        String?   @unique
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+
+  tariffDossiers  TariffDossier[]
 
   @@index([partnerCode])
   @@index([stage])
@@ -1944,6 +2011,7 @@ model WidgetSession {
 
   partner     Partner  @relation(fields: [partnerId], references: [id])
   referrals   WidgetReferral[]
+  tariffDossiers  TariffDossier[]
 
   @@index([partnerId])
 }
@@ -1974,4 +2042,157 @@ model WidgetReferral {
   @@index([widgetSessionId])
   @@index([status])
   @@index([clientEmail, partnerId])
+}
+
+// ─── TARIFF INTELLIGENCE ENGINE ─────────────────────────────────────────────
+
+model IeepaRate {
+  id              String        @id @default(cuid())
+  executiveOrder  String
+  name            String
+  rateType        IeepaRateType
+  countryCode     String
+  countryName     String
+  rate            Decimal
+  effectiveDate   DateTime
+  endDate         DateTime?
+  htsChapter99    String?
+  appliesTo       String        @default("all")
+  exemptions      Json?
+  notes           String?
+  isSeeded        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+
+  entries         TariffEntry[]
+
+  @@unique([countryCode, rateType, effectiveDate])
+  @@index([countryCode, effectiveDate])
+}
+
+model InterestRate {
+  id               String   @id @default(cuid())
+  quarter          String   @unique
+  startDate        DateTime
+  endDate          DateTime
+  nonCorporateRate Decimal
+  corporateRate    Decimal
+  createdAt        DateTime @default(now())
+}
+
+model TariffDossier {
+  id                String        @id @default(cuid())
+  partnerId         String?
+  partner           Partner?      @relation(fields: [partnerId], references: [id])
+  widgetSessionId   String?
+  widgetSession     WidgetSession? @relation(fields: [widgetSessionId], references: [id])
+  clientCompany     String
+  clientContact     String?
+  clientEmail       String?
+  clientPhone       String?
+  importerNumber    String?
+  status            DossierStatus @default(draft)
+  source            DossierSource
+  totalEnteredValue Decimal?
+  totalEstRefund    Decimal?
+  totalEstInterest  Decimal?
+  totalEstCommission Decimal?
+  entryCount        Int           @default(0)
+  eligibleCount     Int           @default(0)
+  excludedCount     Int           @default(0)
+  urgentCount       Int           @default(0)
+  nearestDeadline   DateTime?
+  deadlineDays      Int?
+  dealId            String?
+  deal              Deal?         @relation(fields: [dealId], references: [id])
+  convertedAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  entries           TariffEntry[]
+  documents         DossierDocument[]
+
+  @@index([partnerId])
+  @@index([status])
+}
+
+model TariffEntry {
+  id                String            @id @default(cuid())
+  dossierId         String
+  dossier           TariffDossier     @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  entryNumber       String?
+  entryDate         DateTime
+  entryType         String?
+  portCode          String?
+  countryOfOrigin   String
+  enteredValue      Decimal
+  totalDutyPaid     Decimal?
+  ieepaRateId       String?
+  ieepaRateRef      IeepaRate?        @relation(fields: [ieepaRateId], references: [id])
+  ieepaRate         Decimal
+  ieepaDuty         Decimal
+  estimatedInterest Decimal
+  estimatedRefund   Decimal
+  liquidationDate   DateTime?
+  liquidationStatus LiquidationStatus @default(unknown)
+  eligibility       EntryEligibility  @default(unknown)
+  eligibilityReason String?
+  deadlineDate      DateTime?
+  deadlineDays      Int?
+  isUrgent          Boolean           @default(false)
+  htsCodes          String[]
+  chapter99Codes    String[]
+  hasSection301     Boolean           @default(false)
+  hasSection232     Boolean           @default(false)
+  hasAdCvd          Boolean           @default(false)
+  extractedFrom     ExtractedFrom?
+  confidence        Decimal?
+  needsReview       Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+
+  lines             TariffEntryLine[]
+
+  @@index([dossierId])
+  @@index([countryOfOrigin, entryDate])
+}
+
+model TariffEntryLine {
+  id               String       @id @default(cuid())
+  entryId          String
+  entry            TariffEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  lineNumber       Int
+  htsCode          String
+  description      String?
+  countryOfOrigin  String
+  enteredValue     Decimal
+  dutyRate         Decimal?
+  dutyAmount       Decimal?
+  isChapter99      Boolean      @default(false)
+  chapter99Code    String?
+  chapter99Rate    Decimal?
+  chapter99Duty    Decimal?
+  parentLineNumber Int?
+  ieepaApplicable  Boolean      @default(true)
+  confidence       Decimal?
+  createdAt        DateTime     @default(now())
+
+  @@index([entryId])
+}
+
+model DossierDocument {
+  id                 String        @id @default(cuid())
+  dossierId          String
+  dossier            TariffDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  docType            DocType
+  fileName           String
+  fileUrl            String
+  fileSize           Int
+  mimeType           String
+  status             DocStatus     @default(uploaded)
+  extractedData      Json?
+  confidence         Decimal?
+  extractedEntryCount Int?
+  processingLog      String?
+  createdAt          DateTime      @default(now())
+
+  @@index([dossierId])
 }
