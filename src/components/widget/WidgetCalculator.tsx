@@ -1035,89 +1035,84 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
           </form>
 
           {result && (
-            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-              {/* Main refund card */}
-              <div
-                style={{
-                  background: W.greenBg,
-                  border: `1px solid ${"rgba(34,197,94,0.2)"}`,
-                  borderRadius: RADII.lg,
-                  padding: 16,
-                  textAlign: "center",
-                }}
-              >
-                <p style={{ fontSize: 12, fontWeight: 600, color: W.green, textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px" }}>
+            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+
+              {/* ── Section: Estimated Refund ── */}
+              <div style={{
+                ...glassCardStyle(), padding: 16, textAlign: "center",
+                borderLeft: "3px solid rgba(34,197,94,0.5)",
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: W.green, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>
                   Estimated Refund
-                </p>
-                <p style={{ fontSize: 28, fontWeight: 700, color: W.green, margin: 0 }}>
+                </div>
+                <div style={{
+                  fontSize: 32, fontWeight: 700, color: W.green,
+                  fontFamily: "'DM Serif Display', Georgia, serif",
+                }}>
                   {fmtUsd(result.estimatedRefund)}
-                </p>
-                <p style={{ fontSize: 12, color: W.green, opacity: 0.8, marginTop: 4, marginBottom: 0 }}>
+                </div>
+                <div style={{ fontSize: 12, color: W.textSecondary, marginTop: 6 }}>
                   {fmtUsd(result.ieepaDuty)} duty + {fmtUsd(result.estimatedInterest)} interest
-                </p>
+                </div>
               </div>
 
-              {/* Rate breakdown */}
-              <div
-                style={{
-                  ...glassCardStyle(),
-                  padding: 12,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                  <span style={{ color: W.textSecondary }}>Combined IEEPA Rate</span>
-                  <span style={{ fontWeight: 600, color: W.text }}>{fmtPct(result.ieepaRate)}</span>
+              {/* ── Section: Rate Breakdown ── */}
+              <div style={{ ...glassCardStyle(), padding: 14, borderLeft: "3px solid rgba(196,160,80,0.5)" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: W.gold, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
+                  Rate Breakdown
                 </div>
-                {result.rateBreakdown.fentanyl != null && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                    <span style={{ color: W.textDim, paddingLeft: 8 }}>Fentanyl</span>
-                    <span style={{ color: W.textSecondary }}>{fmtPct(result.rateBreakdown.fentanyl)}</span>
+                {[
+                  { label: "Combined IEEPA Rate", value: fmtPct(result.ieepaRate), bold: true },
+                  ...(result.rateBreakdown.fentanyl != null ? [{ label: "  Fentanyl", value: fmtPct(result.rateBreakdown.fentanyl), bold: false }] : []),
+                  ...(result.rateBreakdown.reciprocal != null ? [{ label: "  Reciprocal", value: fmtPct(result.rateBreakdown.reciprocal), bold: false }] : []),
+                  ...(result.rateBreakdown.section122 != null ? [{ label: "  Section 122", value: fmtPct(result.rateBreakdown.section122), bold: false }] : []),
+                ].map((row, idx) => (
+                  <div key={idx} style={{
+                    display: "flex", justifyContent: "space-between", fontSize: 12,
+                    padding: "4px 6px", borderRadius: 4,
+                    background: idx % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
+                  }}>
+                    <span style={{ color: row.bold ? W.textSecondary : W.textDim }}>{row.label}</span>
+                    <span style={{ fontWeight: row.bold ? 600 : 400, color: row.bold ? W.text : W.textSecondary }}>{row.value}</span>
                   </div>
-                )}
-                {result.rateBreakdown.reciprocal != null && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                    <span style={{ color: W.textDim, paddingLeft: 8 }}>Reciprocal</span>
-                    <span style={{ color: W.textSecondary }}>{fmtPct(result.rateBreakdown.reciprocal)}</span>
-                  </div>
-                )}
-                {result.rateBreakdown.section122 != null && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                    <span style={{ color: W.textDim, paddingLeft: 8 }}>Section 122</span>
-                    <span style={{ color: W.textSecondary }}>{fmtPct(result.rateBreakdown.section122)}</span>
-                  </div>
-                )}
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, paddingTop: 4, borderTop: `1px solid ${W.border}` }}>
+                ))}
+              </div>
+
+              {/* ── Section: Filing Status ── */}
+              <div style={{ ...glassCardStyle(), padding: 14, borderLeft: `3px solid ${result.eligibility === "eligible" ? "rgba(34,197,94,0.5)" : "rgba(245,158,11,0.5)"}` }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: result.eligibility === "eligible" ? W.green : W.amber, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
+                  Filing Status
+                </div>
+                <div style={{
+                  display: "flex", justifyContent: "space-between", fontSize: 12,
+                  padding: "4px 6px", background: "rgba(255,255,255,0.02)", borderRadius: 4, marginBottom: 4,
+                }}>
                   <span style={{ color: W.textSecondary }}>Eligibility</span>
-                  <span style={{ fontWeight: 500, color: result.eligibility === "eligible" ? W.green : W.amber }}>
-                    {result.eligibility === "eligible" ? "Eligible" : "Review Needed"}
+                  <span style={{ fontWeight: 600, color: result.eligibility === "eligible" ? W.green : W.amber }}>
+                    {result.eligibility === "eligible" ? "✓ Eligible" : "⚠ Review Needed"}
                   </span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                <div style={{
+                  display: "flex", justifyContent: "space-between", fontSize: 12,
+                  padding: "4px 6px", borderRadius: 4,
+                }}>
                   <span style={{ color: W.textSecondary }}>Your Commission</span>
-                  <span style={{ fontWeight: 600, color: W.gold }}>
+                  <span style={{ fontWeight: 700, ...goldGradientStyle() }}>
                     {fmtUsd(result.estimatedRefund * commissionRate / 100)}
                   </span>
                 </div>
+                {auditSummary && (
+                  <div style={{
+                    display: "flex", justifyContent: "space-between", fontSize: 12,
+                    padding: "4px 6px", background: "rgba(255,255,255,0.02)", borderRadius: 4, marginTop: 4,
+                  }}>
+                    <span style={{ color: W.textSecondary }}>Audit Score</span>
+                    <span style={{ fontWeight: 600, color: auditSummary.score >= 80 ? W.green : auditSummary.score >= 50 ? W.amber : W.red }}>
+                      {auditSummary.score}/100{auditSummary.failed > 0 ? ` (${auditSummary.failed} issues)` : ""}
+                    </span>
+                  </div>
+                )}
               </div>
-
-              {/* Routing note */}
-              <p style={{
-                fontSize: 12,
-                fontWeight: 500,
-                margin: 0,
-                color: result.eligibility === "eligible" ? W.green : W.red,
-              }}>
-                {result.eligibility === "eligible"
-                  ? auditSummary
-                    ? `✓ Ready to file — audit score: ${auditSummary.score}`
-                    : "✓ Eligible for self-filing via CAPE"
-                  : auditSummary && auditSummary.failed > 0
-                  ? `⚠ ${auditSummary.failed} issue${auditSummary.failed !== 1 ? "s" : ""} found — submit for review`
-                  : "⚠ This entry requires legal review"}
-              </p>
 
               {/* CTA button */}
               <button
