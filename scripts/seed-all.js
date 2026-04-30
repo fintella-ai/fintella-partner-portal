@@ -1273,6 +1273,45 @@ async function main() {
     console.log("✓ All partners already have payoutDownlineEnabled=true");
   }
 
+  // ── AI Knowledge Base seed entries ──────────────────────────────────
+  var kbExisting = await prisma.knowledgeEntry.count({ where: { sourceType: "SYSTEM_SEED" } }).catch(function() { return 0; });
+  if (kbExisting > 0) {
+    console.log("✓ Knowledge base: " + kbExisting + " system entries already exist, skipping seed");
+  } else {
+    var KB_ENTRIES = [
+      { title: "CAPE System Overview", category: "CAPE_UPDATE", content: "The CAPE (Customs Automated Protest and Entry) system is CBP's electronic platform for processing duty refund requests related to IEEPA tariffs." },
+      { title: "CAPE Error Codes & Rejection Reasons", category: "CAPE_UPDATE", content: "Common CAPE rejection codes: ERR-001 Invalid entry format, ERR-002 Entry not found, ERR-003 Duplicate claim, ERR-005 Missing POA, ERR-006 Outside eligible window." },
+      { title: "CAPE ACE Reports Guide", category: "CAPE_UPDATE", content: "Essential ACE reports: REV-603 (Entry Summary Query), REV-613 (CAPE Status Report), REV-615 (CAPE Payment Report). Run REV-603 before filing to confirm eligibility." },
+      { title: "Broker vs Law Firm: CAPE Filing Comparison", category: "BROKER_GUIDANCE", content: "Brokers file directly via ACE with existing POAs. Law firms work on contingency (20-35%). Fintella partners with law firms for legal expertise while partners earn referral commissions." },
+      { title: "Identifying Qualifying Importers", category: "STRATEGY_TIP", content: "Qualifying criteria: paid IEEPA tariffs, entries liquidated, no pending CAPE claims, ACH enrollment. Best prospects: electronics, automotive, industrial machinery importers." },
+      { title: "Partner Referral Pitch Template", category: "STRATEGY_TIP", content: "Key pitch points: no upfront cost (contingency), average refund $50K-$500K+, handled by trade law professionals, free initial analysis." },
+      { title: "IEEPA Executive Order Timeline", category: "LEGAL_GUIDANCE", content: "Key EOs: 14257 (Feb 2025, 10% China), 14262 (Mar 2025, 20% China), 14270 (Apr 2025, reciprocal tariffs), 14277 (Apr 2025, 90-day pause)." },
+      { title: "Commission Structure Explained", category: "GENERAL", content: "Waterfall model: 25% cap across all tiers. L1 earns 25% on direct deals, L2 earns 10-20% with L1 override. Total always equals L1's assigned rate." },
+    ];
+    var kbCreated = 0;
+    for (var ki = 0; ki < KB_ENTRIES.length; ki++) {
+      try {
+        await prisma.knowledgeEntry.create({
+          data: {
+            title: KB_ENTRIES[ki].title,
+            content: KB_ENTRIES[ki].content,
+            summary: KB_ENTRIES[ki].content.slice(0, 150) + "...",
+            category: KB_ENTRIES[ki].category,
+            source: "System Knowledge Base",
+            sourceType: "SYSTEM_SEED",
+            tags: [],
+            isApproved: true,
+            isActive: true,
+          },
+        });
+        kbCreated++;
+      } catch (kbErr) {
+        console.error("  Failed to seed KB entry:", kbErr.message || kbErr);
+      }
+    }
+    console.log("✓ Knowledge base: seeded " + kbCreated + " entries");
+  }
+
   // ── Tariff rates (IEEPA + IRS interest) ────────────────────────────
   const seedTariffRates = require("./seed-tariff-rates.js");
   await seedTariffRates();
