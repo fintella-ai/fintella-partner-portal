@@ -71,6 +71,10 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
     if (av === "Under $1,500,000") {
       return { qualified: false, reason: "low_value" };
     }
+    const ig = form.importsGoods;
+    if (ig && ig.startsWith("No")) {
+      return { qualified: false, reason: "no_imports" };
+    }
     const ior = form.importerOfRecord;
     if (ior && ior.startsWith("A third party")) {
       return { qualified: false, reason: "no_ior" };
