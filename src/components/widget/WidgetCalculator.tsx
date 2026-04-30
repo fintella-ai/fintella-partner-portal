@@ -46,6 +46,11 @@ interface CalcResult {
   eligibilityReason: string;
 }
 
+interface AuditSummary {
+  score: number;
+  failed: number;
+}
+
 export default function WidgetCalculator({ token, commissionRate, onSubmitAsReferral }: Props) {
   const [countryOfOrigin, setCountryOfOrigin] = useState("");
   const [entryDate, setEntryDate] = useState("");
@@ -53,11 +58,13 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
   const [calculating, setCalculating] = useState(false);
   const [result, setResult] = useState<CalcResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [auditSummary, setAuditSummary] = useState<AuditSummary | null>(null);
 
   const handleCalculate = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setResult(null);
+    setAuditSummary(null);
     setCalculating(true);
 
     try {
@@ -79,6 +86,25 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
         setError(data.error || "Calculation failed");
       } else {
         setResult(data);
+        // Fire audit check
+        fetch("/api/tariff/audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entries: [{
+              entryDate: data.entryDate,
+              countryOfOrigin: data.countryOfOrigin,
+              enteredValue: data.enteredValue,
+              ieepaRate: data.ieepaRate,
+              eligibility: data.eligibility,
+            }],
+          }),
+        })
+          .then((ar) => (ar.ok ? ar.json() : null))
+          .then((ad) => {
+            if (ad) setAuditSummary({ score: ad.score, failed: ad.summary?.failed ?? 0 });
+          })
+          .catch(() => {});
       }
     } catch {
       setError("Network error");
@@ -236,7 +262,11 @@ export default function WidgetCalculator({ token, commissionRate, onSubmitAsRefe
               : "text-red-600"
           }`}>
             {result.eligibility === "eligible"
-              ? "✓ Eligible for self-filing via CAPE"
+              ? auditSummary
+                ? `✓ Ready to file — audit score: ${auditSummary.score}`
+                : "✓ Eligible for self-filing via CAPE"
+              : auditSummary && auditSummary.failed > 0
+              ? `⚠ ${auditSummary.failed} issue${auditSummary.failed !== 1 ? "s" : ""} found — submit for review`
               : "⚠ This entry requires legal review"}
           </p>
 
