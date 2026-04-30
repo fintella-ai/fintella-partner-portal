@@ -24,6 +24,7 @@ export async function GET() {
       id: m.channel.id,
       name: m.channel.name,
       description: m.channel.description,
+      replyMode: m.channel.replyMode || "threads",
       recentMessages: m.channel.messages.reverse(),
     })),
   });

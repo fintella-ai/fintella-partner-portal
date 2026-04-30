@@ -13,6 +13,7 @@ import { EditLayoutProvider } from "@/components/admin/EditLayoutContext";
 import EditLayoutButton from "@/components/admin/EditLayoutButton";
 import EditableText from "@/components/ui/EditableText";
 import PartnerChatBubble from "@/components/partner/PartnerChatBubble";
+import ChannelChatWidget from "@/components/partner/ChannelChatWidget";
 
 // ─── NAV STRUCTURE ───────────────────────────────────────────────────────────
 // Main nav items (top section of sidebar)
@@ -946,6 +947,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         liveChatEnabled={liveChatSettingEnabled}
         aiEnabled={aiEnabled}
       />
+      <ChannelChatWidget />
       </div>
       {/* Level 3 Edit Layout — floating toggle, star super admin only. */}
       <EditLayoutButton />
