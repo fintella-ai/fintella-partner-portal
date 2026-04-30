@@ -230,6 +230,28 @@ export default function ChannelMemberManager({ channelId, onMembersChanged }: { 
         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] theme-text-muted">🔍</span>
       </div>
 
+      {/* Quick actions */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setSelected(new Set(partners.filter((p) => !activeMemberCodes.has(p.partnerCode)).map((p) => p.partnerCode)));
+          }}
+          className="font-body text-[11px] text-brand-gold hover:underline"
+        >
+          Select all partners ({partners.filter((p) => !activeMemberCodes.has(p.partnerCode)).length})
+        </button>
+        {selected.size > 0 && (
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            className="font-body text-[11px] theme-text-muted hover:underline"
+          >
+            Clear selection
+          </button>
+        )}
+      </div>
+
       {/* Selected chips */}
       {selected.size > 0 && (
         <div className="flex flex-wrap gap-1.5">
