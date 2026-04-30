@@ -30,22 +30,16 @@ export default function WidgetHowItWorks({ commissionRate }: { commissionRate: n
             display: "flex", flexDirection: "column", alignItems: "center",
             textAlign: "center", gap: 10,
           }}>
-            {/* Icon + Step badge together in one row */}
+            {/* Icon + Step badge in one unified bubble */}
             <div style={{
-              display: "flex", alignItems: "center", gap: 10,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              background: "rgba(196,160,80,0.08)", border: "1px solid rgba(196,160,80,0.15)",
+              borderRadius: RADII.lg, padding: "10px 20px 8px",
             }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: RADII.md,
-                background: "rgba(196,160,80,0.1)", border: "1px solid rgba(196,160,80,0.15)",
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
-                flexShrink: 0,
-              }}>
-                {step.icon}
-              </div>
+              <span style={{ fontSize: 22, lineHeight: 1 }}>{step.icon}</span>
               <span style={{
-                fontSize: 10, fontWeight: 700, color: W.gold,
-                background: "rgba(196,160,80,0.12)", padding: "4px 12px",
-                borderRadius: RADII.full, letterSpacing: 0.5,
+                fontSize: 9, fontWeight: 700, color: W.gold,
+                letterSpacing: 0.8, lineHeight: 1,
               }}>
                 STEP {i + 1}
               </span>
