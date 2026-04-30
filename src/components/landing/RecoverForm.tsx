@@ -67,6 +67,14 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
     if (dutiesAmount > 0 && dutiesAmount < 10000) {
       return { qualified: false, reason: "low_duties" };
     }
+    const av = form.annualImportValue;
+    if (av === "Under $1,500,000") {
+      return { qualified: false, reason: "low_value" };
+    }
+    const ior = form.importerOfRecord;
+    if (ior && ior.startsWith("A third party")) {
+      return { qualified: false, reason: "no_ior" };
+    }
     return { qualified: true, reason: null };
   }
 
@@ -452,14 +460,14 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
         const frostUrl = `https://referral.frostlawaz.com/l/ANNEXATIONPR/?${new URLSearchParams(p).toString()}`;
         return (
           <div>
-            <div className="rounded-xl border border-white/10 overflow-hidden relative" style={{ background: "#fff", height: "80vh", minHeight: 700 }}>
+            <div className="rounded-xl border border-white/10 overflow-hidden relative" style={{ background: "#fff", height: 1400 }}>
               <iframe
                 src={frostUrl}
                 className="w-full border-0 absolute"
                 title="Complete Your Filing"
                 allow="camera; microphone; geolocation"
-                sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation"
-                style={{ top: -680, left: 0, width: "100%", height: "calc(100% + 1100px)" }}
+                sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+                style={{ top: -680, left: 0, width: "100%", height: 2800 }}
               />
             </div>
             <button onClick={() => setStep("contact")} className="w-full mt-3 py-2 text-xs text-white/40 hover:text-white/60">← Back to edit details</button>
