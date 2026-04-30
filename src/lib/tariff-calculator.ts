@@ -385,3 +385,29 @@ export function aggregateDossier(entries: EntryForDossier[]): DossierSummary {
     deadlineDays,
   };
 }
+
+// ── Routing Buckets ──────────────────────────────────────────────────────────
+
+export type RoutingBucket = "self_file" | "legal_required" | "not_applicable";
+
+export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
+  if (eligibilityStatus === "eligible") return "self_file";
+  if (eligibilityStatus === "excluded_date" || eligibilityStatus === "unknown") return "not_applicable";
+  return "legal_required";
+}
+
+export function getRoutingLabel(bucket: RoutingBucket): string {
+  switch (bucket) {
+    case "self_file": return "Self-File Ready";
+    case "legal_required": return "Needs Legal Counsel";
+    case "not_applicable": return "Not Applicable";
+  }
+}
+
+export function getRoutingColor(bucket: RoutingBucket): string {
+  switch (bucket) {
+    case "self_file": return "green";
+    case "legal_required": return "red";
+    case "not_applicable": return "gray";
+  }
+}
