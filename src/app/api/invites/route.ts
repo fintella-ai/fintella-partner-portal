@@ -24,9 +24,27 @@ export async function GET() {
     const partner = await prisma.partner.findUnique({ where: { partnerCode } });
     if (!partner) return NextResponse.json({ error: "Partner not found" }, { status: 404 });
 
-    const invites = await prisma.recruitmentInvite.findMany({
+    const rawInvites = await prisma.recruitmentInvite.findMany({
       where: { inviterCode: partnerCode },
       orderBy: { createdAt: "desc" },
+    });
+
+    const usedCodes = rawInvites.map((i) => i.usedByPartnerCode).filter(Boolean) as string[];
+    const usedPartners = usedCodes.length > 0
+      ? await prisma.partner.findMany({
+          where: { partnerCode: { in: usedCodes } },
+          select: { partnerCode: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const partnerMap = new Map(usedPartners.map((p) => [p.partnerCode, p]));
+
+    const invites = rawInvites.map((inv) => {
+      const usedBy = inv.usedByPartnerCode ? partnerMap.get(inv.usedByPartnerCode) : null;
+      return {
+        ...inv,
+        usedByName: usedBy ? `${usedBy.firstName} ${usedBy.lastName}` : null,
+        usedByEmail: usedBy?.email || null,
+      };
     });
 
     // Option B Phase 6: the L3 gate is gone. Any partner whose rate

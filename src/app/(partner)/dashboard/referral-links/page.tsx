@@ -15,6 +15,8 @@ interface Invite {
   commissionRate: number;
   status: string;
   usedByPartnerCode: string | null;
+  usedByName: string | null;
+  usedByEmail: string | null;
   createdAt: string;
 }
 
@@ -132,6 +134,23 @@ export default function ReferralLinksPage() {
   const availableRates = allowedDownlineRates;
   const targetTierLabel = partnerTier === "l1" ? "L2" : "L3";
 
+  // Auto-create invite links for all available rates when switching to links tab
+  useEffect(() => {
+    if (activeTab !== "links" || !canRecruit || availableRates.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const rate of availableRates) {
+        if (cancelled) return;
+        const existing = invites.find(
+          (i) => Math.round(i.commissionRate * 100) === Math.round(rate * 100) && i.status === "active"
+        );
+        if (!existing) await createInviteForRate(rate);
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, canRecruit, availableRates.length]);
+
   // Get invite link for a specific rate
   function getInviteForRate(rate: number): Invite | undefined {
     return invites.find((i) => Math.round(i.commissionRate * 100) === Math.round(rate * 100) && i.status === "active");
@@ -177,7 +196,10 @@ export default function ReferralLinksPage() {
     finally { setSending(false); }
   }
 
-  // All invites for tracking (including used ones)
+  // Split invites by status for tracking tabs
+  const activeInvites = invites.filter((i) => i.status === "active");
+  const usedInvites = invites.filter((i) => i.status === "used");
+  const [trackingTab, setTrackingTab] = useState<"active" | "used">("active");
   const allInvites = invites;
 
   if (agreementSigned === null) {
@@ -243,9 +265,9 @@ export default function ReferralLinksPage() {
                 }`}
               >
                 {t.label}
-                {t.id === "tracking" && allInvites.length > 0 && (
+                {t.id === "tracking" && usedInvites.length > 0 && (
                   <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${active ? "bg-brand-gold/15 text-brand-gold" : "bg-[var(--app-input-bg)] text-[var(--app-text-muted)]"}`}>
-                    {allInvites.length}
+                    {usedInvites.length}
                   </span>
                 )}
               </button>
@@ -276,7 +298,7 @@ export default function ReferralLinksPage() {
                 const pct = Math.round(rate * 100);
                 const overridePct = Math.round((partnerRate - rate) * 100);
                 const inv = getInviteForRate(rate);
-                const link = inv ? `${baseUrl}/signup?token=${inv.token}` : "Generating...";
+                const link = inv ? `${baseUrl}/signup?token=${inv.token}` : "Creating link...";
 
                 return (
                   <div key={rate} className="p-4 rounded-lg" style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-border)" }}>
@@ -377,109 +399,60 @@ export default function ReferralLinksPage() {
         </div>
       )}
 
-      {/* ═══ INVITE TRACKING TABLE ═══ */}
-      {canRecruit && activeTab === "tracking" && allInvites.length > 0 && (
+      {/* ═══ INVITE TRACKING ═══ */}
+      {canRecruit && activeTab === "tracking" && (
         <div className="card mb-6">
           <div className={`${device.cardPadding} border-b`} style={{ borderColor: "var(--app-border)" }}>
-            <div className="font-body font-semibold text-[15px]">Invite Tracking ({allInvites.length})</div>
+            <div className="font-body font-semibold text-[15px]">Invite Tracking</div>
             <div className="font-body text-[12px] text-[var(--app-text-muted)]">Track the status of your partner recruitment invites.</div>
           </div>
 
-          {/* Desktop table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left font-body text-sm" style={{ tableLayout: "fixed" }}>
-              <thead>
-                <tr className="border-b border-[var(--app-border)] text-[var(--app-text-muted)] text-xs uppercase tracking-wider">
-                  <th className="px-4 py-3 text-center" style={{ width: inviteCols[0], position: "relative" }}>Rate<span {...inviteResize(0)} /></th>
-                  <th className="px-4 py-3 text-center" style={{ width: inviteCols[1], position: "relative" }}>Tier<span {...inviteResize(1)} /></th>
-                  <th className="px-4 py-3 text-center" style={{ width: inviteCols[2], position: "relative" }}>Status<span {...inviteResize(2)} /></th>
-                  <th className="px-4 py-3 text-center" style={{ width: inviteCols[3], position: "relative" }}>Created<span {...inviteResize(3)} /></th>
-                  <th className="px-4 py-3 text-center" style={{ width: inviteCols[4], position: "relative" }}>Used By<span {...inviteResize(4)} /></th>
-                  <th className="px-4 py-3 text-center" style={{ width: inviteCols[5], position: "relative" }}>Action<span {...inviteResize(5)} /></th>
-                </tr>
-              </thead>
-              <tbody>
-                {allInvites.map((inv, idx) => (
-                  <tr key={inv.id} className={`border-b border-[var(--app-border)] ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
-                    <td className="px-4 py-3 font-semibold text-brand-gold">{Math.round(inv.commissionRate * 100)}%</td>
-                    <td className="px-4 py-3 text-[var(--app-text-secondary)]">{inv.targetTier.toUpperCase()}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-semibold tracking-wider uppercase ${
-                        inv.status === "active" ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                          : inv.status === "used" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                          : "bg-[var(--app-input-bg)] text-[var(--app-text-muted)] border border-[var(--app-border)]"
-                      }`}>
-                        {inv.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[var(--app-text-muted)] text-[12px]">
-                      {new Date(inv.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--app-text-secondary)] text-[12px]">
-                      {inv.usedByPartnerCode || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {inv.status === "active" && (
-                        <div className="inline-flex gap-2">
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(`${baseUrl}/signup?token=${inv.token}`);
-                              setCopiedRate(inv.commissionRate);
-                              setTimeout(() => setCopiedRate(null), 2000);
-                              markGettingStartedLinkShared();
-                            }}
-                            className={`font-body text-[11px] px-3 py-1.5 rounded-lg border transition-colors ${
-                              copiedRate === inv.commissionRate
-                                ? "bg-green-500/15 border-green-500/30 text-green-400"
-                                : "border-brand-gold/20 text-brand-gold/70 hover:bg-brand-gold/10"
-                            }`}
-                          >
-                            {copiedRate === inv.commissionRate ? "Copied!" : "Copy Link"}
-                          </button>
-                          <button
-                            onClick={() => deleteInvite(inv.id)}
-                            title="Delete this unused invite"
-                            className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400/70 hover:bg-red-500/10 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Active / Used sub-tabs */}
+          <div className="flex border-b border-[var(--app-border)]">
+            {([
+              { id: "active" as const, label: "Active", count: activeInvites.length },
+              { id: "used" as const, label: "Completed", count: usedInvites.length },
+            ]).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTrackingTab(t.id)}
+                className={`font-body text-[12px] px-4 py-2.5 transition-colors ${
+                  trackingTab === t.id
+                    ? "text-brand-gold border-b-2 border-brand-gold -mb-px"
+                    : "text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
+                }`}
+              >
+                {t.label}
+                {t.count > 0 && (
+                  <span className={`ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                    trackingTab === t.id ? "bg-brand-gold/15 text-brand-gold" : "bg-[var(--app-input-bg)] text-[var(--app-text-muted)]"
+                  }`}>{t.count}</span>
+                )}
+              </button>
+            ))}
           </div>
 
-          {/* Mobile cards */}
-          <div className="md:hidden divide-y divide-[var(--app-border)]">
-            {allInvites.map((inv, idx) => (
-              <div key={inv.id} className={`px-4 py-3 ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+          {/* Active invites — waiting to be used */}
+          {trackingTab === "active" && activeInvites.length > 0 && (
+            <div className="divide-y divide-[var(--app-border)]">
+              {activeInvites.map((inv) => (
+                <div key={inv.id} className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
                     <span className="font-display text-base font-bold text-brand-gold">{Math.round(inv.commissionRate * 100)}%</span>
-                    <span className="font-body text-[10px] text-[var(--app-text-muted)]">{inv.targetTier.toUpperCase()}</span>
+                    <div>
+                      <div className="font-body text-[12px] text-[var(--app-text-secondary)]">{inv.targetTier.toUpperCase()} Partner</div>
+                      <div className="font-body text-[10px] text-[var(--app-text-muted)]">
+                        Created {new Date(inv.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </div>
+                    </div>
                   </div>
-                  <span className={`inline-block text-[9px] px-2 py-0.5 rounded-full font-semibold tracking-wider uppercase ${
-                    inv.status === "active" ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                      : inv.status === "used" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                      : "bg-[var(--app-input-bg)] text-[var(--app-text-muted)] border border-[var(--app-border)]"
-                  }`}>
-                    {inv.status}
-                  </span>
-                </div>
-                <div className="font-body text-[11px] text-[var(--app-text-muted)]">
-                  {new Date(inv.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  {inv.usedByPartnerCode && ` · Used by ${inv.usedByPartnerCode}`}
-                </div>
-                {inv.status === "active" && (
-                  <div className="mt-2 flex gap-2">
+                  <div className="flex gap-2">
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(`${baseUrl}/signup?token=${inv.token}`);
                         setCopiedRate(inv.commissionRate);
                         setTimeout(() => setCopiedRate(null), 2000);
+                        markGettingStartedLinkShared();
                       }}
                       className={`font-body text-[11px] px-3 py-1.5 rounded-lg border transition-colors ${
                         copiedRate === inv.commissionRate
@@ -496,19 +469,47 @@ export default function ReferralLinksPage() {
                       Delete
                     </button>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                </div>
+              ))}
+            </div>
+          )}
 
-      {/* Empty state for tracking tab when the partner has not generated any invites yet */}
-      {canRecruit && activeTab === "tracking" && allInvites.length === 0 && (
-        <div className="card p-6 text-center">
-          <div className="font-body text-[13px] text-[var(--app-text-muted)]">
-            No invites yet. Use <button onClick={() => setActiveTab("send")} className="text-brand-gold hover:underline">Send Partner Invite</button> or <button onClick={() => setActiveTab("links")} className="text-brand-gold hover:underline">Recruit {targetTierLabel} Partner Links</button> to get started.
-          </div>
+          {trackingTab === "active" && activeInvites.length === 0 && (
+            <div className="p-6 text-center font-body text-[13px] text-[var(--app-text-muted)]">
+              No active invites. Generate links from the <button onClick={() => setActiveTab("links")} className="text-brand-gold hover:underline">Recruit {targetTierLabel} Partner Links</button> tab.
+            </div>
+          )}
+
+          {/* Used/Completed invites — partner signed up */}
+          {trackingTab === "used" && usedInvites.length > 0 && (
+            <div className="divide-y divide-[var(--app-border)]">
+              {usedInvites.map((inv) => (
+                <div key={inv.id} className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="font-display text-base font-bold text-brand-gold">{Math.round(inv.commissionRate * 100)}%</span>
+                    <div>
+                      <div className="font-body text-[13px] text-[var(--app-text)]">
+                        {inv.usedByName || inv.usedByPartnerCode || "Unknown"}
+                      </div>
+                      <div className="font-body text-[10px] text-[var(--app-text-muted)]">
+                        {inv.usedByEmail && <span>{inv.usedByEmail} · </span>}
+                        {inv.targetTier.toUpperCase()} Partner · Joined {new Date(inv.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="inline-block text-[10px] px-2 py-0.5 rounded-full font-semibold tracking-wider uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    Completed
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {trackingTab === "used" && usedInvites.length === 0 && (
+            <div className="p-6 text-center font-body text-[13px] text-[var(--app-text-muted)]">
+              No partners have signed up yet. Share your invite links to start recruiting.
+            </div>
+          )}
         </div>
       )}
 
