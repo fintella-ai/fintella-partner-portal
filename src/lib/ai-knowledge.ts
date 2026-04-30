@@ -15,6 +15,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { renderComplianceBlock } from "./ai-compliance";
 import { getKnowledgeVersion } from "./ai-knowledge-version";
+import { searchKnowledge, formatKnowledgeForPrompt, type KnowledgeSearchResult } from "@/lib/ai-rag";
 
 export async function buildProductSpecialistPrompt(): Promise<Anthropic.Messages.TextBlockParam> {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
