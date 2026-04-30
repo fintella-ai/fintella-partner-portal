@@ -6,9 +6,11 @@ import {
   calculateInterest,
   checkEligibility,
   aggregateDossier,
+  getRoutingBucket,
   type RateRecord,
   type QuarterlyRate,
   type EntryForDossier,
+  type RoutingBucket,
 } from "@/lib/tariff-calculator";
 import { checkPublicRateLimit } from "@/lib/tariff-rate-limiter";
 
@@ -101,6 +103,7 @@ export async function POST(req: NextRequest) {
       estimatedDuty: number;
       estimatedInterest: number;
       eligibility: { status: string; reason: string; deadlineDays?: number; isUrgent?: boolean };
+      routingBucket: RoutingBucket;
     }> = [];
 
     const dossierEntries: EntryForDossier[] = [];
@@ -124,6 +127,7 @@ export async function POST(req: NextRequest) {
             status: "error",
             reason: "Missing required fields: countryOfOrigin, entryDate, enteredValue",
           },
+          routingBucket: getRoutingBucket("error"),
         });
         continue;
       }
@@ -141,6 +145,7 @@ export async function POST(req: NextRequest) {
           estimatedDuty: 0,
           estimatedInterest: 0,
           eligibility: { status: "error", reason: "Invalid entryDate format" },
+          routingBucket: getRoutingBucket("error"),
         });
         continue;
       }
@@ -180,6 +185,8 @@ export async function POST(req: NextRequest) {
 
       const interest = calculateInterest(duty, entryDate, interestEndDate, quarterRates);
 
+      const eligResult = eligibility;
+
       results.push({
         index: i,
         countryOfOrigin: countryCode,
@@ -191,11 +198,12 @@ export async function POST(req: NextRequest) {
         estimatedDuty: duty,
         estimatedInterest: interest,
         eligibility: {
-          status: eligibility.status,
-          reason: eligibility.reason,
-          deadlineDays: eligibility.deadlineDays,
-          isUrgent: eligibility.isUrgent,
+          status: eligResult.status,
+          reason: eligResult.reason,
+          deadlineDays: eligResult.deadlineDays,
+          isUrgent: eligResult.isUrgent,
         },
+        routingBucket: getRoutingBucket(eligResult.status),
       });
 
       dossierEntries.push({
@@ -209,8 +217,39 @@ export async function POST(req: NextRequest) {
     // ── Aggregate summary ──────────────────────────────────────────────
     const summary = aggregateDossier(dossierEntries);
 
+    // ── Routing summary ───────────────────────────────────────────────
+    const routingSummary = {
+      selfFile: { count: 0, totalRefund: 0, totalInterest: 0 },
+      legalRequired: { count: 0, totalRefund: 0, totalInterest: 0 },
+      notApplicable: { count: 0, totalRefund: 0, totalInterest: 0 },
+    };
+
+    for (const r of results) {
+      const key = r.routingBucket === "self_file" ? "selfFile"
+        : r.routingBucket === "legal_required" ? "legalRequired"
+        : "notApplicable";
+      routingSummary[key].count++;
+      routingSummary[key].totalRefund += r.estimatedDuty;
+      routingSummary[key].totalInterest += r.estimatedInterest;
+    }
+
+    // Round amounts
+    for (const key of Object.keys(routingSummary) as Array<keyof typeof routingSummary>) {
+      routingSummary[key].totalRefund = Math.round(routingSummary[key].totalRefund * 100) / 100;
+      routingSummary[key].totalInterest = Math.round(routingSummary[key].totalInterest * 100) / 100;
+    }
+
     return NextResponse.json(
-      { summary, entries: results },
+      {
+        summary: {
+          ...summary,
+          selfFileCount: routingSummary.selfFile.count,
+          legalRequiredCount: routingSummary.legalRequired.count,
+          notApplicableCount: routingSummary.notApplicable.count,
+        },
+        routingSummary,
+        entries: results,
+      },
       {
         headers: {
           "X-RateLimit-Remaining": String(rl.remaining),
