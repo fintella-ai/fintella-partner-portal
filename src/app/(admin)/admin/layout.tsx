@@ -30,7 +30,7 @@ const ADMIN_NAV_IDS_DEFAULT = [
   "partners", "applications", "internal-leads", "deals", "widget-referrals", "reporting",
   "communications", "internalChats", "partnerSupport",
   "training", "conference", "documents",
-  "campaigns", "automations", "gettingStartedEditor", "landingPages",
+  "campaigns", "campaignReplies", "automations", "gettingStartedEditor", "knowledgeCenter", "landingPages",
   "settings", "users", "dev",
 ];
 
@@ -85,9 +85,11 @@ const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
   conference:   { id: "conference", href: "/admin/conference", icon: "📹", label: "Live Weekly" },
   documents:    { id: "documents", href: "/admin/documents", icon: "📁", label: "Documents" },
   campaigns:    { id: "campaigns", href: "/admin/campaigns", icon: "📧", label: "Campaigns" },
+  campaignReplies: { id: "campaignReplies", href: "/admin/campaign-replies", icon: "💬", label: "Campaign Replies" },
   automations:  { id: "automations", href: "/admin/automations", icon: "⚡", label: "Automations" },
   gettingStartedEditor: { id: "gettingStartedEditor", href: "/admin/getting-started-editor", icon: "✅", label: "Getting Started" },
   aiActivity:   { id: "aiActivity", href: "/admin/ai-activity", icon: "🤖", label: "AI Activity" },
+  knowledgeCenter: { id: "knowledgeCenter", href: "/admin/knowledge-center", icon: "🧠", label: "Knowledge Center" },
   settings:     { id: "settings", href: "/admin/settings", icon: "⚙️", label: "Settings" },
   billing:      { id: "billing", href: "/admin/billing", icon: "💳", label: "Billing" },
   users:        { id: "users", href: "/admin/users", icon: "🔐", label: "Admin Users" },
