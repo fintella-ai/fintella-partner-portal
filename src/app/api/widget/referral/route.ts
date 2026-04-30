@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { clientCompanyName, clientContactName, clientEmail, clientPhone,
             estimatedImportValue, importDateRange, htsCodes, entryCount,
-            tmsReference, notes, calculatorData } = body;
+            tmsReference, notes, calculatorData, documentUrls } = body;
 
     // Build final notes, appending calculator estimate if provided
     let finalNotes = (notes as string) || "";
@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
         entryCount: entryCount ? parseInt(entryCount, 10) : null,
         tmsReference: tmsReference?.trim() || null,
         notes: finalNotes || null,
+        documentUrls: Array.isArray(documentUrls) ? documentUrls : [],
       },
     });
 
