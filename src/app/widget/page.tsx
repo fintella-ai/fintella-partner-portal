@@ -293,10 +293,14 @@ function WidgetContent() {
               display: "flex", flexDirection: "column",
             }}>
               {[
+                { label: "Upload Documents", icon: "📄", action: () => { setTab("calc"); setMenuOpen(false); } },
+                { label: "Fintella Portal", icon: "🌐", action: () => { window.open("https://fintella.partners/dashboard", "_blank"); setMenuOpen(false); } },
+                null,
                 { label: "Minimize", icon: "▬", action: () => { setMinimized(true); setMenuOpen(false); } },
                 { label: poppedOut ? "Dock" : "Pop Out", icon: poppedOut ? "▣" : "⧉", action: () => { setPoppedOut(!poppedOut); setMenuOpen(false); } },
-                { label: "Fintella Portal", icon: "→", action: () => { window.open("https://fintella.partners/dashboard", "_blank"); setMenuOpen(false); } },
-              ].map((item) => (
+              ].map((item, idx) => item === null ? (
+                <div key={`sep-${idx}`} style={{ height: 1, background: W.border, margin: "2px 8px" }} />
+              ) : (
                 <button
                   key={item.label}
                   onClick={item.action}
