@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, type ChangeEvent } from "react";
 import { fmt$, fmtDate } from "@/lib/format";
+import type { AuditResult, AuditCheck } from "@/lib/tariff-audit";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -304,6 +305,9 @@ function QuickEstimateTab({ commissionRate }: { commissionRate: number }) {
   const [calculating, setCalculating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
+  const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMsg, setSubmitMsg] = useState("");
   const rateCache = useRef<Map<string, number | null>>(new Map());
 
   // Load countries from API
@@ -408,25 +412,45 @@ function QuickEstimateTab({ commissionRate }: { commissionRate: number }) {
     setResults(null);
     setSummary(null);
     setRoutingSummary(null);
+    setAuditResult(null);
 
     try {
+      const entries = validRows.map((r) => ({
+        countryOfOrigin: r.countryCode,
+        entryDate: r.entryDate,
+        enteredValue: Number(r.enteredValue),
+        entryNumber: r.entryNumber || undefined,
+      }));
+
       const res = await fetch("/api/tariff/calculate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          entries: validRows.map((r) => ({
-            countryOfOrigin: r.countryCode,
-            entryDate: r.entryDate,
-            enteredValue: Number(r.enteredValue),
-            entryNumber: r.entryNumber || undefined,
-          })),
-        }),
+        body: JSON.stringify({ entries }),
       });
       if (res.ok) {
         const data = await res.json();
-        setResults(data.entries || []);
+        const calcEntries: CalcResult[] = data.entries || [];
+        setResults(calcEntries);
         setSummary(data.summary || null);
         setRoutingSummary(data.routingSummary || null);
+
+        // Run audit in parallel (fire-and-forget-safe)
+        const auditEntries = calcEntries.map((r, i) => ({
+          entryNumber: r.entryNumber || entries[i]?.entryNumber || undefined,
+          entryDate: r.entryDate,
+          countryOfOrigin: r.countryOfOrigin,
+          enteredValue: r.enteredValue,
+          ieepaRate: r.combinedRate,
+          eligibility: r.eligibility.status,
+        }));
+        fetch("/api/tariff/audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entries: auditEntries }),
+        })
+          .then((ar) => (ar.ok ? ar.json() : null))
+          .then((ad) => { if (ad) setAuditResult(ad); })
+          .catch(() => {});
       }
     } catch {
       // silent
@@ -688,6 +712,55 @@ function QuickEstimateTab({ commissionRate }: { commissionRate: number }) {
         </div>
       )}
 
+      {/* Audit Score Card */}
+      {auditResult && (
+        <AuditScoreCard audit={auditResult} />
+      )}
+
+      {/* Filing Package */}
+      {auditResult && results && results.length > 0 && (
+        <FilingPackageSection audit={auditResult} results={results} />
+      )}
+
+      {/* Three-option routing */}
+      {auditResult && results && results.length > 0 && (
+        <RoutingActions
+          results={results}
+          audit={auditResult}
+          routingSummary={routingSummary}
+          submitting={submitting}
+          submitMsg={submitMsg}
+          onSubmitLegal={async () => {
+            setSubmitting(true);
+            setSubmitMsg("");
+            try {
+              const dRes = await fetch("/api/partner/dossiers", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ clientCompany: "Calculator Submission", source: "portal" }),
+              });
+              if (!dRes.ok) { setSubmitMsg("Failed to create dossier"); setSubmitting(false); return; }
+              const { dossier } = await dRes.json();
+              const slRes = await fetch(`/api/partner/dossiers/${dossier.id}/submit-legal`, { method: "POST" });
+              if (slRes.ok) {
+                setSubmitMsg("Submitted for legal review!");
+              } else {
+                const err = await slRes.json().catch(() => ({}));
+                setSubmitMsg((err as { error?: string }).error || "Submission failed");
+              }
+            } catch { setSubmitMsg("Network error"); }
+            setSubmitting(false);
+          }}
+          onDownloadCape={() => downloadCapeCSV(results, auditResult)}
+        />
+      )}
+
+      {submitMsg && (
+        <p className={`font-body text-[12px] ${submitMsg.includes("Submitted") ? "text-green-400" : "text-red-400"}`}>
+          {submitMsg}
+        </p>
+      )}
+
       {/* Results table */}
       {results && results.length > 0 && (
         <div>
@@ -796,6 +869,9 @@ function BulkUploadTab({ commissionRate }: { commissionRate: number }) {
   const [calculating, setCalculating] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState("");
+  const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMsg, setSubmitMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   function processFile(f: File) {
@@ -849,6 +925,7 @@ function BulkUploadTab({ commissionRate }: { commissionRate: number }) {
     if (!parsedRows?.length || !headers.length) return;
     setCalculating(true);
     setError("");
+    setAuditResult(null);
 
     const colMap = autoMapColumns(headers);
     const entries = parsedRows
@@ -874,9 +951,28 @@ function BulkUploadTab({ commissionRate }: { commissionRate: number }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setResults(data.entries || []);
+        const calcEntries: CalcResult[] = data.entries || [];
+        setResults(calcEntries);
         setSummary(data.summary || null);
         setRoutingSummary(data.routingSummary || null);
+
+        // Run audit
+        const auditEntries = calcEntries.map((r, i) => ({
+          entryNumber: r.entryNumber || entries[i]?.entryNumber || undefined,
+          entryDate: r.entryDate,
+          countryOfOrigin: r.countryOfOrigin,
+          enteredValue: r.enteredValue,
+          ieepaRate: r.combinedRate,
+          eligibility: r.eligibility.status,
+        }));
+        fetch("/api/tariff/audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entries: auditEntries }),
+        })
+          .then((ar) => (ar.ok ? ar.json() : null))
+          .then((ad) => { if (ad) setAuditResult(ad); })
+          .catch(() => {});
       } else {
         const data = await res.json().catch(() => ({}));
         setError((data as { error?: string }).error || "Calculation failed");
@@ -1129,6 +1225,64 @@ function BulkUploadTab({ commissionRate }: { commissionRate: number }) {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Audit Score Card */}
+          {auditResult && (
+            <div className="mb-4">
+              <AuditScoreCard audit={auditResult} />
+            </div>
+          )}
+
+          {/* Filing Package */}
+          {auditResult && results.length > 0 && (
+            <div className="mb-4">
+              <FilingPackageSection audit={auditResult} results={results} />
+            </div>
+          )}
+
+          {/* Three-option routing */}
+          {auditResult && results.length > 0 && (
+            <div className="mb-4">
+              <RoutingActions
+                results={results}
+                audit={auditResult}
+                routingSummary={routingSummary}
+                submitting={submitting}
+                submitMsg={submitMsg}
+                onSubmitLegal={async () => {
+                  setSubmitting(true);
+                  setSubmitMsg("");
+                  try {
+                    const dRes = await fetch("/api/partner/dossiers", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        clientCompany: file?.name?.replace(/\.[^.]+$/, "") || "Bulk Upload",
+                        source: "csv_upload",
+                      }),
+                    });
+                    if (!dRes.ok) { setSubmitMsg("Failed to create dossier"); setSubmitting(false); return; }
+                    const { dossier } = await dRes.json();
+                    const slRes = await fetch(`/api/partner/dossiers/${dossier.id}/submit-legal`, { method: "POST" });
+                    if (slRes.ok) {
+                      setSubmitMsg("Submitted for legal review!");
+                    } else {
+                      const err = await slRes.json().catch(() => ({}));
+                      setSubmitMsg((err as { error?: string }).error || "Submission failed");
+                    }
+                  } catch { setSubmitMsg("Network error"); }
+                  setSubmitting(false);
+                }}
+                onDownloadCape={() => downloadCapeCSV(results, auditResult)}
+              />
+            </div>
+          )}
+
+          {submitMsg && (
+            <p className={`font-body text-[12px] mb-4 ${submitMsg.includes("Submitted") ? "text-green-400" : "text-red-400"}`}>
+              {submitMsg}
+            </p>
           )}
 
           <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -1456,5 +1610,381 @@ function RoutingBadge({ bucket, status }: { bucket?: RoutingBucket; status: stri
     >
       {c.label}
     </span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUDIT SCORE CARD
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const CATEGORY_LABELS: Record<string, string> = {
+  format: "Format Checks",
+  entry: "Entry Checks",
+  eligibility: "Eligibility Checks",
+  risk: "Risk Warnings",
+};
+
+const CATEGORY_ORDER: string[] = ["format", "entry", "eligibility", "risk"];
+
+function AuditScoreCard({ audit }: { audit: AuditResult }) {
+  const [expanded, setExpanded] = useState(false);
+  const { score, summary } = audit;
+
+  const barColor =
+    score >= 80
+      ? "bg-green-400"
+      : score >= 60
+      ? "bg-yellow-400"
+      : "bg-red-400";
+  const scoreColor =
+    score >= 80
+      ? "text-green-400"
+      : score >= 60
+      ? "text-yellow-400"
+      : "text-red-400";
+
+  // Group checks by category
+  const grouped: Record<string, AuditCheck[]> = {};
+  for (const check of audit.checks) {
+    if (!grouped[check.category]) grouped[check.category] = [];
+    grouped[check.category].push(check);
+  }
+
+  return (
+    <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-card-bg)] overflow-hidden">
+      <div className="p-4 sm:p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-body font-semibold text-sm text-[var(--app-text)]">
+            Pre-Submission Audit Score
+          </h4>
+          <span className={`font-display text-xl font-bold ${scoreColor}`}>
+            {score}/100
+          </span>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full h-2.5 rounded-full bg-white/5 mb-3">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+            style={{ width: `${score}%` }}
+          />
+        </div>
+
+        {/* Counts */}
+        <div className="flex items-center gap-4 font-body text-[12px]">
+          <span className="text-green-400">
+            {summary.passed} passed
+          </span>
+          {summary.failed > 0 && (
+            <span className="text-red-400">
+              {summary.failed} error{summary.failed !== 1 ? "s" : ""}
+            </span>
+          )}
+          {summary.warnings > 0 && (
+            <span className="text-yellow-400">
+              {summary.warnings} warning{summary.warnings !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
+        {/* Expand toggle */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="mt-3 font-body text-[12px] text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+        >
+          {expanded ? "Hide Checks" : "View All Checks"}
+          <span
+            className={`inline-block transition-transform ${
+              expanded ? "rotate-180" : ""
+            }`}
+          >
+            &#9660;
+          </span>
+        </button>
+      </div>
+
+      {/* Expanded check list */}
+      {expanded && (
+        <div className="border-t border-[var(--app-border)] px-4 sm:px-5 py-3 space-y-4">
+          {CATEGORY_ORDER.map((cat) => {
+            const checks = grouped[cat];
+            if (!checks?.length) return null;
+            return (
+              <div key={cat}>
+                <h5 className="font-body text-[11px] tracking-wider uppercase text-[var(--app-text-muted)] mb-2">
+                  {CATEGORY_LABELS[cat] || cat}
+                </h5>
+                <div className="space-y-1.5">
+                  {checks.map((check, ci) => (
+                    <div key={`${check.id}-${ci}`} className="space-y-0.5">
+                      <div className="flex items-start gap-2">
+                        <span className="text-[13px] mt-0.5 flex-shrink-0">
+                          {check.severity === "info"
+                            ? "ℹ️"
+                            : check.severity === "warning"
+                            ? "⚠"
+                            : check.passed
+                            ? "✓"
+                            : "✕"}
+                        </span>
+                        <span
+                          className={`font-body text-[12px] ${
+                            !check.passed && check.severity === "error"
+                              ? "text-red-400"
+                              : check.severity === "warning"
+                              ? "text-yellow-400"
+                              : check.severity === "info"
+                              ? "text-blue-400"
+                              : "text-[var(--app-text-secondary)]"
+                          }`}
+                        >
+                          {check.message}
+                          {check.entryNumber && (
+                            <span className="text-[var(--app-text-muted)] ml-1">
+                              (Entry {check.entryNumber})
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      {check.fix && !check.passed && (
+                        <p className="font-body text-[11px] text-[var(--app-text-muted)] pl-5 leading-relaxed">
+                          Fix: {check.fix}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FILING PACKAGE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function downloadBlob(content: string, filename: string, type = "text/csv") {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadCapeCSV(results: CalcResult[], audit: AuditResult) {
+  // Filter to eligible entries with valid entry numbers not failing any error check
+  const failedIndices = new Set<number>();
+  for (const check of audit.errors) {
+    if (check.entryIndex !== undefined) failedIndices.add(check.entryIndex);
+  }
+  const cleanNumbers: string[] = [];
+  for (let i = 0; i < results.length; i++) {
+    if (failedIndices.has(i)) continue;
+    if (results[i].eligibility.status !== "eligible") continue;
+    const num = results[i].entryNumber;
+    if (num?.trim()) cleanNumbers.push(num.trim());
+  }
+  const csv = ["Entry Number", ...cleanNumbers].join("\n");
+  downloadBlob(csv, `cape-entries-${new Date().toISOString().slice(0, 10)}.csv`);
+}
+
+function FilingPackageSection({ audit, results }: { audit: AuditResult; results: CalcResult[] }) {
+  const eligibleCount = results.filter((r) => r.eligibility.status === "eligible").length;
+
+  function handleDownloadPackage() {
+    const datestamp = new Date().toISOString().slice(0, 10);
+
+    // 1. Generate CAPE CSV
+    const failedIndices = new Set<number>();
+    for (const check of audit.errors) {
+      if (check.entryIndex !== undefined) failedIndices.add(check.entryIndex);
+    }
+    const cleanNumbers: string[] = [];
+    for (let i = 0; i < results.length; i++) {
+      if (failedIndices.has(i)) continue;
+      if (results[i].eligibility.status !== "eligible") continue;
+      const num = results[i].entryNumber;
+      if (num?.trim()) cleanNumbers.push(num.trim());
+    }
+    if (cleanNumbers.length > 0) {
+      const capeCsv = ["Entry Number", ...cleanNumbers].join("\n");
+      downloadBlob(capeCsv, `cape-entries-${datestamp}.csv`);
+    }
+
+    // 2. Generate Audit Report CSV
+    const auditHeader = "Check ID,Category,Severity,Passed,Message,Entry Number,Fix";
+    const auditRows = audit.checks.map((check) => {
+      const esc = (v: string) => {
+        if (v.includes(",") || v.includes('"') || v.includes("\n")) {
+          return `"${v.replace(/"/g, '""')}"`;
+        }
+        return v;
+      };
+      return [
+        esc(check.id),
+        esc(check.category),
+        esc(check.severity),
+        check.passed ? "Yes" : "No",
+        esc(check.message),
+        esc(check.entryNumber || ""),
+        esc(check.fix || ""),
+      ].join(",");
+    });
+    const auditCsv = [auditHeader, ...auditRows].join("\n");
+    // Small delay so browser handles both downloads
+    setTimeout(() => {
+      downloadBlob(auditCsv, `audit-report-${datestamp}.csv`);
+    }, 200);
+  }
+
+  return (
+    <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-card-bg)] p-4 sm:p-5">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-lg">📦</span>
+        <h4 className="font-body font-semibold text-sm text-[var(--app-text)]">
+          File-Ready Package
+        </h4>
+      </div>
+      <p className="font-body text-[12px] text-[var(--app-text-muted)] mb-4 leading-relaxed">
+        Your entries have been audited and are ready for filing.
+      </p>
+
+      <div className="space-y-3">
+        <button
+          onClick={handleDownloadPackage}
+          className="font-body text-[13px] font-medium px-5 py-2.5 rounded-lg bg-brand-gold text-black hover:bg-brand-gold/90 transition-colors"
+        >
+          Download Filing Package
+        </button>
+        <div className="font-body text-[11px] text-[var(--app-text-muted)] space-y-1 pl-1">
+          <p>Includes:</p>
+          <p className="pl-3">
+            Clean CAPE CSV ({eligibleCount} eligible entr{eligibleCount === 1 ? "y" : "ies"})
+          </p>
+          <p className="pl-3">Audit Report ({audit.summary.total} checks)</p>
+          <p className="pl-3">Entry details</p>
+        </div>
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-[var(--app-border)]">
+        <button
+          disabled
+          className="font-body text-[12px] px-4 py-2 rounded-lg bg-white/5 border border-[var(--app-border)] text-[var(--app-text-muted)] cursor-not-allowed"
+        >
+          Generate Client Summary PDF — coming soon (Phase 2)
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THREE-OPTION ROUTING ACTIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function RoutingActions({
+  results,
+  audit,
+  routingSummary,
+  submitting,
+  submitMsg,
+  onSubmitLegal,
+  onDownloadCape,
+}: {
+  results: CalcResult[];
+  audit: AuditResult;
+  routingSummary: RoutingSummary | null;
+  submitting: boolean;
+  submitMsg: string;
+  onSubmitLegal: () => void;
+  onDownloadCape: () => void;
+}) {
+  const selfFileCount = routingSummary?.selfFile.count ?? results.filter((r) => r.eligibility.status === "eligible").length;
+  const legalCount = routingSummary?.legalRequired.count ?? results.filter((r) => r.eligibility.status !== "eligible").length;
+  const hasIssues = audit.summary.failed > 0;
+  const isSubmitted = submitMsg.includes("Submitted");
+
+  return (
+    <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-card-bg)] p-4 sm:p-5">
+      <h4 className="font-body font-semibold text-sm text-[var(--app-text)] mb-3">
+        Filing Options
+      </h4>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Option 1 — Legal Review */}
+        <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3 flex flex-col">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="w-2 h-2 rounded-full bg-purple-400" />
+            <span className="font-body text-[12px] font-semibold text-purple-400">
+              Recommended
+            </span>
+          </div>
+          <h5 className="font-body text-[13px] font-medium text-[var(--app-text)] mb-1">
+            Submit for Legal Review
+          </h5>
+          <p className="font-body text-[11px] text-[var(--app-text-muted)] mb-3 flex-1">
+            All {results.length} entries submitted to qualified counsel for review and filing.
+          </p>
+          <button
+            onClick={onSubmitLegal}
+            disabled={submitting || isSubmitted}
+            className="font-body text-[12px] font-medium px-4 py-2 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isSubmitted ? "Submitted" : submitting ? "Submitting..." : "Submit All for Legal Review"}
+          </button>
+        </div>
+
+        {/* Option 2 — Self-File */}
+        <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3 flex flex-col">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="w-2 h-2 rounded-full bg-green-400" />
+            <span className="font-body text-[12px] font-semibold text-green-400">
+              Self-File
+            </span>
+          </div>
+          <h5 className="font-body text-[13px] font-medium text-[var(--app-text)] mb-1">
+            Download CAPE CSV
+          </h5>
+          <p className="font-body text-[11px] text-[var(--app-text-muted)] mb-3 flex-1">
+            {selfFileCount} eligible entr{selfFileCount === 1 ? "y" : "ies"} ready for ACE Portal upload.
+            {hasIssues && " Entries with errors are excluded."}
+          </p>
+          <button
+            onClick={onDownloadCape}
+            disabled={selfFileCount === 0}
+            className="font-body text-[12px] font-medium px-4 py-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Download CAPE CSV
+          </button>
+        </div>
+
+        {/* Option 3 — Split */}
+        <div className="rounded-lg border border-[var(--app-border)] bg-white/3 p-3 flex flex-col">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="w-2 h-2 rounded-full bg-blue-400" />
+            <span className="font-body text-[12px] font-semibold text-blue-400">
+              Split
+            </span>
+          </div>
+          <h5 className="font-body text-[13px] font-medium text-[var(--app-text)] mb-1">
+            Self-File + Legal
+          </h5>
+          <p className="font-body text-[11px] text-[var(--app-text-muted)] mb-3 flex-1">
+            Self-file {selfFileCount} eligible, send {legalCount} to legal review.
+          </p>
+          <button
+            disabled
+            className="font-body text-[12px] font-medium px-4 py-2 rounded-lg bg-white/5 border border-[var(--app-border)] text-[var(--app-text-muted)] cursor-not-allowed"
+          >
+            Coming Soon
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
