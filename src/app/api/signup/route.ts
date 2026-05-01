@@ -282,12 +282,29 @@ export async function POST(req: NextRequest) {
     const partnerName = `${firstName.trim()} ${lastName.trim()}`;
     const ratePercent = Math.round(invite.commissionRate * 100);
 
-    // All tiers get the same signing flow: Fintella auto-dispatches the
-    // SignWell agreement at signup and returns the signing URL. The
-    // partner signs directly — no upline involvement needed.
+    const portalSettings = await prisma.portalSettings.findUnique({
+      where: { id: "global" },
+      select: { haltAgreementSending: true },
+    });
+
     let agreementAutoSent = false;
     let embeddedSigningUrl: string | null = null;
-    if (partner.tier !== "l1") {
+
+    if (portalSettings?.haltAgreementSending) {
+      await prisma.partnershipAgreement.create({
+        data: {
+          partnerCode: partner.partnerCode,
+          version: 1,
+          signwellDocumentId: null,
+          embeddedSigningUrl: null,
+          cosignerSigningUrl: null,
+          templateRate: invite.commissionRate,
+          templateId: null,
+          status: "not_sent",
+          sentDate: null,
+        },
+      }).catch(() => {});
+    } else if (partner.tier !== "l1") {
       try {
         await sendFintellaAgreementForPartnerAtSignup({
           partnerCode: partner.partnerCode,
@@ -320,7 +337,9 @@ export async function POST(req: NextRequest) {
         recipientId: invite.inviterCode!, // non-null guard: checked above
         type: "deal_update",
         title: "New Partner Signed Up!",
-        message: agreementAutoSent
+        message: portalSettings?.haltAgreementSending
+          ? `${partnerName} has signed up as your ${invite.targetTier.toUpperCase()} partner at ${ratePercent}% commission. Partnership agreements are currently being updated — their agreement will be sent automatically once ready.`
+          : agreementAutoSent
           ? `${partnerName} has signed up as your ${invite.targetTier.toUpperCase()} partner at ${ratePercent}% commission. Their partnership agreement has been sent automatically.`
           : `${partnerName} has signed up as your ${invite.targetTier.toUpperCase()} partner at ${ratePercent}% commission. Please upload their signed partnership agreement from your Downline page.`,
         link: "/dashboard/downline",
@@ -445,7 +464,9 @@ export async function POST(req: NextRequest) {
       partnerCode,
       agreementAutoSent,
       embeddedSigningUrl,
-      message: agreementAutoSent
+      message: portalSettings?.haltAgreementSending
+        ? "Account created! Our partnership agreements are currently being updated and will be available to sign within 24–48 hours. You'll receive an email when it's ready."
+        : agreementAutoSent
         ? "Account created! Your partnership agreement has been sent — sign it now to activate your account."
         : "Account created! Your upline partner will submit your partnership agreement. Once approved, you can log in and start submitting deals.",
     }, { status: 201 });

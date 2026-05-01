@@ -143,8 +143,33 @@ export async function POST(req: NextRequest) {
       data: { partnerCode },
     }).catch(() => {});
 
-    // Get 25% agreement template
+    // Get agreement template for this rate
     const settings = await prisma.portalSettings.findUnique({ where: { id: "global" } });
+
+    if (settings?.haltAgreementSending) {
+      await prisma.partnershipAgreement.create({
+        data: {
+          partnerCode,
+          version: 1,
+          signwellDocumentId: null,
+          embeddedSigningUrl: null,
+          cosignerSigningUrl: null,
+          templateRate: invite.commissionRate,
+          templateId: null,
+          status: "not_sent",
+          sentDate: null,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        partnerCode,
+        embeddedSigningUrl: null,
+        redirectToLogin: true,
+        message: `Account created! Our partnership agreements are currently being updated and will be available to sign within 24–48 hours. You'll receive an email when it's ready.`,
+      }, { status: 201 });
+    }
+
     const templateId = settings?.agreementTemplate25 || undefined;
 
     // Send partnership agreement via SignWell — if this fails, roll back

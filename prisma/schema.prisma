@@ -670,6 +670,10 @@ model PortalSettings {
   // onward allows every L2 to recruit L3. Column retained for rollback
   // safety; safe to drop in a future migration.
   l3Enabled          Boolean @default(false)
+  // When true, all agreement sending is paused. New partners still get
+  // created but their agreement step shows a "coming soon" notice instead
+  // of firing SignWell. Toggled from admin Settings → Documents.
+  haltAgreementSending Boolean @default(false)
   // Agreement templates (SignWell template IDs per rate)
   // Master SignWell template — one template for every standard partner
   // agreement. The recruit's actual commission rate is interpolated into

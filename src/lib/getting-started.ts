@@ -184,6 +184,7 @@ export async function computeGettingStarted(partnerCode: string): Promise<Gettin
         gettingStartedExpectations: true,
         gettingStartedStepOverrides: true,
         gettingStartedCustomSteps: true,
+        haltAgreementSending: true,
       },
     }),
   ]);
@@ -216,21 +217,25 @@ export async function computeGettingStarted(partnerCode: string): Promise<Gettin
   const locked = !agreementSigned;
   const agreementCtaUrl = agreement?.embeddedSigningUrl || "/dashboard/deals";
 
+  const agreementsUnderReconstruction = settings?.haltAgreementSending === true;
+
   const builtInSteps: ChecklistStep[] = [
     {
       id: "sign_agreement",
       title: "Sign your Partnership Agreement",
       description: agreementSigned
         ? "Your partnership agreement is signed and active."
+        : agreementsUnderReconstruction
+        ? "Our partnership agreements are currently being updated. Your agreement will be available to sign within 24–48 hours. You'll receive an email as soon as it's ready — no action needed on your end right now."
         : agreement?.status === "partner_signed"
         ? "Your signature is complete — awaiting Fintella co-signer to finalize."
         : agreement?.status === "pending"
         ? "Your agreement has been sent. Review and sign to activate your account."
         : "Review and e-sign your partnership agreement to activate your account. Once both you and Fintella sign, your portal unlocks and you can start submitting referrals immediately.",
-      ctaLabel: agreementSigned ? "Signed ✓" : agreement?.status === "partner_signed" ? "Awaiting Co-sign" : agreementPending ? "Sign now" : "Sign now",
-      ctaUrl: agreementCtaUrl,
-      icon: "📝",
-      status: agreementSigned ? "done" : agreementPending ? "ready" : "ready",
+      ctaLabel: agreementSigned ? "Signed ✓" : agreementsUnderReconstruction ? "Coming Soon" : agreement?.status === "partner_signed" ? "Awaiting Co-sign" : agreementPending ? "Sign now" : "Sign now",
+      ctaUrl: agreementSigned ? agreementCtaUrl : agreementsUnderReconstruction ? "" : agreementCtaUrl,
+      icon: agreementsUnderReconstruction && !agreementSigned ? "🔧" : "📝",
+      status: agreementSigned ? "done" : agreementsUnderReconstruction ? "locked" : agreementPending ? "ready" : "ready",
       done: agreementSigned,
     },
     {

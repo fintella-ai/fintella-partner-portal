@@ -142,7 +142,7 @@ interface ReferralOpp {
   highlighted: boolean;
 }
 
-type TabId = "branding" | "themes" | "navigation" | "homepage" | "commissions" | "agreements" | "integrations";
+type TabId = "branding" | "themes" | "navigation" | "homepage" | "commissions" | "agreements" | "documents" | "integrations";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "branding", label: "Branding" },
@@ -151,6 +151,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "homepage", label: "Home Page" },
   { id: "commissions", label: "Commissions" },
   { id: "agreements", label: "Agreements" },
+  { id: "documents", label: "Documents" },
   { id: "integrations", label: "Integrations" },
 ];
 
@@ -229,6 +230,7 @@ export default function SettingsPage() {
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [agreementTemplateEnterprise, setAgreementTemplateEnterprise] = useState("");
+  const [haltAgreementSending, setHaltAgreementSending] = useState(false);
 
   // Navigation
   const [hiddenNavItems, setHiddenNavItems] = useState<string[]>([]);
@@ -337,6 +339,7 @@ export default function SettingsPage() {
       setAgreementTemplate15(settings.agreementTemplate15 || "");
       setAgreementTemplate10(settings.agreementTemplate10 || "");
       setAgreementTemplateEnterprise(settings.agreementTemplateEnterprise || "");
+      setHaltAgreementSending(!!settings.haltAgreementSending);
 
       try { setHiddenNavItems(JSON.parse(settings.hiddenNavItems || "[]")); } catch { setHiddenNavItems([]); }
       try { setHiddenAdminNavItems(JSON.parse(settings.hiddenAdminNavItems || "[]")); } catch { setHiddenAdminNavItems([]); }
@@ -478,6 +481,7 @@ export default function SettingsPage() {
       const body = {
         firmName, firmShort, firmSlogan, firmPhone, supportEmail, logoUrl, faviconUrl,
         agreementTemplateMaster, agreementTemplate25, agreementTemplate20, agreementTemplate15, agreementTemplate10, agreementTemplateEnterprise,
+        haltAgreementSending,
         fintellaSignerName, fintellaSignerEmail, fintellaSignerPlaceholder,
         l1Rate: parseFloat(l1Rate) / 100,
         l2Rate: parseFloat(l2Rate) / 100,
@@ -1599,6 +1603,36 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+        </div>
+      )}
+
+      {tab === "documents" && (
+        <div className="space-y-5">
+          <div className="card p-5">
+            <div className="font-body font-semibold text-sm mb-1">Agreement Sending</div>
+            <div className="font-body text-[12px] theme-text-muted mb-4">Control whether partnership agreements are sent to new partners at signup.</div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={haltAgreementSending}
+                onChange={(e) => setHaltAgreementSending(e.target.checked)}
+                className="mt-1 h-5 w-5 rounded border-[var(--app-border)] bg-[var(--app-input-bg)] accent-red-500 cursor-pointer"
+              />
+              <div>
+                <div className="font-body text-[13px] font-semibold text-red-400">Halt Sending Partner Agreements</div>
+                <div className="font-body text-[12px] theme-text-muted mt-0.5 leading-relaxed">
+                  When enabled, new partners who sign up will NOT receive a SignWell agreement automatically.
+                  Instead they&apos;ll see a notice that agreements are being updated and will be available within 24–48 hours.
+                  Existing signed agreements are not affected. Uncheck this once new templates are ready.
+                </div>
+              </div>
+            </label>
+            {haltAgreementSending && (
+              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg font-body text-[12px] text-red-400">
+                Agreement sending is currently HALTED. New partners will not receive agreements until this is unchecked.
+              </div>
+            )}
+          </div>
         </div>
       )}
 
