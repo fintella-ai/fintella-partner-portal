@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/format";
+import { sendWelcomeEmail } from "@/lib/sendgrid";
 
 function generatePartnerCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -254,6 +255,13 @@ export async function POST(req: NextRequest) {
         ...(commissionRate !== undefined && { commissionRate }),
       },
     });
+
+    sendWelcomeEmail({
+      email: partner.email,
+      firstName: partner.firstName,
+      lastName: partner.lastName,
+      partnerCode: partner.partnerCode,
+    }).catch(() => {});
 
     return NextResponse.json({ partner }, { status: 201 });
   } catch {
