@@ -26,10 +26,25 @@ export async function GET() {
 
   try {
     const invites = await prisma.recruitmentInvite.findMany({
-      where: { targetTier: "l1" },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json({ invites });
+
+    // Resolve inviter names for partner-generated invites
+    const inviterCodes = Array.from(new Set(invites.map((i) => i.inviterCode).filter((c): c is string => !!c)));
+    const inviters = inviterCodes.length > 0
+      ? await prisma.partner.findMany({
+          where: { partnerCode: { in: inviterCodes } },
+          select: { partnerCode: true, firstName: true, lastName: true },
+        })
+      : [];
+    const inviterMap = new Map(inviters.map((p) => [p.partnerCode, `${p.firstName} ${p.lastName}`]));
+
+    const enriched = invites.map((inv) => ({
+      ...inv,
+      inviterName: inv.inviterCode ? inviterMap.get(inv.inviterCode) || inv.inviterCode : null,
+    }));
+
+    return NextResponse.json({ invites: enriched });
   } catch {
     return NextResponse.json({ error: "Failed to fetch invites" }, { status: 500 });
   }

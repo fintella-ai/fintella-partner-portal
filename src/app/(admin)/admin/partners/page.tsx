@@ -38,6 +38,8 @@ type Invite = {
   token: string;
   invitedEmail: string | null;
   invitedName: string | null;
+  inviterCode: string | null;
+  inviterName?: string | null;
   commissionRate: number;
   status: string;
   targetTier: string;
@@ -187,6 +189,72 @@ export default function AdminPartnersPage() {
   const [inviteError, setInviteError] = useState("");
   const [inviteResult, setInviteResult] = useState<{ signupUrl: string } | null>(null);
   const [inviteSending, setInviteSending] = useState(false);
+
+  // Invite on behalf of partner
+  const [showOnBehalf, setShowOnBehalf] = useState(false);
+  const [obSearch, setObSearch] = useState("");
+  const [obPartner, setObPartner] = useState<{ partnerCode: string; name: string; email: string; tier: string; commissionRate: number; status: string } | null>(null);
+  const [obTargetTier, setObTargetTier] = useState("");
+  const [obRates, setObRates] = useState<number[]>([]);
+  const [obRate, setObRate] = useState<number | "">("");
+  const [obFirst, setObFirst] = useState("");
+  const [obLast, setObLast] = useState("");
+  const [obEmail, setObEmail] = useState("");
+  const [obError, setObError] = useState("");
+  const [obSending, setObSending] = useState(false);
+  const [obResult, setObResult] = useState<{ signupUrl: string } | null>(null);
+  const [obLoading, setObLoading] = useState(false);
+
+  const lookupPartnerForOnBehalf = async (code: string) => {
+    if (!code.trim()) return;
+    setObLoading(true);
+    setObError("");
+    setObPartner(null);
+    setObRates([]);
+    setObRate("");
+    try {
+      const res = await fetch(`/api/admin/invites/on-behalf?partnerCode=${encodeURIComponent(code.trim())}`);
+      const data = await res.json();
+      if (!res.ok) { setObError(data.error || "Partner not found"); return; }
+      setObPartner(data.partner);
+      setObTargetTier(data.targetTier);
+      setObRates(data.allowedRates);
+    } catch {
+      setObError("Failed to look up partner");
+    } finally {
+      setObLoading(false);
+    }
+  };
+
+  const handleOnBehalfSend = async () => {
+    setObError("");
+    if (!obPartner) { setObError("Select a referring partner first."); return; }
+    if (!obFirst.trim() || !obLast.trim() || !obEmail.trim()) { setObError("Name and email are required."); return; }
+    if (!obRate) { setObError("Select a commission rate."); return; }
+    setObSending(true);
+    try {
+      const res = await fetch("/api/admin/invites/on-behalf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inviterCode: obPartner.partnerCode, firstName: obFirst.trim(), lastName: obLast.trim(), email: obEmail.trim(), rate: obRate }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setObError(data.error || "Failed to send invite"); return; }
+      setObResult({ signupUrl: data.signupUrl });
+      fetchInvites();
+    } catch {
+      setObError("Connection error");
+    } finally {
+      setObSending(false);
+    }
+  };
+
+  const resetOnBehalf = () => {
+    setShowOnBehalf(false);
+    setObSearch(""); setObPartner(null); setObRates([]); setObRate("");
+    setObFirst(""); setObLast(""); setObEmail("");
+    setObError(""); setObResult(null); setObTargetTier("");
+  };
 
   // Engagement tier filter
   const [engagementTierFilter, setEngagementTierFilter] = useState<"" | "hot" | "active" | "cooling" | "cold">("");
@@ -566,7 +634,9 @@ export default function AdminPartnersPage() {
     const q = search.toLowerCase();
     return (
       inv.invitedEmail?.toLowerCase().includes(q) ||
-      inv.invitedName?.toLowerCase().includes(q)
+      inv.invitedName?.toLowerCase().includes(q) ||
+      inv.inviterCode?.toLowerCase().includes(q) ||
+      inv.inviterName?.toLowerCase().includes(q)
     );
   });
 
@@ -601,10 +671,13 @@ export default function AdminPartnersPage() {
           <p className="font-body text-[13px] text-[var(--app-text-muted)] mt-1">View, add, and manage partners.</p>
         </div>
         <div className="flex flex-wrap gap-2 self-start">
-          <button onClick={() => { setShowInvite(true); setShowForm(false); }} className="btn-gold text-[12px] px-4 min-h-[44px]">
+          <button onClick={() => { setShowInvite(true); setShowForm(false); resetOnBehalf(); }} className="btn-gold text-[12px] px-4 min-h-[44px]">
             + Invite Partner
           </button>
-          <button onClick={() => { setShowForm(!showForm); setShowInvite(false); }} className="font-body text-[12px] px-4 min-h-[44px] border border-[var(--app-border)] rounded-lg theme-text-secondary hover:theme-text transition-colors">
+          <button onClick={() => { setShowOnBehalf(true); setShowForm(false); setShowInvite(false); }} className="font-body text-[12px] px-4 min-h-[44px] border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-500/10 transition-colors">
+            + Invite on Behalf
+          </button>
+          <button onClick={() => { setShowForm(!showForm); setShowInvite(false); resetOnBehalf(); }} className="font-body text-[12px] px-4 min-h-[44px] border border-[var(--app-border)] rounded-lg theme-text-secondary hover:theme-text transition-colors">
             + Add Directly
           </button>
         </div>
@@ -739,6 +812,101 @@ export default function AdminPartnersPage() {
                 <div className="font-mono text-[11px] theme-text-secondary break-all">{inviteResult.signupUrl}</div>
               </div>
               <button onClick={resetInvite} className="btn-gold text-[12px] px-5 min-h-[44px]">Done</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Invite on Behalf of Partner Modal */}
+      {showOnBehalf && (
+        <div className="card p-5 mb-6">
+          <div className="font-body font-semibold text-sm mb-1">Invite on Behalf of Partner</div>
+          <div className="font-body text-[12px] theme-text-muted mb-4">Send a downline invite as if the referring partner sent it. The invite email names the partner as the referrer.</div>
+          {!obResult ? (
+            <>
+              {obError && <div className="mb-3 p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg font-body text-[12px] text-red-400">{obError}</div>}
+
+              {/* Partner lookup */}
+              <div className="mb-4">
+                <label className="font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-secondary)] mb-1.5 block">Referring Partner Code *</label>
+                <div className="flex gap-2">
+                  <input
+                    className={inputClass + " flex-1"}
+                    value={obSearch}
+                    onChange={(e) => setObSearch(e.target.value.toUpperCase())}
+                    placeholder="e.g. PTNS4XDMN"
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); lookupPartnerForOnBehalf(obSearch); } }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => lookupPartnerForOnBehalf(obSearch)}
+                    disabled={obLoading || !obSearch.trim()}
+                    className="btn-gold text-[12px] px-4 min-h-[44px] disabled:opacity-50"
+                  >
+                    {obLoading ? "Looking up..." : "Look Up"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Partner info + rate selection */}
+              {obPartner && (
+                <>
+                  <div className="mb-4 p-3 rounded-lg bg-brand-gold/5 border border-brand-gold/20">
+                    <div className="font-body text-[13px] font-semibold text-brand-gold">{obPartner.name}</div>
+                    <div className="font-body text-[11px] theme-text-muted mt-0.5">
+                      {obPartner.partnerCode} · {obPartner.tier.toUpperCase()} @ {Math.round(obPartner.commissionRate * 100)}% · {obPartner.status}
+                    </div>
+                    <div className="font-body text-[11px] theme-text-muted">{obPartner.email}</div>
+                    <div className="font-body text-[11px] text-blue-400 mt-1">
+                      Can recruit {obTargetTier} partners at rates: {obRates.map((r) => `${Math.round(r * 100)}%`).join(", ")}
+                    </div>
+                  </div>
+
+                  <div className="font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-secondary)] mb-2">Invite Recipient</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <input className={inputClass} value={obFirst} onChange={(e) => setObFirst(e.target.value)} placeholder="First Name *" />
+                    <input className={inputClass} value={obLast} onChange={(e) => setObLast(e.target.value)} placeholder="Last Name *" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <input className={inputClass} value={obEmail} onChange={(e) => setObEmail(e.target.value)} placeholder="Email *" type="email" />
+                    <select className={inputClass} value={obRate} onChange={(e) => setObRate(e.target.value ? parseFloat(e.target.value) : "")}>
+                      <option value="">Select {obTargetTier} rate *</option>
+                      {obRates.map((r) => {
+                        const overridePct = Math.round((obPartner!.commissionRate - r) * 100);
+                        return (
+                          <option key={r} value={r}>
+                            {Math.round(r * 100)}% — {obTargetTier} ({overridePct}% override to {obPartner!.name.split(" ")[0]})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="flex gap-3 mt-4">
+                    <button onClick={handleOnBehalfSend} disabled={obSending} className="btn-gold text-[12px] px-5 min-h-[44px] disabled:opacity-50">
+                      {obSending ? "Sending..." : `Send ${obTargetTier} Invite`}
+                    </button>
+                    <button onClick={resetOnBehalf} className="font-body text-[12px] theme-text-muted border border-[var(--app-border)] rounded-lg px-5 min-h-[44px] hover:theme-text-secondary transition-colors">Cancel</button>
+                  </div>
+                </>
+              )}
+
+              {!obPartner && !obLoading && (
+                <div className="flex gap-3">
+                  <button onClick={resetOnBehalf} className="font-body text-[12px] theme-text-muted border border-[var(--app-border)] rounded-lg px-5 min-h-[44px] hover:theme-text-secondary transition-colors">Cancel</button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div>
+              <div className="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg font-body text-[12px] text-green-400">
+                Invite sent to <strong>{obEmail}</strong> on behalf of <strong>{obPartner?.name}</strong>. They will receive an email with a signup link.
+              </div>
+              <div className="mb-3 p-3 rounded-lg" style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}>
+                <div className="font-body text-[10px] theme-text-muted uppercase tracking-wider mb-1.5">Signup Link (share manually if needed)</div>
+                <div className="font-mono text-[11px] theme-text-secondary break-all">{obResult.signupUrl}</div>
+              </div>
+              <button onClick={resetOnBehalf} className="btn-gold text-[12px] px-5 min-h-[44px]">Done</button>
             </div>
           )}
         </div>
@@ -1033,7 +1201,7 @@ export default function AdminPartnersPage() {
           {/* Invited — Desktop Table */}
           <div className="card hidden sm:block overflow-x-auto">
             {/* Header */}
-            <div className="grid grid-cols-[auto_2fr_0.6fr_0.7fr_auto_0.9fr_0.9fr_auto] gap-3 px-5 py-3 border-b border-[var(--app-border)] items-center">
+            <div className="grid grid-cols-[auto_2fr_1fr_0.6fr_0.7fr_auto_0.9fr_0.9fr_auto] gap-3 px-5 py-3 border-b border-[var(--app-border)] items-center">
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -1048,7 +1216,7 @@ export default function AdminPartnersPage() {
                 className="w-4 h-4 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 accent-[#c4a050]"
                 title={allSelected ? "Deselect all" : "Select all"}
               />
-              {["Invitee", "Rate", "Status", "Link", "Sent", "Expires", ""].map((h) => (
+              {["Invitee", "Referrer", "Rate", "Status", "Link", "Sent", "Expires", ""].map((h) => (
                 <div key={h} className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider">{h}</div>
               ))}
             </div>
@@ -1058,12 +1226,14 @@ export default function AdminPartnersPage() {
               const isResendable = inv.status !== "used";
               const isResending = resendingId === inv.id;
               const feedback = resendFeedback[inv.id];
-              const inviteUrl = `${window.location.origin}/getstarted?token=${inv.token}`;
+              const inviteUrl = inv.inviterCode
+                ? `${window.location.origin}/signup?token=${inv.token}`
+                : `${window.location.origin}/getstarted?token=${inv.token}`;
               const isCopied = copiedInviteId === inv.id;
               return (
                 <div
                   key={inv.id}
-                  className="grid grid-cols-[auto_2fr_0.6fr_0.7fr_auto_0.9fr_0.9fr_auto] gap-3 px-5 py-3.5 border-b border-[var(--app-border)] last:border-b-0 items-center"
+                  className="grid grid-cols-[auto_2fr_1fr_0.6fr_0.7fr_auto_0.9fr_0.9fr_auto] gap-3 px-5 py-3.5 border-b border-[var(--app-border)] last:border-b-0 items-center"
                 >
                   <input
                     type="checkbox"
@@ -1075,6 +1245,16 @@ export default function AdminPartnersPage() {
                   <div>
                     <div className="font-body text-[13px] text-[var(--app-text)] font-medium">{inv.invitedName || "—"}</div>
                     <div className="font-body text-[11px] text-[var(--app-text-muted)]">{inv.invitedEmail || "—"}</div>
+                  </div>
+                  <div>
+                    {inv.inviterCode ? (
+                      <div>
+                        <div className="font-body text-[12px] text-[var(--app-text-secondary)]">{inv.inviterName || inv.inviterCode}</div>
+                        <div className="font-body text-[10px] text-[var(--app-text-muted)]">{inv.inviterCode} · {inv.targetTier.toUpperCase()}</div>
+                      </div>
+                    ) : (
+                      <div className="font-body text-[11px] text-[var(--app-text-muted)]">Admin (L1)</div>
+                    )}
                   </div>
                   <div className="font-body text-[13px] text-[var(--app-text-secondary)]">{Math.round(inv.commissionRate * 100)}%</div>
                   <div>
@@ -1139,7 +1319,9 @@ export default function AdminPartnersPage() {
               const isResendable = inv.status !== "used";
               const isResending = resendingId === inv.id;
               const feedback = resendFeedback[inv.id];
-              const inviteUrl = `${window.location.origin}/getstarted?token=${inv.token}`;
+              const inviteUrl = inv.inviterCode
+                ? `${window.location.origin}/signup?token=${inv.token}`
+                : `${window.location.origin}/getstarted?token=${inv.token}`;
               const isCopied = copiedInviteId === inv.id;
               return (
                 <div key={inv.id} className="card p-4">
@@ -1147,13 +1329,16 @@ export default function AdminPartnersPage() {
                     <div>
                       <div className="font-body text-[13px] font-medium text-[var(--app-text)]">{inv.invitedName || "—"}</div>
                       <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">{inv.invitedEmail || "—"}</div>
+                      {inv.inviterCode && (
+                        <div className="font-body text-[10px] text-blue-400 mt-0.5">via {inv.inviterName || inv.inviterCode}</div>
+                      )}
                     </div>
                     <span className={`shrink-0 inline-block rounded-full px-2 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase ${inviteStatusBadge[inv.status] || inviteStatusBadge.expired}`}>
                       {inv.status}
                     </span>
                   </div>
                   <div className="flex items-center justify-between mb-3">
-                    <div className="font-body text-[11px] text-[var(--app-text-muted)]">Rate: {Math.round(inv.commissionRate * 100)}%</div>
+                    <div className="font-body text-[11px] text-[var(--app-text-muted)]">{inv.targetTier.toUpperCase()} @ {Math.round(inv.commissionRate * 100)}%</div>
                     <div className="font-body text-[11px] text-[var(--app-text-muted)]">Expires {fmtDate(inv.expiresAt)}</div>
                   </div>
                   {/* Mobile: copy link */}
