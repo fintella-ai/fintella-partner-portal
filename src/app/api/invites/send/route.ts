@@ -93,26 +93,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find or create an invite for this rate
-    let invite = await prisma.recruitmentInvite.findFirst({
-      where: {
+    // Always create a per-recipient invite so invitedEmail/invitedName
+    // are tracked and the admin can see who was invited.
+    const invite = await prisma.recruitmentInvite.create({
+      data: {
+        token: generateToken(),
         inviterCode: partnerCode,
+        targetTier,
         commissionRate: parsedRate,
         status: "active",
+        invitedEmail: email.trim(),
+        invitedName: `${firstName.trim()} ${lastName.trim()}`,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     });
-
-    if (!invite) {
-      invite = await prisma.recruitmentInvite.create({
-        data: {
-          token: generateToken(),
-          inviterCode: partnerCode,
-          targetTier,
-          commissionRate: parsedRate,
-          status: "active",
-        },
-      });
-    }
 
     const baseUrl =
       process.env.NEXTAUTH_URL?.replace(/\/$/, "") ||
