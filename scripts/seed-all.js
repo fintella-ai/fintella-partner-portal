@@ -1329,6 +1329,40 @@ async function main() {
   }
   console.log("✓ AI persona configs: seeded 4 defaults");
 
+  // ── Widget A/B Test Variants ──────────────────────────────────────
+  var WIDGET_VARIANTS = [
+    {
+      name: "control",
+      description: "Default widget behavior -- no changes",
+      weight: 50,
+      config: { defaultTab: "dashboard" },
+      isActive: true,
+    },
+    {
+      name: "calculator-first",
+      description: "Opens on calculator tab by default",
+      weight: 25,
+      config: { defaultTab: "calc", showCalculatorFirst: true },
+      isActive: true,
+    },
+    {
+      name: "compact",
+      description: "Smaller panel (360x500), minimal header",
+      weight: 25,
+      config: { defaultTab: "dashboard", panelWidth: 360, panelHeight: 500, headerStyle: "compact" },
+      isActive: true,
+    },
+  ];
+  for (var wvi = 0; wvi < WIDGET_VARIANTS.length; wvi++) {
+    var wv = WIDGET_VARIANTS[wvi];
+    await prisma.widgetVariant.upsert({
+      where: { name: wv.name },
+      create: wv,
+      update: {},
+    });
+  }
+  console.log("✓ Widget A/B variants: seeded " + WIDGET_VARIANTS.length + " defaults");
+
   // ── Tariff rates (IEEPA + IRS interest) ────────────────────────────
   const seedTariffRates = require("./seed-tariff-rates.js");
   await seedTariffRates();

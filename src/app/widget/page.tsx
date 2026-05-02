@@ -19,6 +19,16 @@ interface AuthData {
   commissionRate: number;
 }
 
+interface VariantConfig {
+  defaultTab?: string;
+  ctaText?: string;
+  headerStyle?: string;
+  showCalculatorFirst?: boolean;
+  hideChat?: boolean;
+  panelWidth?: number;
+  panelHeight?: number;
+}
+
 type Tab = "dashboard" | "calc" | "refer" | "how" | "help";
 
 /* Gold spinner used in Suspense fallbacks and initial load */
@@ -44,10 +54,14 @@ function WidgetContent() {
   const searchParams = useSearchParams();
   const apiKey = searchParams.get("apiKey");
   const isFloatMode = searchParams.get("mode") === "float";
+  const variantParam = searchParams.get("variant");
   const [auth, setAuth] = useState<AuthData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("dashboard");
+  const [variantConfig, setVariantConfig] = useState<VariantConfig | null>(null);
+  const [variantName, setVariantName] = useState<string>("default");
+  const [sessionId] = useState(() => `ws_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
   const [referralPrefill, setReferralPrefill] = useState<{
     estimatedImportValue?: string;
     importDateRange?: string;
@@ -88,6 +102,7 @@ function WidgetContent() {
   }, []);
 
   const handleCalcToReferral = (data: { estimatedImportValue: string; importDateRange: string }) => {
+    trackImpression("calc_completed", { estimatedImportValue: data.estimatedImportValue });
     setReferralPrefill(data);
     setTab("refer");
   };
@@ -126,6 +141,53 @@ function WidgetContent() {
   useEffect(() => {
     authenticate();
   }, [authenticate]);
+
+  // ── A/B variant loading ──
+  useEffect(() => {
+    if (!variantParam) return;
+    fetch(`/api/widget/variant?name=${encodeURIComponent(variantParam)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.name && data.name !== "default") {
+          setVariantName(data.name);
+          const cfg = data.config as VariantConfig;
+          setVariantConfig(cfg);
+          if (cfg.defaultTab) {
+            const validTabs: Tab[] = ["dashboard", "calc", "refer", "how", "help"];
+            if (validTabs.includes(cfg.defaultTab as Tab)) {
+              setTab(cfg.defaultTab as Tab);
+            }
+          }
+        }
+      })
+      .catch(() => {});
+  }, [variantParam]);
+
+  // ── Impression tracking helper (fire-and-forget) ──
+  const trackImpression = useCallback(
+    (event: string, metadata?: Record<string, unknown>) => {
+      fetch("/api/widget/impression", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          variantName,
+          sessionId,
+          partnerCode: auth?.partnerCode,
+          event,
+          metadata,
+        }),
+      }).catch(() => {});
+    },
+    [variantName, sessionId, auth?.partnerCode],
+  );
+
+  // ── Track "loaded" impression when auth completes ──
+  useEffect(() => {
+    if (auth && variantName) {
+      trackImpression("loaded");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth, variantName]);
 
   useEffect(() => {
     if (!isFloatMode) return;
@@ -176,7 +238,7 @@ function WidgetContent() {
   if (minimized) {
     return (
       <div
-        onClick={() => setMinimized(false)}
+        onClick={() => { setMinimized(false); trackImpression("opened"); }}
         style={{
           background: "linear-gradient(135deg, #0c1220, #060a14)",
           padding: "10px 16px",
@@ -194,13 +256,30 @@ function WidgetContent() {
     );
   }
 
-  const tabs: { id: Tab; label: string }[] = [
+  // Build tabs list -- optionally hide chat if variant says so
+  const allTabs: { id: Tab; label: string }[] = [
     { id: "dashboard", label: "Home" },
     { id: "calc", label: "Calc" },
     { id: "refer", label: "Refer" },
     { id: "how", label: "Info" },
     { id: "help", label: "Help" },
   ];
+  const tabs = variantConfig?.hideChat
+    ? allTabs.filter((t) => t.id !== "help")
+    : allTabs;
+
+  // Tab change handler with impression tracking
+  const handleTabChange = (newTab: Tab) => {
+    setTab(newTab);
+    const eventMap: Partial<Record<Tab, string>> = {
+      calc: "calc_started",
+      refer: "referral_started",
+      help: "chat_opened",
+    };
+    const ev = eventMap[newTab];
+    if (ev) trackImpression(ev, { fromTab: tab });
+    trackImpression("tab_switched", { to: newTab, from: tab });
+  };
 
   const tabIcons: Record<Tab, (c: string, active: boolean) => JSX.Element> = {
     dashboard: (c, a) => <svg width="20" height="20" viewBox="0 0 24 24" fill={a ? c : "none"} stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 13.999L12 4l8 9.999" fill="none"/><path d="M6 12.5V20a1 1 0 001 1h3.5v-5a1.5 1.5 0 013 0v5H17a1 1 0 001-1v-7.5" fill={a ? "rgba(196,160,80,0.15)" : "none"}/></svg>,
@@ -304,7 +383,7 @@ function WidgetContent() {
               display: "flex", flexDirection: "column",
             }}>
               {[
-                { label: "Upload Documents", icon: "📄", action: () => { setTab("calc"); setMenuOpen(false); } },
+                { label: "Upload Documents", icon: "📄", action: () => { handleTabChange("calc"); setMenuOpen(false); } },
                 { label: "Fintella Portal", icon: "🌐", action: () => { window.open("https://fintella.partners/dashboard", "_blank"); setMenuOpen(false); } },
                 null,
                 { label: "Minimize", icon: "▬", action: () => { setMinimized(true); setMenuOpen(false); } },
@@ -346,7 +425,7 @@ function WidgetContent() {
         {tabs.map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => handleTabChange(t.id)}
             style={{
               flex: 1,
               padding: "8px 0 6px",
@@ -381,7 +460,7 @@ function WidgetContent() {
       {/* ─── Content ─── */}
       <div style={{ flex: 1, overflowY: "auto", paddingBottom: 36 }}>
         {tab === "dashboard" && (
-          <WidgetDashboard token={auth.token} onReferClick={() => setTab("refer")} />
+          <WidgetDashboard token={auth.token} onReferClick={() => handleTabChange("refer")} />
         )}
         {tab === "calc" && (
           <Suspense fallback={<GoldSpinner />}>
