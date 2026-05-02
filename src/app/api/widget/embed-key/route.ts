@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
 
     const widgetUrl = `${PORTAL_URL}/widget?apiKey=${rawKey}`;
     const embedCode = `<iframe src="${widgetUrl}" width="420" height="600" style="border:none;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.15)" allow="clipboard-write"></iframe>`;
+    const floatingSnippet = `<script src="${PORTAL_URL}/api/widget/loader?key=${rawKey}" async></script>`;
 
     return NextResponse.json({
       id: widgetSession.id,
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
       platform,
       origin: widgetSession.origin,
       embedCode,
+      floatingSnippet,
       widgetUrl,
     });
   } catch (err) {
