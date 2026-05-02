@@ -26,9 +26,9 @@ export default function WidgetSetupPage() {
   const [generating, setGenerating] = useState(false);
   const [platform, setPlatform] = useState("cargowise");
   const [origin, setOrigin] = useState("");
-  const [newKey, setNewKey] = useState<{ apiKey: string; embedCode: string; widgetUrl: string } | null>(null);
+  const [newKey, setNewKey] = useState<{ apiKey: string; embedCode: string; floatingSnippet: string; widgetUrl: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const [installTab, setInstallTab] = useState<"cargowise" | "magaya" | "generic">("cargowise");
+  const [installTab, setInstallTab] = useState<"cargowise" | "magaya" | "generic" | "floating">("cargowise");
 
   const loadKeys = useCallback(async () => {
     try {
@@ -52,7 +52,7 @@ export default function WidgetSetupPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setNewKey({ apiKey: data.apiKey, embedCode: data.embedCode, widgetUrl: data.widgetUrl });
+        setNewKey({ apiKey: data.apiKey, embedCode: data.embedCode, floatingSnippet: data.floatingSnippet, widgetUrl: data.widgetUrl });
         loadKeys();
       }
     } catch {}
@@ -191,6 +191,15 @@ export default function WidgetSetupPage() {
                   </button>
                 </div>
               </div>
+              <div>
+                <label className="text-xs font-medium text-green-800">Floating Snippet:</label>
+                <div className="flex gap-2 mt-1">
+                  <code className="flex-1 bg-white border border-green-300 rounded px-2 py-1 text-xs font-mono break-all">{newKey.floatingSnippet}</code>
+                  <button onClick={() => copy(newKey.floatingSnippet, "float")} className="px-2 py-1 bg-green-600 text-white rounded text-xs shrink-0">
+                    {copied === "float" ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -200,7 +209,7 @@ export default function WidgetSetupPage() {
       <section>
         <h2 className="text-lg font-semibold text-[var(--app-text)] mb-3">Installation Instructions</h2>
         <div className="flex gap-1 mb-3">
-          {(["cargowise", "magaya", "generic"] as const).map((t) => (
+          {(["cargowise", "magaya", "generic", "floating"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setInstallTab(t)}
@@ -208,7 +217,7 @@ export default function WidgetSetupPage() {
                 installTab === t ? "bg-amber-100 text-amber-700" : "bg-[var(--app-bg-secondary)] text-[var(--app-text-muted)] hover:text-[var(--app-text)]"
               }`}
             >
-              {t === "cargowise" ? "CargoWise" : t === "magaya" ? "Magaya" : "Generic"}
+              {t === "cargowise" ? "CargoWise" : t === "magaya" ? "Magaya" : t === "floating" ? "Floating" : "Generic"}
             </button>
           ))}
         </div>
@@ -238,6 +247,24 @@ export default function WidgetSetupPage() {
               <code className="block bg-[var(--app-bg)] border border-[var(--app-border)] rounded p-2 text-xs font-mono whitespace-pre-wrap">
                 {`<iframe\n  src="${PORTAL_URL}/widget?apiKey=YOUR_KEY"\n  width="420"\n  height="600"\n  style="border:none;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.15)"\n  allow="clipboard-write"\n></iframe>`}
               </code>
+            </div>
+          )}
+          {installTab === "floating" && (
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <h4 className="text-sm font-semibold text-amber-800 mb-1">Floating Widget</h4>
+                <p className="text-xs text-amber-700">Adds a floating button to any website.</p>
+              </div>
+              <div>
+                <p className="text-xs text-[var(--app-text-muted)] mb-2">Paste before closing body tag:</p>
+                <code className="block bg-[var(--app-bg)] border border-[var(--app-border)] rounded p-2 text-xs font-mono whitespace-pre-wrap">
+                  {`<script src="${PORTAL_URL}/api/widget/loader?key=YOUR_KEY" async></script>`}
+                </code>
+              </div>
+              <div className="mt-2 text-xs text-[var(--app-text-muted)]">
+                <p><strong>data-position</strong>: bottom-right or bottom-left</p>
+                <p><strong>data-color</strong>: Hex color (default: #c4a050)</p>
+              </div>
             </div>
           )}
         </div>
