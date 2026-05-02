@@ -209,6 +209,18 @@ export default function BrokersLandingPage() {
                 Try the Free Calculator
               </Link>
               <Link
+                href="/widget/demo"
+                target="_blank"
+                className="text-lg font-bold px-10 py-4 rounded-full transition-transform hover:scale-105 active:scale-95"
+                style={{
+                  background: `linear-gradient(135deg, #16a34a, #22c55e)`,
+                  color: "#fff",
+                  boxShadow: "0 4px 20px rgba(34,197,94,0.3)",
+                }}
+              >
+                Try Live Demo
+              </Link>
+              <Link
                 href="/apply"
                 className="text-lg font-medium px-10 py-4 rounded-full transition"
                 style={{
