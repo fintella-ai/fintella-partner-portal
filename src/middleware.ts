@@ -30,6 +30,12 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  // Ops Center — any authenticated user (admin or partner) can access
+  // No additional role gate needed; the auth check above suffices.
+  if (pathname === "/ops" || pathname.startsWith("/ops/")) {
+    return NextResponse.next();
+  }
+
   // Admin-only routes
   if (pathname.startsWith("/admin")) {
     const role = (session.user as any).role;
