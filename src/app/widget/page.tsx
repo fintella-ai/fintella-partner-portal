@@ -61,7 +61,11 @@ function WidgetContent() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [variantConfig, setVariantConfig] = useState<VariantConfig | null>(null);
   const [variantName, setVariantName] = useState<string>("default");
-  const [sessionId] = useState(() => `ws_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const [sessionId] = useState(() => {
+    const buf = new Uint8Array(6);
+    crypto.getRandomValues(buf);
+    return `ws_${Date.now()}_${Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("")}`;
+  });
   const [referralPrefill, setReferralPrefill] = useState<{
     estimatedImportValue?: string;
     importDateRange?: string;
