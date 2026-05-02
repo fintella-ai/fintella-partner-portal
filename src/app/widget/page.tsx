@@ -43,6 +43,7 @@ function GoldSpinner() {
 function WidgetContent() {
   const searchParams = useSearchParams();
   const apiKey = searchParams.get("apiKey");
+  const isFloatMode = searchParams.get("mode") === "float";
   const [auth, setAuth] = useState<AuthData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -125,6 +126,16 @@ function WidgetContent() {
   useEffect(() => {
     authenticate();
   }, [authenticate]);
+
+  useEffect(() => {
+    if (!isFloatMode) return;
+    const handler = (e: MessageEvent) => {
+      if (!e.data || typeof e.data !== "object") return;
+      if (e.data.type === "fintella:close") setMinimized(true);
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [isFloatMode]);
 
   /* --- Loading state --- */
   if (loading) {
