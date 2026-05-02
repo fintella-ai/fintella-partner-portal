@@ -81,6 +81,7 @@ export default function AdminApplicationsPage() {
   const [approveReferrer, setApproveReferrer] = useState("");
   const [approveSending, setApproveSending] = useState(false);
   const [partnerList, setPartnerList] = useState<Array<{ partnerCode: string; firstName: string; lastName: string }>>([]);
+  const [demoCount, setDemoCount] = useState(0);
 
   // Lead list state
   type Lead = { id: string; firstName: string; lastName: string; email: string; phone: string | null; commissionRate: number; tier: string; referredByCode: string | null; notes: string | null; status: string; inviteId: string | null; scheduledSendAt: string | null; emailSentAt: string | null; createdAt: string };
@@ -97,7 +98,12 @@ export default function AdminApplicationsPage() {
       const qs = tab === "all" ? "" : `?status=${tab}`;
       const res = await fetch(`/api/admin/applications${qs}`);
       const data = await res.json();
-      setApplications(data.applications ?? []);
+      const apps: Application[] = data.applications ?? [];
+      setApplications(apps);
+      // Count widget demo conversions across all applications (regardless of tab filter)
+      if (tab === "all") {
+        setDemoCount(apps.filter((a) => a.utmSource === "widget_demo").length);
+      }
     } finally {
       setLoading(false);
     }
@@ -273,6 +279,12 @@ export default function AdminApplicationsPage() {
           <p className="text-sm text-[var(--app-text-muted)] mt-1">
             Leads from the public landing page. New → Meeting Booked → Approve → auto-sends invite.
           </p>
+          {demoCount > 0 && (
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              {demoCount} from Widget Demo
+            </div>
+          )}
         </div>
         <div className="flex gap-2 flex-wrap">
           <button

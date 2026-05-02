@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/agreement-refresh",
       "schedule": "0 */3 * * *"
+    },
+    {
+      "path": "/api/cron/demo-to-drip",
+      "schedule": "0 14 * * *"
     }
   ]
 }
