@@ -163,6 +163,7 @@ model User {
   ideas              Idea[]
   ideaReactions      IdeaReaction[]
   ideaComments       IdeaComment[]
+  pushSubscriptions  OpsPushSubscription[]
 }
 
 // ─── PARTNERS ───────────────────────────────────────────────────────────────
@@ -2777,4 +2778,22 @@ model IdeaComment {
   @@index([ideaId])
   @@index([authorId])
   @@index([parentId])
+}
+
+// ─── OPS CENTER — WEB PUSH SUBSCRIPTIONS ────────────────────────────────────
+model OpsPushSubscription {
+  id           String   @id @default(cuid())
+  userId       String
+  endpoint     String   @unique
+  p256dh       String
+  auth         String
+  entityFilter String?  // null = all entities
+  quietStart   String?  // "22:00" (HH:mm)
+  quietEnd     String?  // "08:00" (HH:mm)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
