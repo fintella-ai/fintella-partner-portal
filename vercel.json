@@ -53,6 +53,10 @@
       "schedule": "0 */3 * * *"
     },
     {
+      "path": "/api/cron/demo-to-drip",
+      "schedule": "0 14 * * *"
+    },
+    {
       "path": "/api/cron/optimize-variants",
       "schedule": "0 5 * * 1"
     }
