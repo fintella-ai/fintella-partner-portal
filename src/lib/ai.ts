@@ -21,6 +21,8 @@ import {
   OLLIE_TOOLS,
   SHARED_TOOLS,
   executeOllieTool,
+  getPersonaToolConfig,
+  filterToolsByConfig,
   type ToolCallResult,
 } from "./ai-ollie-tools";
 
@@ -576,18 +578,22 @@ In the meantime, you can:
     ];
   }
 
-  // Tool surface per persona:
-  // - Generalists (Finn, Stella): hand_off + shared tools (lookups, tickets, scheduling).
-  // - Product specialist (Tara): shared tools only (no hand_off, no Ollie-exclusive).
-  // - Support specialist (Ollie): SHARED_TOOLS + OLLIE_EXCLUSIVE_TOOLS (no hand_off).
-  const tools: Anthropic.Messages.Tool[] | undefined =
-    persona.role === "generalist"
-      ? [HAND_OFF_TOOL, ...SHARED_TOOLS]
-      : resolvedPersona === "ollie"
-        ? OLLIE_TOOLS
-        : persona.role === "product_specialist"
-          ? SHARED_TOOLS
-          : undefined;
+  // Tool surface per persona — DB-driven with hardcoded fallback.
+  // AiPersonaConfig rows (managed at /admin/ai-permissions) override defaults.
+  const personaConfig = await getPersonaToolConfig(resolvedPersona);
+  const enabledNames = personaConfig?.enabledTools ?? null;
+  let tools: Anthropic.Messages.Tool[] | undefined;
+  if (persona.role === "generalist") {
+    const base = [HAND_OFF_TOOL, ...SHARED_TOOLS];
+    tools = filterToolsByConfig(base, enabledNames);
+  } else if (resolvedPersona === "ollie") {
+    tools = filterToolsByConfig(OLLIE_TOOLS, enabledNames);
+  } else if (persona.role === "product_specialist") {
+    tools = filterToolsByConfig(SHARED_TOOLS, enabledNames);
+  }
+  if (personaConfig && !personaConfig.isActive) {
+    tools = undefined;
+  }
 
   // Convert history to Anthropic message format
   const messages: Anthropic.Messages.MessageParam[] = history.map((m) => ({
