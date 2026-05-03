@@ -722,7 +722,7 @@ async function postHandler(req: NextRequest): Promise<Response> {
           clientEmail: email || null,
           clientPhone: normalizePhone(phone),
           clientTitle: clientTitle || null,
-          serviceOfInterest: serviceOfInterest || null,
+          serviceOfInterest: serviceOfInterest || `Tariff Refund Support (${isImporterOfRecord ? "Tier 1" : "Tier 2"})`,
           legalEntityName: legalEntityName || null,
           companyEin: companyEin || null,
           businessStreetAddress: businessStreetAddress || null,
@@ -1085,7 +1085,9 @@ async function patchHandler(req: NextRequest): Promise<Response> {
     if (importerOfRecord) data.importerOfRecord = importerOfRecord;
     const isIorPatch = body.is_importer_of_record ?? body.isImporterOfRecord ?? body.is_ior;
     if (isIorPatch !== undefined && isIorPatch !== null) {
-      data.isImporterOfRecord = String(isIorPatch).toLowerCase() === "true" || isIorPatch === true || isIorPatch === 1;
+      const iorVal = String(isIorPatch).toLowerCase() === "true" || String(isIorPatch) === "1";
+      data.isImporterOfRecord = iorVal;
+      data.serviceOfInterest = `Tariff Refund Support (${iorVal ? "Tier 1" : "Tier 2"})`;
     }
 
     // Product details

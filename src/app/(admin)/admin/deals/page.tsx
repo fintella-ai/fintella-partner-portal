@@ -769,7 +769,7 @@ export default function AdminDealsPage() {
                 )}
               </div>
               <div className="font-body text-[11px] text-[var(--app-text-secondary)] text-center truncate" title={deal.serviceOfInterest || ""}>
-                {deal.serviceOfInterest || "—"}
+                {(deal.serviceOfInterest || "Tariff Refund Support").replace(/\s*\(Tier [12]\)/, "")} <span className={`font-medium ${deal.isImporterOfRecord ? "text-emerald-400" : "text-amber-400"}`}>({deal.isImporterOfRecord ? "Tier 1" : "Tier 2"})</span>
               </div>
               <div className="text-center"><StageBadge stage={deal.stage} /></div>
               <div className="font-body text-[13px] text-[var(--app-text)] text-center">{fmt$(fin.refund)}</div>
@@ -1394,17 +1394,10 @@ export default function AdminDealsPage() {
                   </div>
                 </div>
                 <StageBadge stage={deal.stage} />
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                  deal.isImporterOfRecord
-                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                    : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                }`}>
-                  {deal.isImporterOfRecord ? "Tier 1" : "Tier 2"}
-                </span>
               </div>
-              {deal.serviceOfInterest && (
-                <div className="font-body text-[11px] text-[var(--app-text-secondary)] mt-1">{deal.serviceOfInterest}</div>
-              )}
+              <div className="font-body text-[11px] text-[var(--app-text-secondary)] mt-1">
+                {(deal.serviceOfInterest || "Tariff Refund Support").replace(/\s*\(Tier [12]\)/, "")} <span className={`font-medium ${deal.isImporterOfRecord ? "text-emerald-400" : "text-amber-400"}`}>({deal.isImporterOfRecord ? "Tier 1" : "Tier 2"})</span>
+              </div>
               <div className="grid grid-cols-3 gap-2 mt-3">
                 <div>
                   <div className="font-body text-[9px] text-[var(--app-text-muted)] uppercase tracking-wider">Refund</div>
