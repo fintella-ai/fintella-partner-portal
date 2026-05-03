@@ -4,17 +4,42 @@ import Link from "next/link";
 import { SetVariantCookie } from "./SetVariantCookie";
 import BrokerSignupForm from "./BrokerSignupForm";
 import HeroCalculator from "./HeroCalculator";
+import { JsonLd } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
-  title: "The Only Tariff Refund Widget for CargoWise & Magaya | Fintella",
+  title: "IEEPA Tariff Refund Widget for Customs Brokers | CargoWise & Magaya | Fintella",
   description:
-    "Embed our IEEPA refund calculator inside your TMS. Refer clients in one click. Earn 25% commission. Free to join. 5-minute setup.",
+    "Licensed customs brokers: embed our IEEPA tariff refund calculator inside CargoWise or Magaya. Refer import clients for duty recovery. Earn 25% commission on every refund. Free tool, 5-minute setup. CAPE-ready with legal backing.",
+  keywords: [
+    "IEEPA tariff refund",
+    "customs broker referral commission",
+    "tariff refund calculator",
+    "CAPE filing tool",
+    "CargoWise tariff widget",
+    "Magaya customs integration",
+    "customs broker earn commission",
+    "IEEPA duty recovery",
+    "tariff refund for customs brokers",
+    "import duty refund tool",
+    "customs broker revenue",
+    "IEEPA refund widget",
+  ],
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: "https://fintella.partners/partners/brokers",
+  },
   openGraph: {
-    title: "TMS Widget — Turn Every Shipment Into Revenue | Fintella",
+    title: "IEEPA Tariff Refund Widget for Customs Brokers | Fintella",
     description:
-      "The only tariff refund tool that runs inside your shipping software. Earn 25% on every recovery.",
+      "The only tariff refund tool that embeds inside CargoWise & Magaya. Licensed customs brokers earn 25% on every recovery. Free to join.",
     type: "website",
+    url: "https://fintella.partners/partners/brokers",
+    siteName: "Fintella — Financial Intelligence Network",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "IEEPA Tariff Refund Widget for Customs Brokers",
+    description: "Embed our refund calculator inside your TMS. Refer clients. Earn 25% commission. Only tool of its kind.",
   },
 };
 
@@ -114,6 +139,35 @@ export default function BrokersLandingPage() {
       className="min-h-screen overflow-hidden font-body"
       style={{ background: "var(--app-bg)", color: "var(--app-text)" }}
     >
+      <JsonLd data={{
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: "Fintella IEEPA Tariff Refund Widget",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web browser, CargoWise, Magaya",
+        url: "https://fintella.partners/partners/brokers",
+        description: "Embed an IEEPA tariff refund calculator inside CargoWise or Magaya. Licensed customs brokers refer eligible importers in one click and earn 25% commission on every successful recovery.",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        featureList: [
+          "TMS-embedded widget for CargoWise and Magaya",
+          "AI-powered CF 7501 document intake",
+          "Live IEEPA rate cross-referencing",
+          "180-day filing deadline tracking",
+          "19-point pre-submission compliance audit",
+          "One-click client referral submission",
+          "25% commission on successful recoveries",
+        ],
+        provider: { "@type": "Organization", name: "Fintella", url: "https://fintella.partners" },
+      }} />
+      <JsonLd data={{
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: FAQ_ITEMS.map((f) => ({
+          "@type": "Question",
+          name: f.q,
+          acceptedAnswer: { "@type": "Answer", text: f.a },
+        })),
+      }} />
 
       {/* ── Section 1: Nav ──────────────────────────────────────────── */}
       <nav
