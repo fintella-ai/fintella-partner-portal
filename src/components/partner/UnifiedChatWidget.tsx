@@ -30,13 +30,32 @@ interface Ticket {
 
 type ActiveTab = "ai" | "support" | "messages";
 
+const LS_BROKER_WELCOME = "fintella.broker.welcomeSeen";
+
 export default function UnifiedChatWidget({ preferredPersona, liveChatEnabled, aiEnabled }: Props) {
   const { data: session } = useSession();
   const device = useDevice();
   const partnerCode = (session?.user as any)?.partnerCode;
+  const partnerType = (session?.user as any)?.partnerType;
 
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("ai");
+  const [brokerWelcome, setBrokerWelcome] = useState(false);
+
+  useEffect(() => {
+    if (partnerType !== "customs_broker") return;
+    try {
+      const seen = localStorage.getItem(LS_BROKER_WELCOME);
+      if (seen === "true") return;
+      const timer = setTimeout(() => {
+        setOpen(true);
+        setActiveTab("ai");
+        setBrokerWelcome(true);
+        localStorage.setItem(LS_BROKER_WELCOME, "true");
+      }, 2000);
+      return () => clearTimeout(timer);
+    } catch {}
+  }, [partnerType]);
 
   const [dmThreads, setDmThreads] = useState<DmThread[]>([]);
   const [dmUnread, setDmUnread] = useState(0);
@@ -251,6 +270,7 @@ export default function UnifiedChatWidget({ preferredPersona, liveChatEnabled, a
               aiEnabled={aiEnabled}
               embedded
               onClose={() => setOpen(false)}
+              brokerWelcome={brokerWelcome}
             />
           </div>
         )}

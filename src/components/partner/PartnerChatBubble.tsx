@@ -21,6 +21,7 @@ interface Props {
   aiEnabled: boolean;
   embedded?: boolean;
   onClose?: () => void;
+  brokerWelcome?: boolean;
 }
 
 export default function PartnerChatBubble({
@@ -29,6 +30,7 @@ export default function PartnerChatBubble({
   aiEnabled,
   embedded = false,
   onClose,
+  brokerWelcome = false,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -152,6 +154,16 @@ export default function PartnerChatBubble({
       if (unreadTimerRef.current) clearInterval(unreadTimerRef.current);
     };
   }, [open, fetchUnread]);
+
+  // ─── BROKER WELCOME AUTO-MESSAGE ─────────────────────────────────────────
+  const brokerWelcomeFired = useRef(false);
+  useEffect(() => {
+    if (!brokerWelcome || brokerWelcomeFired.current || conversationId || messages.length > 0) return;
+    brokerWelcomeFired.current = true;
+    const welcomePrompt = "I just signed up as a licensed customs broker partner. Walk me through getting started with the TMS widget — dashboard overview, widget installation, and making my first referral. Keep it concise and step-by-step.";
+    handleSend(welcomePrompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brokerWelcome, conversationId, messages.length]);
 
   // ─── SEND MESSAGE ───────────────────────────────────────────────────────
   async function handleSend(text: string) {
