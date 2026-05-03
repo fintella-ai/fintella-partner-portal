@@ -233,7 +233,7 @@ function autoMapColumns(headers: string[]): {
 
 export default function CalculatorPage() {
   const [activeTab, setActiveTab] = useState<TabId>("quick-estimate");
-  const [commissionRate, setCommissionRate] = useState(0.20);
+  const [commissionRate, setCommissionRate] = useState(0.25);
 
   // Load partner commission rate
   useEffect(() => {
