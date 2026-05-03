@@ -67,6 +67,10 @@
     {
       "path": "/api/cron/template-decay",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/comms-graph",
+      "schedule": "0 5 * * 0"
     }
   ]
 }
