@@ -3014,3 +3014,36 @@ model TemplatePerformanceBaseline {
   @@index([isDecaying])
   @@index([templateType])
 }
+
+model CommsGraphEdge {
+  id                String   @id @default(cuid())
+  sourcePartnerCode String
+  targetPartnerCode String
+  edgeType          String
+  templateKey       String?
+  weight            Int      @default(1)
+  avgDaysToAction   Float?
+  lastOccurredAt    DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([sourcePartnerCode, targetPartnerCode, edgeType, templateKey])
+  @@index([sourcePartnerCode])
+  @@index([targetPartnerCode])
+  @@index([edgeType])
+}
+
+model CommsGraphSummary {
+  id                    String   @id @default(cuid())
+  templateKey           String   @unique
+  templateType          String   @default("email")
+  totalSends            Int      @default(0)
+  sendsFollowedByAction Int      @default(0)
+  conversionRate        Float    @default(0)
+  avgDaysToAction       Float?
+  topDownstreamAction   String?
+  revenueCorrelation    Float?
+  computedAt            DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
