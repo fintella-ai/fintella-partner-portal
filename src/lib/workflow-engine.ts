@@ -10,6 +10,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { resolveAbVariant } from "@/lib/ab-test";
 
 // ─── Trigger keys ────────────────────────────────────────────────────────────
 export const TRIGGER_KEYS = [
@@ -483,8 +484,10 @@ async function executeAction(
         const templateKey = String(config.template || "");
         if (!templateKey) throw new Error("email.send: template key is required");
 
-        // Look up the EmailTemplate from the DB
-        const tpl = await prisma.emailTemplate.findUnique({ where: { key: templateKey } });
+        const emailAb = await resolveAbVariant(templateKey, "email");
+        const tpl = emailAb
+          ? await prisma.emailTemplate.findUnique({ where: { id: emailAb.templateId } })
+          : await prisma.emailTemplate.findUnique({ where: { key: templateKey } });
         if (!tpl || !tpl.enabled) throw new Error(`email.send: template "${templateKey}" not found or disabled`);
 
         const vars = flattenForTemplate(payload);
@@ -556,7 +559,10 @@ async function executeAction(
         const templateKey = String(config.template || "");
         if (!templateKey) throw new Error("sms.send: template key is required");
 
-        const tpl = await prisma.smsTemplate.findUnique({ where: { key: templateKey } });
+        const smsAb = await resolveAbVariant(templateKey, "sms");
+        const tpl = smsAb
+          ? await prisma.smsTemplate.findUnique({ where: { id: smsAb.templateId } })
+          : await prisma.smsTemplate.findUnique({ where: { key: templateKey } });
         if (!tpl || !tpl.enabled) throw new Error(`sms.send: template "${templateKey}" not found or disabled`);
 
         // Resolve recipient — either a partnerCode (TCPA-gated lookup) or an explicit partner from payload.
