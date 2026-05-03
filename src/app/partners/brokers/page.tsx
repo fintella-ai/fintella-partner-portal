@@ -8,12 +8,12 @@ import HeroCalculator from "./HeroCalculator";
 export const metadata: Metadata = {
   title: "The Only Tariff Refund Widget for CargoWise & Magaya | Fintella",
   description:
-    "Embed our IEEPA refund calculator inside your TMS. Refer clients in one click. Earn 10-20% commission. Free to join. 5-minute setup.",
+    "Embed our IEEPA refund calculator inside your TMS. Refer clients in one click. Earn 25% commission. Free to join. 5-minute setup.",
   robots: { index: true, follow: true },
   openGraph: {
     title: "TMS Widget — Turn Every Shipment Into Revenue | Fintella",
     description:
-      "The only tariff refund tool that runs inside your shipping software. Earn 10-20% on every recovery.",
+      "The only tariff refund tool that runs inside your shipping software. Earn 25% on every recovery.",
     type: "website",
   },
 };
