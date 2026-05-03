@@ -18,6 +18,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { FIRM_NAME, FIRM_SHORT } from "@/lib/constants";
+import { resolveAbVariant } from "@/lib/ab-test";
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
 const SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send";
@@ -409,6 +410,37 @@ async function loadTemplate(key: string): Promise<TemplateLookup | null> {
   }
 }
 
+async function loadTemplateById(id: string): Promise<TemplateLookup | null> {
+  try {
+    const tpl = await prisma.emailTemplate.findUnique({ where: { id } });
+    if (!tpl || !tpl.enabled) return null;
+    return {
+      subject: tpl.subject,
+      preheader: tpl.preheader,
+      heading: tpl.heading,
+      bodyHtml: tpl.bodyHtml,
+      bodyText: tpl.bodyText,
+      ctaLabel: tpl.ctaLabel,
+      ctaUrl: tpl.ctaUrl,
+      fromEmail: tpl.fromEmail,
+      fromName: tpl.fromName,
+      replyTo: tpl.replyTo,
+    };
+  } catch (err) {
+    console.warn(`[SendGrid] template lookup failed for id=${id}, falling back:`, err);
+    return null;
+  }
+}
+
+async function loadTemplateWithAbTest(key: string): Promise<TemplateLookup | null> {
+  const ab = await resolveAbVariant(key, "email");
+  if (ab) {
+    const tpl = await loadTemplateById(ab.templateId);
+    if (tpl) return tpl;
+  }
+  return loadTemplate(key);
+}
+
 /**
  * Linear-time {variable} interpolation. `escape` is applied to each value
  * before substitution — pass `escapeHtml` for HTML fields and an identity
@@ -462,7 +494,7 @@ export async function sendWelcomeEmail(
     firmName: FIRM_NAME,
   };
 
-  const tpl = await loadTemplate("welcome");
+  const tpl = await loadTemplateWithAbTest("welcome");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
@@ -544,7 +576,7 @@ export async function sendAgreementReadyEmail(
     firmName: FIRM_NAME,
   };
 
-  const tpl = await loadTemplate("agreement_ready");
+  const tpl = await loadTemplateWithAbTest("agreement_ready");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
@@ -621,7 +653,7 @@ export async function sendAgreementSignedEmail(
     firmName: FIRM_NAME,
   };
 
-  const tpl = await loadTemplate("agreement_signed");
+  const tpl = await loadTemplateWithAbTest("agreement_signed");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
@@ -708,7 +740,7 @@ export async function sendInviterSignupNotificationEmail(opts: {
     firmName: FIRM_NAME,
   };
 
-  const tpl = await loadTemplate("signup_notification");
+  const tpl = await loadTemplateWithAbTest("signup_notification");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
@@ -789,7 +821,7 @@ export async function sendDealStatusUpdateEmail(opts: {
     firmName: FIRM_NAME,
   };
 
-  const tpl = await loadTemplate("deal_status_update");
+  const tpl = await loadTemplateWithAbTest("deal_status_update");
   if (!tpl) {
     // No DB template — skip the send. There's no hardcoded fallback for
     // this template because it's admin-editable draft content; if the
@@ -845,7 +877,7 @@ export async function sendCommissionPaidEmail(opts: {
     firmName: FIRM_NAME,
   };
 
-  const tpl = await loadTemplate("commission_payment_notification");
+  const tpl = await loadTemplateWithAbTest("commission_payment_notification");
   if (!tpl) return { status: "demo", messageId: null };
 
   const { html, text } = emailShell({
@@ -900,7 +932,7 @@ export async function sendL1InviteEmail(opts: {
     commissionRatePct: ratePct,
   };
 
-  const tpl = await loadTemplate("l1_invite");
+  const tpl = await loadTemplateWithAbTest("l1_invite");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
@@ -982,7 +1014,7 @@ export async function sendLandingInviteEmail(opts: {
     senderName: sender,
   };
 
-  const tpl = await loadTemplate("landing_invite");
+  const tpl = await loadTemplateWithAbTest("landing_invite");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
@@ -1066,7 +1098,7 @@ export async function sendChannelInviteEmail(opts: {
     firmName: FIRM_NAME,
   };
 
-  const tpl = await loadTemplate("partner_added_to_channel");
+  const tpl = await loadTemplateWithAbTest("partner_added_to_channel");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
@@ -1157,7 +1189,7 @@ export async function sendDownlineInviteEmail(opts: {
     tierLabel,
   };
 
-  const tpl = await loadTemplate("downline_invite");
+  const tpl = await loadTemplateWithAbTest("downline_invite");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
@@ -1228,7 +1260,7 @@ export async function sendMonthlyNewsletterToAllPartners(): Promise<{
   skipped: number;
 }> {
   const { prisma } = await import("@/lib/prisma");
-  const tpl = await loadTemplate("monthly_newsletter");
+  const tpl = await loadTemplateWithAbTest("monthly_newsletter");
   if (!tpl) return { sent: 0, failed: 0, skipped: 0 };
 
   const activePartners = await prisma.partner.findMany({
@@ -1308,7 +1340,7 @@ export async function sendPasswordResetEmail(opts: {
     portalUrl: PORTAL_URL,
   };
 
-  const tpl = await loadTemplate("password_reset");
+  const tpl = await loadTemplateWithAbTest("password_reset");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
@@ -1383,7 +1415,7 @@ export async function sendNoShowRebookingEmail(opts: {
     firmName: FIRM_NAME,
   };
 
-  const tpl = await loadTemplate("no_show_rebooking");
+  const tpl = await loadTemplateWithAbTest("no_show_rebooking");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
@@ -1463,7 +1495,7 @@ export async function sendAgreementReminderEmail(opts: {
     firmName: FIRM_NAME,
   };
 
-  const tpl = await loadTemplate("agreement_reminder");
+  const tpl = await loadTemplateWithAbTest("agreement_reminder");
   if (tpl) {
     const { html, text } = emailShell({
       preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
