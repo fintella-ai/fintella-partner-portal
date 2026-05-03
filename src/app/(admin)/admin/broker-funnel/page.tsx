@@ -793,18 +793,38 @@ export default function BrokerFunnelPage() {
                   When enabled, broker applications are automatically approved and invited without manual review.
                 </p>
               </div>
-              <div className="ml-4">
-                <div
-                  className="w-12 h-7 rounded-full relative cursor-pointer transition-colors"
-                  style={{
-                    background: "var(--app-border)",
-                    opacity: 0.6,
-                  }}
-                  title="Coming soon"
-                >
-                  <div className="absolute left-1 top-1 w-5 h-5 bg-white rounded-full transition-transform" />
-                </div>
-                <span className="font-body text-[10px] theme-text-muted block mt-1 text-center">Coming soon</span>
+              <div className="ml-4 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="font-body text-xs text-emerald-400 font-semibold">Active</span>
+              </div>
+            </div>
+            <div className="mt-3 px-3 py-2 rounded-lg text-xs font-body" style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)", color: "var(--app-text-secondary)" }}>
+              Broker signups from <span className="text-brand-gold">/partners/brokers</span> are automatically approved and receive their invite email immediately. All brokers are created as L2 partners under PTNS4XDMN at 25% commission.
+            </div>
+          </div>
+
+          {/* Google Ads Status */}
+          <div className="card p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display text-sm font-bold mb-1">Google Ads Campaign</h3>
+                <p className="font-body text-xs theme-text-muted">
+                  Campaign #1 was paused due to a policy violation (misleading ad design). A new Search campaign targeting broker-specific IEEPA keywords is recommended.
+                </p>
+              </div>
+              <div className="ml-4 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className="font-body text-xs text-amber-400 font-semibold">Paused</span>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="px-3 py-2 rounded-lg text-xs font-body" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid var(--app-border)" }}>
+                <div className="text-[10px] uppercase tracking-wider mb-1 theme-text-muted">Conversion Tag</div>
+                <div className="font-mono text-[var(--app-text)]">AW-18128579100</div>
+              </div>
+              <div className="px-3 py-2 rounded-lg text-xs font-body" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid var(--app-border)" }}>
+                <div className="text-[10px] uppercase tracking-wider mb-1 theme-text-muted">Action Needed</div>
+                <div className="text-amber-400">Create new Search campaign</div>
               </div>
             </div>
           </div>
