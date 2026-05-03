@@ -78,6 +78,7 @@ const ALL_NAV_ITEMS = [
   // from any existing saved navOrder and appends these two at the tail.
   { id: "communications", label: "Communications", icon: "💬" },
   { id: "partner-support", label: "Partner Support", icon: "🙋" },
+  { id: "templates", label: "Templates", icon: "📝" },
   { id: "feature-request", label: "Feature Requests", icon: "💡" },
 ];
 

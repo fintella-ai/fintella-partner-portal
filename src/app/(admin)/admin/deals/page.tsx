@@ -220,6 +220,14 @@ export default function AdminDealsPage() {
   // firmFeeRatePct is the percentage form (0..100); converted to decimal
   // (0..1) on save to match the DB schema convention.
   const [editIor, setEditIor] = useState(true);
+  // Tier upgrade modal state
+  const [tierUpgradeId, setTierUpgradeId] = useState<string | null>(null);
+  const [tierUpgradeReason, setTierUpgradeReason] = useState("");
+  const [tierUpgradeLoading, setTierUpgradeLoading] = useState(false);
+  const [tierUpgradeResult, setTierUpgradeResult] = useState<{
+    previousAmounts: { l1: number; l2: number; l3: number; total: number };
+    newAmounts: { l1: number; l2: number; l3: number; total: number };
+  } | null>(null);
   const [editRefund, setEditRefund] = useState("");
   const [editActualRefund, setEditActualRefund] = useState("");
   const [editFirmFeeRatePct, setEditFirmFeeRatePct] = useState("");
@@ -449,6 +457,36 @@ export default function AdminDealsPage() {
       fetchDealNotes(dealId);
     } catch {
       alert("Failed to undo payment received");
+    }
+  };
+
+  const handleTierUpgrade = async (dealId: string) => {
+    if (!tierUpgradeReason.trim()) return;
+    setTierUpgradeLoading(true);
+    try {
+      const res = await fetch(`/api/admin/deals/${dealId}/upgrade-tier`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: tierUpgradeReason }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to upgrade tier");
+        setTierUpgradeLoading(false);
+        return;
+      }
+      setTierUpgradeResult({
+        previousAmounts: data.previousAmounts,
+        newAmounts: data.newAmounts,
+      });
+      setTierUpgradeLoading(false);
+      // Refresh edit panel state to reflect Tier 1
+      setEditIor(true);
+      fetchDeals();
+      fetchDealNotes(dealId);
+    } catch {
+      alert("Failed to upgrade tier");
+      setTierUpgradeLoading(false);
     }
   };
 
@@ -910,6 +948,85 @@ export default function AdminDealsPage() {
                       {editIor ? "Tier 1 — Importer of Record" : "Tier 2 — Not IOR (50% commission)"}
                       <span className="text-[var(--app-text-muted)] ml-2">(super admin can change)</span>
                     </div>
+                    )}
+                    {/* Upgrade to Tier 1 button — only when deal is currently Tier 2 and user is super_admin */}
+                    {isSuperAdmin && !deal.isImporterOfRecord && (
+                      <>
+                        {tierUpgradeId === deal.id ? (
+                          <div className="mt-2 p-3 rounded border border-emerald-500/30 bg-emerald-500/5">
+                            {tierUpgradeResult ? (
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium text-emerald-400">Upgrade complete</div>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  <div>
+                                    <div className="text-[var(--app-text-muted)] mb-1">Previous (Tier 2)</div>
+                                    <div>L1: ${tierUpgradeResult.previousAmounts.l1.toFixed(2)}</div>
+                                    <div>L2: ${tierUpgradeResult.previousAmounts.l2.toFixed(2)}</div>
+                                    <div>L3: ${tierUpgradeResult.previousAmounts.l3.toFixed(2)}</div>
+                                    <div className="font-medium mt-1 pt-1 border-t border-[var(--app-border)]">
+                                      Total: ${tierUpgradeResult.previousAmounts.total.toFixed(2)}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-emerald-400 mb-1">New (Tier 1)</div>
+                                    <div>L1: ${tierUpgradeResult.newAmounts.l1.toFixed(2)}</div>
+                                    <div>L2: ${tierUpgradeResult.newAmounts.l2.toFixed(2)}</div>
+                                    <div>L3: ${tierUpgradeResult.newAmounts.l3.toFixed(2)}</div>
+                                    <div className="font-medium mt-1 pt-1 border-t border-[var(--app-border)]">
+                                      Total: ${tierUpgradeResult.newAmounts.total.toFixed(2)}
+                                    </div>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => { setTierUpgradeId(null); setTierUpgradeResult(null); setTierUpgradeReason(""); }}
+                                  className="text-xs text-[var(--app-text-muted)] hover:text-[var(--app-text)] mt-1"
+                                >
+                                  Dismiss
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium text-emerald-400">Upgrade to Tier 1</div>
+                                <div className="text-[10px] text-[var(--app-text-muted)]">
+                                  This will set isImporterOfRecord to true and recalculate all commissions at full rates (removing the 50% Tier 2 discount). This action creates an audit trail.
+                                </div>
+                                <input
+                                  className="w-full px-2 py-1.5 rounded text-xs bg-[var(--app-bg-primary)] border border-[var(--app-border)] text-[var(--app-text)] placeholder:text-[var(--app-text-faint)]"
+                                  placeholder="Reason for upgrade (required)..."
+                                  value={tierUpgradeReason}
+                                  onChange={(e) => setTierUpgradeReason(e.target.value)}
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={tierUpgradeLoading || !tierUpgradeReason.trim()}
+                                    onClick={() => handleTierUpgrade(deal.id)}
+                                    className="px-3 py-1.5 rounded text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    {tierUpgradeLoading ? "Upgrading..." : "Confirm Upgrade"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setTierUpgradeId(null); setTierUpgradeReason(""); }}
+                                    className="px-3 py-1.5 rounded text-xs text-[var(--app-text-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)]"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => { setTierUpgradeId(deal.id); setTierUpgradeResult(null); setTierUpgradeReason(""); }}
+                            className="mt-2 w-full px-3 py-2 rounded text-xs font-medium border border-emerald-500/30 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all"
+                          >
+                            Upgrade to Tier 1 (Recalculate Commissions)
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                   <div className="mt-3">

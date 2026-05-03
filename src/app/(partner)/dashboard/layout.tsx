@@ -69,6 +69,7 @@ const MAIN_NAV: Array<{
     shortLabel: "Help",
     activePaths: ["/dashboard/ai-assistant", "/dashboard/support"],
   },
+  { id: "templates", href: "/dashboard/templates", icon: "📝", label: "Templates", shortLabel: "Tmpls" },
   { id: "feature-request", href: "/dashboard/feature-request", icon: "💡", label: "Feature Requests", shortLabel: "Ideas" },
 ];
 
@@ -91,6 +92,7 @@ const BUILT_IN_PARTNER_ICONS: Record<string, string> = {
   "feature-request": "/icons/features-lightbulb.svg",
   "my-leads": "/icons/my-leads-target.svg",
   "earnings-calculator": "/icons/earnings-calculator.svg",
+  templates: "/icons/features-lightbulb.svg",
 };
 
 // Mobile bottom bar items (subset)
