@@ -188,6 +188,10 @@ function CommissionsPageContent() {
             L3 (2nd-Level Downline) — rate set when your downline recruits their sub-partners
           </div>
         )}
+        <div className="mt-3 p-3 bg-amber-500/[0.05] border border-amber-500/15 rounded-lg font-body text-[12px] text-[var(--app-text-secondary)]">
+          <div className="font-semibold text-amber-400 mb-1">Tier 2 Service (Non-IOR Clients) — 50% of Standard Rate</div>
+          <div>When your client is <span className="font-semibold text-[var(--app-text)]">not the Importer of Record</span>, recovery requires litigation through the Court of International Trade. These cases are complex, costly, and handled entirely by our legal team on contingency. Your commission is 50% of your standard rate — because we&apos;re offering you something instead of nothing on cases no one else will touch.</div>
+        </div>
       </div>
 
       {/* ═══ TOTALS BANNER ═══ */}

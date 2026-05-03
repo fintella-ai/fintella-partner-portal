@@ -949,6 +949,11 @@ export default function AdminDealsPage() {
                       <span className="text-[var(--app-text-muted)] ml-2">(super admin can change)</span>
                     </div>
                     )}
+                    {!editIor && (
+                      <div className="mt-2 p-2 rounded bg-amber-500/5 border border-amber-500/15 font-body text-[10px] text-amber-400/80 leading-relaxed">
+                        Tier 2 deals require CIT litigation — costly, complex, handled on contingency. Partner commission is 50% of standard rate. Something instead of nothing.
+                      </div>
+                    )}
                     {/* Upgrade to Tier 1 button — only when deal is currently Tier 2 and user is super_admin */}
                     {isSuperAdmin && !deal.isImporterOfRecord && (
                       <>
