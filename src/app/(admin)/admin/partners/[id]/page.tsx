@@ -1529,6 +1529,19 @@ export default function PartnerDetailPage() {
               >
                 🔄 Refresh Status
               </button>
+              <button
+                onClick={async () => {
+                  if (!confirm("Void this agreement? This cancels the document in SignWell and sets status to voided.")) return;
+                  try {
+                    const res = await fetch(`/api/admin/agreement/${partner.partnerCode}`, { method: "DELETE" });
+                    if (res.ok) { alert("Agreement voided"); fetchPartner(); }
+                    else { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to void"); }
+                  } catch { alert("Network error"); }
+                }}
+                className="font-body text-[11px] text-red-400/70 border border-red-400/20 rounded-lg px-3 py-1.5 hover:bg-red-400/10 transition-colors"
+              >
+                ❌ Void Agreement
+              </button>
             </div>
             <label className={`font-body text-[11px] text-green-400/70 border border-green-400/20 rounded-lg px-3 py-1.5 hover:bg-green-400/10 transition-colors cursor-pointer ${uploadingAgreement ? "opacity-50 pointer-events-none" : ""}`}>
               {uploadingAgreement ? "Uploading..." : "Upload Agreement"}
