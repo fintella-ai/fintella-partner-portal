@@ -489,3 +489,46 @@ export async function PUT(
     );
   }
 }
+
+/**
+ * DELETE /api/admin/agreement/[partnerCode]
+ * Void/cancel an active agreement — works in any status (pending, viewed, partner_signed, signed).
+ */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { partnerCode: string } }
+) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const role = (session.user as any).role;
+  if (!["super_admin", "admin"].includes(role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const partnerCode = params.partnerCode;
+  try {
+    const agreement = await prisma.partnershipAgreement.findFirst({
+      where: { partnerCode, status: { notIn: ["voided", "not_sent"] } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!agreement) {
+      return NextResponse.json({ error: "No active agreement found" }, { status: 404 });
+    }
+
+    if (agreement.signwellDocumentId) {
+      await cancelDocument(agreement.signwellDocumentId).catch(() => {});
+    }
+
+    await prisma.partnershipAgreement.update({
+      where: { id: agreement.id },
+      data: { status: "voided" },
+    });
+
+    return NextResponse.json({ success: true, voided: agreement.id });
+  } catch {
+    return NextResponse.json({ error: "Failed to void agreement" }, { status: 500 });
+  }
+}
