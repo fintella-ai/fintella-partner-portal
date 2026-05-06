@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { sendEmail, isSendGridConfigured } from "@/lib/sendgrid";
+import { sendEmail, isEmailConfigured, isSendGridConfigured } from "@/lib/sendgrid";
 
 /**
  * POST /api/admin/dev/test-email
@@ -110,7 +110,9 @@ export async function POST(req: NextRequest) {
     status: result.status,
     messageId: result.messageId,
     error: result.error,
+    emailConfigured: isEmailConfigured(),
     sendgridConfigured: isSendGridConfigured(),
+    resendConfigured: !!process.env.RESEND_API_KEY,
     sentAt,
     to,
   });
