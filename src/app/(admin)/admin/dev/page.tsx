@@ -487,10 +487,15 @@ function QuickLinksTab({ data }: { data: DevData | null }) {
             <div className="font-body text-sm text-[var(--app-text)] mb-1">Twilio Dashboard ↗</div>
             <div className="font-body text-[10px] theme-text-muted">SMS, voice, A2P 10DLC, messaging services</div>
           </a>
+          <a href="https://resend.com/overview" target="_blank" rel="noopener noreferrer"
+            className="p-3.5 rounded-lg border border-[var(--app-border)] hover:border-brand-gold/30 transition-colors">
+            <div className="font-body text-sm text-[var(--app-text)] mb-1">Resend ↗</div>
+            <div className="font-body text-[10px] theme-text-muted">Primary email provider — domains, API keys, logs</div>
+          </a>
           <a href="https://app.sendgrid.com/" target="_blank" rel="noopener noreferrer"
             className="p-3.5 rounded-lg border border-[var(--app-border)] hover:border-brand-gold/30 transition-colors">
-            <div className="font-body text-sm text-[var(--app-text)] mb-1">SendGrid ↗</div>
-            <div className="font-body text-[10px] theme-text-muted">Transactional email, domain auth, stats</div>
+            <div className="font-body text-sm text-[var(--app-text)] mb-1">SendGrid (fallback) ↗</div>
+            <div className="font-body text-[10px] theme-text-muted">Fallback email, domain auth, validation API</div>
           </a>
           <a href="https://sentry.io/organizations/" target="_blank" rel="noopener noreferrer"
             className="p-3.5 rounded-lg border border-[var(--app-border)] hover:border-brand-gold/30 transition-colors">

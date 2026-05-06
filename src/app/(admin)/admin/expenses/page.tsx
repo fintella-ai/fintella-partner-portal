@@ -40,7 +40,8 @@ const CATEGORIES: Category[] = [
     icon: "🔌",
     services: [
       { name: "SignWell", plan: "Paid", monthlyCost: 30, status: "active", note: "E-signatures", startDate: "2026-04-01" },
-      { name: "SendGrid", plan: "Upgraded", monthlyCost: 79, status: "active", note: "Transactional email", startDate: "2026-04-01" },
+      { name: "Resend", plan: "Free → Pro", monthlyCost: 20, status: "active", note: "Primary email provider", startDate: "2026-05-06" },
+      { name: "SendGrid", plan: "Under Review", monthlyCost: 0, status: "idle", note: "Fallback only — account under review" },
       { name: "Twilio SMS", plan: "Pending", monthlyCost: 0, status: "pending", note: "Waiting on A2P 10DLC approval" },
       { name: "Twilio Voice", plan: "Usage-based", monthlyCost: 5, status: "active", startDate: "2026-04-20" },
       { name: "Sentry", plan: "Team", monthlyCost: 29, status: "active", note: "Error monitoring", startDate: "2026-04-26" },
