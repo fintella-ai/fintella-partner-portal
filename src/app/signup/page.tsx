@@ -99,8 +99,8 @@ function SignupContent() {
       setPhoneError("Please enter at least one valid phone number (Phone or Mobile).");
       return;
     }
-    if (!emailOptIn || !smsOptIn) {
-      setError("You must consent to both email and SMS communications to proceed.");
+    if (!emailOptIn) {
+      setError("You must consent to email communications to proceed.");
       return;
     }
     setError("");
@@ -166,7 +166,7 @@ function SignupContent() {
                   This is a demonstration of the Fintella partner signup form. Actual account creation requires a unique invitation link sent by a Fintella admin (invite-only by policy).
                 </div>
                 <div className="font-body text-[12px] text-[var(--app-text-muted)] leading-relaxed">
-                  Partners provide explicit SMS opt-in via the checkbox below during registration. Message frequency varies based on deal activity. Message and data rates may apply. Reply <strong>STOP</strong> to cancel at any time; reply <strong>HELP</strong> for help. See our{" "}
+                  <strong>SMS Opt-In Flow:</strong> Partners provide explicit, optional SMS opt-in via the checkbox below during registration at https://fintella.partners/signup. SMS consent is NOT required to create an account. Program: &quot;Fintella Partner Notifications.&quot; Message frequency varies based on deal activity. Message and data rates may apply. Reply <strong>STOP</strong> to cancel at any time; reply <strong>HELP</strong> for help. Consent is not shared with third parties. See our{" "}
                   <a href="/privacy" className="text-brand-gold underline">Privacy Policy</a>{" "}and{" "}
                   <a href="/terms" className="text-brand-gold underline">Terms &amp; Conditions</a>.
                 </div>
@@ -281,15 +281,17 @@ function SignupContent() {
                       className="mt-0.5 w-4 h-4 rounded border-brand-gold/30 bg-transparent text-brand-gold focus:ring-brand-gold/50 cursor-pointer shrink-0"
                     />
                     <span className="font-body text-[12px] theme-text-secondary leading-relaxed">
-                      I agree to receive SMS notifications about my account activity, deal status updates, and commission payment alerts. Message frequency varies. Message and data rates may apply. Reply STOP to cancel at any time.
+                      <span className="font-semibold">(Optional)</span> I agree to receive SMS notifications from Fintella Partner Notifications about my account activity, deal status updates, and commission payment alerts. Message frequency varies. Message and data rates may apply. Reply STOP to cancel, HELP for help. SMS consent is not required to register. See our{" "}
+                      <a href="/privacy" className="text-brand-gold underline" target="_blank">Privacy Policy</a>{" "}and{" "}
+                      <a href="/terms" className="text-brand-gold underline" target="_blank">Terms &amp; Conditions</a>.
                     </span>
                   </label>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={submitting || !emailOptIn || !smsOptIn || isPreview}
-                  className={`btn-gold w-full min-h-[48px] mt-2 ${(!emailOptIn || !smsOptIn || isPreview) ? "opacity-50 cursor-not-allowed" : ""}`}
+                  disabled={submitting || !emailOptIn || isPreview}
+                  className={`btn-gold w-full min-h-[48px] mt-2 ${(!emailOptIn || isPreview) ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {isPreview
                     ? "Preview — invitation link required"
