@@ -19,22 +19,32 @@ export default function SmsTermsPage() {
 
       <div className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="font-display text-3xl font-bold mb-2">SMS Terms &amp; Conditions</h1>
-        <p className="text-sm mb-8" style={{ color: "var(--app-text-muted)" }}>Last updated: April 28, 2026</p>
+        <p className="text-sm mb-8" style={{ color: "var(--app-text-muted)" }}>Last updated: May 6, 2026</p>
 
         <div className="space-y-8 text-sm leading-relaxed" style={{ color: "var(--app-text-secondary, #94a3b8)" }}>
 
           <section>
+            <h2 className="font-display text-lg font-bold mb-3" style={{ color: "var(--app-text)" }}>About Fintella</h2>
+            <p className="mb-3">
+              Fintella (a DBA of Annexation PR LLC) is a financial intelligence platform that operates a B2B partner referral network. Fintella connects independent referral partners — including customs brokers, trade compliance professionals, and business consultants — with professional service firms that handle IEEPA tariff refund recovery for U.S. importers.
+            </p>
+            <p>
+              Partners use the Fintella Partner Portal at <strong style={{ color: "var(--app-text)" }}>https://fintella.partners</strong> to submit client referrals, track deal progress, view earned commissions, manage their downline network, and receive notifications about their account activity. The portal is an invite-only platform; access requires an invitation from a Fintella administrator or an existing partner.
+            </p>
+          </section>
+
+          <section>
             <h2 className="font-display text-lg font-bold mb-3" style={{ color: "var(--app-text)" }}>1. Program Overview</h2>
             <p>
-              Fintella Partners (&quot;Fintella,&quot; operated by Annexation PR LLC) offers an SMS notification service to keep partners informed about their account activity, deal status updates, commission payment alerts, agreement reminders, and other partner program communications.
+              Fintella Partners (&quot;Fintella,&quot; operated by Annexation PR LLC) offers an optional SMS notification service called &quot;Fintella Partner Notifications&quot; to keep registered partners informed about their account activity, deal status updates, commission payment alerts, agreement reminders, and other partner program communications.
             </p>
           </section>
 
           <section>
             <h2 className="font-display text-lg font-bold mb-3" style={{ color: "var(--app-text)" }}>2. Consent &amp; Opt-In</h2>
             <p className="mb-3">
-              Partners provide explicit SMS opt-in consent through a mandatory checkbox during account registration at{" "}
-              <strong style={{ color: "var(--app-text)" }}>https://fintella.partners/getstarted</strong>. The checkbox text states:
+              Partners may provide explicit, optional SMS opt-in consent by checking the SMS notifications checkbox during account registration at{" "}
+              <strong style={{ color: "var(--app-text)" }}>https://fintella.partners/signup</strong>. SMS consent is clearly marked as optional and is not required to create an account or use the Fintella Partner Portal. The checkbox text states:
             </p>
             <div className="p-4 rounded-lg border mb-3" style={{ background: "var(--app-card-bg, #0c1220)", borderColor: "var(--app-border)" }}>
               <div className="flex items-start gap-3">
@@ -44,12 +54,12 @@ export default function SmsTermsPage() {
                   </svg>
                 </div>
                 <p className="text-sm" style={{ color: "var(--app-text)" }}>
-                  &quot;I agree to receive SMS notifications about my account activity, deal status updates, and commission payment alerts. Message frequency varies. Message and data rates may apply. Reply STOP to cancel at any time.&quot;
+                  &quot;(Optional) I agree to receive SMS notifications from Fintella Partner Notifications about my account activity, deal status updates, and commission payment alerts. Message frequency varies. Message and data rates may apply. Reply STOP to cancel, HELP for help. SMS consent is not required to register.&quot;
                 </p>
               </div>
             </div>
             <p>
-              This checkbox must be selected before the registration form can be submitted. Consent is not a condition of purchase or partnership — partners may opt out at any time without affecting their partnership status.
+              SMS consent is not a condition of registration, purchase, or partnership. Partners may use the Fintella Partner Portal fully without enrolling in SMS notifications, and may opt out at any time without affecting their partnership status. SMS opt-in consent is not shared with third parties for marketing purposes.
             </p>
           </section>
 

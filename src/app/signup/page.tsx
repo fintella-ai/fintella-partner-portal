@@ -160,15 +160,21 @@ function SignupContent() {
             {isPreview && (
               <div className="card p-5 mb-6" style={{ borderColor: "rgba(196,160,80,0.5)", background: "rgba(196,160,80,0.06)" }}>
                 <div className="font-body text-[11px] font-semibold uppercase tracking-wider text-brand-gold mb-2">
-                  Preview — A2P 10DLC Campaign Review
+                  About Fintella — Business Context
                 </div>
-                <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-2">
-                  This is a demonstration of the Fintella partner signup form. Actual account creation requires a unique invitation link sent by a Fintella admin (invite-only by policy).
+                <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-3">
+                  <strong>Fintella</strong> (a DBA of Annexation PR LLC) is a financial intelligence platform that operates a B2B partner referral network. Fintella connects independent referral partners — including customs brokers, trade compliance professionals, and business consultants — with professional service firms that handle IEEPA tariff refund recovery for U.S. importers. Partners use this portal to submit client referrals, track deal progress, view earned commissions, and manage their network.
+                </div>
+                <div className="font-body text-[13px] text-[var(--app-text-secondary)] leading-relaxed mb-3">
+                  This is the partner registration form for the Fintella Partner Portal. Account creation requires a unique invitation link sent by a Fintella administrator or existing partner (invite-only by policy).
+                </div>
+                <div className="font-body text-[12px] text-[var(--app-text-muted)] leading-relaxed mb-2" style={{ borderTop: "1px solid rgba(196,160,80,0.2)", paddingTop: 12 }}>
+                  <strong>SMS Opt-In Flow:</strong> Partners may provide explicit, optional SMS opt-in via the checkbox below during registration at https://fintella.partners/signup. SMS consent is NOT required to create an account. Program name: &quot;Fintella Partner Notifications.&quot; Message frequency varies based on deal activity. Message and data rates may apply. Reply <strong>STOP</strong> to cancel at any time; reply <strong>HELP</strong> for help. SMS opt-in consent is not shared with third parties for marketing purposes.
                 </div>
                 <div className="font-body text-[12px] text-[var(--app-text-muted)] leading-relaxed">
-                  <strong>SMS Opt-In Flow:</strong> Partners provide explicit, optional SMS opt-in via the checkbox below during registration at https://fintella.partners/signup. SMS consent is NOT required to create an account. Program: &quot;Fintella Partner Notifications.&quot; Message frequency varies based on deal activity. Message and data rates may apply. Reply <strong>STOP</strong> to cancel at any time; reply <strong>HELP</strong> for help. Consent is not shared with third parties. See our{" "}
-                  <a href="/privacy" className="text-brand-gold underline">Privacy Policy</a>{" "}and{" "}
-                  <a href="/terms" className="text-brand-gold underline">Terms &amp; Conditions</a>.
+                  <a href="/privacy" className="text-brand-gold underline">Privacy Policy</a>{" · "}
+                  <a href="/terms" className="text-brand-gold underline">Terms &amp; Conditions</a>{" · "}
+                  <a href="/sms-terms" className="text-brand-gold underline">SMS Terms</a>
                 </div>
               </div>
             )}
