@@ -249,7 +249,7 @@ export async function POST(req: NextRequest) {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         companyName: companyName?.trim() || null,
-        partnerType: ["referral", "corporate", "customs_broker", "licensed"].includes(partnerType) ? partnerType : "referral",
+        partnerType: ["referral", "customs_broker", "licensed"].includes(partnerType) ? partnerType : "referral",
         phone: normalizePhone(phone),
         mobilePhone: normalizePhone(mobilePhone),
         status: "pending", // pending until agreement signed
