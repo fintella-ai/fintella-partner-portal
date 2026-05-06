@@ -6,11 +6,13 @@ import AddKnowledgeForm from "@/components/admin/knowledge/AddKnowledgeForm";
 import PendingApprovalCard from "@/components/admin/knowledge/PendingApprovalCard";
 import ResearchJobHistory from "@/components/admin/knowledge/ResearchJobHistory";
 import KnowledgeAnalytics from "@/components/admin/knowledge/KnowledgeAnalytics";
+import CompetitiveIntelTab from "@/components/admin/knowledge/CompetitiveIntelTab";
 
 const TABS = [
   { id: "knowledge", label: "Knowledge Base" },
   { id: "add", label: "Add New" },
   { id: "research", label: "Research Agent" },
+  { id: "competitive", label: "Competitive Intel" },
   { id: "analytics", label: "Analytics" },
 ] as const;
 
@@ -55,6 +57,7 @@ export default function KnowledgeCenterPage() {
           <ResearchJobHistory />
         </div>
       )}
+      {tab === "competitive" && <CompetitiveIntelTab />}
       {tab === "analytics" && <KnowledgeAnalytics />}
     </div>
   );
