@@ -253,7 +253,6 @@ function SignupContent() {
                     <label className={labelClass}>Partner Type</label>
                     <select className={inputClass} value={partnerType} onChange={(e) => setPartnerType(e.target.value)}>
                       <option value="referral">Referral Partner</option>
-                      <option value="corporate">Corporate Partner</option>
                       <option value="customs_broker">Customs Broker</option>
                       <option value="licensed">Licensed Partner (Law/Accounting)</option>
                     </select>
