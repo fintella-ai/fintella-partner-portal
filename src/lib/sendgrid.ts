@@ -1,15 +1,11 @@
 /**
- * SendGrid Email Client (Phase 15a)
+ * Email Client — Resend primary, SendGrid fallback
  *
- * Sends transactional partner emails via the SendGrid v3 REST API. Mirrors
- * the demo-mode pattern used by `signwell.ts` and `hubspot.ts`: when
- * `SENDGRID_API_KEY` is not set, all sends short-circuit to a "demo" status
- * and still write to the `EmailLog` table so the admin Communication Log
- * fills out during local development.
+ * Sends transactional partner emails via the Resend API (primary) or
+ * SendGrid v3 REST API (fallback). When neither key is set, all sends
+ * short-circuit to "demo" status and still write to EmailLog.
  *
- * Uses raw `fetch()` against `https://api.sendgrid.com/v3/mail/send` rather
- * than the `@sendgrid/mail` package to avoid pulling in a new dependency —
- * matches the existing house pattern.
+ * Uses raw `fetch()` against provider REST APIs — no SDKs.
  *
  * Every send (success, failure, demo) is persisted to `EmailLog` so failures
  * are debuggable and the partner communication log is the single source of
@@ -20,6 +16,8 @@ import { prisma } from "@/lib/prisma";
 import { FIRM_NAME, FIRM_SHORT } from "@/lib/constants";
 import { resolveAbVariant } from "@/lib/ab-test";
 
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+const RESEND_API_URL = "https://api.resend.com/emails";
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
 const SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send";
 const SENDGRID_FROM_EMAIL =
@@ -39,6 +37,10 @@ async function getPartnerCcEmails(partnerCode: string | null | undefined): Promi
     });
     return partner?.ccEmail ? [partner.ccEmail] : [];
   } catch { return []; }
+}
+
+export function isEmailConfigured(): boolean {
+  return !!RESEND_API_KEY || !!SENDGRID_API_KEY;
 }
 
 export function isSendGridConfigured(): boolean {
@@ -100,7 +102,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   const effectiveFromName = input.fromName || SENDGRID_FROM_NAME;
 
   // ── Demo mode: log it and short-circuit ───────────────────────────────────
-  if (!SENDGRID_API_KEY) {
+  if (!RESEND_API_KEY && !SENDGRID_API_KEY) {
     await logEmail({
       partnerCode: input.partnerCode ?? null,
       toEmail: input.to,
@@ -112,9 +114,6 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       providerMessageId: null,
       errorMessage: null,
     });
-    // email.failed trigger — "demo-mode" skips still count as a non-send
-    // so automations can react to "no real email actually went out"
-    // during local/preview testing.
     fireEmailTrigger("email.failed", {
       template: input.template || null,
       to: input.to,
@@ -125,7 +124,112 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     return { status: "demo", messageId: null };
   }
 
-  // ── Real send via SendGrid v3 API ─────────────────────────────────────────
+  // ── Resend (primary) ──────────────────────────────────────────────────────
+  if (RESEND_API_KEY) {
+    try {
+      const resendPayload: Record<string, any> = {
+        from: `${effectiveFromName} <${effectiveFromEmail}>`,
+        to: [input.to],
+        subject: input.subject,
+        html: input.html,
+        text,
+      };
+      if (input.replyTo) {
+        resendPayload.reply_to = input.replyTo;
+      }
+      const ccList = input.cc?.filter((e) => e && e !== input.to);
+      if (ccList?.length) {
+        resendPayload.cc = ccList;
+      }
+
+      const res = await fetch(RESEND_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify(resendPayload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => `HTTP ${res.status}`);
+        const err = `Resend API error (${res.status}): ${errText.slice(0, 500)}`;
+        console.error("[Resend]", err);
+        // Fall through to SendGrid if available
+        if (SENDGRID_API_KEY) {
+          console.warn("[Resend] Falling back to SendGrid");
+        } else {
+          await logEmail({
+            partnerCode: input.partnerCode ?? null,
+            toEmail: input.to,
+            fromEmail: effectiveFromEmail,
+            subject: input.subject,
+            bodyPreview,
+            template: input.template,
+            status: "failed",
+            providerMessageId: null,
+            errorMessage: err,
+          });
+          fireEmailTrigger("email.failed", {
+            template: input.template || null,
+            to: input.to,
+            partnerCode: input.partnerCode ?? null,
+            reason: err,
+            statusCode: res.status,
+          });
+          return { status: "failed", messageId: null, error: err };
+        }
+      } else {
+        const json = await res.json().catch(() => ({}));
+        const messageId = json.id || null;
+        await logEmail({
+          partnerCode: input.partnerCode ?? null,
+          toEmail: input.to,
+          fromEmail: effectiveFromEmail,
+          subject: input.subject,
+          bodyPreview,
+          template: input.template,
+          status: "sent",
+          providerMessageId: messageId,
+          errorMessage: null,
+        });
+        fireEmailTrigger("email.sent", {
+          template: input.template || null,
+          to: input.to,
+          partnerCode: input.partnerCode ?? null,
+          messageId: messageId || null,
+        });
+        return { status: "sent", messageId };
+      }
+    } catch (err: any) {
+      const message = err?.message || String(err);
+      console.error("[Resend] send threw:", message);
+      if (!SENDGRID_API_KEY) {
+        await logEmail({
+          partnerCode: input.partnerCode ?? null,
+          toEmail: input.to,
+          fromEmail: effectiveFromEmail,
+          subject: input.subject,
+          bodyPreview,
+          template: input.template,
+          status: "failed",
+          providerMessageId: null,
+          errorMessage: message,
+        });
+        fireEmailTrigger("email.failed", {
+          template: input.template || null,
+          to: input.to,
+          partnerCode: input.partnerCode ?? null,
+          reason: message,
+          statusCode: 0,
+        });
+        return { status: "failed", messageId: null, error: message };
+      }
+      console.warn("[Resend] Falling back to SendGrid");
+    }
+  }
+
+  // ── SendGrid (fallback) ───────────────────────────────────────────────────
   try {
     const personalization: Record<string, any> = {
       to: [{ email: input.to, name: input.toName || undefined }],
@@ -185,7 +289,6 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       return { status: "failed", messageId: null, error: err };
     }
 
-    // SendGrid returns 202 with an empty body and a message id in headers.
     const messageId = res.headers.get("x-message-id");
     await logEmail({
       partnerCode: input.partnerCode ?? null,

@@ -35,7 +35,8 @@ const AUDIT_GROUPS = {
   ],
   "Launch-day flip": [
     "FINTELLA_LIVE_MODE",      // set to "true" on launch day
-    "SENDGRID_API_KEY",        // set when domain auth verifies
+    "RESEND_API_KEY",           // primary email provider
+    "SENDGRID_API_KEY",        // fallback email provider
     "ANTHROPIC_API_KEY",       // set to enable real PartnerOS AI
   ],
   "Post-launch (Twilio — waiting on A2P 10DLC)": [
