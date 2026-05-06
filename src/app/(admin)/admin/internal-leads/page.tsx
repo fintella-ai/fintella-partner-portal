@@ -532,6 +532,13 @@ export default function InternalLeadsPage() {
           >
             📥 Import CSV
           </button>
+          <a
+            href={`/api/admin/leads/export-csv?filter=${subTab === "good_sms" ? "sms_ready" : subTab === "good_email" ? "email_ready" : subTab === "good_phone" ? "call_only" : "all"}`}
+            download
+            className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-input-bg)] transition"
+          >
+            📊 Export CSV
+          </a>
           <button
             onClick={() => {
               const slug = leadTab === "broker" ? "/partners/brokers" : leadTab === "referral" ? "/partners" : "/recover";
