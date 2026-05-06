@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Terms and conditions for the Fintella Partner Portal — partner obligations, commission structure, SMS communications, and governing terms.",
 };
 
-const LAST_UPDATED = "April 15, 2026";
+const LAST_UPDATED = "May 6, 2026";
 
 /* ── Theme-aware CSS via prefers-color-scheme ─────────────────────────────
    Mirrors the existing /docs/webhook-guide and /privacy pages. */
@@ -324,7 +324,8 @@ export default async function TermsPage() {
             </li>
             <li>
               <span className="legal-strong">Optional consent:</span> SMS opt-in consent is not a condition of
-              registration, and your consent is not shared with third parties for marketing purposes.
+              registration or purchase. You may use the Fintella Partner Portal without enrolling in SMS
+              notifications. Your consent is not shared with third parties for marketing purposes.
             </li>
           </ul>
           <p className="legal-p">

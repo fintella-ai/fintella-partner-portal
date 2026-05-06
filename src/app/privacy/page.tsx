@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Privacy policy for the Fintella Partner Portal — how we collect, use, and protect partner information, including SMS notification consent.",
 };
 
-const LAST_UPDATED = "April 15, 2026";
+const LAST_UPDATED = "May 6, 2026";
 
 /* ── Theme-aware CSS via prefers-color-scheme ─────────────────────────────
    Mirrors the existing /docs/webhook-guide page so all public pages share
@@ -245,8 +245,10 @@ export default async function PrivacyPage() {
           <h2 className="legal-h2">3. SMS / Text Messaging</h2>
           <p className="legal-p">
             <span className="legal-strong">
-              By opting in to SMS notifications during account registration, you consent to receive transactional
-              text messages about your account activity, deal status updates, and commission payment alerts.
+              By checking the optional SMS consent checkbox during account registration at{" "}
+              <a href="https://fintella.partners/signup" style={{ color: "var(--doc-gold)" }}>fintella.partners/signup</a>,
+              you consent to receive transactional text messages from &quot;Fintella Partner Notifications&quot; about
+              your account activity, deal status updates, and commission payment alerts.
             </span>
           </p>
           <ul className="legal-ul">
@@ -288,7 +290,10 @@ export default async function PrivacyPage() {
               <span className="legal-strong">Twilio</span> — SMS and voice message delivery.
             </li>
             <li>
-              <span className="legal-strong">SendGrid</span> — transactional email delivery.
+              <span className="legal-strong">Resend</span> — transactional email delivery.
+            </li>
+            <li>
+              <span className="legal-strong">SendGrid</span> — fallback email delivery and email validation.
             </li>
             <li>
               <span className="legal-strong">Vercel</span> — application hosting, analytics, and performance
