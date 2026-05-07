@@ -27,13 +27,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { firstName, lastName, email, phone, rate, method } = body as {
+    const { firstName, lastName, email, phone, rate, method, partnerType } = body as {
       firstName?: string;
       lastName?: string;
       email?: string;
       phone?: string;
       rate?: number;
       method?: "email" | "sms" | "both";
+      partnerType?: string;
     };
 
     if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !rate) {
