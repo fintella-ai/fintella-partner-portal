@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { fireWorkflowTrigger } from "@/lib/workflow-engine";
 
 const ADMIN_ROLES = ["super_admin", "admin"];
 
@@ -44,6 +45,12 @@ export async function POST(req: NextRequest) {
       notes: notes?.trim() || null,
     },
   });
+
+  fireWorkflowTrigger("lead.created", {
+    email: lead.email,
+    name: `${lead.firstName} ${lead.lastName}`.trim(),
+    source: lead.source,
+  }).catch(() => {});
 
   return NextResponse.json({ lead }, { status: 201 });
 }

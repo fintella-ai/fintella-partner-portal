@@ -5,6 +5,7 @@ import { sendEmail, emailShell } from "@/lib/sendgrid";
 import { FIRM_NAME, FIRM_SHORT } from "@/lib/constants";
 import crypto from "crypto";
 import { logAudit } from "@/lib/audit-log";
+import { fireWorkflowTrigger } from "@/lib/workflow-engine";
 
 const ADMIN_ROLES = ["super_admin", "admin"];
 
@@ -166,6 +167,11 @@ This activation link expires in ${expiryDays} days.`;
     details: { inviteId: invite.id, uplineCode, commissionRate, targetTier },
     ipAddress: req.headers.get("x-forwarded-for") || undefined,
     userAgent: req.headers.get("user-agent") || undefined,
+  }).catch(() => {});
+
+  fireWorkflowTrigger("application.approved", {
+    email: application.email,
+    name: `${application.firstName} ${application.lastName}`.trim(),
   }).catch(() => {});
 
   return NextResponse.json({

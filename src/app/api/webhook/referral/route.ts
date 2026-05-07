@@ -1367,6 +1367,20 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       return d;
     });
 
+    // Fire commission.created for each ledger entry materialized above (fire-and-forget)
+    if (entriesToCreate.length > 0) {
+      import("@/lib/workflow-engine").then(({ fireWorkflowTrigger }) => {
+        for (const entry of entriesToCreate) {
+          fireWorkflowTrigger("commission.created", {
+            dealId: deal.id,
+            partnerCode: entry.partnerCode,
+            amount: entry.amount,
+            tier: entry.tier,
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
+
     // ─── Commission lifecycle transitions that aren't closed-won ────────
     // The closed_won block above handles the initial creation and sets
     // status="pending_payment". This block covers the remaining
@@ -1478,6 +1492,17 @@ async function patchHandler(req: NextRequest): Promise<Response> {
                 update: { amount: entry.amount, status: "projected" },
               });
             }
+            // Fire commission.created for projected entries (fire-and-forget)
+            import("@/lib/workflow-engine").then(({ fireWorkflowTrigger }) => {
+              for (const entry of computed.entries) {
+                fireWorkflowTrigger("commission.created", {
+                  dealId: deal.id,
+                  partnerCode: entry.partnerCode,
+                  amount: entry.amount,
+                  tier: entry.tier,
+                }).catch(() => {});
+              }
+            }).catch(() => {});
           }
         }
       }
