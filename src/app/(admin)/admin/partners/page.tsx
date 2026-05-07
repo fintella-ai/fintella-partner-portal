@@ -2020,65 +2020,6 @@ export default function AdminPartnersPage() {
                     {typeof p.commissionRate === "number" ? `${Math.round(p.commissionRate * 100)}%` : "20%"}
                   </div>
                 </div>
-                {/* Action buttons row — Archive / Restore / Delete */}
-                {(activeTab === "archived" || canBulkAct) && (
-                  <div
-                    className="flex items-center gap-2 px-5 pb-2 -mt-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {p.status === "archived" ? (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm(`Restore ${p.firstName} ${p.lastName}? They will be set to "pending" status.`)) return;
-                          try {
-                            const res = await fetch(`/api/admin/partners/${p.id}/archive`, { method: "PATCH" });
-                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to restore"); return; }
-                            await fetchPartners();
-                          } catch { alert("Connection error"); }
-                        }}
-                        className="font-body text-[11px] px-3 py-1 rounded-lg border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-colors"
-                      >
-                        Restore
-                      </button>
-                    ) : (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm(`Archive ${p.firstName} ${p.lastName}? They will be hidden from active lists but their data is preserved.`)) return;
-                          try {
-                            const res = await fetch(`/api/admin/partners/${p.id}/archive`, { method: "POST" });
-                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to archive"); return; }
-                            await fetchPartners();
-                          } catch { alert("Connection error"); }
-                        }}
-                        className="font-body text-[11px] px-3 py-1 rounded-lg border border-gray-500/30 text-gray-400 hover:bg-gray-500/10 transition-colors"
-                      >
-                        Archive
-                      </button>
-                    )}
-                    {canBulkAct && (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm(`PERMANENTLY DELETE ${p.firstName} ${p.lastName}? This cascades to their deals, commissions, and agreements. Cannot be undone.`)) return;
-                          try {
-                            const res = await fetch("/api/admin/partners/bulk", {
-                              method: "DELETE",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ partnerIds: [p.id] }),
-                            });
-                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to delete"); return; }
-                            await fetchPartners();
-                          } catch { alert("Connection error"); }
-                        }}
-                        className="font-body text-[11px] px-3 py-1 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
-                      >
-                        Permanently Delete
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
               );
             })}
@@ -2203,65 +2144,6 @@ export default function AdminPartnersPage() {
                     })()}
                   </span>
                 </div>
-                {/* Mobile action buttons — Archive / Restore / Delete */}
-                {(activeTab === "archived" || canBulkAct) && (
-                  <div
-                    className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--app-border)]"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {p.status === "archived" ? (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm(`Restore ${p.firstName} ${p.lastName}?`)) return;
-                          try {
-                            const res = await fetch(`/api/admin/partners/${p.id}/archive`, { method: "PATCH" });
-                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to restore"); return; }
-                            await fetchPartners();
-                          } catch { alert("Connection error"); }
-                        }}
-                        className="font-body text-[11px] px-3 min-h-[36px] rounded-lg border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-colors"
-                      >
-                        Restore
-                      </button>
-                    ) : (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm(`Archive ${p.firstName} ${p.lastName}?`)) return;
-                          try {
-                            const res = await fetch(`/api/admin/partners/${p.id}/archive`, { method: "POST" });
-                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to archive"); return; }
-                            await fetchPartners();
-                          } catch { alert("Connection error"); }
-                        }}
-                        className="font-body text-[11px] px-3 min-h-[36px] rounded-lg border border-gray-500/30 text-gray-400 hover:bg-gray-500/10 transition-colors"
-                      >
-                        Archive
-                      </button>
-                    )}
-                    {canBulkAct && (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm(`PERMANENTLY DELETE ${p.firstName} ${p.lastName}? Cannot be undone.`)) return;
-                          try {
-                            const res = await fetch("/api/admin/partners/bulk", {
-                              method: "DELETE",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ partnerIds: [p.id] }),
-                            });
-                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to delete"); return; }
-                            await fetchPartners();
-                          } catch { alert("Connection error"); }
-                        }}
-                        className="font-body text-[11px] px-3 min-h-[36px] rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
-                      >
-                        Permanently Delete
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
             ))}
             {filteredPartners.length === 0 && (
