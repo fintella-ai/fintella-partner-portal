@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getEmbeddedSigningUrl } from "@/lib/signwell";
+import { auth } from "@/lib/auth";
 
 /**
  * GET /api/cron/agreement-refresh
@@ -12,14 +13,7 @@ import { getEmbeddedSigningUrl } from "@/lib/signwell";
  *
  * Vercel cron schedule: *\/5 * * * *  (every 5 minutes)
  */
-export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const authHeader = req.headers.get("authorization") || "";
-    if (authHeader !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
+async function refreshAgreements() {
 
   const SIGNWELL_API_KEY = process.env.SIGNWELL_API_KEY || "";
   if (!SIGNWELL_API_KEY) {
@@ -147,10 +141,30 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({
-    refreshed,
-    errors,
-    checked: agreements.length,
-    results,
-  });
+  return { refreshed, errors, checked: agreements.length, results };
+}
+
+export async function GET(req: NextRequest) {
+  const secret = process.env.CRON_SECRET;
+  if (secret) {
+    const authHeader = req.headers.get("authorization") || "";
+    if (authHeader !== `Bearer ${secret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+  const result = await refreshAgreements();
+  return NextResponse.json(result);
+}
+
+export async function POST() {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const role = (session.user as any).role;
+  if (!["super_admin", "admin"].includes(role)) {
+    return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  }
+  const result = await refreshAgreements();
+  return NextResponse.json(result);
 }
