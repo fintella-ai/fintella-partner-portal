@@ -48,7 +48,7 @@ export default function ReferralLinksPage() {
   // Which section is visible. Tabs are the consolidated layout for
   // recruiters; L3 (and any partner without downline rates) bypasses
   // them entirely and falls through to the "no recruitment" message.
-  type ReferralTab = "send" | "links" | "tracking";
+  type ReferralTab = "send" | "tracking";
   const [activeTab, setActiveTab] = useState<ReferralTab>("send");
 
   // Check agreement status — gate requires BOTH a signed agreement AND an
@@ -134,42 +134,6 @@ export default function ReferralLinksPage() {
   const availableRates = allowedDownlineRates;
   const targetTierLabel = partnerTier === "l1" ? "L2" : "L3";
 
-  // Auto-create invite links for all available rates when switching to links tab
-  useEffect(() => {
-    if (activeTab !== "links" || !canRecruit || availableRates.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      for (const rate of availableRates) {
-        if (cancelled) return;
-        const existing = invites.find(
-          (i) => Math.round(i.commissionRate * 100) === Math.round(rate * 100) && i.status === "active"
-        );
-        if (!existing) await createInviteForRate(rate);
-      }
-    })();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, canRecruit, availableRates.length]);
-
-  // Get invite link for a specific rate
-  function getInviteForRate(rate: number): Invite | undefined {
-    return invites.find((i) => Math.round(i.commissionRate * 100) === Math.round(rate * 100) && i.status === "active");
-  }
-
-  async function copyRateLink(rate: number) {
-    let inv = getInviteForRate(rate);
-    if (!inv) {
-      inv = await createInviteForRate(rate);
-      if (!inv) {
-        alert("Couldn't create invite link — please try again.");
-        return;
-      }
-    }
-    navigator.clipboard.writeText(`${baseUrl}/signup?token=${inv.token}`);
-    setCopiedRate(rate);
-    setTimeout(() => setCopiedRate(null), 2000);
-    markGettingStartedLinkShared();
-  }
 
   async function handleSendInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -260,7 +224,6 @@ export default function ReferralLinksPage() {
         <div className="mb-6 border-b border-[var(--app-border)] flex flex-wrap gap-1">
           {([
             { id: "send", label: "Send Partner Invite" },
-            { id: "links", label: `Recruit ${targetTierLabel} Partner Links` },
             { id: "tracking", label: "Invite Tracking" },
           ] as const).map((t) => {
             const active = activeTab === t.id;
@@ -284,63 +247,6 @@ export default function ReferralLinksPage() {
               </button>
             );
           })}
-        </div>
-      )}
-
-      {/* ═══ PARTNER RECRUITMENT — PRE-LOADED RATE LINKS ═══ */}
-      {canRecruit && activeTab === "links" && (
-        <div className="card mb-6">
-          <div className={`${device.cardPadding} border-b`} style={{ borderColor: "var(--app-border)" }}>
-            <div className="flex items-center gap-3 mb-1">
-              <span className="text-2xl">👥</span>
-              <div className="font-body font-semibold text-[15px]">Recruit {targetTierLabel} Partners</div>
-            </div>
-            <div className="font-body text-[12px] text-[var(--app-text-muted)] leading-relaxed">
-              Copy a recruitment link below. Each rate has its own pre-loaded template. You earn the override — the difference between your {Math.round(partnerRate * 100)}% and their rate.
-            </div>
-          </div>
-
-          <div className={`${device.cardPadding}`}>
-            <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">
-              {targetTierLabel} Partner Recruitment Links
-            </div>
-            <div className="space-y-4">
-              {availableRates.map((rate) => {
-                const pct = Math.round(rate * 100);
-                const overridePct = Math.round((partnerRate - rate) * 100);
-                const inv = getInviteForRate(rate);
-                const link = inv ? `${baseUrl}/signup?token=${inv.token}` : "Creating link...";
-
-                return (
-                  <div key={rate} className="p-4 rounded-lg" style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-border)" }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="font-display text-xl font-bold text-brand-gold">{pct}%</div>
-                        <div>
-                          <div className="font-body text-[12px] text-[var(--app-text-secondary)]">{targetTierLabel} Partner Rate</div>
-                          <div className="font-body text-[10px] text-green-400">You earn {overridePct}% override</div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => copyRateLink(rate)}
-                        disabled={!inv}
-                        className={`font-body text-[12px] px-4 py-2 rounded-lg border transition-colors min-h-[40px] ${
-                          copiedRate === rate
-                            ? "bg-green-500/15 border-green-500/30 text-green-400"
-                            : "border-brand-gold/20 text-brand-gold hover:bg-brand-gold/10"
-                        } disabled:opacity-50`}
-                      >
-                        {copiedRate === rate ? "✓ Copied!" : "Copy Link"}
-                      </button>
-                    </div>
-                    <div className="font-mono text-[11px] text-[var(--app-text-muted)] truncate select-all p-2 rounded bg-[var(--app-input-bg)] border border-[var(--app-border)]">
-                      {link}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       )}
 
