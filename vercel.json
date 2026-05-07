@@ -71,6 +71,14 @@
     {
       "path": "/api/cron/comms-graph",
       "schedule": "0 5 * * 0"
+    },
+    {
+      "path": "/api/cron/engagement-decay",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/notification-cleanup",
+      "schedule": "0 2 * * *"
     }
   ]
 }

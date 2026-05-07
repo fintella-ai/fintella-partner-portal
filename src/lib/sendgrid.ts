@@ -668,6 +668,7 @@ export async function sendAgreementReadyEmail(
   partner: PartnerEmailContext,
   signingUrl: string | null
 ): Promise<SendEmailResult> {
+  const cc = await getPartnerCcEmails(partner.partnerCode);
   const name = partnerDisplayName(partner);
   const vars: Record<string, string> = {
     firstName: partner.firstName || name,
@@ -700,6 +701,7 @@ export async function sendAgreementReadyEmail(
       replyTo: tpl.replyTo || undefined,
       fromEmail: tpl.fromEmail || undefined,
       fromName: tpl.fromName || undefined,
+      cc,
     });
   }
 
@@ -733,6 +735,7 @@ Once it's signed, your account activates immediately and you can start submittin
     text,
     template: "agreement_ready",
     partnerCode: partner.partnerCode,
+    cc,
   });
 }
 
@@ -746,6 +749,7 @@ Once it's signed, your account activates immediately and you can start submittin
 export async function sendAgreementSignedEmail(
   partner: PartnerEmailContext
 ): Promise<SendEmailResult> {
+  const cc = await getPartnerCcEmails(partner.partnerCode);
   const name = partnerDisplayName(partner);
   const vars: Record<string, string> = {
     firstName: partner.firstName || name,
@@ -777,6 +781,7 @@ export async function sendAgreementSignedEmail(
       replyTo: tpl.replyTo || undefined,
       fromEmail: tpl.fromEmail || undefined,
       fromName: tpl.fromName || undefined,
+      cc,
     });
   }
 
@@ -810,6 +815,7 @@ Welcome aboard.`;
     text,
     template: "agreement_signed",
     partnerCode: partner.partnerCode,
+    cc,
   });
 }
 
@@ -925,32 +931,58 @@ export async function sendDealStatusUpdateEmail(opts: {
   };
 
   const tpl = await loadTemplateWithAbTest("deal_status_update");
-  if (!tpl) {
-    // No DB template — skip the send. There's no hardcoded fallback for
-    // this template because it's admin-editable draft content; if the
-    // row is missing or disabled we prefer silence over surprising partners.
-    return { status: "demo", messageId: null };
+  if (tpl) {
+    const { html, text } = emailShell({
+      preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
+      heading: interpolate(tpl.heading, vars),
+      bodyHtml: interpolate(tpl.bodyHtml, vars, escapeHtml),
+      bodyText: interpolate(tpl.bodyText, vars),
+      ctaLabel: tpl.ctaLabel || undefined,
+      ctaUrl: tpl.ctaUrl ? interpolate(tpl.ctaUrl, vars) : undefined,
+    });
+    return sendEmail({
+      to: opts.partnerEmail,
+      toName: opts.partnerName,
+      subject: interpolate(tpl.subject, vars),
+      html,
+      text,
+      template: "deal_status_update",
+      partnerCode: opts.partnerCode,
+      replyTo: tpl.replyTo || undefined,
+      fromEmail: tpl.fromEmail || undefined,
+      fromName: tpl.fromName || undefined,
+      cc,
+    });
   }
 
+  // ── Hardcoded fallback ──
+  const heading = `Deal status update: ${escapeHtml(opts.dealName)}`;
+  const bodyHtml = `
+    <p>Hi ${escapeHtml(firstName)},</p>
+    <p>Your referral for <strong>${escapeHtml(opts.dealName)}</strong> has moved to a new stage:
+       <strong style="color:${BRAND_GOLD};">${escapeHtml(opts.newStage)}</strong>.</p>
+    <p>Log in to your dashboard to see the details.</p>`;
+  const bodyText = `Hi ${firstName},
+
+Your referral for ${opts.dealName} has moved to a new stage: ${opts.newStage}.
+
+Log in to your dashboard to see the details.`;
   const { html, text } = emailShell({
-    preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
-    heading: interpolate(tpl.heading, vars),
-    bodyHtml: interpolate(tpl.bodyHtml, vars, escapeHtml),
-    bodyText: interpolate(tpl.bodyText, vars),
-    ctaLabel: tpl.ctaLabel || undefined,
-    ctaUrl: tpl.ctaUrl ? interpolate(tpl.ctaUrl, vars) : undefined,
+    preheader: `${opts.dealName} moved to ${opts.newStage}.`,
+    heading,
+    bodyHtml,
+    bodyText,
+    ctaLabel: "View your deals",
+    ctaUrl: `${PORTAL_URL}/dashboard/deals`,
   });
   return sendEmail({
     to: opts.partnerEmail,
     toName: opts.partnerName,
-    subject: interpolate(tpl.subject, vars),
+    subject: `Deal update: ${opts.dealName} → ${opts.newStage}`,
     html,
     text,
     template: "deal_status_update",
     partnerCode: opts.partnerCode,
-    replyTo: tpl.replyTo || undefined,
-    fromEmail: tpl.fromEmail || undefined,
-    fromName: tpl.fromName || undefined,
     cc,
   });
 }
@@ -981,27 +1013,59 @@ export async function sendCommissionPaidEmail(opts: {
   };
 
   const tpl = await loadTemplateWithAbTest("commission_payment_notification");
-  if (!tpl) return { status: "demo", messageId: null };
+  if (tpl) {
+    const { html, text } = emailShell({
+      preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
+      heading: interpolate(tpl.heading, vars),
+      bodyHtml: interpolate(tpl.bodyHtml, vars, escapeHtml),
+      bodyText: interpolate(tpl.bodyText, vars),
+      ctaLabel: tpl.ctaLabel || undefined,
+      ctaUrl: tpl.ctaUrl ? interpolate(tpl.ctaUrl, vars) : undefined,
+    });
+    return sendEmail({
+      to: opts.partnerEmail,
+      toName: opts.partnerName,
+      subject: interpolate(tpl.subject, vars),
+      html,
+      text,
+      template: "commission_payment_notification",
+      partnerCode: opts.partnerCode,
+      replyTo: tpl.replyTo || undefined,
+      fromEmail: tpl.fromEmail || undefined,
+      fromName: tpl.fromName || undefined,
+      cc,
+    });
+  }
 
+  // ── Hardcoded fallback ──
+  const amountStr = vars.amount; // already formatted as "$X.XX"
+  const heading = `Commission payment: ${amountStr}`;
+  const bodyHtml = `
+    <p>Hi ${escapeHtml(firstName)},</p>
+    <p>A commission of <strong style="color:${BRAND_GOLD};">${escapeHtml(amountStr)}</strong> for
+       <strong>${escapeHtml(opts.dealName)}</strong> has been credited to your account.</p>
+    <p>View your earnings on your dashboard.</p>`;
+  const bodyText = `Hi ${firstName},
+
+A commission of ${amountStr} for ${opts.dealName} has been credited to your account.
+
+View your earnings on your dashboard.`;
   const { html, text } = emailShell({
-    preheader: tpl.preheader ? interpolate(tpl.preheader, vars) : undefined,
-    heading: interpolate(tpl.heading, vars),
-    bodyHtml: interpolate(tpl.bodyHtml, vars, escapeHtml),
-    bodyText: interpolate(tpl.bodyText, vars),
-    ctaLabel: tpl.ctaLabel || undefined,
-    ctaUrl: tpl.ctaUrl ? interpolate(tpl.ctaUrl, vars) : undefined,
+    preheader: `${amountStr} commission for ${opts.dealName} has been credited.`,
+    heading,
+    bodyHtml,
+    bodyText,
+    ctaLabel: "View commissions",
+    ctaUrl: `${PORTAL_URL}/dashboard/commissions`,
   });
   return sendEmail({
     to: opts.partnerEmail,
     toName: opts.partnerName,
-    subject: interpolate(tpl.subject, vars),
+    subject: `Commission paid: ${amountStr} for ${opts.dealName}`,
     html,
     text,
     template: "commission_payment_notification",
     partnerCode: opts.partnerCode,
-    replyTo: tpl.replyTo || undefined,
-    fromEmail: tpl.fromEmail || undefined,
-    fromName: tpl.fromName || undefined,
     cc,
   });
 }
