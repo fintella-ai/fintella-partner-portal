@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
     if (agreements.length > 0) {
       const partnerCodes = Array.from(new Set(agreements.map((a) => a.partnerCode)));
       const partners = await prisma.partner.findMany({
-        where: { partnerCode: { in: partnerCodes } },
+        where: { partnerCode: { in: partnerCodes }, status: { not: "archived" } },
       });
       const partnerMap: Record<string, typeof partners[number]> = {};
       for (const p of partners) partnerMap[p.partnerCode] = p;

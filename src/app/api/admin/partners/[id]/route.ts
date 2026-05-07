@@ -288,7 +288,8 @@ export async function PUT(
 
 /**
  * DELETE /api/admin/partners/[id]
- * Delete a partner.
+ * Permanently delete a partner — super_admin only.
+ * Use POST /api/admin/partners/[id]/archive instead for soft-delete.
  */
 export async function DELETE(
   req: NextRequest,
@@ -297,10 +298,26 @@ export async function DELETE(
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const role = (session.user as any).role;
-  if (!["super_admin", "admin", "accounting", "partner_support"].includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (role !== "super_admin") return NextResponse.json({ error: "Forbidden — super admin only. Use archive instead." }, { status: 403 });
 
   try {
+    const partner = await prisma.partner.findUnique({ where: { id: params.id } });
+    if (!partner) return NextResponse.json({ error: "Partner not found" }, { status: 404 });
+
     await prisma.partner.delete({ where: { id: params.id } });
+
+    logAudit({
+      action: "partner.delete" as any,
+      actorEmail: session.user.email || "unknown",
+      actorRole: role,
+      actorId: session.user.id,
+      targetType: "partner",
+      targetId: partner.id,
+      details: { partnerCode: partner.partnerCode, permanentDelete: true },
+      ipAddress: req.headers.get("x-forwarded-for") || undefined,
+      userAgent: req.headers.get("user-agent") || undefined,
+    }).catch(() => {});
+
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "Failed to delete partner" }, { status: 500 });

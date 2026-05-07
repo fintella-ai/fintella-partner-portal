@@ -11,6 +11,8 @@ export type AuditAction =
   | "partner.update"
   | "partner.activate"
   | "partner.block"
+  | "partner.archived"
+  | "partner.restored"
   | "settings.update"
   | "workflow.create"
   | "workflow.update"
