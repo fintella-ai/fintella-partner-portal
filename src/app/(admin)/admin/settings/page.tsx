@@ -98,6 +98,7 @@ const ALL_ADMIN_NAV_ITEMS = [
   { id: "widget-analytics", label: "Widget Analytics", icon: "📊" },
   { id: "reporting", label: "Reporting", icon: "📈" },
   { id: "communications", label: "Communications", icon: "💬" },
+  { id: "channels", label: "Channels", icon: "📢" },
   { id: "templates", label: "Templates", icon: "✨" },
   { id: "internalChats", label: "Internal Chats", icon: "💬" },
   { id: "partnerSupport", label: "Partner Support", icon: "🎧" },
@@ -109,13 +110,17 @@ const ALL_ADMIN_NAV_ITEMS = [
   { id: "automations", label: "Automations", icon: "⚡" },
   { id: "gettingStartedEditor", label: "Getting Started", icon: "✅" },
   { id: "knowledgeCenter", label: "Knowledge Center", icon: "🧠" },
+  { id: "tariff-engine", label: "Tariff Engine", icon: "🧮" },
   { id: "aiPermissions", label: "AI Permissions", icon: "🛡️" },
+  { id: "aiActivity", label: "AI Activity", icon: "🤖" },
   { id: "landingPages", label: "Landing Pages", icon: "🌐" },
   { id: "brokerFunnel", label: "Broker Funnel", icon: "🚢" },
   { id: "settings", label: "Settings", icon: "⚙️" },
   { id: "subscriptions", label: "Subscriptions", icon: "💎" },
+  { id: "billing", label: "Billing & Expenses", icon: "💰" },
   { id: "users", label: "Admin Users", icon: "🔐" },
   { id: "dev", label: "Development", icon: "🛠️" },
+  { id: "features", label: "Feature Requests", icon: "💡" },
 ];
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -1688,6 +1693,8 @@ const ALL_PARTNER_NAV_IDS = [
   { id: "widget", label: "TMS Widget" },
   { id: "communications", label: "Communications" },
   { id: "partner-support", label: "Partner Support" },
+  { id: "templates", label: "Templates" },
+  { id: "pricing", label: "Upgrade Plan" },
   { id: "feature-request", label: "Feature Requests" },
 ];
 
