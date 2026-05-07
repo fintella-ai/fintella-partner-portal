@@ -535,7 +535,7 @@ async function executeAction(
         // The partner-lookup path mirrors sms.send so admins can template
         // emails against an event (e.g. partner.created) without having to
         // hand-wire {partner.email} into the action config every time.
-        let toEmail = String(config.recipientEmail || "");
+        let toEmail = renderVars(String(config.recipientEmail || ""), vars);
         let resolvedPartnerCode: string | null = null;
         const recipientType = String(config.recipientType || "").toLowerCase();
 
@@ -661,11 +661,18 @@ function renderVars(template: string, vars: Record<string, string>): string {
 function flattenForTemplate(payload: Record<string, unknown>, prefix = ""): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(payload)) {
-    const key = prefix ? `${prefix}_${k}` : k;
+    const underscoreKey = prefix ? `${prefix}_${k}` : k;
+    const dotKey = prefix ? `${prefix}.${k}` : k;
     if (v && typeof v === "object" && !Array.isArray(v)) {
-      Object.assign(out, flattenForTemplate(v as Record<string, unknown>, key));
+      Object.assign(out, flattenForTemplate(v as Record<string, unknown>, underscoreKey));
+      // Also flatten with dot notation so {partner.email} resolves
+      const dotFlat = flattenForTemplate(v as Record<string, unknown>, dotKey);
+      for (const [dk, dv] of Object.entries(dotFlat)) {
+        if (!(dk in out)) out[dk] = dv;
+      }
     } else {
-      out[key] = v != null ? String(v) : "";
+      out[underscoreKey] = v != null ? String(v) : "";
+      if (dotKey !== underscoreKey) out[dotKey] = v != null ? String(v) : "";
     }
   }
   return out;
