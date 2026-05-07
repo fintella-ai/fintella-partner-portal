@@ -523,8 +523,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <span className="text-base">🔴</span>
             {!isCollapsed && (
-              <span className="font-body text-[13px] font-bold tracking-wide">
-                {liveWeeklyToday.title}
+              <span className="font-body text-[13px] font-bold tracking-wide text-center flex-1 leading-tight">
+                Live Weekly<br />Partner Call
               </span>
             )}
           </button>
