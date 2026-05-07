@@ -85,8 +85,19 @@ export default function ComposeEmailForm({
   const [bcc, setBcc] = useState("");
   const [showCcBcc, setShowCcBcc] = useState(false);
 
+  const [broadcast, setBroadcast] = useState(false);
+  const [partnerCount, setPartnerCount] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  useEffect(() => {
+    if (broadcast && partnerCount === null) {
+      fetch("/api/admin/partners?countOnly=true")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => setPartnerCount(d?.count ?? d?.partners?.length ?? 0))
+        .catch(() => setPartnerCount(0));
+    }
+  }, [broadcast, partnerCount]);
 
   // Load template options once on mount
   useEffect(() => {
@@ -197,12 +208,13 @@ export default function ComposeEmailForm({
   }
 
   const canSend = useMemo(
-    () => !!toEmail && !!subject.trim() && !!bodyText.trim() && !sending,
-    [toEmail, subject, bodyText, sending]
+    () => (broadcast || !!toEmail) && !!subject.trim() && !!bodyText.trim() && !sending,
+    [broadcast, toEmail, subject, bodyText, sending]
   );
 
   async function handleSend() {
     if (!canSend) return;
+    if (broadcast && !confirm(`Send this email to all ${partnerCount ?? "?"} partners? This cannot be undone.`)) return;
     setSending(true);
     setStatusMsg(null);
     try {
@@ -210,23 +222,31 @@ export default function ComposeEmailForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          to: toEmail,
-          toName: toName || undefined,
-          partnerCode: partnerCode || undefined,
+          ...(broadcast ? { broadcast: true } : {
+            to: toEmail,
+            toName: toName || undefined,
+            partnerCode: partnerCode || undefined,
+            cc: cc || undefined,
+            bcc: bcc || undefined,
+          }),
           subject,
           body: bodyText,
           fromEmail,
-          cc: cc || undefined,
-          bcc: bcc || undefined,
           templateKey: templateKey || "compose",
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setStatusMsg({ kind: "err", text: data.error || "Failed to send email" });
+      } else if (data.broadcast) {
+        setStatusMsg({ kind: "ok", text: `Broadcast sent to ${data.sent} partner(s)${data.failed ? ` (${data.failed} failed)` : ""}.` });
+        setSubject("");
+        setBodyText("");
+        setTemplateKey("");
+        setBroadcast(false);
       } else {
         const stat = data.status === "demo"
-          ? "Demo mode — logged but not actually sent (SendGrid not configured)."
+          ? "Demo mode — logged but not actually sent."
           : data.status === "sent"
             ? "Email sent."
             : data.status === "failed"
@@ -235,7 +255,6 @@ export default function ComposeEmailForm({
         setStatusMsg({ kind: data.status === "failed" ? "err" : "ok", text: stat });
         if (data.status !== "failed") {
           onSent?.({ status: data.status, messageId: data.messageId });
-          // Reset body/subject so the form is ready for the next send; keep To/From/template for follow-ups.
           setSubject("");
           setBodyText("");
           setTemplateKey("");
@@ -250,7 +269,24 @@ export default function ComposeEmailForm({
 
   return (
     <div className="flex flex-col gap-4 font-body text-sm">
+      {/* Broadcast toggle */}
+      {!lockTo && (
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div className={`relative w-10 h-5 rounded-full transition-colors ${broadcast ? "bg-brand-gold" : "bg-[var(--app-input-bg)] border border-[var(--app-border)]"}`}>
+            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${broadcast ? "translate-x-5" : "translate-x-0.5"}`} />
+            <input type="checkbox" checked={broadcast} onChange={(e) => setBroadcast(e.target.checked)} className="sr-only" />
+          </div>
+          <span className="text-sm text-[var(--app-text)]">
+            Send to all partners
+            {broadcast && partnerCount !== null && (
+              <span className="text-brand-gold ml-1">({partnerCount} partners)</span>
+            )}
+          </span>
+        </label>
+      )}
+
       {/* To */}
+      {!broadcast && (
       <div ref={wrapRef} className="relative">
         <label className="block text-[var(--app-text-muted)] text-xs mb-1">To</label>
         {lockTo ? (
@@ -295,6 +331,8 @@ export default function ComposeEmailForm({
           </>
         )}
       </div>
+
+      )}
 
       {/* From + Template */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -406,7 +444,7 @@ export default function ComposeEmailForm({
           disabled={!canSend}
           className="px-6 py-2 rounded font-medium bg-brand-gold text-black hover:bg-brand-gold/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {sending ? "Sending..." : "Send Email"}
+          {sending ? "Sending..." : broadcast ? `Broadcast to ${partnerCount ?? "All"} Partners` : "Send Email"}
         </button>
       </div>
     </div>

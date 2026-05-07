@@ -22,6 +22,11 @@ export async function GET(req: NextRequest) {
   if (!["super_admin", "admin", "accounting", "partner_support"].includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
+    if (req.nextUrl.searchParams.get("countOnly") === "true") {
+      const count = await prisma.partner.count({ where: { status: { in: ["active", "pending"] } } });
+      return NextResponse.json({ count });
+    }
+
     const search = req.nextUrl.searchParams.get("search") || "";
 
     let partners;
