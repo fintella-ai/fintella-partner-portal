@@ -49,6 +49,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!partner) return null;
         if (partner.status === "blocked") return null;
+        if (partner.status === "archived") return null;
         if (!partner.passwordHash) return null;
 
         const valid = await compare(password, partner.passwordHash);
@@ -84,6 +85,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
         if (!partner) return null;
         if (partner.status === "blocked") return null;
+        if (partner.status === "archived") return null;
 
         await prisma.impersonationToken.update({
           where: { token },
@@ -144,6 +146,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       });
       if (!partner) return "/login?error=not-invited";
       if (partner.status === "blocked") return "/login?error=blocked";
+      if (partner.status === "archived") return "/login?error=archived";
       return true;
     },
     async jwt({ token, user, account }) {
