@@ -14,6 +14,7 @@ import SortHeader, { type SortDir } from "@/components/ui/SortHeader";
 import { useResizableColumns } from "@/components/ui/ResizableTable";
 import { compareRows } from "@/lib/sortRows";
 import DocumentsView from "@/components/partner/DocumentsView";
+import TablePagination from "@/components/ui/TablePagination";
 
 type PageTab = "overview" | "deals" | "downline" | "commissions" | "documents";
 
@@ -102,6 +103,16 @@ export default function PartnerReportingPage() {
   const [commSort, setCommSort] = useState<string>("createdAt");
   const [commDir, setCommDir] = useState<SortDir>("desc");
 
+  // Pagination state — one set per table
+  const [overviewPage, setOverviewPage] = useState(1);
+  const [overviewPageSize, setOverviewPageSize] = useState(50);
+  const [myDealsPage, setMyDealsPage] = useState(1);
+  const [myDealsPageSize, setMyDealsPageSize] = useState(50);
+  const [downlineDealsPage, setDownlineDealsPage] = useState(1);
+  const [downlineDealsPageSize, setDownlineDealsPageSize] = useState(50);
+  const [commPage, setCommPage] = useState(1);
+  const [commPageSize, setCommPageSize] = useState(50);
+
   const cycleSort = (
     key: string,
     current: string,
@@ -145,6 +156,10 @@ export default function PartnerReportingPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Reset pagination when filters/tabs change
+  useEffect(() => { setOverviewPage(1); }, [sourceFilter, stageFilter, statusFilter, searchQuery]);
+  useEffect(() => { setCommPage(1); }, [commSubTab]);
 
   // Partner name map
   const partnerNameMap: Record<string, string> = {};
@@ -225,6 +240,11 @@ export default function PartnerReportingPage() {
     () => [...downlineDeals].sort((a, b) => compareRows(a, b, downlineDealsSort, downlineDealsDir, downlineDealsAccessors)),
     [downlineDeals, downlineDealsSort, downlineDealsDir, downlineDealsAccessors]
   );
+
+  // Paginated slices
+  const paginatedOverview = sortedFiltered.slice((overviewPage - 1) * overviewPageSize, overviewPage * overviewPageSize);
+  const paginatedMyDeals = sortedDirectDeals.slice((myDealsPage - 1) * myDealsPageSize, myDealsPage * myDealsPageSize);
+  const paginatedDownlineDeals = sortedDownlineDeals.slice((downlineDealsPage - 1) * downlineDealsPageSize, downlineDealsPage * downlineDealsPageSize);
 
   // Metrics
   const totalL1 = directDeals.reduce((s, d) => s + Number(d.l1CommissionAmount || 0), 0);
@@ -349,7 +369,7 @@ export default function PartnerReportingPage() {
               <div className="p-12 text-center font-body text-sm text-[var(--app-text-muted)]">No deals match your filters.</div>
             ) : device.isMobile ? (
               <div>
-                {filtered.map((deal, idx) => {
+                {paginatedOverview.map((deal, idx) => {
                   const commAmt = deal.source === "direct" ? deal.l1CommissionAmount : (deal.l2CommissionAmount || 0);
                   const commStatus = deal.source === "direct" ? deal.l1CommissionStatus : (deal.l2CommissionStatus || "pending");
                   return (
@@ -403,7 +423,7 @@ export default function PartnerReportingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedFiltered.map((deal, idx) => {
+                    {paginatedOverview.map((deal, idx) => {
                       const commAmt = deal.source === "direct" ? deal.l1CommissionAmount : (deal.l2CommissionAmount || 0);
                       const commStatus = deal.source === "direct" ? deal.l1CommissionStatus : (deal.l2CommissionStatus || "pending");
                       const partnerName = deal.source === "downline" ? (deal.submittingPartnerName || partnerNameMap[deal.partnerCode || ""] || deal.partnerCode) : null;
@@ -440,6 +460,7 @@ export default function PartnerReportingPage() {
                 </table>
               </div>
             )}
+            <TablePagination page={overviewPage} pageSize={overviewPageSize} totalItems={filtered.length} onPageChange={setOverviewPage} onPageSizeChange={setOverviewPageSize} />
           </div>
         </>
       )}
@@ -450,11 +471,12 @@ export default function PartnerReportingPage() {
           <div className="card">
             {(() => {
               const deals = sortedDirectDeals;
+              const paginated = paginatedMyDeals;
               const isDownline = false;
               if (deals.length === 0) return <div className="p-12 text-center font-body text-sm text-[var(--app-text-muted)]">{isDownline ? "No downline deals yet." : "No direct deals yet."}</div>;
               return device.isMobile ? (
                 <div>
-                  {deals.map((deal, idx) => {
+                  {paginated.map((deal, idx) => {
                     const commAmt = isDownline ? (deal.l2CommissionAmount || 0) : deal.l1CommissionAmount;
                     const commStatus = isDownline ? (deal.l2CommissionStatus || "pending") : deal.l1CommissionStatus;
                     return (
@@ -502,7 +524,7 @@ export default function PartnerReportingPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {deals.map((deal, idx) => {
+                      {paginated.map((deal, idx) => {
                         const commAmt = isDownline ? (deal.l2CommissionAmount || 0) : deal.l1CommissionAmount;
                         const partner = isDownline ? (deal.submittingPartnerName || partnerNameMap[deal.partnerCode] || deal.partnerCode) : null;
                         const feeRate = deal.firmFeeRate ? `${Math.round(deal.firmFeeRate * 100)}%` : "—";
@@ -532,6 +554,7 @@ export default function PartnerReportingPage() {
                 </div>
               );
             })()}
+            <TablePagination page={myDealsPage} pageSize={myDealsPageSize} totalItems={sortedDirectDeals.length} onPageChange={setMyDealsPage} onPageSizeChange={setMyDealsPageSize} />
           </div>
         </>
       )}
@@ -670,7 +693,7 @@ export default function PartnerReportingPage() {
               downlineDeals.length === 0 ? (
                 <div className="p-12 text-center font-body text-sm text-[var(--app-text-muted)]">No downline deals yet.</div>
               ) : device.isMobile ? (
-                downlineDeals.map((deal, idx) => (
+                paginatedDownlineDeals.map((deal, idx) => (
                   <div key={deal.id} className={`px-4 py-3.5 border-b border-[var(--app-border)] last:border-b-0 ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="font-body text-[13px] font-medium text-[var(--app-text)] truncate flex-1">{deal.dealName}</div>
@@ -714,7 +737,7 @@ export default function PartnerReportingPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedDownlineDeals.map((deal, idx) => {
+                      {paginatedDownlineDeals.map((deal, idx) => {
                         const firmFeeAmt = deal.firmFeeAmount || (deal.estimatedRefundAmount * (deal.firmFeeRate || 0));
                         // Partner's own commission rate on their downline deal. We don't have
                         // the submitting partner's rate directly in this row, so derive from
@@ -739,6 +762,9 @@ export default function PartnerReportingPage() {
                   </table>
                 </div>
               )
+            )}
+            {downlineSubTab === "deals" && downlineDeals.length > 0 && (
+              <TablePagination page={downlineDealsPage} pageSize={downlineDealsPageSize} totalItems={sortedDownlineDeals.length} onPageChange={setDownlineDealsPage} onPageSizeChange={setDownlineDealsPageSize} />
             )}
           </div>
         </>
@@ -954,9 +980,10 @@ export default function PartnerReportingPage() {
                 commission: (d) => d._amt,
               };
               const sortedCommDeals = [...commDeals].sort((a, b) => compareRows(a, b, commSort, commDir, commAccessors));
+              const paginatedCommDeals = sortedCommDeals.slice((commPage - 1) * commPageSize, commPage * commPageSize);
               return device.isMobile ? (
                 <div>
-                  {commDeals.map((deal) => (
+                  {paginatedCommDeals.map((deal) => (
                     <div key={deal.id + deal._tier} className="px-4 py-3.5 border-b border-[var(--app-border)] last:border-b-0">
                       <div className="flex justify-between items-center mb-1">
                         <div className="font-body text-[13px] text-[var(--app-text)] truncate flex-1 mr-3">{deal.dealName}</div>
@@ -1002,7 +1029,7 @@ export default function PartnerReportingPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedCommDeals.map((deal, idx) => {
+                      {paginatedCommDeals.map((deal, idx) => {
                         const feeRate = deal.firmFeeRate ? `${Math.round(Number(deal.firmFeeRate) * 100)}%` : "—";
                         const firmFeeAmt = Number(deal.firmFeeAmount || 0) || Number(deal.estimatedRefundAmount || 0) * Number(deal.firmFeeRate || 0);
                         // Commission % reflects the partner + tier on this
@@ -1036,6 +1063,12 @@ export default function PartnerReportingPage() {
                 </div>
               );
             })()}
+            {commSubTab !== "enterprise" && (directDeals.length > 0 || downlineDeals.length > 0) && (
+              <TablePagination page={commPage} pageSize={commPageSize} totalItems={
+                (commSubTab === "all" || commSubTab === "direct" ? directDeals.length : 0) +
+                (commSubTab === "all" || commSubTab === "downline" ? downlineDeals.length : 0)
+              } onPageChange={setCommPage} onPageSizeChange={setCommPageSize} />
+            )}
           </div>
 
           {/* Task 12: Downline Accounting subsection for Disabled L1s with downline deals */}

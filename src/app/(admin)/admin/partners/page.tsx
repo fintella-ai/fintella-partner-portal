@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { fmtDate, fmtPhone, normalizePhone } from "@/lib/format";
 import LevelTag from "@/components/ui/LevelTag";
+import TablePagination from "@/components/ui/TablePagination";
 import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 
 type Partner = {
@@ -158,7 +159,7 @@ export default function AdminPartnersPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkAgreementRate, setBulkAgreementRate] = useState("0.20");
   const [tablePage, setTablePage] = useState(1);
-  const TABLE_PAGE_SIZE = 50;
+  const [tablePageSize, setTablePageSize] = useState(50);
   const [search, setSearch] = useState("");
   const [cleanupBusy, setCleanupBusy] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<{ deleted: number } | null>(null);
@@ -728,8 +729,8 @@ export default function AdminPartnersPage() {
     return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
   });
 
-  const totalPages = Math.ceil(filteredPartners.length / TABLE_PAGE_SIZE);
-  const paginatedPartners = filteredPartners.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE);
+  const totalPages = Math.ceil(filteredPartners.length / tablePageSize);
+  const paginatedPartners = filteredPartners.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
 
   const filteredInvites = invites.filter((inv) => {
     if (!search) return true;
@@ -2029,32 +2030,13 @@ export default function AdminPartnersPage() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--app-border)]">
-              <span className="font-body text-[11px] text-[var(--app-text-muted)]">
-                Showing {(tablePage - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(tablePage * TABLE_PAGE_SIZE, filteredPartners.length)} of {filteredPartners.length}
-              </span>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-                  disabled={tablePage === 1}
-                  className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-[var(--app-border)] disabled:opacity-30 hover:bg-[var(--app-input-bg)] transition"
-                >
-                  ← Prev
-                </button>
-                <span className="font-body text-[11px] px-3 py-1.5 text-[var(--app-text-muted)]">
-                  {tablePage} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setTablePage((p) => Math.min(totalPages, p + 1))}
-                  disabled={tablePage === totalPages}
-                  className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-[var(--app-border)] disabled:opacity-30 hover:bg-[var(--app-input-bg)] transition"
-                >
-                  Next →
-                </button>
-              </div>
-            </div>
-          )}
+          <TablePagination
+            page={tablePage}
+            pageSize={tablePageSize}
+            totalItems={filteredPartners.length}
+            onPageChange={setTablePage}
+            onPageSizeChange={setTablePageSize}
+          />
 
           {/* Partners — Mobile Cards */}
           <div className="sm:hidden space-y-3">
