@@ -34,9 +34,10 @@ export async function GET(req: NextRequest) {
 
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  // Find partners with engagement score > 0 who have been inactive > 24h
+  // Find non-archived partners with engagement score > 0 who have been inactive > 24h
   const stale = await prisma.partner.findMany({
     where: {
+      status: { not: "archived" },
       engagementScore: { gt: 0 },
       OR: [
         { lastActivityAt: { lt: cutoff } },

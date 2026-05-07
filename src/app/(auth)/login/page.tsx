@@ -8,6 +8,7 @@ import { FIRM_SLOGAN, SUPPORT_EMAIL } from "@/lib/constants";
 const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
   "not-invited": `This Google account isn't linked to a partner profile. Sign in with the email your invite was sent to, or email ${"support@fintella.partners"} for help.`,
   "blocked": "Your partner account is blocked. Please contact support.",
+  "archived": "ARCHIVED",
   "google-no-email": "Google didn't return an email for that account. Try a different Google account.",
   "OAuthSignin": "Google sign-in is temporarily unavailable. Please try email + password below.",
   "OAuthCallback": "Google sign-in didn't complete. Please try again.",
@@ -31,6 +32,7 @@ function LoginPageInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [archived, setArchived] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
@@ -52,12 +54,19 @@ function LoginPageInner() {
   // or NextAuth's own OAuth error codes.
   useEffect(() => {
     const code = searchParams?.get("error");
-    if (code) setError(GOOGLE_ERROR_MESSAGES[code] || "Sign-in failed. Please try again.");
+    if (code) {
+      if (code === "archived") {
+        setArchived(true);
+      } else {
+        setError(GOOGLE_ERROR_MESSAGES[code] || "Sign-in failed. Please try again.");
+      }
+    }
   }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setArchived(false);
     setLoading(true);
 
     try {
@@ -75,6 +84,22 @@ function LoginPageInner() {
       });
 
       if (result?.error) {
+        // Check if the account is archived (only for partner login failures)
+        if (mode === "partner") {
+          try {
+            const checkRes = await fetch("/api/auth/check-status", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: email.trim() }),
+            });
+            const checkData = await checkRes.json();
+            if (checkData.status === "archived") {
+              setArchived(true);
+              setLoading(false);
+              return;
+            }
+          } catch {}
+        }
         setError("Invalid email or password.");
       } else {
         router.push(mode === "partner" ? "/dashboard/home" : "/admin");
@@ -172,7 +197,7 @@ function LoginPageInner() {
           <div className="flex mb-6 rounded-lg overflow-hidden" style={{ border: "1px solid var(--app-border)" }}>
             <button
               type="button"
-              onClick={() => { setMode("partner"); setError(""); }}
+              onClick={() => { setMode("partner"); setError(""); setArchived(false); }}
               className={`flex-1 py-3 font-body text-xs tracking-wider uppercase transition-all ${
                 mode === "partner"
                   ? "bg-brand-gold/10 text-brand-gold"
@@ -184,7 +209,7 @@ function LoginPageInner() {
             </button>
             <button
               type="button"
-              onClick={() => { setMode("admin"); setError(""); }}
+              onClick={() => { setMode("admin"); setError(""); setArchived(false); }}
               className={`flex-1 py-3 font-body text-xs tracking-wider uppercase transition-all ${
                 mode === "admin"
                   ? "bg-brand-gold/10 text-brand-gold"
@@ -279,7 +304,38 @@ function LoginPageInner() {
               </div>
             </div>
 
-            {error && (
+            {archived && (
+              <div className="mb-5 p-4 bg-amber-500/[0.08] border border-amber-500/25 rounded-lg">
+                <div className="flex items-start gap-2.5 mb-3">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-400" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 8v13H3V8"/>
+                    <path d="M1 3h22v5H1z"/>
+                    <path d="M10 12h4"/>
+                  </svg>
+                  <div>
+                    <p className="font-body text-[13px] text-amber-300 font-semibold mb-1">Account Archived</p>
+                    <p className="font-body text-[13px] text-amber-300/80 leading-relaxed">
+                      Your account has been archived. If you&apos;d like to reactivate your account, please contact us at{" "}
+                      <a href="mailto:support@fintella.partners" className="text-brand-gold underline underline-offset-2">
+                        support@fintella.partners
+                      </a>
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href="mailto:support@fintella.partners?subject=Account%20Reactivation%20Request&body=Hello%2C%0A%0AI%20would%20like%20to%20request%20reactivation%20of%20my%20partner%20account.%0A%0AThank%20you."
+                  className="flex items-center justify-center gap-2 w-full rounded-lg border border-amber-500/30 bg-amber-500/[0.08] text-amber-300 px-4 py-2.5 font-body text-[13px] font-semibold hover:bg-amber-500/[0.15] transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  Request Reactivation
+                </a>
+              </div>
+            )}
+
+            {error && !archived && (
               <div className="mb-5 p-3 bg-red-500/[0.08] border border-red-500/25 rounded-lg font-body text-[13px] text-red-400 leading-relaxed">
                 {error}
               </div>

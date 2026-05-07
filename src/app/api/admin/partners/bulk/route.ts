@@ -18,7 +18,7 @@ import { prisma } from "@/lib/prisma";
  *   per-relation behavior — commissions / documents / agreements).
  */
 
-const ALLOWED_STATUSES = new Set(["active", "pending", "invited", "blocked", "inactive"]);
+const ALLOWED_STATUSES = new Set(["active", "pending", "invited", "blocked", "inactive", "archived"]);
 
 function requireSuperAdmin(session: any) {
   if (!session?.user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };

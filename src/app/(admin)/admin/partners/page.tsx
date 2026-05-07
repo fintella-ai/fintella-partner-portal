@@ -48,7 +48,7 @@ type Invite = {
   createdAt: string;
 };
 
-type TabType = "all" | "active" | "pending" | "signed" | "unsigned" | "none_agreement" | "invited" | "blocked";
+type TabType = "all" | "active" | "pending" | "signed" | "unsigned" | "none_agreement" | "invited" | "blocked" | "archived";
 
 // Normalize a stored mobile number to E.164 for the softphone Device.
 // Uses normalizePhone from @/lib/format (imported above).
@@ -112,6 +112,7 @@ const statusBadge: Record<string, string> = {
   inactive: "bg-[var(--app-input-bg)] text-[var(--app-text-secondary)] border border-[var(--app-border)]",
   blocked: "bg-red-500/10 text-red-400 border border-red-500/20",
   invited: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+  archived: "bg-gray-500/10 text-gray-400 border border-gray-500/20",
 };
 
 const inviteStatusBadge: Record<string, string> = {
@@ -386,6 +387,33 @@ export default function AdminPartnersPage() {
     }
   };
 
+  const bulkArchive = async () => {
+    if (selectedPartnerIds.size === 0) return;
+    const reason = prompt(`Archive ${selectedPartnerIds.size} partner(s)?\n\nEnter a reason (optional):`);
+    if (reason === null) return; // user cancelled
+    setBulkBusy(true);
+    try {
+      let succeeded = 0;
+      let failed = 0;
+      for (const pid of Array.from(selectedPartnerIds)) {
+        try {
+          const res = await fetch(`/api/admin/partners/${pid}/archive`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason: reason || undefined }),
+          });
+          if (res.ok) succeeded++;
+          else failed++;
+        } catch { failed++; }
+      }
+      if (failed > 0) alert(`Archived ${succeeded}, failed ${failed}`);
+      clearSelection();
+      await fetchPartners();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const bulkDelete = async () => {
     if (selectedPartnerIds.size === 0) return;
     if (!confirm(`PERMANENTLY DELETE ${selectedPartnerIds.size} partner(s)? This writes to the real DB and cascades to their deals, commissions, and agreements. Cannot be undone.`)) return;
@@ -617,6 +645,7 @@ export default function AdminPartnersPage() {
   const active = partners.filter((p) => p.status === "active").length;
   const pending = partners.filter((p) => p.status === "pending").length;
   const blocked = partners.filter((p) => p.status === "blocked").length;
+  const archived = partners.filter((p) => p.status === "archived").length;
   const invitedCount = invites.filter((inv) => inv.status === "active").length;
 
   // Rows waiting on admin review — either an L1-uploaded agreement or a W9
@@ -732,6 +761,7 @@ export default function AdminPartnersPage() {
     { key: "none_agreement", label: "None", count: noneCount },
     { key: "invited", label: "Invited", count: invitedCount },
     { key: "blocked", label: "Blocked" },
+    { key: "archived", label: "Archived", count: archived },
   ];
 
   const inputClass = "w-full bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-4 py-2.5 text-[var(--app-text)] font-body text-sm outline-none focus:border-brand-gold/40 transition-colors placeholder:text-[var(--app-text-muted)]";
@@ -757,7 +787,7 @@ export default function AdminPartnersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-8 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-9 gap-3 mb-6">
         {[
           { label: "Total Partners", value: total, color: "text-[var(--app-text)]" },
           { label: "Active", value: active, color: "text-green-400" },
@@ -767,6 +797,7 @@ export default function AdminPartnersPage() {
           { label: "None", value: noneCount, color: "text-red-400" },
           { label: "Invited", value: invitedCount, color: "text-blue-400" },
           { label: "Blocked", value: blocked, color: "text-red-400" },
+          { label: "Archived", value: archived, color: "text-gray-400" },
         ].map((s) => (
           <div key={s.label} className="card p-4">
             <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-1">{s.label}</div>
@@ -1245,6 +1276,7 @@ export default function AdminPartnersPage() {
             <option value="active">Active</option>
             <option value="pending">Pending</option>
             <option value="blocked">Blocked</option>
+            <option value="archived">Archived</option>
           </select>
           <select value={agreementFilter} onChange={(e) => { setAgreementFilter(e.target.value); setTablePage(1); }} className="text-sm rounded-lg px-3 py-1.5 bg-[var(--app-input-bg)] border border-[var(--app-input-border)] text-[var(--app-text)] font-body outline-none focus:border-brand-gold/40 transition-colors min-h-[44px] sm:min-h-0 sm:w-36">
             <option value="">All Agreements</option>
@@ -1671,6 +1703,7 @@ export default function AdminPartnersPage() {
                 <option value="invited">invited</option>
                 <option value="blocked">blocked</option>
                 <option value="inactive">inactive</option>
+                <option value="archived">archived</option>
               </select>
               <span className="text-[var(--app-text-faint)]">·</span>
               <label className="font-body text-[11px] text-[var(--app-text-muted)]">Agreement:</label>
@@ -1705,10 +1738,18 @@ export default function AdminPartnersPage() {
               <button
                 type="button"
                 disabled={bulkBusy}
+                onClick={() => void bulkArchive()}
+                className="font-body text-[12px] text-amber-400/80 border border-amber-500/30 rounded-lg px-3 py-1.5 hover:bg-amber-500/10 transition-colors disabled:opacity-50"
+              >
+                Archive selected
+              </button>
+              <button
+                type="button"
+                disabled={bulkBusy}
                 onClick={() => void bulkDelete()}
                 className="font-body text-[12px] text-red-400/80 border border-red-500/30 rounded-lg px-3 py-1.5 hover:bg-red-500/10 transition-colors disabled:opacity-50"
               >
-                Delete selected
+                Permanently Delete
               </button>
               <button
                 type="button"
@@ -1863,9 +1904,9 @@ export default function AdminPartnersPage() {
             {paginatedPartners.map((p) => {
               const e164 = normalizeForSoftphone(p.mobilePhone || p.phone);
               return (
+                <div key={p.id} className="border-b border-[var(--app-border)] last:border-b-0">
                 <div
-                  key={p.id}
-                  className="grid gap-3 px-5 py-3.5 border-b border-[var(--app-border)] last:border-b-0 hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer"
+                  className="grid gap-3 px-5 py-3.5 hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer"
                   style={{ gridTemplateColumns: partnerGridCols }}
                   onClick={() => router.push(`/admin/partners/${p.id}`)}
                 >
@@ -1979,6 +2020,66 @@ export default function AdminPartnersPage() {
                     {typeof p.commissionRate === "number" ? `${Math.round(p.commissionRate * 100)}%` : "20%"}
                   </div>
                 </div>
+                {/* Action buttons row — Archive / Restore / Delete */}
+                {(activeTab === "archived" || canBulkAct) && (
+                  <div
+                    className="flex items-center gap-2 px-5 pb-2 -mt-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {p.status === "archived" ? (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm(`Restore ${p.firstName} ${p.lastName}? They will be set to "pending" status.`)) return;
+                          try {
+                            const res = await fetch(`/api/admin/partners/${p.id}/archive`, { method: "PATCH" });
+                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to restore"); return; }
+                            await fetchPartners();
+                          } catch { alert("Connection error"); }
+                        }}
+                        className="font-body text-[11px] px-3 py-1 rounded-lg border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-colors"
+                      >
+                        Restore
+                      </button>
+                    ) : (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm(`Archive ${p.firstName} ${p.lastName}? They will be hidden from active lists but their data is preserved.`)) return;
+                          try {
+                            const res = await fetch(`/api/admin/partners/${p.id}/archive`, { method: "POST" });
+                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to archive"); return; }
+                            await fetchPartners();
+                          } catch { alert("Connection error"); }
+                        }}
+                        className="font-body text-[11px] px-3 py-1 rounded-lg border border-gray-500/30 text-gray-400 hover:bg-gray-500/10 transition-colors"
+                      >
+                        Archive
+                      </button>
+                    )}
+                    {canBulkAct && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm(`PERMANENTLY DELETE ${p.firstName} ${p.lastName}? This cascades to their deals, commissions, and agreements. Cannot be undone.`)) return;
+                          try {
+                            const res = await fetch("/api/admin/partners/bulk", {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ partnerIds: [p.id] }),
+                            });
+                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to delete"); return; }
+                            await fetchPartners();
+                          } catch { alert("Connection error"); }
+                        }}
+                        className="font-body text-[11px] px-3 py-1 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        Permanently Delete
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               );
             })}
             {filteredPartners.length === 0 && (
@@ -2102,6 +2203,65 @@ export default function AdminPartnersPage() {
                     })()}
                   </span>
                 </div>
+                {/* Mobile action buttons — Archive / Restore / Delete */}
+                {(activeTab === "archived" || canBulkAct) && (
+                  <div
+                    className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--app-border)]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {p.status === "archived" ? (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm(`Restore ${p.firstName} ${p.lastName}?`)) return;
+                          try {
+                            const res = await fetch(`/api/admin/partners/${p.id}/archive`, { method: "PATCH" });
+                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to restore"); return; }
+                            await fetchPartners();
+                          } catch { alert("Connection error"); }
+                        }}
+                        className="font-body text-[11px] px-3 min-h-[36px] rounded-lg border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-colors"
+                      >
+                        Restore
+                      </button>
+                    ) : (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm(`Archive ${p.firstName} ${p.lastName}?`)) return;
+                          try {
+                            const res = await fetch(`/api/admin/partners/${p.id}/archive`, { method: "POST" });
+                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to archive"); return; }
+                            await fetchPartners();
+                          } catch { alert("Connection error"); }
+                        }}
+                        className="font-body text-[11px] px-3 min-h-[36px] rounded-lg border border-gray-500/30 text-gray-400 hover:bg-gray-500/10 transition-colors"
+                      >
+                        Archive
+                      </button>
+                    )}
+                    {canBulkAct && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm(`PERMANENTLY DELETE ${p.firstName} ${p.lastName}? Cannot be undone.`)) return;
+                          try {
+                            const res = await fetch("/api/admin/partners/bulk", {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ partnerIds: [p.id] }),
+                            });
+                            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || "Failed to delete"); return; }
+                            await fetchPartners();
+                          } catch { alert("Connection error"); }
+                        }}
+                        className="font-body text-[11px] px-3 min-h-[36px] rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        Permanently Delete
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             {filteredPartners.length === 0 && (

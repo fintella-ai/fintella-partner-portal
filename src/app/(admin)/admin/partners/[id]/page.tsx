@@ -71,6 +71,7 @@ const statusBadge: Record<string, string> = {
   pending: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
   inactive: "bg-[var(--app-input-bg)] text-[var(--app-text-secondary)] border border-[var(--app-border)]",
   blocked: "bg-red-500/10 text-red-400 border border-red-500/20",
+  archived: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
 };
 
 export default function PartnerDetailPage() {
@@ -365,11 +366,51 @@ export default function PartnerDetailPage() {
     } catch {}
   };
 
-  const handleDelete = async () => {
-    if (!confirm(`Delete partner ${partner?.firstName} ${partner?.lastName}? This cannot be undone.`)) return;
+  const handleArchive = async () => {
+    if (!partner) return;
+    if (partner.status === "archived") {
+      // Restore flow
+      if (!confirm(`Restore partner ${partner.firstName} ${partner.lastName}? They will be set to "pending" status and need to re-sign their agreement.`)) return;
+      try {
+        const res = await fetch(`/api/admin/partners/${id}/archive`, { method: "PATCH" });
+        if (res.ok) {
+          setPartner({ ...partner, status: "pending" });
+        } else {
+          const d = await res.json().catch(() => ({}));
+          alert(d.error || "Failed to restore partner");
+        }
+      } catch {}
+      return;
+    }
+    // Archive flow
+    const reason = prompt(`Archive ${partner.firstName} ${partner.lastName}?\n\nEnter a reason (optional):`);
+    if (reason === null) return; // user cancelled
+    try {
+      const res = await fetch(`/api/admin/partners/${id}/archive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason || undefined }),
+      });
+      if (res.ok) {
+        setPartner({ ...partner, status: "archived" });
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || "Failed to archive partner");
+      }
+    } catch {}
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!partner) return;
+    if (!confirm(`PERMANENTLY DELETE ${partner.firstName} ${partner.lastName}?\n\nThis writes to the real DB and cascades to their deals, commissions, and agreements. Cannot be undone.`)) return;
+    if (!confirm(`Are you ABSOLUTELY sure? Type the partner code to confirm.\n\nExpected: ${partner.partnerCode}`)) return;
     try {
       const res = await fetch(`/api/admin/partners/${id}`, { method: "DELETE" });
       if (res.ok) router.push("/admin/partners");
+      else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || "Failed to delete partner");
+      }
     } catch {}
   };
 
@@ -436,9 +477,18 @@ export default function PartnerDetailPage() {
             </svg>
             View as Partner
           </button>
-          <button onClick={handleDelete} className="font-body text-[12px] text-red-400/60 border border-red-400/20 rounded-lg px-4 py-2.5 hover:bg-red-400/10 transition-colors">
-            Delete
+          <button onClick={handleArchive} className={`font-body text-[12px] border rounded-lg px-4 py-2.5 transition-colors ${
+            partner.status === "archived"
+              ? "text-green-400/80 border-green-400/20 hover:bg-green-400/10"
+              : "text-amber-400/80 border-amber-400/20 hover:bg-amber-400/10"
+          }`}>
+            {partner.status === "archived" ? "Restore" : "Archive"}
           </button>
+          {isSuperAdmin && (
+            <button onClick={handlePermanentDelete} className="font-body text-[12px] text-red-400/60 border border-red-400/20 rounded-lg px-4 py-2.5 hover:bg-red-400/10 transition-colors">
+              Permanently Delete
+            </button>
+          )}
         </div>
       </div>
 
