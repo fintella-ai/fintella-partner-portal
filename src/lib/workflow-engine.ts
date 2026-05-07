@@ -512,7 +512,7 @@ async function executeAction(
       }
 
       case "email.send": {
-        const templateKey = String(config.template || "");
+        const templateKey = String(config.template || config.templateKey || "");
         if (!templateKey) throw new Error("email.send: template key is required");
 
         const emailAb = await resolveAbVariant(templateKey, "email");
@@ -539,9 +539,9 @@ async function executeAction(
         let resolvedPartnerCode: string | null = null;
         const recipientType = String(config.recipientType || "").toLowerCase();
 
-        if (!toEmail && recipientType === "partner") {
+        if (!toEmail && (recipientType === "partner" || recipientType === "deal_partner")) {
           let partnerCode = String(config.partnerCode || "");
-          if (!partnerCode || partnerCode === "deal_partner") {
+          if (!partnerCode || partnerCode === "deal_partner" || recipientType === "deal_partner") {
             const deal = payload.deal as Record<string, unknown> | undefined;
             const partner = payload.partner as Record<string, unknown> | undefined;
             partnerCode = String(deal?.partnerCode || partner?.partnerCode || "");
@@ -587,7 +587,7 @@ async function executeAction(
       }
 
       case "sms.send": {
-        const templateKey = String(config.template || "");
+        const templateKey = String(config.template || config.templateKey || "");
         if (!templateKey) throw new Error("sms.send: template key is required");
 
         const smsAb = await resolveAbVariant(templateKey, "sms");
@@ -596,9 +596,9 @@ async function executeAction(
           : await prisma.smsTemplate.findUnique({ where: { key: templateKey } });
         if (!tpl || !tpl.enabled) throw new Error(`sms.send: template "${templateKey}" not found or disabled`);
 
-        // Resolve recipient — either a partnerCode (TCPA-gated lookup) or an explicit partner from payload.
+        const smsRecipientType = String(config.recipientType || "").toLowerCase();
         let partnerCode = String(config.partnerCode || "");
-        if (!partnerCode || partnerCode === "deal_partner") {
+        if (!partnerCode || partnerCode === "deal_partner" || smsRecipientType === "deal_partner") {
           const deal = payload.deal as Record<string, unknown> | undefined;
           const partner = payload.partner as Record<string, unknown> | undefined;
           partnerCode = String(deal?.partnerCode || partner?.partnerCode || "");
