@@ -1385,6 +1385,30 @@ export default function AdminPartnersPage() {
                     {bulkResending ? "Sending..." : "Resend Selected"}
                   </button>
                   <button
+                    onClick={async () => {
+                      if (!confirm(`Delete ${selectedInviteIds.length} selected invite(s)? This cannot be undone.`)) return;
+                      setCleanupBusy(true);
+                      try {
+                        const res = await fetch("/api/admin/cleanup-invites", {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ mode: "selected", ids: selectedInviteIds }),
+                        });
+                        const data = await res.json();
+                        setCleanupResult({ deleted: data.deleted || 0 });
+                        setSelectedInviteIds([]);
+                        if (data.deleted > 0) {
+                          const invRes = await fetch("/api/admin/invites");
+                          if (invRes.ok) { const d = await invRes.json(); setInvites(d.invites || []); }
+                        }
+                      } catch {} finally { setCleanupBusy(false); }
+                    }}
+                    disabled={cleanupBusy}
+                    className="text-[12px] px-4 min-h-[44px] rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition disabled:opacity-50"
+                  >
+                    {cleanupBusy ? "Deleting..." : "Delete Selected"}
+                  </button>
+                  <button
                     onClick={() => setSelectedInviteIds([])}
                     className="font-body text-[12px] theme-text-muted border border-[var(--app-border)] rounded-lg px-4 min-h-[44px] hover:theme-text-secondary transition-colors"
                   >
