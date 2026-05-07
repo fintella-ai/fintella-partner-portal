@@ -105,7 +105,7 @@ export const TRIGGER_DESCRIPTIONS: Record<TriggerKey, string> = {
   "partner.invite_reminder":    "Scheduled — runs once daily via /api/cron/reminders. Fires for each admin-generated recruitment invite that has NOT been used, once every `Cadence` days.",
   "partner.onboarding_stalled": "Scheduled — runs once daily via /api/cron/reminders. Fires for each active partner who signed up at least `Cadence` days ago and still has < 100% Getting-Started checklist progress (and hasn't dismissed the checklist). Throttled per-partner via Partner.onboardingState.lastNudgeSentAt so the same partner doesn't get nudged more often than `Cadence` days.",
   "partner.added_to_channel":   "Fires when an admin adds a partner to an announcement channel. Payload: partnerCode, channelId, channelName, addedByEmail. Pair with `email.send` to ping the partner that a new channel is live for them.",
-  "conference.call_reminder":   "Scheduled — runs hourly via /api/cron/conference-reminders. Fires for each active Live Weekly call that is `Hours before call` away, once per active partner. Used to send 24-hour / 1-hour reminder emails + SMS.",
+  "conference.call_reminder":   "Scheduled — runs hourly via /api/cron/conference-reminders. Fires for each active Live Weekly call that is `Hours before call` away, once per partner (active + pending). Used to send 24-hour / 1-hour reminder emails + SMS.",
   "commission.created":         "Commission ledger entry created",
   "commission.paid":            "Fires when a commission row is marked paid during payout batch processing.",
   "sms.sent":                   "Fires when an outbound SMS is accepted by Twilio (status=sent). Doesn't fire on demo/failed/skipped_optout.",
