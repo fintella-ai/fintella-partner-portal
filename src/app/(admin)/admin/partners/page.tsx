@@ -163,6 +163,8 @@ export default function AdminPartnersPage() {
   const [cleanupResult, setCleanupResult] = useState<{ deleted: number } | null>(null);
   const [sheetSyncing, setSheetSyncing] = useState(false);
   const [sheetResult, setSheetResult] = useState<number | null>(null);
+  const [signwellRefreshing, setSignwellRefreshing] = useState(false);
+  const [signwellResult, setSignwellResult] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [levelFilter, setLevelFilter] = useState<"all" | "l1" | "l2" | "l3" | "l4plus">("all");
   // View toggle: classic list/table vs. an org-chart tree forest rooted
@@ -1248,7 +1250,7 @@ export default function AdminPartnersPage() {
             <option value="">All Agreements</option>
             <option value="signed">Signed</option>
             <option value="partner_signed">Partner Signed</option>
-            <option value="pending">Pending</option>
+            <option value="pending">Awaiting Signature</option>
             <option value="viewed">Viewed</option>
             <option value="voided">Voided</option>
             <option value="none">No Agreement</option>
@@ -1281,6 +1283,22 @@ export default function AdminPartnersPage() {
             className="text-xs rounded-lg px-3 py-1.5 border border-[var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:border-brand-gold/40 transition min-h-[44px] sm:min-h-0"
           >
             {sheetSyncing ? "Syncing..." : sheetResult !== null ? `✓ ${sheetResult} synced` : "📊 Sync to Sheets"}
+          </button>
+          <button
+            onClick={async () => {
+              setSignwellRefreshing(true); setSignwellResult(null);
+              try {
+                const res = await fetch("/api/cron/agreement-refresh", { method: "POST" });
+                const data = await res.json();
+                setSignwellResult(`${data.refreshed || 0} refreshed`);
+                fetchPartners();
+              } catch { setSignwellResult("error"); }
+              finally { setSignwellRefreshing(false); }
+            }}
+            disabled={signwellRefreshing}
+            className="text-xs rounded-lg px-3 py-1.5 border border-[var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:border-brand-gold/40 transition min-h-[44px] sm:min-h-0"
+          >
+            {signwellRefreshing ? "Refreshing..." : signwellResult || "🔄 Refresh Agreements"}
           </button>
         </>)}
       </div>
