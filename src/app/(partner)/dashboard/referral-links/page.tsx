@@ -41,6 +41,7 @@ export default function ReferralLinksPage() {
   const [sendEmail, setSendEmail] = useState("");
   const [sendPhone, setSendPhone] = useState("");
   const [sendMethod, setSendMethod] = useState<"email" | "sms" | "both">("email");
+  const [sendPartnerType, setSendPartnerType] = useState<"referral" | "customs_broker">("referral");
   const [sendRate, setSendRate] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
@@ -150,6 +151,7 @@ export default function ReferralLinksPage() {
           phone: sendPhone.trim() || undefined,
           rate: sendRate,
           method: sendMethod,
+          partnerType: sendPartnerType,
         }),
       });
       if (!res.ok) {
@@ -162,7 +164,7 @@ export default function ReferralLinksPage() {
       setTimeout(() => {
         setSendSuccess(false);
         setSendFirstName(""); setSendLastName(""); setSendEmail(""); setSendPhone("");
-        setSendRate(null);
+        setSendRate(null); setSendPartnerType("referral");
       }, 3000);
     } catch {
       alert("Failed to send invite — please try again.");
@@ -283,7 +285,14 @@ export default function ReferralLinksPage() {
                 <input type="tel" className={inputClass} value={sendPhone} onChange={(e) => setSendPhone(e.target.value)} placeholder="+1 (555) 123-4567" />
               </div>
             </div>
-            <div className={`grid ${device.isMobile ? "grid-cols-1" : "grid-cols-2"} gap-4 mb-4`}>
+            <div className={`grid ${device.isMobile ? "grid-cols-1" : "grid-cols-3"} gap-4 mb-4`}>
+              <div>
+                <label className="font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-secondary)] mb-1.5 block">Partner Type *</label>
+                <select className={inputClass} value={sendPartnerType} onChange={(e) => setSendPartnerType(e.target.value as any)}>
+                  <option value="referral">Referral Partner</option>
+                  <option value="customs_broker">Customs Broker</option>
+                </select>
+              </div>
               <div>
                 <label className="font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-secondary)] mb-1.5 block">Commission Rate *</label>
                 <select className={inputClass} value={sendRate || ""} onChange={(e) => setSendRate(e.target.value ? parseFloat(e.target.value) : null)} required>
