@@ -62,6 +62,11 @@ const BUILT_IN_ADMIN_ICONS: Record<string, string> = {
   "widget-analytics": "/icons/widget-analytics-chart.svg",
   templates: "/icons/templates-doc.svg",
   knowledgeCenter: "/icons/knowledge-brain.svg",
+  channels: "/icons/channels-megaphone.svg",
+  "tariff-engine": "/icons/tariff-engine-calculator.svg",
+  aiActivity: "/icons/ai-activity-sparkles.svg",
+  billing: "/icons/billing-wallet.svg",
+  aiPermissions: "/icons/ai-activity-sparkles.svg",
 };
 
 const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
