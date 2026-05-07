@@ -70,15 +70,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, ...result, finishedAt: new Date().toISOString(), note: "No active workflows" });
   }
 
-  // Pre-load active partners (we email/SMS each). Active status mirrors
-  // the existing filter used elsewhere — only partners who've completed
-  // signup + agreement get reminders.
   const partners = await prisma.partner.findMany({
-    where: { status: "active" },
+    where: { status: { in: ["active", "pending"] } },
     select: { partnerCode: true, firstName: true, lastName: true, email: true, mobilePhone: true },
   });
   if (partners.length === 0) {
-    return NextResponse.json({ ok: true, ...result, finishedAt: new Date().toISOString(), note: "No active partners" });
+    return NextResponse.json({ ok: true, ...result, finishedAt: new Date().toISOString(), note: "No partners" });
   }
 
   const conferences = await prisma.conferenceSchedule.findMany({
