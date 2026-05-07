@@ -332,14 +332,6 @@ export default function DownlinePage() {
                       <MessageButton counterpartyCode={p.partnerCode} />
                     </div>
                   )}
-                  {p.status === "under_review" && (
-                    <div className="mt-2 text-center">
-                      <span className="inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-semibold tracking-wider uppercase bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Agreement Under Review</span>
-                    </div>
-                  )}
-                  {AGREEMENT_UPLOAD_STATUSES.has(p.status) && (
-                    <UploadLabel partnerCode={p.partnerCode} status={p.status} size="sm" />
-                  )}
                 </div>
               );
             })}
@@ -349,9 +341,9 @@ export default function DownlinePage() {
           <div className="overflow-x-auto">
             <div className="min-w-[900px]">
             {/* Header */}
-            <div className="grid grid-cols-[2fr_0.5fr_1.4fr_1fr_0.8fr_0.8fr_1fr] gap-4 px-6 py-3 border-b border-[var(--app-border)]">
-              {["Partner", "Level", "Email", "Code", "Status", "Joined", "Agreement"].map((h) => (
-                <div key={h} className={`font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Agreement" ? "text-right" : ""}`}>{h}</div>
+            <div className="grid grid-cols-[2fr_0.5fr_0.6fr_1.4fr_1fr_0.8fr_0.8fr] gap-4 px-6 py-3 border-b border-[var(--app-border)]">
+              {["Partner", "Level", "Rate", "Email", "Code", "Status", "Joined"].map((h) => (
+                <div key={h} className={`font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Status" || h === "Rate" ? "text-center" : ""}`}>{h}</div>
               ))}
             </div>
             {/* Rows. Row is a plain div; only the Partner cell wraps in
@@ -363,7 +355,7 @@ export default function DownlinePage() {
               return (
                 <div
                   key={p.partnerCode}
-                  className="grid grid-cols-[2fr_0.5fr_1.4fr_1fr_0.8fr_0.8fr_1fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors"
+                  className="grid grid-cols-[2fr_0.5fr_0.6fr_1.4fr_1fr_0.8fr_0.8fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors"
                 >
                   {/* Col 1: Name + avatar (clickable → detail page) */}
                   <Link
@@ -379,34 +371,27 @@ export default function DownlinePage() {
                       {p.firstName} {p.lastName}
                     </div>
                   </Link>
-                  {/* Col 2: Level — viewer-relative ("My L2" / "My L3") */}
+                  {/* Col 2: Level */}
                   <div><RelativeLevelTag relativeLevel={p._tier === "l2" ? 2 : 3} size="xs" /></div>
-                  {/* Col 3: Email */}
+                  {/* Col 3: Commission Rate */}
+                  <div className="font-body text-[13px] text-brand-gold font-semibold text-center">
+                    {typeof p.commissionRate === "number" ? `${Math.round(p.commissionRate * 100)}%` : "—"}
+                  </div>
+                  {/* Col 4: Email */}
                   <div className="font-body text-[13px] text-[var(--app-text-secondary)] truncate">
                     {p.email}
                   </div>
-                  {/* Col 4: Code */}
+                  {/* Col 5: Code */}
                   <div className="font-mono text-[12px] text-[var(--app-text-muted)]">
                     {p.partnerCode}
                   </div>
-                  {/* Col 5: Status */}
-                  <div>
+                  {/* Col 6: Status */}
+                  <div className="text-center">
                     <StatusBadge status={p.status} />
                   </div>
-                  {/* Col 6: Joined */}
+                  {/* Col 7: Joined */}
                   <div className="font-body text-[13px] text-[var(--app-text-muted)]">
                     {fmtDate(p.signupDate)}
-                  </div>
-                  {/* Col 7: Agreement */}
-                  <div className="text-right flex items-center justify-end gap-2">
-                    {AGREEMENT_UPLOAD_STATUSES.has(p.status) ? (
-                      <UploadLabel partnerCode={p.partnerCode} status={p.status} size="xs" />
-                    ) : p.status === "active" ? (
-                      <>
-                        <span className="font-body text-[10px] text-green-400">&#10003; Active</span>
-                        <MessageButton counterpartyCode={p.partnerCode} size="xs" />
-                      </>
-                    ) : null}
                   </div>
                 </div>
               );
