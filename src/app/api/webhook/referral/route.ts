@@ -606,12 +606,16 @@ async function postHandler(req: NextRequest): Promise<Response> {
       "Importer of Record"
     );
     // Client IOR classification — determines Tier 1 (full commission) vs Tier 2 (50%).
-    // Accepts explicit boolean, or infers from the free-text importerOfRecord field.
+    // Text field takes priority when it clearly indicates IOR status, since Frost Law
+    // sometimes sends conflicting explicit boolean values.
+    const iorText = importerOfRecord ? String(importerOfRecord) : "";
+    const textSaysYes = /\b(we are|yes|i am|the client|they are the)\b/i.test(iorText);
+    const textSaysNo = /\b(third party|no|not the|not sure)\b/i.test(iorText);
     const isIorRaw = get("is_importer_of_record", "isImporterOfRecord", "is_ior");
-    const isImporterOfRecord: boolean = isIorRaw !== undefined && isIorRaw !== null
-      ? String(isIorRaw).toLowerCase() === "true" || String(isIorRaw) === "1"
-      : importerOfRecord
-        ? /\b(we are|yes|i am|the client|they are the)\b/i.test(String(importerOfRecord))
+    const isImporterOfRecord: boolean = iorText && (textSaysYes || textSaysNo)
+      ? textSaysYes
+      : isIorRaw !== undefined && isIorRaw !== null
+        ? String(isIorRaw).toLowerCase() === "true" || String(isIorRaw) === "1"
         : true;
 
     // Deal stage (passed through from Frost Law's system — stored as-is per PR #12)
