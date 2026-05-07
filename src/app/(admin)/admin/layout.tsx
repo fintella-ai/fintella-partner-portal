@@ -28,11 +28,11 @@ const isGroup = (n: NavItem): n is NavGroup => (n as NavGroup).children !== unde
 const ADMIN_NAV_IDS_DEFAULT = [
   "home",
   "partners", "applications", "internal-leads", "deals", "widget-referrals", "widget-analytics", "reporting",
-  "communications", "templates", "internalChats", "partnerSupport",
+  "communications", "channels", "templates", "internalChats", "partnerSupport",
   "training", "conference", "documents",
-  "campaigns", "campaignReplies", "automations", "gettingStartedEditor", "knowledgeCenter", "landingPages",
+  "campaigns", "campaignReplies", "automations", "gettingStartedEditor", "knowledgeCenter", "tariff-engine", "aiActivity", "aiPermissions", "landingPages",
   "brokerFunnel",
-  "subscriptions", "settings", "users", "dev",
+  "subscriptions", "billing", "settings", "users", "dev", "features",
 ];
 
 // Built-in icon overrides — wins over the default emoji, loses to an
@@ -86,6 +86,7 @@ const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
   // Reporting). This avoids duplicate tab bars and shorter mental model for
   // super admins.
   communications:  { id: "communications",  href: "/admin/communications",  icon: "💬", label: "Communications" },
+  channels:        { id: "channels",        href: "/admin/channels",        icon: "📢", label: "Channels" },
   templates:       { id: "templates",       href: "/admin/templates",       icon: "✨", label: "Templates" },
   internalChats:   { id: "internalChats",   href: "/admin/internal-chats",  icon: "💬", label: "Internal Chats" },
   partnerSupport:  { id: "partnerSupport",  href: "/admin/support",         icon: "🙋", label: "Partner Support" },
@@ -99,6 +100,7 @@ const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
   aiActivity:   { id: "aiActivity", href: "/admin/ai-activity", icon: "🤖", label: "AI Activity" },
   aiPermissions: { id: "aiPermissions", href: "/admin/ai-permissions", icon: "🛡️", label: "AI Permissions" },
   knowledgeCenter: { id: "knowledgeCenter", href: "/admin/knowledge-center", icon: "🧠", label: "Knowledge Center" },
+  "tariff-engine": { id: "tariff-engine", href: "/admin/tariff-engine", icon: "🧮", label: "Tariff Engine" },
   settings:     { id: "settings", href: "/admin/settings", icon: "⚙️", label: "Settings" },
   subscriptions: { id: "subscriptions", href: "/admin/subscriptions", icon: "💎", label: "Subscriptions" },
   billing:      { id: "billing", href: "/admin/billing", icon: "💳", label: "Billing" },
