@@ -570,13 +570,25 @@ async function executeAction(
         const finalSubject = renderVars(tpl.subject, vars);
         const finalText = renderVars(tpl.bodyText, vars);
         const finalHtml = renderVars(tpl.bodyHtml, vars);
+        const finalHeading = renderVars(tpl.heading, vars);
+        const finalCtaLabel = tpl.ctaLabel ? renderVars(tpl.ctaLabel, vars) : undefined;
+        const finalCtaUrl = tpl.ctaUrl ? renderVars(tpl.ctaUrl, vars) : undefined;
+        const finalPreheader = tpl.preheader ? renderVars(tpl.preheader, vars) : undefined;
 
-        const { sendEmail } = await import("@/lib/sendgrid");
+        const { sendEmail, emailShell } = await import("@/lib/sendgrid");
+        const wrapped = emailShell({
+          preheader: finalPreheader,
+          heading: finalHeading,
+          bodyHtml: finalHtml,
+          bodyText: finalText,
+          ctaLabel: finalCtaLabel,
+          ctaUrl: finalCtaUrl,
+        });
         await sendEmail({
           to: toEmail,
           subject: finalSubject,
-          html: finalHtml,
-          text: finalText,
+          html: wrapped.html,
+          text: wrapped.text,
           template: templateKey,
           partnerCode: resolvedPartnerCode,
           fromEmail: tpl.fromEmail || undefined,
