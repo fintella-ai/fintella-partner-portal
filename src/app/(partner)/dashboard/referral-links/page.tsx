@@ -403,7 +403,7 @@ export default function ReferralLinksPage() {
 
           {trackingTab === "active" && activeInvites.length === 0 && (
             <div className="p-6 text-center font-body text-[13px] text-[var(--app-text-muted)]">
-              No active invites. Generate links from the <button onClick={() => setActiveTab("links")} className="text-brand-gold hover:underline">Recruit {targetTierLabel} Partner Links</button> tab.
+              No active invites. Send one from the <button onClick={() => setActiveTab("send")} className="text-brand-gold hover:underline">Send Partner Invite</button> tab.
             </div>
           )}
 
