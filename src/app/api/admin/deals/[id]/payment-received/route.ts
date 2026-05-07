@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { computeDealCommissions } from "@/lib/commission";
 import { resolveDealFinancials } from "@/lib/dealCalc";
 import { logAudit } from "@/lib/audit-log";
+import { fireWorkflowTrigger } from "@/lib/workflow-engine";
 
 /**
  * POST /api/admin/deals/[id]/payment-received
@@ -253,6 +254,18 @@ export async function POST(
       });
     }
 
+    // Fire commission.created for freshly-created ledger entries (fire-and-forget)
+    if (result.mode === "created_fresh" && Array.isArray(result.ledger)) {
+      for (const entry of result.ledger) {
+        fireWorkflowTrigger("commission.created", {
+          dealId: deal.id,
+          partnerCode: entry.partnerCode,
+          amount: entry.amount,
+          tier: entry.tier,
+        }).catch(() => {});
+      }
+    }
+
     logAudit({
       action: "deal.payment_received",
       actorEmail: session.user.email || "unknown",
@@ -263,6 +276,12 @@ export async function POST(
       details: { ledgerCount: result.ledgerCount, totalCommission: result.totalCommission, mode: result.mode },
       ipAddress: req.headers.get("x-forwarded-for") || undefined,
       userAgent: req.headers.get("user-agent") || undefined,
+    }).catch(() => {});
+
+    fireWorkflowTrigger("deal.payment_received", {
+      dealId: deal.id,
+      dealName: deal.dealName,
+      partnerCode: deal.partnerCode,
     }).catch(() => {});
 
     return NextResponse.json({

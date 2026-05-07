@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/format";
+import { fireWorkflowTrigger } from "@/lib/workflow-engine";
 
 const BROKER_RATE = 0.25;
 const REFERRAL_RATE = 0.10;
@@ -113,6 +114,12 @@ export async function POST(req: NextRequest) {
         userAgent: userAgent?.slice(0, 500) ?? null,
       },
     });
+
+    fireWorkflowTrigger("application.submitted", {
+      email,
+      name: `${firstName} ${lastName}`.trim(),
+      type: isBroker ? "broker" : "referral",
+    }).catch(() => {});
 
     // ── Auto-approve: create invite + update application ────────────────
     try {

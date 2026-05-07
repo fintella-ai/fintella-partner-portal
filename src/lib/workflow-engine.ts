@@ -18,6 +18,7 @@ export const TRIGGER_KEYS = [
   "deal.stage_changed",
   "deal.closed_won",
   "deal.closed_lost",
+  "deal.payment_received",
   "partner.created",
   "partner.activated",
   "partner.agreement_sent",
@@ -35,6 +36,9 @@ export const TRIGGER_KEYS = [
   "email.sent",
   "email.failed",
   "newsletter.monthly",
+  "application.submitted",
+  "application.approved",
+  "lead.created",
 ] as const;
 
 export type TriggerKey = (typeof TRIGGER_KEYS)[number];
@@ -44,6 +48,7 @@ export const TRIGGER_LABELS: Record<TriggerKey, string> = {
   "deal.stage_changed":         "Deal Stage Changed",
   "deal.closed_won":            "Deal Closed Won",
   "deal.closed_lost":           "Deal Closed Lost",
+  "deal.payment_received":      "Deal Payment Received",
   "partner.created":            "Partner Created",
   "partner.activated":          "Partner Activated",
   "partner.agreement_sent":     "Partner Agreement Sent",
@@ -61,6 +66,9 @@ export const TRIGGER_LABELS: Record<TriggerKey, string> = {
   "email.sent":                 "Email Sent (outbound)",
   "email.failed":               "Email Failed / Skipped",
   "newsletter.monthly":         "Monthly Newsletter (cron)",
+  "application.submitted":      "Partner Application Submitted",
+  "application.approved":       "Partner Application Approved",
+  "lead.created":               "Lead Created",
 };
 
 // ─── Action types ─────────────────────────────────────────────────────────────
@@ -89,6 +97,7 @@ export const TRIGGER_DESCRIPTIONS: Record<TriggerKey, string> = {
   "deal.stage_changed":         "Fires whenever a deal's internal stage moves (e.g. new_lead → consultation_booked).",
   "deal.closed_won":            "Fires the moment a deal's stage flips to closedwon.",
   "deal.closed_lost":           "Fires the moment a deal's stage flips to closedlost.",
+  "deal.payment_received":      "Fires when an admin marks a deal's payment as received, flipping commission ledger entries to 'due'.",
   "partner.created":            "Fires when a new partner account is created (reserved — call site not yet wired).",
   "partner.activated":          "Fires when a partner's partnership agreement is countersigned and the account flips to active.",
   "partner.agreement_sent":     "Fires when an admin dispatches the SignWell partnership agreement to a partner via /api/admin/agreement/[partnerCode]. Payload: partner row + signingUrl. Pair with `email.send` (template `agreement_ready`) to replace the hardcoded sendAgreementReadyEmail path.",
@@ -97,7 +106,7 @@ export const TRIGGER_DESCRIPTIONS: Record<TriggerKey, string> = {
   "partner.onboarding_stalled": "Scheduled — runs once daily via /api/cron/reminders. Fires for each active partner who signed up at least `Cadence` days ago and still has < 100% Getting-Started checklist progress (and hasn't dismissed the checklist). Throttled per-partner via Partner.onboardingState.lastNudgeSentAt so the same partner doesn't get nudged more often than `Cadence` days.",
   "partner.added_to_channel":   "Fires when an admin adds a partner to an announcement channel. Payload: partnerCode, channelId, channelName, addedByEmail. Pair with `email.send` to ping the partner that a new channel is live for them.",
   "conference.call_reminder":   "Scheduled — runs hourly via /api/cron/conference-reminders. Fires for each active Live Weekly call that is `Hours before call` away, once per active partner. Used to send 24-hour / 1-hour reminder emails + SMS.",
-  "commission.created":         "Fires when a CommissionLedger row is first written (reserved — call site not yet wired).",
+  "commission.created":         "Commission ledger entry created",
   "commission.paid":            "Fires when a commission row is marked paid during payout batch processing.",
   "sms.sent":                   "Fires when an outbound SMS is accepted by Twilio (status=sent). Doesn't fire on demo/failed/skipped_optout.",
   "sms.received":               "Fires when a partner texts our Twilio number (inbound SMS that isn't a STOP/START keyword).",
@@ -106,6 +115,9 @@ export const TRIGGER_DESCRIPTIONS: Record<TriggerKey, string> = {
   "email.sent":                 "Fires after any outbound email is accepted by SendGrid (status=sent). Does NOT fire for demo-mode or failed sends. Use to chain follow-ups (e.g. notify admin when the welcome email reaches a new partner).",
   "email.failed":               "Fires when an outbound email either errors out or is skipped by the demo gate. Payload includes the error reason — handy for admin notifications when transactional mail can't leave.",
   "newsletter.monthly":         "Fires on the 1st of each month via Vercel cron. One trigger per active partner. Payload includes partner info + month/year. Actions can send email, SMS, or notifications.",
+  "application.submitted":      "Fires when a new partner application is submitted via /apply or /partners/broker-signup. Payload: email, name, type.",
+  "application.approved":       "Fires when an admin approves a partner application and an invite is generated. Payload: email, name.",
+  "lead.created":               "Fires when an admin creates a new PartnerLead via /admin/leads POST. Payload: email, name, source.",
 };
 
 export const ACTION_DESCRIPTIONS: Record<ActionType, string> = {
@@ -177,6 +189,11 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{deal.dealName}",         description: "Deal name",                 example: "ACME Corp — Tariff Refund" },
     { token: "{deal.partnerCode}",      description: "Submitting partner's code", example: "PTNJD8K3F" },
     { token: "{deal.closedLostReason}", description: "Reason the deal was lost",  example: "disqualified" },
+  ],
+  "deal.payment_received": [
+    { token: "{dealId}",       description: "Fintella deal ID",              example: "cmoabkqqi000e14ab8ybk8bv4" },
+    { token: "{dealName}",     description: "Deal name",                     example: "ACME Corp — Tariff Refund" },
+    { token: "{partnerCode}",  description: "Submitting partner's code",     example: "PTNJD8K3F" },
   ],
   "partner.created": [
     { token: "{partner.partnerCode}", description: "Partner's code",      example: "PTNJD8K3F" },
@@ -309,6 +326,20 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{month}",              description: "Current month name",               example: "April" },
     { token: "{year}",               description: "Current year",                     example: "2026" },
     { token: "{portalUrl}",          description: "Portal base URL",                  example: "https://fintella.partners" },
+  ],
+  "application.submitted": [
+    { token: "{email}",  description: "Applicant's email address",           example: "jane@firm.com" },
+    { token: "{name}",   description: "Applicant's full name",              example: "Jane Doe" },
+    { token: "{type}",   description: "Application type (partner/broker/referral)", example: "broker" },
+  ],
+  "application.approved": [
+    { token: "{email}",  description: "Approved applicant's email address",  example: "jane@firm.com" },
+    { token: "{name}",   description: "Approved applicant's full name",     example: "Jane Doe" },
+  ],
+  "lead.created": [
+    { token: "{email}",   description: "Lead's email address",              example: "jane@firm.com" },
+    { token: "{name}",    description: "Lead's full name",                  example: "Jane Doe" },
+    { token: "{source}",  description: "Lead source (cbp_listing, manual, calculator, webinar, referral)", example: "cbp_listing" },
   ],
 };
 
