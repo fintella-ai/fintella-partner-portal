@@ -41,6 +41,7 @@ export default function ReferralLinksPage() {
   const [sendEmail, setSendEmail] = useState("");
   const [sendPhone, setSendPhone] = useState("");
   const [sendMethod, setSendMethod] = useState<"email" | "sms" | "both">("email");
+  const [sendPartnerType, setSendPartnerType] = useState<"referral" | "customs_broker">("referral");
   const [sendRate, setSendRate] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
@@ -48,7 +49,7 @@ export default function ReferralLinksPage() {
   // Which section is visible. Tabs are the consolidated layout for
   // recruiters; L3 (and any partner without downline rates) bypasses
   // them entirely and falls through to the "no recruitment" message.
-  type ReferralTab = "send" | "tracking";
+  type ReferralTab = "send" | "broker" | "tracking";
   const [activeTab, setActiveTab] = useState<ReferralTab>("send");
 
   // Check agreement status — gate requires BOTH a signed agreement AND an
@@ -150,6 +151,7 @@ export default function ReferralLinksPage() {
           phone: sendPhone.trim() || undefined,
           rate: sendRate,
           method: sendMethod,
+          partnerType: sendPartnerType,
         }),
       });
       if (!res.ok) {
@@ -162,7 +164,7 @@ export default function ReferralLinksPage() {
       setTimeout(() => {
         setSendSuccess(false);
         setSendFirstName(""); setSendLastName(""); setSendEmail(""); setSendPhone("");
-        setSendRate(null);
+        setSendRate(null); setSendPartnerType("referral");
       }, 3000);
     } catch {
       alert("Failed to send invite — please try again.");
@@ -224,6 +226,7 @@ export default function ReferralLinksPage() {
         <div className="mb-6 border-b border-[var(--app-border)] flex flex-wrap gap-1">
           {([
             { id: "send", label: "Send Partner Invite" },
+            { id: "broker", label: "Send Broker Invite" },
             { id: "tracking", label: "Invite Tracking" },
           ] as const).map((t) => {
             const active = activeTab === t.id;
@@ -250,19 +253,25 @@ export default function ReferralLinksPage() {
         </div>
       )}
 
-      {/* ═══ SEND PARTNER INVITE ═══ */}
-      {canRecruit && activeTab === "send" && (
+      {/* ═══ SEND PARTNER / BROKER INVITE ═══ */}
+      {canRecruit && (activeTab === "send" || activeTab === "broker") && (() => {
+        const isBroker = activeTab === "broker";
+        const typeLabel = isBroker ? "Customs Broker" : "Referral Partner";
+        const effectiveType = isBroker ? "customs_broker" : "referral";
+        return (
         <div className="card mb-6">
           <div className={`${device.cardPadding} border-b`} style={{ borderColor: "var(--app-border)" }}>
             <div className="flex items-center gap-3 mb-1">
-              <span className="text-2xl">📤</span>
-              <div className="font-body font-semibold text-[15px]">Send Partner Invite</div>
+              <span className="text-2xl">{isBroker ? "🚢" : "📤"}</span>
+              <div className="font-body font-semibold text-[15px]">Send {typeLabel} Invite</div>
             </div>
             <div className="font-body text-[12px] text-[var(--app-text-muted)] leading-relaxed">
-              Send a referral partner invite directly via email or SMS.
+              {isBroker
+                ? "Invite a licensed customs broker to join your partner network."
+                : "Send a referral partner invite directly via email or SMS."}
             </div>
           </div>
-          <form onSubmit={handleSendInvite} className={`${device.cardPadding}`}>
+          <form onSubmit={(e) => { setSendPartnerType(effectiveType); handleSendInvite(e); }} className={`${device.cardPadding}`}>
             <div className={`grid ${device.isMobile ? "grid-cols-1" : "grid-cols-2"} gap-4 mb-4`}>
               <div>
                 <label className="font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-secondary)] mb-1.5 block">First Name *</label>
@@ -276,7 +285,7 @@ export default function ReferralLinksPage() {
             <div className={`grid ${device.isMobile ? "grid-cols-1" : "grid-cols-2"} gap-4 mb-4`}>
               <div>
                 <label className="font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-secondary)] mb-1.5 block">Email *</label>
-                <input type="email" className={inputClass} value={sendEmail} onChange={(e) => setSendEmail(e.target.value)} placeholder="partner@example.com" required />
+                <input type="email" className={inputClass} value={sendEmail} onChange={(e) => setSendEmail(e.target.value)} placeholder={isBroker ? "broker@company.com" : "partner@example.com"} required />
               </div>
               <div>
                 <label className="font-body text-[11px] tracking-[1px] uppercase text-[var(--app-text-secondary)] mb-1.5 block">Mobile Phone (SMS)</label>
@@ -289,7 +298,7 @@ export default function ReferralLinksPage() {
                 <select className={inputClass} value={sendRate || ""} onChange={(e) => setSendRate(e.target.value ? parseFloat(e.target.value) : null)} required>
                   <option value="">Select rate...</option>
                   {availableRates.map((r) => (
-                    <option key={r} value={r}>{Math.round(r * 100)}% — {targetTierLabel} Partner</option>
+                    <option key={r} value={r}>{Math.round(r * 100)}% — {targetTierLabel} {typeLabel}</option>
                   ))}
                 </select>
               </div>
@@ -307,14 +316,15 @@ export default function ReferralLinksPage() {
               disabled={sending || !sendRate || !sendEmail.trim() || !sendFirstName.trim() || !sendLastName.trim()}
               className="btn-gold text-sm px-6 py-2.5 disabled:opacity-50"
             >
-              {sending ? "Sending..." : sendSuccess ? "✓ Invite Sent!" : "Send Referral Partner Invite"}
+              {sending ? "Sending..." : sendSuccess ? "✓ Invite Sent!" : `Send ${typeLabel} Invite`}
             </button>
             {sendSuccess && (
               <div className="mt-3 font-body text-[12px] text-green-400">Invite sent successfully! It will appear in the tracking table below.</div>
             )}
           </form>
         </div>
-      )}
+        );
+      })()}
 
       {/* ═══ INVITE TRACKING ═══ */}
       {canRecruit && activeTab === "tracking" && (
