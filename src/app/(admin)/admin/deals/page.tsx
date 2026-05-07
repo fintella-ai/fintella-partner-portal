@@ -10,6 +10,7 @@ import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import PartnerLink from "@/components/ui/PartnerLink";
 import { isStarSuperAdminEmail } from "@/lib/starSuperAdmin";
+import TablePagination from "@/components/ui/TablePagination";
 
 const STAGES = [
   { value: "all", label: "All Stages" },
@@ -130,6 +131,10 @@ export default function AdminDealsPage() {
   const [dealNotePosting, setDealNotePosting] = useState<Record<string, boolean>>({});
   const [editingDealNoteId, setEditingDealNoteId] = useState<string | null>(null);
   const [editingDealNoteContent, setEditingDealNoteContent] = useState("");
+
+  // Pagination
+  const [dealsPage, setDealsPage] = useState(1);
+  const [dealsPageSize, setDealsPageSize] = useState(50);
 
   // Bulk actions
   const [bulkMode, setBulkMode] = useState(false);
@@ -254,6 +259,9 @@ export default function AdminDealsPage() {
 
   useEffect(() => { fetchDeals(); }, [fetchDeals]);
 
+  // Reset pagination when filters change
+  useEffect(() => { setDealsPage(1); }, [search, stageFilter, serviceFilter, partnerFilter, sortField, sortDir]);
+
   // Close the partner-reassign combobox when the admin clicks outside.
   useEffect(() => {
     function onDown(e: MouseEvent) {
@@ -286,6 +294,9 @@ export default function AdminDealsPage() {
     if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
     return 0;
   });
+
+  // Paginate the sorted deals
+  const paginatedDeals = sorted.slice((dealsPage - 1) * dealsPageSize, dealsPage * dealsPageSize);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -717,7 +728,7 @@ export default function AdminDealsPage() {
 
       {/* ═══ RESULTS COUNT ═══ */}
       <div className="font-body text-[12px] text-[var(--app-text-muted)] mb-3">
-        Showing {sorted.length} deal{sorted.length !== 1 ? "s" : ""}
+        Showing {sorted.length} deal{sorted.length !== 1 ? "s" : ""}{sorted.length > dealsPageSize ? ` (page ${dealsPage})` : ""}
         {stageFilter !== "all" ? ` in ${STAGES.find((s) => s.value === stageFilter)?.label}` : ""}
         {partnerFilter ? ` for ${partners.find((p) => p.partnerCode === partnerFilter)?.firstName || partnerFilter}` : ""}
       </div>
@@ -761,7 +772,7 @@ export default function AdminDealsPage() {
           </button>
         </div>
 
-        {sorted.map((deal, idx) => {
+        {paginatedDeals.map((deal, idx) => {
           // Cross-calculate missing firm fee / commission values from the
           // siblings we DO have. E.g. if a deal has refund + firm fee amount
           // but no firm fee rate, we compute it as amount/refund and show
@@ -1496,15 +1507,16 @@ export default function AdminDealsPage() {
           );
         })}
 
-        {sorted.length === 0 && (
+        {paginatedDeals.length === 0 && (
           <div className="px-5 py-10 text-center font-body text-[13px] text-[var(--app-text-muted)]">No deals found matching your filters.</div>
         )}
         </div>
+        <TablePagination page={dealsPage} pageSize={dealsPageSize} totalItems={sorted.length} onPageChange={setDealsPage} onPageSizeChange={setDealsPageSize} />
       </div>
 
       {/* ═══ MOBILE CARDS ═══ */}
       <div className="md:hidden space-y-3">
-        {sorted.map((deal, idx) => (
+        {paginatedDeals.map((deal, idx) => (
           <div key={deal.id} id={`deal-m-${deal.id}`} className={`card ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
             <div className="p-4 cursor-pointer" onClick={() => toggleExpand(deal)}>
               <div className="flex items-start justify-between gap-2 mb-2">
@@ -1686,6 +1698,9 @@ export default function AdminDealsPage() {
             )}
           </div>
         ))}
+        <div className="mt-3">
+          <TablePagination page={dealsPage} pageSize={dealsPageSize} totalItems={sorted.length} onPageChange={setDealsPage} onPageSizeChange={setDealsPageSize} />
+        </div>
       </div>
     </div>
   );

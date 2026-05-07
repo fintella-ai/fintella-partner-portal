@@ -10,6 +10,7 @@ import PullToRefresh from "@/components/ui/PullToRefresh";
 import { fmt$, fmtDate, fmtDateTime } from "@/lib/format";
 import { resolveDealFinancials, formatRate } from "@/lib/dealCalc";
 import { STAGE_LABELS } from "@/lib/constants";
+import TablePagination from "@/components/ui/TablePagination";
 
 export default function DealsPage() {
   const device = useDevice();
@@ -19,6 +20,11 @@ export default function DealsPage() {
   const [me, setMe] = useState<{ commissionRate: number; tier: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [dealsTab, setDealsTab] = useState<"my-deals" | "downline">("my-deals");
+  // Pagination
+  const [directPage, setDirectPage] = useState(1);
+  const [directPageSize, setDirectPageSize] = useState(50);
+  const [downlinePage, setDownlinePage] = useState(1);
+  const [downlinePageSize, setDownlinePageSize] = useState(50);
   // Deep link: auto-expand a deal from URL ?deal=xxx
   const [expandedId, setExpandedId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -41,6 +47,10 @@ export default function DealsPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Paginated slices
+  const paginatedDirectDeals = deals.slice((directPage - 1) * directPageSize, directPage * directPageSize);
+  const paginatedDownlineDeals = downlineDeals.slice((downlinePage - 1) * downlinePageSize, downlinePage * downlinePageSize);
 
   function toggleExpand(dealId: string) {
     setExpandedId(expandedId === dealId ? null : dealId);
@@ -120,7 +130,7 @@ export default function DealsPage() {
         ) : device.isMobile ? (
           /* ── Mobile: Card layout ── */
           <div>
-            {deals.map((deal, idx) => (
+            {paginatedDirectDeals.map((deal, idx) => (
               <div key={deal.id}>
                 <div
                   className={`px-4 py-4 border-b border-[var(--app-border)] cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
@@ -173,7 +183,7 @@ export default function DealsPage() {
                 <div key={h} className={`font-body text-[10px] tracking-[1px] uppercase text-[var(--app-text-muted)] ${h === "Client / Deal" ? "" : "text-center"}`}>{h}</div>
               ))}
             </div>
-            {deals.map((deal, idx) => {
+            {paginatedDirectDeals.map((deal, idx) => {
               // Cross-calculate missing financial values using the shared
               // helper. The partner's own commissionRate (from `me`) is the
               // fallback rate for their direct deals — see src/lib/dealCalc.ts
@@ -215,6 +225,9 @@ export default function DealsPage() {
             </div>
           </div>
         ))}
+        {dealsTab === "my-deals" && deals.length > 0 && (
+          <TablePagination page={directPage} pageSize={directPageSize} totalItems={deals.length} onPageChange={setDirectPage} onPageSizeChange={setDirectPageSize} />
+        )}
 
         {dealsTab === "downline" && (downlineDeals.length === 0 ? (
           <div className="p-12 text-center font-body text-sm text-[var(--app-text-muted)]">
@@ -222,7 +235,7 @@ export default function DealsPage() {
           </div>
         ) : (
           <div>
-            {downlineDeals.map((deal, idx) => (
+            {paginatedDownlineDeals.map((deal, idx) => (
               <div
                 key={deal.id}
                 className={`px-4 sm:px-6 py-4 border-b border-[var(--app-border)] last:border-b-0 ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
@@ -247,6 +260,9 @@ export default function DealsPage() {
             ))}
           </div>
         ))}
+        {dealsTab === "downline" && downlineDeals.length > 0 && (
+          <TablePagination page={downlinePage} pageSize={downlinePageSize} totalItems={downlineDeals.length} onPageChange={setDownlinePage} onPageSizeChange={setDownlinePageSize} />
+        )}
       </div>
     </div>
     </PullToRefresh>
