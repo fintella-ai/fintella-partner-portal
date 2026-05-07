@@ -32,13 +32,16 @@ export async function DELETE(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const mode = body.mode || "unused_only";
+  const ids: string[] = Array.isArray(body.ids) ? body.ids.filter((id: unknown) => typeof id === "string") : [];
 
   const where =
-    mode === "all"
-      ? {}
-      : mode === "unused_and_expired"
-        ? { usedByPartnerCode: null }
-        : { status: "active", usedByPartnerCode: null };
+    mode === "selected" && ids.length > 0
+      ? { id: { in: ids } }
+      : mode === "all"
+        ? {}
+        : mode === "unused_and_expired"
+          ? { usedByPartnerCode: null }
+          : { status: "active", usedByPartnerCode: null };
 
   const toDelete = await prisma.recruitmentInvite.findMany({
     where,
