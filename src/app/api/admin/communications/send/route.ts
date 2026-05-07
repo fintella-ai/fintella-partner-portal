@@ -10,6 +10,56 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function resolveVars(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{([^}]+)\}/g, (match, key) => vars[key.trim()] ?? match);
+}
+
+async function buildVars(partnerCode: string | null, to: string, toName: string | undefined): Promise<Record<string, string>> {
+  const vars: Record<string, string> = {};
+
+  if (partnerCode) {
+    const partner = await prisma.partner.findUnique({
+      where: { partnerCode },
+      select: { firstName: true, lastName: true, email: true, partnerCode: true, commissionRate: true },
+    });
+    if (partner) {
+      vars["partner.firstName"] = partner.firstName || "";
+      vars["partner.lastName"] = partner.lastName || "";
+      vars["partner.email"] = partner.email;
+      vars["partner.partnerCode"] = partner.partnerCode;
+      vars["firstName"] = partner.firstName || "";
+      vars["lastName"] = partner.lastName || "";
+      vars["partnerCode"] = partner.partnerCode;
+    }
+  } else if (toName) {
+    vars["partner.firstName"] = toName.split(" ")[0] || "";
+    vars["firstName"] = vars["partner.firstName"];
+  }
+
+  const conf = await prisma.conferenceSchedule.findFirst({
+    where: { isActive: true },
+    orderBy: { nextCall: "asc" },
+    select: { title: true, nextCall: true, meetLink: true, joinUrl: true, hostName: true },
+  });
+  if (conf) {
+    vars["conference.title"] = conf.title || "Live Weekly Partner Call";
+    vars["conference.joinUrl"] = conf.meetLink || conf.joinUrl || "";
+    vars["conference.hostName"] = conf.hostName || "";
+    if (conf.nextCall) {
+      try {
+        vars["conference.nextCallLocal"] = conf.nextCall.toLocaleString("en-US", {
+          timeZone: "America/New_York", weekday: "short", month: "short", day: "numeric",
+          hour: "numeric", minute: "2-digit", timeZoneName: "short",
+        });
+      } catch { vars["conference.nextCallLocal"] = conf.nextCall.toISOString(); }
+    }
+  }
+  vars["hoursBeforeCall"] = "";
+  vars["portalUrl"] = (process.env.NEXTAUTH_URL || "https://fintella.partners").replace(/\/$/, "");
+
+  return vars;
+}
+
 /**
  * POST /api/admin/communications/send
  *
@@ -59,15 +109,19 @@ export async function POST(req: NextRequest) {
     for (const p of partners) {
       if (!p.email) { failed++; continue; }
       const name = `${p.firstName} ${p.lastName}`.trim();
+      const vars = await buildVars(p.partnerCode, p.email, name);
+      const resolvedSubject = resolveVars(subject, vars);
+      const resolvedText = resolveVars(text, vars);
+      const resolvedHtml = resolveVars(bodyHtml, vars);
       const wrapped = emailShell({
-        heading: subject,
-        bodyHtml: `<p>${bodyHtml}</p>`,
-        bodyText: text,
+        heading: resolvedSubject,
+        bodyHtml: `<p>${resolvedHtml}</p>`,
+        bodyText: resolvedText,
       });
       const result = await sendEmail({
         to: p.email,
         toName: name,
-        subject,
+        subject: resolvedSubject,
         text: wrapped.text,
         html: wrapped.html,
         template: template === "compose" ? "broadcast" : template,
@@ -94,16 +148,21 @@ export async function POST(req: NextRequest) {
 
   if (!to) return NextResponse.json({ error: "to (or partnerCode) is required" }, { status: 400 });
 
+  const vars = await buildVars(partnerCode, to, toName);
+  const resolvedSubject = resolveVars(subject, vars);
+  const resolvedText = resolveVars(text, vars);
+  const resolvedHtml = resolveVars(bodyHtml, vars);
+
   const wrapped = emailShell({
-    heading: subject,
-    bodyHtml: `<p>${bodyHtml}</p>`,
-    bodyText: text,
+    heading: resolvedSubject,
+    bodyHtml: `<p>${resolvedHtml}</p>`,
+    bodyText: resolvedText,
   });
 
   const result = await sendEmail({
     to,
     toName,
-    subject,
+    subject: resolvedSubject,
     text: wrapped.text,
     html: wrapped.html,
     template,
