@@ -1538,8 +1538,12 @@ async function main() {
   console.log("✓ Widget A/B variants: seeded " + WIDGET_VARIANTS.length + " defaults");
 
   // ── Tariff rates (IEEPA + IRS interest) ────────────────────────────
-  const seedTariffRates = require("./seed-tariff-rates.js");
-  await seedTariffRates();
+  try {
+    const seedTariffRates = require("./seed-tariff-rates.js");
+    await seedTariffRates();
+  } catch (tariffErr) {
+    console.warn("⚠ Tariff rate seed failed (non-fatal):", tariffErr.message || tariffErr);
+  }
 
   // ── AI Template Generator (Phase 19) — variables, styles, workflows ─
   console.log("\n── Template Variables / Styles / Workflows ──");
