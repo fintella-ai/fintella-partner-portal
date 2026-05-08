@@ -394,7 +394,7 @@ export default function AdminDealsPage() {
       feeRatePctParsed == null ? null : feeRatePctParsed > 1 ? feeRatePctParsed / 100 : feeRatePctParsed;
 
     try {
-      await fetch(`/api/admin/deals/${dealId}`, {
+      const res = await fetch(`/api/admin/deals/${dealId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -409,22 +409,24 @@ export default function AdminDealsPage() {
           firmFeeRate: feeRateDecimal,
           firmFeeAmount: feeAmountParsed ?? 0,
           ...editClient,
-          // Keep composite clientName in sync with first/last edits so legacy
-          // consumers reading deal.clientName still show the corrected name.
           clientName: [editClient.clientFirstName, editClient.clientLastName]
             .filter(Boolean)
             .join(" ")
             .trim(),
-          // Only super_admin can modify EP Level 1 or reassign the partner.
-          // Omit those keys entirely for other roles so the server-side guard
-          // doesn't see an attempted edit and 403 the whole save.
           ...(isSuperAdmin ? { epLevel1: editEpLevel1, isImporterOfRecord: editIor } : {}),
           ...(isSuperAdmin && editPartnerCode ? { partnerCode: editPartnerCode } : {}),
         }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Save failed" }));
+        alert(err.error || `Save failed (${res.status})`);
+        return;
+      }
       setExpandedId(null);
       fetchDeals();
-    } catch {}
+    } catch {
+      alert("Network error — changes not saved.");
+    }
   };
 
   const handleDeleteDeal = async (dealId: string, dealName: string) => {
