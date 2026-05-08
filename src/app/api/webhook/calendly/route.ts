@@ -19,10 +19,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
+    // Only process the IEEPA Tariff Refund Initial Call event type
+    const IEEPA_EVENT_TYPE = "https://api.calendly.com/event_types/b4c3ca2f-0cfd-4dc0-ad45-c5222061dc4a";
+    const scheduledEvent = payload?.scheduled_event || {};
+    const eventTypeUri = scheduledEvent.event_type || null;
+    if (eventTypeUri && eventTypeUri !== IEEPA_EVENT_TYPE) {
+      console.log(`[webhook/calendly] skipping non-IEEPA event type: ${eventTypeUri}`);
+      return NextResponse.json({ ok: true, skipped: true, reason: "wrong_event_type" });
+    }
+
     const inviteeEmail = payload?.email?.toLowerCase?.();
     const inviteeName = payload?.name || "";
     const eventUri = payload?.event || payload?.uri || null;
-    const scheduledEvent = payload?.scheduled_event || {};
     const startTime = scheduledEvent.start_time || null;
     const endTime = scheduledEvent.end_time || null;
 
