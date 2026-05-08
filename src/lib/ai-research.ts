@@ -77,8 +77,18 @@ export async function runResearchCycle(): Promise<{
   }
 
   const now = new Date();
-  const queryIndex = now.getDate() % ROTATING_QUERIES.length;
-  const query = ROTATING_QUERIES[queryIndex];
+
+  // Use custom queries from PortalSettings if set, otherwise fall back to hardcoded
+  let queries = ROTATING_QUERIES;
+  try {
+    const settings = await prisma.portalSettings.findUnique({ where: { id: "global" }, select: { researchQueries: true } });
+    if (settings?.researchQueries && Array.isArray(settings.researchQueries) && settings.researchQueries.length > 0) {
+      queries = settings.researchQueries as string[];
+    }
+  } catch {}
+
+  const queryIndex = now.getDate() % queries.length;
+  const query = queries[queryIndex];
 
   const job = await prisma.researchJob.create({
     data: { query, status: "RUNNING", runAt: now },

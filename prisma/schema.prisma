@@ -881,6 +881,7 @@ model PortalSettings {
   pageCustomSections Json?
   widgetAutoOptimize Boolean @default(false)
   subscriptionTier String @default("free")
+  researchQueries  Json?
   // Timestamps
   updatedAt DateTime @updatedAt
 }
