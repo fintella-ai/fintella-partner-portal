@@ -167,6 +167,7 @@ export default function AdminPartnersPage() {
   const [sheetResult, setSheetResult] = useState<number | null>(null);
   const [signwellRefreshing, setSignwellRefreshing] = useState(false);
   const [signwellResult, setSignwellResult] = useState<string | null>(null);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [levelFilter, setLevelFilter] = useState<"all" | "l1" | "l2" | "l3" | "l4plus">("all");
   // View toggle: classic list/table vs. an org-chart tree forest rooted
@@ -1972,6 +1973,28 @@ export default function AdminPartnersPage() {
                     <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${docBadge[p.agreementStatus] || docBadge.none}`}>
                       {agreementLabel[p.agreementStatus] || p.agreementStatus}
                     </span>
+                    {activeTab === "unsigned" && (p.agreementStatus === "pending" || p.agreementStatus === "viewed" || p.agreementStatus === "partner_signed") && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          setRemindingId(p.id);
+                          try {
+                            const res = await fetch(`/api/admin/agreement/${p.partnerCode}?action=remind`);
+                            const data = await res.json();
+                            if (res.ok) {
+                              alert(`Reminder sent to ${p.firstName} (${data.emailStatus}).`);
+                            } else {
+                              alert(data.error || "Remind failed");
+                            }
+                          } catch { alert("Network error"); }
+                          finally { setRemindingId(null); }
+                        }}
+                        disabled={remindingId === p.id}
+                        className="mt-1 inline-block font-body text-[9px] text-amber-400/70 border border-amber-400/20 rounded-full px-2 py-0.5 hover:bg-amber-400/10 transition-colors disabled:opacity-50"
+                      >
+                        {remindingId === p.id ? "Sending..." : "📧 Resend"}
+                      </button>
+                    )}
                   </div>
                   <div className="text-center">
                     <span className={`inline-block rounded-full px-2 py-0.5 font-body text-[9px] font-semibold tracking-wider uppercase ${docBadge[p.w9Status] || docBadge.needed}`}>
