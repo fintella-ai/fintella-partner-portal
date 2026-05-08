@@ -125,22 +125,20 @@ export async function PUT(
       }
       const newCode = String(body.partnerCode || "").trim().toUpperCase();
       if (!newCode) {
-        return NextResponse.json(
-          { error: "partnerCode cannot be blank" },
-          { status: 400 }
-        );
+        data.partnerCode = "";
+      } else {
+        const exists = await prisma.partner.findUnique({
+          where: { partnerCode: newCode },
+          select: { partnerCode: true },
+        });
+        if (!exists) {
+          return NextResponse.json(
+            { error: `No partner found with code ${newCode}` },
+            { status: 400 }
+          );
+        }
+        data.partnerCode = newCode;
       }
-      const exists = await prisma.partner.findUnique({
-        where: { partnerCode: newCode },
-        select: { partnerCode: true },
-      });
-      if (!exists) {
-        return NextResponse.json(
-          { error: `No partner found with code ${newCode}` },
-          { status: 400 }
-        );
-      }
-      data.partnerCode = newCode;
     }
 
     const before = await prisma.deal.findUnique({ where: { id: params.id } });
