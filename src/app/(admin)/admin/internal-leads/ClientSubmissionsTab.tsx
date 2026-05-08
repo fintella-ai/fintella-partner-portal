@@ -52,6 +52,10 @@ interface Submission {
   utmAdGroup?: string | null;
   qualified: boolean;
   disqualifyReason: string | null;
+  meetingBookedAt: string | null;
+  meetingStartTime: string | null;
+  meetingEndTime: string | null;
+  meetingUri: string | null;
   createdAt: string;
 }
 
@@ -510,6 +514,30 @@ export default function ClientSubmissionsTab() {
                             </a>
                           )}
                         </div>
+
+                        {/* Meeting Info */}
+                        {s.meetingStartTime && (
+                          <div className="mb-4 p-3 rounded-lg flex items-center gap-4" style={{ background: "var(--app-gold-overlay)", border: "1px solid var(--app-gold-overlay-border)" }}>
+                            <div>
+                              <div className="font-body text-[10px] text-yellow-500/80 uppercase tracking-wider">Meeting Booked</div>
+                              <div className="font-body text-[13px] text-[var(--app-text)] mt-0.5">
+                                {new Date(s.meetingStartTime).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="font-body text-[10px] text-yellow-500/80 uppercase tracking-wider">Time</div>
+                              <div className="font-body text-[13px] text-[var(--app-text)] mt-0.5">
+                                {new Date(s.meetingStartTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                                {s.meetingEndTime && ` – ${new Date(s.meetingEndTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
+                              </div>
+                            </div>
+                            {s.meetingUri && (
+                              <a href={s.meetingUri} target="_blank" rel="noopener noreferrer" className="ml-auto text-[11px] text-brand-gold hover:underline">
+                                Calendly →
+                              </a>
+                            )}
+                          </div>
+                        )}
 
                         {/* Deal Stage */}
                         <div className="mb-4 pb-4 border-b border-[var(--app-border)]">
