@@ -1869,6 +1869,12 @@ model ClientSubmission {
   utmCampaign        String?   // campaign name
   utmTerm            String?   // keyword (Google Ads search term)
   utmAdGroup         String?   // ad group name
+  // Meeting booking (Calendly webhook)
+  meetingBookedAt    DateTime?
+  meetingStartTime   DateTime?
+  meetingEndTime     DateTime?
+  meetingUri         String?   // Calendly event URI
+  calendarEventId    String?   // Google Calendar event ID
   // Pre-qualification
   qualified          Boolean   @default(true)
   disqualifyReason   String?   // "low_value", "no_imports", "no_ior", "low_duties"
