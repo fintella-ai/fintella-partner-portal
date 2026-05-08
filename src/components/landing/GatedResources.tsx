@@ -26,6 +26,22 @@ const RESOURCES = [
   },
 ];
 
+function normalizePhone(raw: string): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (digits.length === 0) return null;
+  return null;
+}
+
+function formatPhoneDisplay(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+}
+
 interface Props {
   partnerCode: string | null;
 }
@@ -33,7 +49,7 @@ interface Props {
 export default function GatedResources({ partnerCode }: Props) {
   const [unlocked, setUnlocked] = useState(false);
   const [selectedResource, setSelectedResource] = useState<typeof RESOURCES[0] | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", company: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", commsOptIn: false });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -46,6 +62,11 @@ export default function GatedResources({ partnerCode }: Props) {
     setError("");
   }
 
+  function handlePhoneChange(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 10);
+    setForm((f) => ({ ...f, phone: formatPhoneDisplay(digits) }));
+  }
+
   async function submitAndDownload() {
     if (!form.name.trim() || !form.email.trim()) {
       setError("Please enter your name and email.");
@@ -55,17 +76,27 @@ export default function GatedResources({ partnerCode }: Props) {
       setError("Please enter a valid email address.");
       return;
     }
+    if (form.phone.trim()) {
+      const normalized = normalizePhone(form.phone);
+      if (!normalized) {
+        setError("Please enter a valid 10-digit US phone number.");
+        return;
+      }
+    }
 
     setSaving(true);
     setError("");
     try {
+      const normalized = normalizePhone(form.phone);
       const res = await fetch("/api/recover/resource", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name.trim(),
           email: form.email.trim().toLowerCase(),
+          phone: normalized,
           company: form.company.trim() || null,
+          commsOptIn: form.commsOptIn,
           resourceId: selectedResource?.id,
           resourceTitle: selectedResource?.title,
           partnerCode,
@@ -149,6 +180,19 @@ export default function GatedResources({ partnerCode }: Props) {
                 />
               </div>
               <div>
+                <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Phone</label>
+                <div className="flex">
+                  <span className="flex items-center px-3 bg-white/5 border border-white/10 border-r-0 rounded-l-xl text-sm text-white/50">+1</span>
+                  <input
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-r-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+              </div>
+              <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Company</label>
                 <input
                   value={form.company}
@@ -158,6 +202,18 @@ export default function GatedResources({ partnerCode }: Props) {
                 />
               </div>
             </div>
+
+            <label className="flex items-start gap-3 mt-4 cursor-pointer group/opt">
+              <input
+                type="checkbox"
+                checked={form.commsOptIn}
+                onChange={(e) => setForm((f) => ({ ...f, commsOptIn: e.target.checked }))}
+                className="mt-0.5 w-4 h-4 rounded border-white/20 bg-white/5 accent-[#c4a050] shrink-0"
+              />
+              <span className="text-[11px] text-white/40 group-hover/opt:text-white/60 transition leading-relaxed">
+                I agree to receive tariff recovery updates and tips via email{form.phone.trim() ? " and SMS" : ""}. Unsubscribe anytime. Msg & data rates may apply.
+              </span>
+            </label>
 
             <button
               onClick={submitAndDownload}
