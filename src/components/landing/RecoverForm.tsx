@@ -50,7 +50,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
   const [error, setError] = useState("");
   const [qualificationResult, setQualificationResult] = useState<{ qualified: boolean; reason: string | null } | null>(null);
   const [form, setForm] = useState({
-    companyName: "", contactName: "", email: "", phone: "",
+    companyName: "", firstName: "", lastName: "", email: "", phone: "",
     title: "", city: "", state: "", importerOfRecord: "", ein: "",
     businessEntityType: "", importsGoods: "", importCountries: "",
     annualImportValue: "", affiliateNotes: "",
@@ -83,7 +83,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
   }
 
   async function submit() {
-    if (!form.companyName.trim() || !form.contactName.trim() || !form.email.trim() || !form.city.trim() || !form.state.trim()) {
+    if (!form.companyName.trim() || !form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.city.trim() || !form.state.trim()) {
       setError("Please fill in all required fields.");
       return;
     }
@@ -96,6 +96,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          contactName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
           importProducts: selectedCategory?.label || "Not specified",
           estimatedDuties: dutiesAmount,
           estimatedRefund: totalRecovery,
@@ -301,16 +302,21 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
           )}
 
           <div className="space-y-3">
-            {/* Row 1: Name + Phone */}
+            {/* Row 1: First + Last Name */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Your Full Name *</label>
-                <input value={form.contactName} onChange={(e) => setForm((f) => ({ ...f, contactName: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="Jane Smith" />
+                <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">First Name *</label>
+                <input value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="Jane" />
               </div>
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Mobile Phone Number *</label>
-                <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="(555) 123-4567" />
+                <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Last Name *</label>
+                <input value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="Smith" />
               </div>
+            </div>
+            {/* Row 2: Phone */}
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Mobile Phone Number *</label>
+              <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="(555) 123-4567" />
             </div>
             {/* Row 2: Email */}
             <div>
@@ -457,7 +463,10 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
         calendlyParams.set("background_color", "060a14");
         calendlyParams.set("text_color", "ffffff");
         calendlyParams.set("primary_color", "c4a050");
-        if (form.contactName) calendlyParams.set("name", form.contactName.trim());
+        const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
+        if (fullName) calendlyParams.set("name", fullName);
+        if (form.firstName.trim()) calendlyParams.set("first_name", form.firstName.trim());
+        if (form.lastName.trim()) calendlyParams.set("last_name", form.lastName.trim());
         if (form.email) calendlyParams.set("email", form.email.trim());
         if (utmParams?.utm_source) calendlyParams.set("utm_source", utmParams.utm_source);
         if (utmParams?.utm_medium) calendlyParams.set("utm_medium", utmParams.utm_medium);
