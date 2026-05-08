@@ -138,6 +138,7 @@ export async function PUT(req: NextRequest) {
         ? body.referralOpportunities
         : JSON.stringify(body.referralOpportunities);
     }
+    if (body.researchQueries !== undefined) data.researchQueries = body.researchQueries;
     if (body.leaderboardEnabled !== undefined) data.leaderboardEnabled = body.leaderboardEnabled;
     if (body.liveChatEnabled !== undefined) data.liveChatEnabled = body.liveChatEnabled;
     if (body.callRecordingEnabled !== undefined) data.callRecordingEnabled = body.callRecordingEnabled;

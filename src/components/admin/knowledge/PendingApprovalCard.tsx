@@ -34,12 +34,28 @@ const CATEGORY_LABELS: Record<string, string> = {
   GENERAL: "General",
 };
 
+const DEFAULT_QUERIES = [
+  "CAPE IEEPA tariff refund CBP update 2026",
+  "IEEPA tariff executive order change customs",
+  "ACE portal CAPE system update customs broker filing",
+  "Court of International Trade IEEPA tariff ruling 2026",
+  "CBP IEEPA duty refund news importers",
+  "tariff refund importer eligible HTS Chapter 99 update",
+  "CAPE rejection rate CBP automated refund problems",
+  "customs broker IEEPA referral commission opportunity",
+  "Section 122 tariff surcharge replacement IEEPA",
+  "trade compliance CAPE filing deadline protest window",
+];
+
 export default function PendingApprovalCard({ onAction }: { onAction?: () => void }) {
   const [entries, setEntries] = useState<PendingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
+  const [showQueries, setShowQueries] = useState(false);
+  const [queries, setQueries] = useState<string[]>(DEFAULT_QUERIES);
+  const [queriesSaving, setQueriesSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,6 +68,26 @@ export default function PendingApprovalCard({ onAction }: { onAction?: () => voi
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    fetch("/api/admin/settings").then((r) => r.json()).then((d) => {
+      if (d?.settings?.researchQueries && Array.isArray(d.settings.researchQueries) && d.settings.researchQueries.length > 0) {
+        setQueries(d.settings.researchQueries);
+      }
+    }).catch(() => {});
+  }, []);
+
+  async function saveQueries() {
+    setQueriesSaving(true);
+    try {
+      await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ researchQueries: queries.filter((q) => q.trim()) }),
+      });
+    } catch {}
+    setQueriesSaving(false);
+  }
 
   async function runResearch() {
     setRunning(true);
@@ -96,8 +132,10 @@ export default function PendingApprovalCard({ onAction }: { onAction?: () => voi
           <div>
             <h3 className="text-base font-semibold text-[var(--app-text)]">AI Research Agent</h3>
             <p className="text-sm text-[var(--app-text-muted)] mt-1">
-              Searches the web for IEEPA, CAPE, and tariff updates using rotating queries.
-              Found articles are added as pending entries for your review.
+              Searches the web using rotating queries. Found articles are added as pending entries for your review.
+              <button onClick={() => setShowQueries(!showQueries)} className="ml-2 text-brand-gold hover:underline">
+                {showQueries ? "Hide queries" : "Edit queries"}
+              </button>
             </p>
           </div>
           <button
@@ -108,6 +146,52 @@ export default function PendingApprovalCard({ onAction }: { onAction?: () => voi
             {running ? "Searching..." : "Run Research Now"}
           </button>
         </div>
+
+        {showQueries && (
+          <div className="mt-4 space-y-2">
+            <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider">Search Queries (one per line, rotates daily)</div>
+            {queries.map((q, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={q}
+                  onChange={(e) => { const next = [...queries]; next[i] = e.target.value; setQueries(next); }}
+                  className="flex-1 bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-3 py-2 text-sm text-[var(--app-text)] outline-none focus:border-brand-gold/40"
+                  placeholder="Search query..."
+                />
+                <button
+                  onClick={() => setQueries(queries.filter((_, j) => j !== i))}
+                  className="text-red-400/60 hover:text-red-400 text-sm px-2"
+                  title="Remove"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={() => setQueries([...queries, ""])}
+                className="font-body text-[11px] text-brand-gold/70 hover:text-brand-gold transition"
+              >
+                + Add query
+              </button>
+              <div className="flex-1" />
+              <button
+                onClick={() => setQueries(DEFAULT_QUERIES)}
+                className="font-body text-[11px] text-[var(--app-text-muted)] hover:text-[var(--app-text)] transition"
+              >
+                Reset to defaults
+              </button>
+              <button
+                onClick={saveQueries}
+                disabled={queriesSaving}
+                className="font-body text-[11px] bg-brand-gold text-black rounded-lg px-3 py-1.5 font-medium hover:bg-brand-gold/90 disabled:opacity-40 transition"
+              >
+                {queriesSaving ? "Saving..." : "Save Queries"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {runResult && (
           <div className={`mt-3 text-sm px-4 py-2.5 rounded-lg ${
             runResult.startsWith("Error")

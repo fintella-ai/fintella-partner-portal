@@ -41,10 +41,6 @@
       "schedule": "*/15 * * * *"
     },
     {
-      "path": "/api/cron/research",
-      "schedule": "0 6 * * *"
-    },
-    {
       "path": "/api/cron/deadline-alerts",
       "schedule": "0 12 * * *"
     },
