@@ -1550,11 +1550,18 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       })();
     }
 
-    // Sync ClientSubmission stage
-    if (updated.clientEmail && data.stage) {
+    // Sync ClientSubmission — update linked + link unlinked by email
+    if (updated.clientEmail) {
+      const emailLower = updated.clientEmail.toLowerCase();
+      if (data.stage) {
+        prisma.clientSubmission.updateMany({
+          where: { email: emailLower, dealId: updated.id },
+          data: { dealStage: data.stage },
+        }).catch(() => {});
+      }
       prisma.clientSubmission.updateMany({
-        where: { email: updated.clientEmail.toLowerCase(), dealId: updated.id },
-        data: { dealStage: data.stage },
+        where: { email: emailLower, dealId: null },
+        data: { dealId: updated.id, dealStage: data.stage || updated.stage },
       }).catch(() => {});
     }
 
