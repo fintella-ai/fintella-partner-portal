@@ -1,6 +1,6 @@
 "use client";
 
-const PAGE_SIZES = [25, 50, 100] as const;
+const PAGE_SIZES = [10, 25, 50, 100] as const;
 
 interface TablePaginationProps {
   page: number;

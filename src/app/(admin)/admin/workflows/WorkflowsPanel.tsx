@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useResizableColumns } from "@/components/ui/ResizableTable";
+import TablePagination from "@/components/ui/TablePagination";
 import {
   TRIGGER_KEYS,
   TRIGGER_LABELS,
@@ -1172,6 +1173,8 @@ function AutomationsTab() {
   const [loading, setLoading] = useState(true);
   const [panelOpen, setPanelOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Workflow | undefined>();
+  const [wfPage, setWfPage] = useState(1);
+  const [wfPageSize, setWfPageSize] = useState(10);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1234,7 +1237,7 @@ function AutomationsTab() {
               </tr>
             </thead>
             <tbody>
-              {workflows.map((wf) => {
+              {workflows.slice((wfPage - 1) * wfPageSize, wfPage * wfPageSize).map((wf) => {
                 const lastLog = wf.logs?.[0];
                 return (
                   <tr key={wf.id} style={{ borderBottom: "1px solid var(--app-border)" }} className="hover:bg-brand-gold/5 transition-colors">
@@ -1293,6 +1296,13 @@ function AutomationsTab() {
               })}
             </tbody>
           </table>
+          <TablePagination
+            page={wfPage}
+            pageSize={wfPageSize}
+            totalItems={workflows.length}
+            onPageChange={setWfPage}
+            onPageSizeChange={setWfPageSize}
+          />
         </div>
       )}
 
@@ -1448,6 +1458,8 @@ function LogTab() {
   const [logs, setLogs] = useState<WorkflowLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [logPage, setLogPage] = useState(1);
+  const [logPageSize, setLogPageSize] = useState(10);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1478,7 +1490,7 @@ function LogTab() {
         </div>
       ) : (
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--app-border)" }}>
-          {logs.map((log) => (
+          {logs.slice((logPage - 1) * logPageSize, logPage * logPageSize).map((log) => (
             <div key={log.id} style={{ borderBottom: "1px solid var(--app-border)" }}>
               <button
                 className="w-full text-left px-4 py-3 hover:bg-brand-gold/5 transition-colors"
@@ -1524,6 +1536,13 @@ function LogTab() {
               )}
             </div>
           ))}
+          <TablePagination
+            page={logPage}
+            pageSize={logPageSize}
+            totalItems={logs.length}
+            onPageChange={setLogPage}
+            onPageSizeChange={setLogPageSize}
+          />
         </div>
       )}
     </div>

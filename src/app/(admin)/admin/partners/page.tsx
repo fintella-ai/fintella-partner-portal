@@ -159,7 +159,7 @@ export default function AdminPartnersPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkAgreementRate, setBulkAgreementRate] = useState("0.20");
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(50);
+  const [tablePageSize, setTablePageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [cleanupBusy, setCleanupBusy] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<{ deleted: number } | null>(null);

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import PartnerLink from "@/components/ui/PartnerLink";
 import { useResizableColumns } from "@/components/ui/ResizableTable";
+import TablePagination from "@/components/ui/TablePagination";
 
 type DocEntry = {
   id: string;
@@ -40,6 +41,8 @@ export default function DocumentTrackingPage() {
   const [tab, setTab] = useState<Tab>("All");
   const [documents, setDocuments] = useState<DocEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -121,7 +124,7 @@ export default function DocumentTrackingPage() {
         {tabs.map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => { setTab(t); setPage(1); }}
             className={`font-body text-sm px-4 py-1.5 rounded-full whitespace-nowrap transition ${
               tab === t ? "bg-brand-gold/20 text-brand-gold" : "bg-[var(--app-input-bg)] text-[var(--app-text-secondary)]"
             }`}
@@ -145,7 +148,7 @@ export default function DocumentTrackingPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((d) => (
+            {filtered.slice((page - 1) * pageSize, page * pageSize).map((d) => (
               <tr key={d.id} className="border-b border-[var(--app-border)] hover:bg-[var(--app-hover)] transition">
                 <td className="px-4 py-3">
                   <PartnerLink partnerId={d.partnerId} className="text-[var(--app-text)]">{d.partnerName}</PartnerLink>
@@ -195,11 +198,18 @@ export default function DocumentTrackingPage() {
             )}
           </tbody>
         </table>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={filtered.length}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
       {/* Mobile cards */}
       <div className="md:hidden flex flex-col gap-3">
-        {filtered.map((d) => (
+        {filtered.slice((page - 1) * pageSize, page * pageSize).map((d) => (
           <div key={d.id} className="card p-4">
             <div className="flex items-start justify-between mb-2">
               <div>
