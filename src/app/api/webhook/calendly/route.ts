@@ -41,13 +41,35 @@ export async function POST(req: NextRequest) {
 
     console.log(`[webhook/calendly] invitee.created: ${inviteeEmail} at ${startTime}`);
 
-    const submission = await prisma.clientSubmission.findFirst({
+    // Try exact email match first
+    let submission = await prisma.clientSubmission.findFirst({
       where: { email: inviteeEmail },
       orderBy: { createdAt: "desc" },
     });
 
+    // Fuzzy fallback: match by first + last name within last hour
+    if (!submission && inviteeName) {
+      const names = inviteeName.trim().split(/\s+/);
+      const first = names[0]?.toLowerCase();
+      const last = names.slice(1).join(" ").toLowerCase();
+      if (first && last) {
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        submission = await prisma.clientSubmission.findFirst({
+          where: {
+            firstName: { equals: first, mode: "insensitive" },
+            lastName: { equals: last, mode: "insensitive" },
+            createdAt: { gte: oneHourAgo },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+        if (submission) {
+          console.log(`[webhook/calendly] fuzzy match by name: ${inviteeName} → submission ${submission.id}`);
+        }
+      }
+    }
+
     if (!submission) {
-      console.log(`[webhook/calendly] no ClientSubmission found for ${inviteeEmail}`);
+      console.log(`[webhook/calendly] no ClientSubmission found for ${inviteeEmail} / ${inviteeName}`);
       return NextResponse.json({ ok: true, matched: false });
     }
 
