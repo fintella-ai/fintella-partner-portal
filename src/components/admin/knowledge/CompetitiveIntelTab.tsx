@@ -29,21 +29,89 @@ export default function CompetitiveIntelTab() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadReports = () => {
     fetch("/api/admin/competitive-intel")
       .then((r) => r.json())
-      .then((d) => setReports(d.reports || []))
+      .then((d) => { setReports(d.reports || []); setSelectedIdx(0); })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadReports(); }, []);
+
+  async function runScan() {
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const res = await fetch("/api/admin/competitive-intel/scan", { method: "POST" });
+      const data = await res.json();
+      if (data.error) {
+        setScanResult(`Error: ${data.error}`);
+      } else {
+        setScanResult(`Scan complete — ${data.resultsFound} results across ${data.queriesRun} queries.`);
+        loadReports();
+      }
+    } catch {
+      setScanResult("Failed to run competitive scan.");
+    }
+    setScanning(false);
+  }
 
   if (loading) return <div className="text-center py-12 text-[var(--app-text-muted)]">Loading reports...</div>;
-  if (reports.length === 0) return <div className="text-center py-12 text-[var(--app-text-muted)]">No competitive intel reports yet. The TIE monitoring agents will generate them automatically.</div>;
+  if (reports.length === 0) return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-bg-secondary)] p-6">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 className="text-base font-semibold text-[var(--app-text)]">Competitive Intel Scanner</h3>
+            <p className="text-sm text-[var(--app-text-muted)] mt-1">Searches the web for competing tariff refund services and recovery tools.</p>
+          </div>
+          <button onClick={runScan} disabled={scanning} className="px-5 py-2.5 rounded-lg text-sm font-medium bg-brand-gold text-black hover:bg-brand-gold/90 disabled:opacity-40 transition-colors whitespace-nowrap min-h-[44px]">
+            {scanning ? "Scanning..." : "Run Scan Now"}
+          </button>
+        </div>
+        {scanResult && (
+          <div className={`mt-3 text-sm px-4 py-2.5 rounded-lg ${scanResult.startsWith("Error") ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-green-500/10 text-green-400 border border-green-500/20"}`}>{scanResult}</div>
+        )}
+      </div>
+      <div className="text-center py-8 text-[var(--app-text-muted)]">No competitive intel reports yet. Click &ldquo;Run Scan Now&rdquo; to generate one.</div>
+    </div>
+  );
 
   const report = reports[selectedIdx];
 
   return (
     <div className="space-y-4">
+      {/* Run Scan */}
+      <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-bg-secondary)] p-6">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 className="text-base font-semibold text-[var(--app-text)]">Competitive Intel Scanner</h3>
+            <p className="text-sm text-[var(--app-text-muted)] mt-1">
+              Searches the web for competing tariff refund services, CAPE filing providers, and recovery tools.
+            </p>
+          </div>
+          <button
+            onClick={runScan}
+            disabled={scanning}
+            className="px-5 py-2.5 rounded-lg text-sm font-medium bg-brand-gold text-black hover:bg-brand-gold/90 disabled:opacity-40 transition-colors whitespace-nowrap min-h-[44px]"
+          >
+            {scanning ? "Scanning..." : "Run Scan Now"}
+          </button>
+        </div>
+        {scanResult && (
+          <div className={`mt-3 text-sm px-4 py-2.5 rounded-lg ${
+            scanResult.startsWith("Error")
+              ? "bg-red-500/10 text-red-400 border border-red-500/20"
+              : "bg-green-500/10 text-green-400 border border-green-500/20"
+          }`}>
+            {scanResult}
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-[var(--app-text)]">Competitive Intelligence</h2>
