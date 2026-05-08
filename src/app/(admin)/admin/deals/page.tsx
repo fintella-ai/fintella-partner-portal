@@ -242,7 +242,7 @@ export default function AdminDealsPage() {
     try {
       const params = new URLSearchParams();
       if (stageFilter !== "all") params.set("stage", stageFilter);
-      if (partnerFilter) params.set("partner", partnerFilter);
+      if (partnerFilter && partnerFilter !== "__unknown__") params.set("partner", partnerFilter);
       if (search) params.set("search", search);
 
       const res = await fetch(`/api/admin/deals?${params.toString()}`);
@@ -283,9 +283,12 @@ export default function AdminDealsPage() {
     }
   }, [deepLinkDealId, deals.length, expandedId]);
 
-  // Sort deals
+  const isUnknownPartner = (d: Deal) => !d.partnerCode || d.partnerCode === "Unknown" || d.partnerCode === "" || !d.partnerId;
+
+  // Filter deals
   const serviceFiltered = serviceFilter === "all" ? deals : deals.filter((d) => d.serviceOfInterest === serviceFilter);
-  const sorted = [...serviceFiltered].sort((a, b) => {
+  const partnerFiltered = partnerFilter === "__unknown__" ? serviceFiltered.filter(isUnknownPartner) : serviceFiltered;
+  const sorted = [...partnerFiltered].sort((a, b) => {
     let aVal: any = a[sortField];
     let bVal: any = b[sortField];
     if (typeof aVal === "string") aVal = aVal.toLowerCase();
@@ -558,7 +561,7 @@ export default function AdminDealsPage() {
               onClick={() => {
                 const params = new URLSearchParams();
                 if (stageFilter !== "all") params.set("stage", stageFilter);
-                if (partnerFilter) params.set("partner", partnerFilter);
+                if (partnerFilter && partnerFilter !== "__unknown__") params.set("partner", partnerFilter);
                 if (search) params.set("search", search);
                 window.open(`/api/admin/deals/export?${params.toString()}`);
               }}
@@ -720,6 +723,7 @@ export default function AdminDealsPage() {
           onChange={(e) => setPartnerFilter(e.target.value)}
         >
           <option value="" className="bg-[var(--app-bg)]">All Partners</option>
+          <option value="__unknown__" className="bg-[var(--app-bg)]">⚠ Unknown Partner</option>
           {partners.map((p) => (
             <option key={p.partnerCode} value={p.partnerCode} className="bg-[var(--app-bg)]">
               {p.firstName} {p.lastName}
@@ -732,7 +736,7 @@ export default function AdminDealsPage() {
       <div className="font-body text-[12px] text-[var(--app-text-muted)] mb-3">
         Showing {sorted.length} deal{sorted.length !== 1 ? "s" : ""}{sorted.length > dealsPageSize ? ` (page ${dealsPage})` : ""}
         {stageFilter !== "all" ? ` in ${STAGES.find((s) => s.value === stageFilter)?.label}` : ""}
-        {partnerFilter ? ` for ${partners.find((p) => p.partnerCode === partnerFilter)?.firstName || partnerFilter}` : ""}
+        {partnerFilter === "__unknown__" ? " — Unknown Partner" : partnerFilter ? ` for ${partners.find((p) => p.partnerCode === partnerFilter)?.firstName || partnerFilter}` : ""}
       </div>
 
       {/* ═══ DESKTOP TABLE ═══ */}
@@ -784,7 +788,7 @@ export default function AdminDealsPage() {
           return (
           <div key={deal.id} id={`deal-${deal.id}`}>
             <div
-              className={`grid gap-6 px-5 py-3.5 border-b border-[var(--app-border)] hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
+              className={`grid gap-6 px-5 py-3.5 border-b border-[var(--app-border)] hover:bg-[var(--app-card-bg)] transition-colors items-center cursor-pointer ${isUnknownPartner(deal) ? "bg-amber-500/[0.06] border-l-2 border-l-amber-500/40" : idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}
               style={{ gridTemplateColumns: bulkMode ? `36px ${dealGridCols}` : dealGridCols }}
               onClick={() => toggleExpand(deal)}
             >
@@ -1519,7 +1523,7 @@ export default function AdminDealsPage() {
       {/* ═══ MOBILE CARDS ═══ */}
       <div className="md:hidden space-y-3">
         {paginatedDeals.map((deal, idx) => (
-          <div key={deal.id} id={`deal-m-${deal.id}`} className={`card ${idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
+          <div key={deal.id} id={`deal-m-${deal.id}`} className={`card ${isUnknownPartner(deal) ? "bg-amber-500/[0.06] border-l-2 border-l-amber-500/40" : idx % 2 === 1 ? "bg-[rgba(59,130,246,0.03)]" : ""}`}>
             <div className="p-4 cursor-pointer" onClick={() => toggleExpand(deal)}>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
