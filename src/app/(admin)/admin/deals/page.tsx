@@ -416,8 +416,7 @@ export default function AdminDealsPage() {
             .filter(Boolean)
             .join(" ")
             .trim(),
-          ...(isSuperAdmin ? { epLevel1: editEpLevel1, isImporterOfRecord: editIor } : {}),
-          ...(isSuperAdmin && editPartnerCode ? { partnerCode: editPartnerCode } : {}),
+          ...(isSuperAdmin ? { epLevel1: editEpLevel1, isImporterOfRecord: editIor, partnerCode: editPartnerCode || "" } : {}),
         }),
       });
       if (!res.ok) {
@@ -1113,8 +1112,19 @@ export default function AdminDealsPage() {
                             </div>
                           );
                         })()}
-                        <div className="font-body text-[10px] text-[var(--app-text-faint)] mt-1">
-                          Reassign if the deal came in as &ldquo;Unknown&rdquo; or was attributed to the wrong partner.
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="font-body text-[10px] text-[var(--app-text-faint)]">
+                            Reassign if the deal came in as &ldquo;Unknown&rdquo; or was attributed to the wrong partner.
+                          </span>
+                          {editPartnerCode && (
+                            <button
+                              type="button"
+                              onClick={() => { setEditPartnerCode(""); setPartnerSearch(""); }}
+                              className="font-body text-[10px] text-red-400/70 border border-red-400/20 rounded px-2 py-0.5 hover:bg-red-400/10 transition shrink-0"
+                            >
+                              Clear Partner
+                            </button>
+                          )}
                         </div>
                       </div>
                     ) : (
