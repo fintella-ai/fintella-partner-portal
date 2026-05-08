@@ -15,7 +15,7 @@ function ApplyForm() {
   const [phone, setPhone] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [website, setWebsite] = useState("");
-  const [partnerType, setPartnerType] = useState("customs_broker");
+  const [partnerType, setPartnerType] = useState("broker");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -37,6 +37,7 @@ function ApplyForm() {
           phone: phone || undefined,
           companyName: companyName || undefined,
           website: website || undefined,
+          partnerType: partnerType || undefined,
           referralSource: plan ? `pricing_${plan}` : "apply_page",
           utm_source: searchParams.get("utm_source") || undefined,
           utm_medium: searchParams.get("utm_medium") || undefined,
@@ -279,7 +280,7 @@ function ApplyForm() {
                   className="w-full h-11 rounded-lg border px-3 font-body text-sm"
                   style={{ background: "var(--app-input-bg)", borderColor: "var(--app-border)", color: "var(--app-text)" }}
                 >
-                  <option value="customs_broker">Licensed Customs Broker</option>
+                  <option value="broker">Licensed Customs Broker</option>
                   <option value="referral">Referral Partner</option>
                   <option value="corporate">Corporate / Enterprise</option>
                   <option value="licensed">Attorney / CPA</option>
