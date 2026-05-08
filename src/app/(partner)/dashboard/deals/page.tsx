@@ -22,9 +22,9 @@ export default function DealsPage() {
   const [dealsTab, setDealsTab] = useState<"my-deals" | "downline">("my-deals");
   // Pagination
   const [directPage, setDirectPage] = useState(1);
-  const [directPageSize, setDirectPageSize] = useState(50);
+  const [directPageSize, setDirectPageSize] = useState(10);
   const [downlinePage, setDownlinePage] = useState(1);
-  const [downlinePageSize, setDownlinePageSize] = useState(50);
+  const [downlinePageSize, setDownlinePageSize] = useState(10);
   // Deep link: auto-expand a deal from URL ?deal=xxx
   const [expandedId, setExpandedId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {

@@ -105,13 +105,13 @@ export default function PartnerReportingPage() {
 
   // Pagination state — one set per table
   const [overviewPage, setOverviewPage] = useState(1);
-  const [overviewPageSize, setOverviewPageSize] = useState(50);
+  const [overviewPageSize, setOverviewPageSize] = useState(10);
   const [myDealsPage, setMyDealsPage] = useState(1);
-  const [myDealsPageSize, setMyDealsPageSize] = useState(50);
+  const [myDealsPageSize, setMyDealsPageSize] = useState(10);
   const [downlineDealsPage, setDownlineDealsPage] = useState(1);
-  const [downlineDealsPageSize, setDownlineDealsPageSize] = useState(50);
+  const [downlineDealsPageSize, setDownlineDealsPageSize] = useState(10);
   const [commPage, setCommPage] = useState(1);
-  const [commPageSize, setCommPageSize] = useState(50);
+  const [commPageSize, setCommPageSize] = useState(10);
 
   const cycleSort = (
     key: string,
