@@ -1823,6 +1823,9 @@ model PartnerLead {
   source           String    @default("cbp_listing") // cbp_listing, manual, calculator, webinar, referral
   filerCode        String?   // CBP filer code for dedup
   state            String?   // US state for timezone mapping
+  smsOptIn         Boolean   @default(false)
+  emailOptIn       Boolean   @default(false)
+  optInDate        DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
