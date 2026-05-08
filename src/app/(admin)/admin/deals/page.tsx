@@ -134,7 +134,7 @@ export default function AdminDealsPage() {
 
   // Pagination
   const [dealsPage, setDealsPage] = useState(1);
-  const [dealsPageSize, setDealsPageSize] = useState(50);
+  const [dealsPageSize, setDealsPageSize] = useState(10);
 
   // Bulk actions
   const [bulkMode, setBulkMode] = useState(false);

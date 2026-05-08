@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { fmtDate, fmtDateTime, fmtPhone } from "@/lib/format";
+import TablePagination from "@/components/ui/TablePagination";
 
 type BookingWithSlot = {
   id: string;
@@ -86,6 +87,8 @@ export default function AdminApplicationsPage() {
   const [approveSending, setApproveSending] = useState(false);
   const [partnerList, setPartnerList] = useState<Array<{ partnerCode: string; firstName: string; lastName: string }>>([]);
   const [demoCount, setDemoCount] = useState(0);
+  const [appPage, setAppPage] = useState(1);
+  const [appPageSize, setAppPageSize] = useState(10);
 
   // Lead list state
   type Lead = { id: string; firstName: string; lastName: string; email: string; phone: string | null; commissionRate: number; tier: string; referredByCode: string | null; notes: string | null; status: string; inviteId: string | null; scheduledSendAt: string | null; emailSentAt: string | null; createdAt: string };
@@ -513,7 +516,7 @@ export default function AdminApplicationsPage() {
           return (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => { setTab(t.id); setAppPage(1); }}
               className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition border-b-2 ${
                 tab === t.id
                   ? "border-[var(--brand-gold)] text-[var(--app-text)]"
@@ -753,7 +756,7 @@ export default function AdminApplicationsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {applications.map((app) => {
+          {applications.slice((appPage - 1) * appPageSize, appPage * appPageSize).map((app) => {
             const isExpanded = expandedId === app.id;
             const booking = app.bookings[0];
             const statusColor = STATUS_COLORS[app.status] || STATUS_COLORS.new;
@@ -813,6 +816,15 @@ export default function AdminApplicationsPage() {
               </div>
             );
           })}
+          <div className="card overflow-hidden">
+            <TablePagination
+              page={appPage}
+              pageSize={appPageSize}
+              totalItems={applications.length}
+              onPageChange={setAppPage}
+              onPageSizeChange={setAppPageSize}
+            />
+          </div>
         </div>
       )}
     </div>

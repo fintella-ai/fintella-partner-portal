@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { fmtDateTime } from "@/lib/format";
+import TablePagination from "@/components/ui/TablePagination";
 
 const PIPELINE_STAGES = [
   { value: "all", label: "All" },
@@ -98,6 +99,8 @@ export default function ClientSubmissionsTab() {
   const [stageFilter, setStageFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Expanded detail
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -361,7 +364,7 @@ export default function ClientSubmissionsTab() {
             return (
               <button
                 key={s.value}
-                onClick={() => setStageFilter(s.value)}
+                onClick={() => { setStageFilter(s.value); setPage(1); }}
                 className={`font-body text-[12px] px-3 py-2 rounded-t-lg border border-b-0 transition-colors whitespace-nowrap min-h-[36px] ${
                   active
                     ? "text-brand-gold border-[var(--app-border)] bg-[var(--app-card-bg)] -mb-px font-semibold"
@@ -382,13 +385,13 @@ export default function ClientSubmissionsTab() {
       <div className="mb-4 flex gap-3">
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           placeholder="Search by name, email, company, partner code..."
           className="flex-1 bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-4 py-2.5 text-[var(--app-text)] font-body text-sm outline-none focus:border-brand-gold/40 transition-colors placeholder:text-[var(--app-text-muted)]"
         />
         <select
           value={sourceFilter}
-          onChange={(e) => setSourceFilter(e.target.value)}
+          onChange={(e) => { setSourceFilter(e.target.value); setPage(1); }}
           className="bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-3 py-2.5 text-sm text-[var(--app-text)]"
         >
           <option value="all">All Sources</option>
@@ -416,6 +419,8 @@ export default function ClientSubmissionsTab() {
             );
           });
 
+        const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+
         return filtered.length === 0 ? (
         <div className="card p-12 text-center">
           <div className="text-5xl mb-3">📊</div>
@@ -442,7 +447,7 @@ export default function ClientSubmissionsTab() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s) => (
+              {paginated.map((s) => (
                 <>
                 <tr
                   key={s.id}
@@ -711,6 +716,13 @@ export default function ClientSubmissionsTab() {
               ))}
             </tbody>
           </table>
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       );
       })()}

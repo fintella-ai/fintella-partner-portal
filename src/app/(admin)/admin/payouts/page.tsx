@@ -6,6 +6,7 @@ import PartnerLink from "@/components/ui/PartnerLink";
 import DealLink from "@/components/ui/DealLink";
 import ReportingTabs from "@/components/ui/ReportingTabs";
 import { useResizableColumns } from "@/components/ui/ResizableTable";
+import TablePagination from "@/components/ui/TablePagination";
 
 type Payout = {
   id: string;
@@ -122,6 +123,8 @@ export default function PayoutManagementPage() {
   const [stats, setStats] = useState<PayoutStats>({ totalDue: 0, totalPending: 0, totalPaid: 0, partnersToPay: 0 });
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchPayouts = useCallback(() => {
     fetch("/api/admin/payouts")
@@ -146,6 +149,8 @@ export default function PayoutManagementPage() {
     }
     return p.status === target;
   });
+
+  const paginatedPayouts = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   async function handleApprove(id: string) {
     setActing(id);
@@ -237,7 +242,7 @@ export default function PayoutManagementPage() {
         {tabs.map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => { setTab(t); setPage(1); }}
             className={`font-body text-sm px-4 py-1.5 rounded-full whitespace-nowrap transition ${
               tab === t
                 ? "bg-brand-gold/20 text-brand-gold"
@@ -282,7 +287,7 @@ export default function PayoutManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
+                {paginatedPayouts.map((p) => (
                   <tr key={p.id} className="border-b border-[var(--app-border-subtle)] hover:bg-[var(--app-card-bg)] transition">
                     <td className="px-4 py-3">
                       <PartnerLink partnerId={p.partnerId} className="text-[var(--app-text)]">{p.partnerName}</PartnerLink>
@@ -345,11 +350,18 @@ export default function PayoutManagementPage() {
                 ))}
               </tbody>
             </table>
+            <TablePagination
+              page={page}
+              pageSize={pageSize}
+              totalItems={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
 
           {/* Mobile cards */}
           <div className="md:hidden flex flex-col gap-3">
-            {filtered.map((p) => (
+            {paginatedPayouts.map((p) => (
               <div key={p.id} className="card p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>

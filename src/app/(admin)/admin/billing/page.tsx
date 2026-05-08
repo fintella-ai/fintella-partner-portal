@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { isStarSuperAdminEmail } from "@/lib/starSuperAdmin";
+import TablePagination from "@/components/ui/TablePagination";
 
 // ─── Service data ──────────────────────────────────────────────────────────
 
@@ -242,6 +243,8 @@ function SubscriptionRevenueSection() {
   }>>([]);
   const [stats, setStats] = useState<{ totalRevenue: number; monthRevenue: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [payPage, setPayPage] = useState(1);
+  const [payPageSize, setPayPageSize] = useState(10);
 
   useEffect(() => {
     fetch("/api/admin/payments")
@@ -306,7 +309,7 @@ function SubscriptionRevenueSection() {
               </tr>
             </thead>
             <tbody>
-              {payments.slice(0, 20).map((p) => (
+              {payments.slice((payPage - 1) * payPageSize, payPage * payPageSize).map((p) => (
                 <tr key={p.id} className="border-b" style={{ borderColor: "var(--app-border)" }}>
                   <td className="font-body text-[12px] py-2 px-3 theme-text-muted">
                     {new Date(p.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -327,6 +330,13 @@ function SubscriptionRevenueSection() {
               ))}
             </tbody>
           </table>
+          <TablePagination
+            page={payPage}
+            pageSize={payPageSize}
+            totalItems={payments.length}
+            onPageChange={setPayPage}
+            onPageSizeChange={setPayPageSize}
+          />
         </div>
       )}
     </div>

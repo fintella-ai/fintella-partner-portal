@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fmtDate } from "@/lib/format";
+import TablePagination from "@/components/ui/TablePagination";
 
 type Lead = {
   id: string; firstName: string; lastName: string; email: string; phone: string | null;
@@ -108,7 +109,7 @@ export default function InternalLeadsPage() {
   const [emailEngagement, setEmailEngagement] = useState<Record<string, { status: string; sentAt: string }>>({});
   const [outreachReplies, setOutreachReplies] = useState<Record<string, { from: string; subject: string; snippet: string; date: string }>>({});
   const [tablePage, setTablePage] = useState(1);
-  const TABLE_PAGE_SIZE = 50;
+  const [tablePageSize, setTablePageSize] = useState(10);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function flash(tone: "ok" | "err", msg: string) {
@@ -386,8 +387,8 @@ export default function InternalLeadsPage() {
     })
     .filter((l) => !q || `${l.firstName} ${l.lastName} ${l.email} ${l.phone || ""} ${l.notes || ""}`.toLowerCase().includes(q));
 
-  const totalTablePages = Math.ceil(filtered.length / TABLE_PAGE_SIZE);
-  const paginated = filtered.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE);
+  const totalTablePages = Math.ceil(filtered.length / tablePageSize);
+  const paginated = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
 
   const stats = {
     total: typeFiltered.length,
@@ -673,19 +674,6 @@ export default function InternalLeadsPage() {
         </div>
       </div>
 
-      {/* Pagination (top) */}
-      {totalTablePages > 1 && (
-        <div className="flex items-center justify-between mb-3">
-          <span className="font-body text-[11px] text-[var(--app-text-muted)]">
-            Showing {(tablePage - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(tablePage * TABLE_PAGE_SIZE, filtered.length)} of {filtered.length}
-          </span>
-          <div className="flex gap-1">
-            <button onClick={() => setTablePage((p) => Math.max(1, p - 1))} disabled={tablePage === 1} className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-[var(--app-border)] disabled:opacity-30 hover:bg-[var(--app-input-bg)] transition">← Prev</button>
-            <span className="font-body text-[11px] px-3 py-1.5 text-[var(--app-text-muted)]">{tablePage} / {totalTablePages}</span>
-            <button onClick={() => setTablePage((p) => Math.min(totalTablePages, p + 1))} disabled={tablePage === totalTablePages} className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-[var(--app-border)] disabled:opacity-30 hover:bg-[var(--app-input-bg)] transition">Next →</button>
-          </div>
-        </div>
-      )}
 
       {/* Lead List */}
       {loading ? (
@@ -911,6 +899,13 @@ export default function InternalLeadsPage() {
               })}
             </tbody>
           </table>
+          <TablePagination
+            page={tablePage}
+            pageSize={tablePageSize}
+            totalItems={filtered.length}
+            onPageChange={setTablePage}
+            onPageSizeChange={setTablePageSize}
+          />
         </div>
       ) : (
         /* ── CARD VIEW (Referral Partners / All) ── */
@@ -1031,32 +1026,15 @@ export default function InternalLeadsPage() {
       )}
 
       {/* Pagination */}
-      {totalTablePages > 1 && (
-        <div className="flex items-center justify-between mt-4">
-          <span className="font-body text-[11px] text-[var(--app-text-muted)]">
-            Showing {(tablePage - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(tablePage * TABLE_PAGE_SIZE, filtered.length)} of {filtered.length}
-          </span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-              disabled={tablePage === 1}
-              className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-[var(--app-border)] disabled:opacity-30 hover:bg-[var(--app-input-bg)] transition"
-            >
-              ← Prev
-            </button>
-            <span className="font-body text-[11px] px-3 py-1.5 text-[var(--app-text-muted)]">
-              {tablePage} / {totalTablePages}
-            </span>
-            <button
-              onClick={() => setTablePage((p) => Math.min(totalTablePages, p + 1))}
-              disabled={tablePage === totalTablePages}
-              className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-[var(--app-border)] disabled:opacity-30 hover:bg-[var(--app-input-bg)] transition"
-            >
-              Next →
-            </button>
-          </div>
-        </div>
-      )}
+      <div className="card mt-4">
+        <TablePagination
+          page={tablePage}
+          pageSize={tablePageSize}
+          totalItems={filtered.length}
+          onPageChange={setTablePage}
+          onPageSizeChange={setTablePageSize}
+        />
+      </div>
 
       {/* Schedule Email Modal */}
       {scheduleModalOpen && (

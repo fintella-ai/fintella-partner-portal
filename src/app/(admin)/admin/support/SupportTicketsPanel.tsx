@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import PartnerLink from "@/components/ui/PartnerLink";
 import { fmtDateTime } from "@/lib/format";
 import { useResizableColumns } from "@/components/ui/ResizableTable";
+import TablePagination from "@/components/ui/TablePagination";
 
 type Ticket = {
   id: string;
@@ -113,6 +114,8 @@ export default function SupportTicketsPanel() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, open: 0, inProgress: 0, resolved: 0 });
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Detail view
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -333,7 +336,7 @@ export default function SupportTicketsPanel() {
         {tabs.map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => { setTab(t); setPage(1); }}
             className={`font-body text-sm px-4 py-1.5 rounded-full whitespace-nowrap transition ${
               tab === t
                 ? "bg-brand-gold/20 text-brand-gold"
@@ -366,7 +369,7 @@ export default function SupportTicketsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((t) => (
+                {filtered.slice((page - 1) * pageSize, page * pageSize).map((t) => (
                   <tr key={t.id} className="border-b border-[var(--app-border-subtle)] hover:bg-[var(--app-card-bg)] transition cursor-pointer" onClick={() => openTicket(t.id)}>
                     <td className="px-4 py-3">
                       <div className="font-medium text-[var(--app-text)]">{t.subject}</div>
@@ -397,11 +400,18 @@ export default function SupportTicketsPanel() {
                 ))}
               </tbody>
             </table>
+            <TablePagination
+              page={page}
+              pageSize={pageSize}
+              totalItems={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
 
           {/* Mobile cards */}
           <div className="md:hidden flex flex-col gap-3">
-            {filtered.map((t) => (
+            {filtered.slice((page - 1) * pageSize, page * pageSize).map((t) => (
               <div key={t.id} className="card p-4 cursor-pointer" onClick={() => openTicket(t.id)}>
                 <div className="flex items-start justify-between mb-2">
                   <div>
