@@ -16,23 +16,42 @@ const PIPELINE_STAGES = [
   { value: "closedwon", label: "Closed Won" },
 ];
 
+const EDITABLE_STAGES = PIPELINE_STAGES.filter((s) => s.value !== "all");
+
 interface Submission {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string | null;
+  title: string | null;
   companyName: string;
   city: string | null;
   state: string | null;
+  ein: string | null;
+  businessEntityType: string | null;
   partnerCode: string | null;
   estimatedDuties: number | null;
   estimatedRefund: number | null;
   importCategory: string | null;
   annualImportValue: string | null;
+  importsGoods: string | null;
+  importCountries: string | null;
+  importerOfRecord: string | null;
+  isImporterOfRecord: boolean;
+  serviceOfInterest: string | null;
+  affiliateNotes: string | null;
+  entryPeriod: string | null;
   dealId: string | null;
   dealStage: string | null;
   source: string;
+  utmSource?: string | null;
+  utmCampaign?: string | null;
+  utmMedium?: string | null;
+  utmTerm?: string | null;
+  utmAdGroup?: string | null;
+  qualified: boolean;
+  disqualifyReason: string | null;
   createdAt: string;
 }
 
@@ -52,10 +71,12 @@ interface Stats {
 const STAGE_COLORS: Record<string, string> = {
   lead_submitted: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   meeting_booked: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  meeting_missed: "bg-red-500/10 text-red-400 border-red-500/20",
   qualified: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   client_engaged: "bg-green-500/10 text-green-400 border-green-500/20",
   in_process: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   closedwon: "bg-green-500/10 text-green-300 border-green-500/20",
+  disqualified: "bg-red-500/10 text-red-400 border-red-500/20",
   pending: "bg-gray-500/10 text-gray-400 border-gray-500/20",
 };
 
@@ -64,6 +85,8 @@ function fmt$(n: number | null): string {
   return `$${n.toLocaleString()}`;
 }
 
+const inputClass = "bg-[var(--app-input-bg)] border border-[var(--app-input-border)] rounded-lg px-3 py-2 text-[var(--app-text)] font-body text-[12px] outline-none focus:border-brand-gold/40 transition-colors";
+
 export default function ClientSubmissionsTab() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -71,6 +94,14 @@ export default function ClientSubmissionsTab() {
   const [stageFilter, setStageFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [search, setSearch] = useState("");
+
+  // Expanded detail
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [editStage, setEditStage] = useState("pending");
+  const [editQualified, setEditQualified] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -84,6 +115,78 @@ export default function ClientSubmissionsTab() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const toggleExpand = (sub: Submission) => {
+    if (expandedId === sub.id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(sub.id);
+    setEditStage(sub.dealStage || "pending");
+    setEditQualified(sub.qualified);
+    setEditForm({
+      firstName: sub.firstName || "",
+      lastName: sub.lastName || "",
+      email: sub.email || "",
+      phone: sub.phone || "",
+      title: sub.title || "",
+      companyName: sub.companyName || "",
+      city: sub.city || "",
+      state: sub.state || "",
+      ein: sub.ein || "",
+      businessEntityType: sub.businessEntityType || "",
+      importsGoods: sub.importsGoods || "",
+      importCountries: sub.importCountries || "",
+      annualImportValue: sub.annualImportValue || "",
+      importerOfRecord: sub.importerOfRecord || "",
+      serviceOfInterest: sub.serviceOfInterest || "",
+      importCategory: sub.importCategory || "",
+      estimatedDuties: sub.estimatedDuties != null ? String(sub.estimatedDuties) : "",
+      estimatedRefund: sub.estimatedRefund != null ? String(sub.estimatedRefund) : "",
+      entryPeriod: sub.entryPeriod || "",
+      affiliateNotes: sub.affiliateNotes || "",
+      partnerCode: sub.partnerCode || "",
+    });
+  };
+
+  const setField = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setEditForm((prev) => ({ ...prev, [key]: e.target.value }));
+  };
+
+  const handleSave = async (id: string) => {
+    setSaving(true);
+    try {
+      const parseNum = (s: string): number | null => {
+        const cleaned = s.replace(/[,$\s]/g, "");
+        if (!cleaned) return null;
+        const n = parseFloat(cleaned);
+        return isNaN(n) ? null : n;
+      };
+      await fetch(`/api/admin/client-submissions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...editForm,
+          estimatedDuties: parseNum(editForm.estimatedDuties || ""),
+          estimatedRefund: parseNum(editForm.estimatedRefund || ""),
+          dealStage: editStage,
+          qualified: editQualified,
+        }),
+      });
+      setExpandedId(null);
+      load();
+    } catch {} finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Delete submission from "${name}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await fetch(`/api/admin/client-submissions/${id}`, { method: "DELETE" });
+      setExpandedId(null);
+      load();
+    } catch {} finally { setDeleting(false); }
+  };
 
   if (loading) return <div className="text-center py-12 font-body text-sm text-[var(--app-text-muted)]">Loading client submissions...</div>;
 
@@ -143,7 +246,6 @@ export default function ClientSubmissionsTab() {
       {/* Stage + Source breakdown side by side */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          {/* By Stage */}
           {Object.keys(stats.byStage).length > 0 && (
             <div className="card p-4">
               <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">By Deal Stage</div>
@@ -166,7 +268,6 @@ export default function ClientSubmissionsTab() {
               </div>
             </div>
           )}
-          {/* By Partner / Source */}
           {Object.keys(stats.byPartner).length > 0 && (
             <div className="card p-4">
               <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">By Partner Source</div>
@@ -191,7 +292,6 @@ export default function ClientSubmissionsTab() {
       {/* Source Attribution Dashboard */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          {/* By UTM Source */}
           {stats.byUtmSource && Object.keys(stats.byUtmSource).length > 0 && (
             <div className="card p-4">
               <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">By Source</div>
@@ -210,7 +310,6 @@ export default function ClientSubmissionsTab() {
               </div>
             </div>
           )}
-          {/* By UTM Campaign */}
           {stats.byUtmCampaign && Object.keys(stats.byUtmCampaign).length > 0 && (
             <div className="card p-4">
               <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">By Campaign</div>
@@ -229,7 +328,6 @@ export default function ClientSubmissionsTab() {
               </div>
             </div>
           )}
-          {/* Qualification */}
           {stats.byQualification && (
             <div className="card p-4">
               <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">Qualification</div>
@@ -301,7 +399,7 @@ export default function ClientSubmissionsTab() {
       {(() => {
         const filtered = submissions
           .filter((s) => stageFilter === "all" || (s.dealStage || "pending") === stageFilter)
-          .filter((s) => sourceFilter === "all" || ((s as any).utmSource || "direct") === sourceFilter)
+          .filter((s) => sourceFilter === "all" || (s.utmSource || "direct") === sourceFilter)
           .filter((s) => {
             if (!search) return true;
             const q = search.toLowerCase();
@@ -341,7 +439,12 @@ export default function ClientSubmissionsTab() {
             </thead>
             <tbody>
               {filtered.map((s) => (
-                <tr key={s.id} className="border-b border-[var(--app-border-subtle)] hover:bg-[var(--app-hover)] transition">
+                <>
+                <tr
+                  key={s.id}
+                  onClick={() => toggleExpand(s)}
+                  className={`border-b border-[var(--app-border-subtle)] hover:bg-[var(--app-hover)] transition cursor-pointer ${expandedId === s.id ? "bg-[var(--app-hover)]" : ""}`}
+                >
                   <td className="px-4 py-3">
                     <div className="font-medium text-[13px]">{s.firstName} {s.lastName}</div>
                     <div className="text-[11px] text-[var(--app-text-muted)]">{s.email}</div>
@@ -354,9 +457,9 @@ export default function ClientSubmissionsTab() {
                   <td className="px-4 py-3 text-center text-[13px] text-green-400 font-semibold">{fmt$(s.estimatedRefund)}</td>
                   <td className="px-4 py-3 text-center text-[12px] font-mono text-[var(--app-text-secondary)]">{s.partnerCode || "Direct"}</td>
                   <td className="px-4 py-3 text-center">
-                    <div className="text-[12px] text-[var(--app-text-secondary)] capitalize">{(s as any).utmSource || "direct"}</div>
-                    {(s as any).utmCampaign && (
-                      <div className="text-[10px] text-[var(--app-text-muted)]">{(s as any).utmCampaign}</div>
+                    <div className="text-[12px] text-[var(--app-text-secondary)] capitalize">{s.utmSource || "direct"}</div>
+                    {s.utmCampaign && (
+                      <div className="text-[10px] text-[var(--app-text-muted)]">{s.utmCampaign}</div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -365,7 +468,9 @@ export default function ClientSubmissionsTab() {
                         {s.dealStage.replace(/_/g, " ")}
                       </span>
                     ) : (
-                      <span className="text-[11px] text-[var(--app-text-muted)]">—</span>
+                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase border ${STAGE_COLORS.pending}`}>
+                        Pending
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -381,6 +486,200 @@ export default function ClientSubmissionsTab() {
                   </td>
                   <td className="px-4 py-3 text-center text-[12px] text-[var(--app-text-muted)] whitespace-nowrap">{fmtDateTime(s.createdAt)}</td>
                 </tr>
+
+                {/* Expanded detail panel */}
+                {expandedId === s.id && (
+                  <tr key={`${s.id}-detail`}>
+                    <td colSpan={9} className="p-0">
+                      <div className="px-5 py-4 bg-[var(--app-card-bg)] border-b border-[var(--app-border)]">
+
+                        {/* Submission ID + Deal Link */}
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="p-2.5 rounded-lg flex-1" style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}>
+                            <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider">Submission ID</div>
+                            <div className="font-mono text-[12px] text-[var(--app-text)] mt-0.5 select-all">{s.id}</div>
+                          </div>
+                          {s.dealId && (
+                            <a
+                              href={`/admin/deals?deal=${s.dealId}`}
+                              className="p-2.5 rounded-lg flex-1 hover:opacity-80 transition"
+                              style={{ background: "var(--app-gold-overlay)", border: "1px solid var(--app-gold-overlay-border)" }}
+                            >
+                              <div className="font-body text-[10px] text-yellow-500/80 uppercase tracking-wider">Linked Deal</div>
+                              <div className="font-mono text-[12px] text-brand-gold mt-0.5">View Deal →</div>
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Deal Stage */}
+                        <div className="mb-4 pb-4 border-b border-[var(--app-border)]">
+                          <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">Deal Stage</div>
+                          <div className="flex flex-wrap gap-2">
+                            {EDITABLE_STAGES.map((st) => (
+                              <button
+                                key={st.value}
+                                onClick={() => setEditStage(st.value)}
+                                className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
+                                  editStage === st.value
+                                    ? STAGE_COLORS[st.value] || STAGE_COLORS.pending
+                                    : "border-[var(--app-border)] text-[var(--app-text-muted)] hover:border-[var(--app-text-faint)]"
+                                }`}
+                              >
+                                {st.label}
+                              </button>
+                            ))}
+                          </div>
+                          {/* Qualification toggle */}
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => setEditQualified(true)}
+                              className={`flex-1 px-3 py-2 rounded text-xs font-medium border transition-all ${
+                                editQualified
+                                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                                  : "border-[var(--app-border)] bg-transparent text-[var(--app-text-muted)]"
+                              }`}
+                            >
+                              Qualified
+                            </button>
+                            <button
+                              onClick={() => setEditQualified(false)}
+                              className={`flex-1 px-3 py-2 rounded text-xs font-medium border transition-all ${
+                                !editQualified
+                                  ? "border-red-500/50 bg-red-500/10 text-red-400"
+                                  : "border-[var(--app-border)] bg-transparent text-[var(--app-text-muted)]"
+                              }`}
+                            >
+                              Disqualified
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Client Details */}
+                        <div className="mb-4 pb-4 border-b border-[var(--app-border)]">
+                          <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">Client Details</div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3">
+                            {([
+                              { label: "First Name", key: "firstName" },
+                              { label: "Last Name", key: "lastName" },
+                              { label: "Email", key: "email" },
+                              { label: "Phone", key: "phone" },
+                              { label: "Title", key: "title" },
+                              { label: "Company", key: "companyName" },
+                              { label: "City", key: "city" },
+                              { label: "State", key: "state" },
+                              { label: "EIN", key: "ein" },
+                              { label: "Entity Type", key: "businessEntityType" },
+                            ]).map((f) => (
+                              <div key={f.key}>
+                                <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">{f.label}</label>
+                                <input className={`${inputClass} w-full`} value={editForm[f.key] || ""} onChange={setField(f.key)} placeholder="—" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Import Details */}
+                        <div className="mb-4 pb-4 border-b border-[var(--app-border)]">
+                          <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">Import Details</div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3">
+                            {([
+                              { label: "Service of Interest", key: "serviceOfInterest" },
+                              { label: "Imports Goods to U.S.", key: "importsGoods" },
+                              { label: "Import Countries", key: "importCountries" },
+                              { label: "Annual Import Value", key: "annualImportValue" },
+                              { label: "Importer of Record", key: "importerOfRecord" },
+                              { label: "Import Category", key: "importCategory" },
+                              { label: "Entry Period", key: "entryPeriod" },
+                            ]).map((f) => (
+                              <div key={f.key}>
+                                <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">{f.label}</label>
+                                <input className={`${inputClass} w-full`} value={editForm[f.key] || ""} onChange={setField(f.key)} placeholder="—" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Financial Details */}
+                        <div className="mb-4 pb-4 border-b border-[var(--app-border)]">
+                          <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">Financial Details</div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+                            <div>
+                              <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Estimated Duties ($)</label>
+                              <input className={`${inputClass} w-full`} value={editForm.estimatedDuties || ""} onChange={setField("estimatedDuties")} placeholder="0" />
+                            </div>
+                            <div>
+                              <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Estimated Refund ($)</label>
+                              <input className={`${inputClass} w-full`} value={editForm.estimatedRefund || ""} onChange={setField("estimatedRefund")} placeholder="0" />
+                            </div>
+                            <div>
+                              <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Partner Code</label>
+                              <input className={`${inputClass} w-full font-mono`} value={editForm.partnerCode || ""} onChange={setField("partnerCode")} placeholder="—" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* UTM Attribution (read-only) */}
+                        {(s.utmSource || s.utmCampaign || s.utmMedium || s.utmTerm) && (
+                          <div className="mb-4 pb-4 border-b border-[var(--app-border)]">
+                            <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">UTM Attribution</div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
+                              {([
+                                { label: "Source", value: s.utmSource },
+                                { label: "Medium", value: s.utmMedium },
+                                { label: "Campaign", value: s.utmCampaign },
+                                { label: "Term", value: s.utmTerm },
+                                { label: "Ad Group", value: s.utmAdGroup },
+                              ]).filter(u => u.value).map((u) => (
+                                <div key={u.label}>
+                                  <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider">{u.label}</div>
+                                  <div className="font-body text-[12px] text-[var(--app-text-secondary)] mt-0.5">{u.value}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Notes */}
+                        <div className="mb-4">
+                          <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Notes</label>
+                          <textarea
+                            className={`${inputClass} w-full min-h-[80px] resize-y`}
+                            value={editForm.affiliateNotes || ""}
+                            onChange={setField("affiliateNotes")}
+                            placeholder="Add notes about this submission..."
+                          />
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleSave(s.id)}
+                            disabled={saving}
+                            className="px-5 py-2.5 rounded-lg font-body text-[12px] font-semibold text-black disabled:opacity-50 transition-colors"
+                            style={{ background: "var(--brand-gold)" }}
+                          >
+                            {saving ? "Saving..." : "Save Changes"}
+                          </button>
+                          <button
+                            onClick={() => setExpandedId(null)}
+                            className="font-body text-[11px] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg px-4 py-2 hover:text-[var(--app-text-secondary)] transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <div className="flex-1" />
+                          <button
+                            onClick={() => handleDelete(s.id, `${s.firstName} ${s.lastName}`)}
+                            disabled={deleting}
+                            className="font-body text-[11px] text-red-400 border border-red-500/20 rounded-lg px-4 py-2 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                          >
+                            {deleting ? "Deleting..." : "Delete"}
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </>
               ))}
             </tbody>
           </table>
