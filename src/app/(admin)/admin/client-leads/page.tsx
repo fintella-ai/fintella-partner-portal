@@ -1,11 +1,12 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import ClientOverviewTab from "../internal-leads/ClientOverviewTab";
 import ClientSubmissionsTab from "../internal-leads/ClientSubmissionsTab";
 import MeetingsTab from "../internal-leads/MeetingsTab";
 
 export default function ClientLeadsPage() {
-  const [tab, setTab] = useState<"submissions" | "meetings">("submissions");
+  const [tab, setTab] = useState<"overview" | "deals" | "meetings">("overview");
 
   return (
     <div>
@@ -30,7 +31,8 @@ export default function ClientLeadsPage() {
       <div className="mb-6 border-b border-[var(--app-border)]">
         <div className="flex gap-1">
           {([
-            { value: "submissions" as const, label: "Submissions" },
+            { value: "overview" as const, label: "Overview" },
+            { value: "deals" as const, label: "Client Deals" },
             { value: "meetings" as const, label: "Meetings" },
           ]).map((t) => (
             <button
@@ -49,7 +51,9 @@ export default function ClientLeadsPage() {
       </div>
 
       <Suspense>
-        {tab === "submissions" ? <ClientSubmissionsTab /> : <MeetingsTab />}
+        {tab === "overview" && <ClientOverviewTab />}
+        {tab === "deals" && <ClientSubmissionsTab />}
+        {tab === "meetings" && <MeetingsTab />}
       </Suspense>
     </div>
   );
