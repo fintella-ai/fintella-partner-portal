@@ -3,7 +3,6 @@
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import EmailInboxTabImpl from "./EmailInboxTabImpl";
 import EmailComposeTabImpl from "./EmailComposeTabImpl";
 import GmailTabImpl from "./GmailTabImpl";
 import SmsTabImpl from "./SmsTabImpl";
@@ -12,7 +11,7 @@ import TeamChatPanel from "../team-chat/TeamChatPanel";
 import ChannelsListPanel from "../channels/ChannelsListPanel";
 
 type Tab = "email" | "sms" | "phone" | "team-chat" | "channels";
-type EmailView = "inbox" | "gmail" | "compose";
+type EmailView = "gmail" | "compose";
 
 // Email Templates moved to Admin → Automations → Email Templates. The
 // Communications hub stays focused on partner-facing channels (inbox,
@@ -26,7 +25,6 @@ const ALL_TABS: { id: Tab; label: string; superAdminOnly?: boolean }[] = [
 ];
 
 const EMAIL_VIEWS: { id: EmailView; label: string }[] = [
-  { id: "inbox",     label: "Inbox" },
   { id: "gmail",     label: "Gmail" },
   { id: "compose",   label: "Compose" },
 ];
@@ -49,7 +47,7 @@ function CommunicationsHostInner() {
   const TABS = ALL_TABS.filter((t) => !t.superAdminOnly || isSuperAdmin);
 
   const [tab, setTab] = useState<Tab>((TABS.some((t) => t.id === urlTab) ? urlTab : "email") as Tab);
-  const [emailView, setEmailView] = useState<EmailView>((EMAIL_VIEWS.some((v) => v.id === urlView) ? urlView : "inbox") as EmailView);
+  const [emailView, setEmailView] = useState<EmailView>((EMAIL_VIEWS.some((v) => v.id === urlView) ? urlView : "gmail") as EmailView);
 
   const pushUrl = (qs: URLSearchParams) => {
     router.replace(`/admin/communications?${qs.toString()}`);
@@ -98,7 +96,6 @@ function CommunicationsHostInner() {
                 }`}>{v.label}</button>
             ))}
           </div>
-          {emailView === "inbox"     && <EmailInboxTabImpl />}
           {emailView === "gmail"     && <GmailTabImpl />}
           {emailView === "compose"   && <EmailComposeTabImpl />}
         </>
