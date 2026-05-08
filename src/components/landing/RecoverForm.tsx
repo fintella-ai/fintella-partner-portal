@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Common HTS chapters affected by IEEPA tariffs
 const HTS_CATEGORIES = [
@@ -132,6 +132,15 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
     } catch { setError("Network error. Please try again."); }
     finally { setSaving(false); }
   }
+
+  useEffect(() => {
+    if (step !== "done") return;
+    if (document.querySelector('script[src*="calendly.com/assets/external/widget.js"]')) return;
+    const s = document.createElement("script");
+    s.src = "https://assets.calendly.com/assets/external/widget.js";
+    s.async = true;
+    document.body.appendChild(s);
+  }, [step]);
 
   const progress = step === "product" ? 1 : step === "duties" ? 2 : step === "timing" ? 3 : step === "result" ? 4 : step === "contact" ? 5 : 5;
 
@@ -440,40 +449,48 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
         </div>
       )}
 
-      {/* Done — embedded Frost Law form with pre-filled data */}
+      {/* Done — recovery summary + Calendly booking */}
       {step === "done" && (() => {
-        const names = form.contactName.trim().split(/\s+/);
-        const p: Record<string, string> = {};
-        if (names[0]) p.first_name = names[0];
-        if (names.length > 1) p.last_name = names.slice(1).join(" ");
-        if (form.email) p.email = form.email;
-        if (form.phone) p.phone = form.phone;
-        if (form.companyName) p.company = form.companyName;
-        if (form.title) p.jobtitle = form.title;
-        if (form.city) p.city = form.city;
-        if (form.state) p.state = form.state;
-        if (form.ein) p.company_ein = form.ein;
-        p.service_of_interest = "Tariff Refund Support";
-        if (form.businessEntityType) p.company_business_entity = form.businessEntityType;
-        if (form.importsGoods) p.import_good_to_us = form.importsGoods;
-        if (form.importCountries) p.import_countries = form.importCountries;
-        if (form.annualImportValue) p.annual_import_value = form.annualImportValue;
-        if (form.importerOfRecord) p.importer_of_record = form.importerOfRecord;
-        if (form.affiliateNotes) p.affiliate_notes = form.affiliateNotes;
-        if (partnerCode) p.utm_content = partnerCode;
-        const frostUrl = `https://referral.frostlawaz.com/l/ANNEXATIONPR/?${new URLSearchParams(p).toString()}`;
+        const calendlyParams = new URLSearchParams();
+        calendlyParams.set("hide_event_type_details", "1");
+        calendlyParams.set("hide_gdpr_banner", "1");
+        calendlyParams.set("background_color", "060a14");
+        calendlyParams.set("text_color", "ffffff");
+        calendlyParams.set("primary_color", "c4a050");
+        if (form.contactName) calendlyParams.set("name", form.contactName.trim());
+        if (form.email) calendlyParams.set("email", form.email.trim());
+        if (utmParams?.utm_source) calendlyParams.set("utm_source", utmParams.utm_source);
+        if (utmParams?.utm_medium) calendlyParams.set("utm_medium", utmParams.utm_medium);
+        if (utmParams?.utm_campaign) calendlyParams.set("utm_campaign", utmParams.utm_campaign);
+        if (partnerCode) calendlyParams.set("utm_content", partnerCode);
+        const calendlyUrl = `https://calendly.com/john-gorobotax/ieepa-tariff-refund-initial-call?${calendlyParams.toString()}`;
+
         return (
           <div>
-            <div className="rounded-xl border border-white/10 overflow-hidden relative" style={{ background: "#fff", height: 1400 }}>
-              <iframe
-                src={frostUrl}
-                className="w-full border-0 absolute"
-                title="Complete Your Filing"
-                allow="camera; microphone; geolocation"
-                sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation"
-                style={{ top: -680, left: 0, width: "100%", height: 2800 }}
-              />
+            {/* Recovery estimate reminder */}
+            <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 mb-4">
+              <div className="text-center">
+                <div className="text-xs text-white/40 mb-1">Your Estimated Recovery</div>
+                <div className="font-display text-3xl text-green-400">{fmt$(totalRecovery)}</div>
+                <div className="flex justify-center gap-4 mt-2 text-[11px] text-white/40">
+                  <span>Refund: <strong className="text-green-400">{fmt$(estimatedRefund)}</strong></span>
+                  <span>Interest: <strong className="text-green-400">{fmt$(estimatedInterest)}</strong></span>
+                </div>
+              </div>
             </div>
+
+            <div className="text-center mb-4">
+              <h2 className="font-display text-xl mb-1" style={{ color: "#c4a050" }}>Book Your Free Consultation</h2>
+              <p className="text-sm text-white/50">Pick a time that works for you. We&apos;ll review your eligibility and walk you through the filing process.</p>
+            </div>
+
+            {/* Calendly inline embed */}
+            <div
+              className="calendly-inline-widget rounded-xl overflow-hidden"
+              data-url={calendlyUrl}
+              style={{ minWidth: "320px", height: "700px" }}
+            />
+
             <button onClick={() => setStep("contact")} className="w-full mt-3 py-2 text-xs text-white/40 hover:text-white/60">← Back to edit details</button>
           </div>
         );
