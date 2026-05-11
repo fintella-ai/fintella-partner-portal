@@ -33,6 +33,7 @@ type Partner = {
   ccEmail: string | null;
   corporatePartner: boolean;
   partnerType: string;
+  agreementBypass: boolean;
   signupDate: string;
 };
 
@@ -1807,6 +1808,49 @@ export default function PartnerDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Agreement bypass — super admin only */}
+        {isSuperAdmin && (
+          <div className="px-5 py-3 border-b border-[var(--app-border)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-body text-[13px] text-[var(--app-text-secondary)]">Agreement Gate Bypass</div>
+                <div className="font-body text-[11px] text-[var(--app-text-muted)] mt-0.5">
+                  {partner.agreementBypass
+                    ? "Partner has full portal access without a signed agreement"
+                    : "Partner must sign agreement before accessing portal features"}
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  const next = !partner.agreementBypass;
+                  try {
+                    const res = await fetch(`/api/admin/partners/${id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ agreementBypass: next }),
+                    });
+                    if (res.ok) {
+                      setPartner({ ...partner, agreementBypass: next });
+                      setSaved(true);
+                      setTimeout(() => setSaved(false), 3000);
+                    } else {
+                      const d = await res.json().catch(() => ({}));
+                      alert(d.error || "Failed to update");
+                    }
+                  } catch { alert("Network error"); }
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  partner.agreementBypass ? "bg-brand-gold" : "bg-[var(--app-input-bg)] border border-[var(--app-border)]"
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                  partner.agreementBypass ? "translate-x-6" : "translate-x-1"
+                }`} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* W9 status */}
         <div className="px-5 py-3 border-b border-[var(--app-border)]">

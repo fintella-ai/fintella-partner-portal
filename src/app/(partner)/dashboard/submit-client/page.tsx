@@ -22,11 +22,12 @@ export default function SubmitClientPage() {
     fetch("/api/agreement")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
+        const bypassed = data.agreementBypass === true;
         const agreementOk =
           data.agreement?.status === "signed" ||
           data.agreement?.status === "approved";
         const partnerOk = data.partnerStatus === "active";
-        setAgreementSigned(agreementOk && partnerOk);
+        setAgreementSigned(bypassed || (agreementOk && partnerOk));
       })
       .catch(() => {
         setAgreementSigned(true);
