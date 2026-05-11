@@ -172,6 +172,13 @@ export async function PUT(
 
     if (body.l3Enabled !== undefined) data.l3Enabled = body.l3Enabled;
 
+    if (body.agreementBypass !== undefined) {
+      if (role !== "super_admin") {
+        return NextResponse.json({ error: "Only super admins can toggle agreement bypass" }, { status: 403 });
+      }
+      data.agreementBypass = !!body.agreementBypass;
+    }
+
     // Tier + commission-rate changes retroactively affect a partner's
     // downline recruitment rights + commission math, so gate both to
     // super_admin. These were silently dropped from the allow-list

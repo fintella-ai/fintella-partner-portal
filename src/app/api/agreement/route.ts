@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     // future path that marks an agreement signed without the webhook firing.
     const partnerRow = await prisma.partner.findUnique({
       where: { partnerCode },
-      select: { status: true },
+      select: { status: true, agreementBypass: true },
     });
 
     return NextResponse.json({
@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
           }
         : null,
       partnerStatus: partnerRow?.status || null,
+      agreementBypass: partnerRow?.agreementBypass || false,
       signwellConfigured: isSignWellConfigured(),
     });
   } catch {

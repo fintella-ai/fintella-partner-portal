@@ -212,6 +212,8 @@ model Partner {
   onboardingState       String   @default("{}")
   // PartnerOS AI — Phase 1 persona split (spec §3.6). null = prompt on first AI visit.
   preferredGeneralist   String?  // "finn" | "stella"
+  // Super-admin bypass: skip agreement gate, grant full portal access
+  agreementBypass       Boolean  @default(false)
   // Engagement scoring
   engagementScore       Float    @default(0)
   engagementTier        String   @default("cold") // hot, active, cooling, cold

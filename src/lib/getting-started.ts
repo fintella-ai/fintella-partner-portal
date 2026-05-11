@@ -153,7 +153,7 @@ export function applyAction(state: OnboardingState, action: StateAction): Onboar
 export async function computeGettingStarted(partnerCode: string): Promise<GettingStartedResult> {
   const partner = await prisma.partner.findUnique({
     where: { partnerCode },
-    select: { partnerCode: true, status: true, onboardingState: true, partnerType: true },
+    select: { partnerCode: true, status: true, onboardingState: true, partnerType: true, agreementBypass: true },
   });
   if (!partner) {
     return emptyResult();
@@ -190,7 +190,7 @@ export async function computeGettingStarted(partnerCode: string): Promise<Gettin
   ]);
 
   const agreementSigned =
-    agreement?.status === "signed" || agreement?.status === "approved" || agreement?.status === "amended";
+    partner.agreementBypass || agreement?.status === "signed" || agreement?.status === "approved" || agreement?.status === "amended";
   const agreementPending =
     agreement?.status === "pending" || agreement?.status === "partner_signed";
 
