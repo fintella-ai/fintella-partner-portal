@@ -1,15 +1,17 @@
 {
   "_metadata": {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "generatedDate": "2026-04-29",
-    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
+    "lastUpdated": "2026-05-12",
+    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement. NOTE: Section 122 tariffs subject to active CIT legal challenge as of May 7, 2026.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "CIT ruling May 7, 2026 (State of Washington et al. v. Trump) - Section 122 invalidated for named plaintiffs only, DOJ appeal filed May 8, 2026"
     ]
   },
   "rates": [
@@ -332,7 +334,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL CHALLENGE (May 7, 2026): A divided CIT panel held Section 122 does not authorize tariffs on general trade deficits — authority limited to 'large and serious' balance-of-payments crises. Relief granted only to named plaintiffs (State of Washington + two importers); no nationwide injunction. Tariffs remain in effect for all other importers pending appeal. DOJ filed notice of appeal May 8, 2026. Source: https://www.hklaw.com/en/insights/publications/2026/05/us-court-of-international-trade-invalidates-the-administrations",
       "supersededBy": null
     },
     {
