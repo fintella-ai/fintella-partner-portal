@@ -360,6 +360,40 @@ function LoginPageInner() {
           )}
         </div>
       </div>
+
+      {/* Business info footer — required for TCR A2P 10DLC compliance */}
+      <footer className="w-full border-t border-[var(--app-border)] bg-[var(--app-bg)] py-8 px-6">
+        <div className="max-w-xl mx-auto text-center space-y-4">
+          <div className="font-body text-[13px] text-[var(--app-text-secondary)] font-semibold">
+            Fintella — Financial Intelligence Network
+          </div>
+          <div className="font-body text-[11px] text-[var(--app-text-muted)] leading-relaxed">
+            Fintella is a B2B partner referral platform that connects customs brokers and
+            trade compliance professionals with professional service firms handling IEEPA
+            tariff refund recovery for U.S. importers. Operated by Annexation PR LLC.
+          </div>
+          <div className="font-body text-[11px] text-[var(--app-text-muted)] leading-relaxed">
+            111 2nd Ave NE #1250, St. Petersburg, FL 33701
+            <span className="mx-2">·</span>
+            <a href="mailto:support@fintella.partners" className="text-brand-gold/70 hover:text-brand-gold transition-colors">support@fintella.partners</a>
+            <span className="mx-2">·</span>
+            <a href="tel:+17274001050" className="text-brand-gold/70 hover:text-brand-gold transition-colors">(727) 400-1050</a>
+          </div>
+          <div className="font-body text-[11px] text-[var(--app-text-muted)] leading-relaxed">
+            Fintella sends transactional SMS notifications to registered partners regarding
+            account activity, agreement signing reminders, deal status updates, and commission
+            notifications. Message frequency varies. Msg &amp; data rates may apply.
+            Reply STOP to opt out. Reply HELP for help.
+          </div>
+          <div className="flex items-center justify-center gap-4 font-body text-[11px]">
+            <a href="/privacy" className="text-brand-gold/70 hover:text-brand-gold transition-colors">Privacy Policy</a>
+            <a href="/terms" className="text-brand-gold/70 hover:text-brand-gold transition-colors">Terms of Service</a>
+          </div>
+          <div className="font-body text-[10px] text-[var(--app-text-muted)]">
+            © {new Date().getFullYear()} Annexation PR LLC DBA Fintella. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

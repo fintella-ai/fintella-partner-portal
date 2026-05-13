@@ -406,13 +406,32 @@ export default async function LandingV2Page({
       </section>
 
       <footer className="py-10 text-center text-xs text-[var(--app-text-muted)] border-t border-[var(--app-border)]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 space-y-3">
-          <div>© {new Date().getFullYear()} Fintella — Financial Intelligence Network. All rights reserved.</div>
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 space-y-4">
+          <div className="text-sm font-semibold text-[var(--app-text-secondary)]">Fintella — Financial Intelligence Network</div>
+          <div className="text-[11px] leading-relaxed max-w-2xl mx-auto">
+            Fintella is a B2B partner referral platform that connects customs brokers and
+            trade compliance professionals with professional service firms handling IEEPA
+            tariff refund recovery for U.S. importers. Operated by Annexation PR LLC.
+          </div>
+          <div className="text-[11px]">
+            111 2nd Ave NE #1250, St. Petersburg, FL 33701
+            <span className="mx-2">·</span>
+            <a href="mailto:support@fintella.partners" className="hover:text-[var(--brand-gold)]">support@fintella.partners</a>
+            <span className="mx-2">·</span>
+            <a href="tel:+17274001050" className="hover:text-[var(--brand-gold)]">(727) 400-1050</a>
+          </div>
+          <div className="text-[11px] leading-relaxed max-w-2xl mx-auto">
+            Fintella sends transactional SMS notifications to registered partners regarding
+            account activity, agreement signing reminders, deal status updates, and commission
+            notifications. Message frequency varies. Msg &amp; data rates may apply.
+            Reply STOP to opt out. Reply HELP for help.
+          </div>
           <div className="space-x-4">
-            <Link href="/privacy" className="hover:text-[var(--brand-gold)]">Privacy</Link>
-            <Link href="/terms" className="hover:text-[var(--brand-gold)]">Terms</Link>
+            <Link href="/privacy" className="hover:text-[var(--brand-gold)]">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-[var(--brand-gold)]">Terms of Service</Link>
             <Link href="/login" className="hover:text-[var(--brand-gold)]">Partner Login</Link>
           </div>
+          <div className="text-[10px]">© {new Date().getFullYear()} Annexation PR LLC DBA Fintella. All rights reserved.</div>
         </div>
       </footer>
 
