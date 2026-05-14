@@ -8,7 +8,7 @@ export default function StageBadge({ stage }: { stage?: string }) {
 
   return (
     <span
-      className="inline-block rounded-full px-2.5 py-1 font-body text-[10px] font-semibold tracking-wider uppercase whitespace-nowrap"
+      className="inline-block rounded-full px-2.5 py-1 font-body text-[10px] font-semibold tracking-wider uppercase whitespace-nowrap text-center"
       style={{
         // Background alpha bumped 0x22 (~13%) → 0x40 (~25%) and border
         // 0x44 (~27%) → 0x66 (~40%) so colored stage chips — including

@@ -10,7 +10,7 @@ export default function StatusBadge({ status }: { status?: string }) {
 
   return (
     <span
-      className="inline-block rounded-full px-2.5 py-1 font-body text-[10px] font-semibold tracking-wider uppercase"
+      className="inline-block rounded-full px-2.5 py-1 font-body text-[10px] font-semibold tracking-wider uppercase text-center"
       style={{
         background: c + "22",
         color: c,
