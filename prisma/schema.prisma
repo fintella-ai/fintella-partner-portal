@@ -231,6 +231,22 @@ model Partner {
   @@index([engagementTier])
 }
 
+// ─── PARTNER USERS (multi-login for corporate partners) ─────────────────────
+model PartnerUser {
+  id           String   @id @default(cuid())
+  partnerCode  String
+  email        String
+  passwordHash String
+  firstName    String
+  lastName     String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([partnerCode, email])
+  @@index([email])
+}
+
 // ─── PARTNER PROFILE (address, payout info) ──────────────────────────────────
 model PartnerProfile {
   id              String   @id @default(cuid())
