@@ -161,7 +161,7 @@ function LoginPageInner() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-10 relative overflow-hidden" style={{ background: "#000000" }}>
+    <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: "#000000" }}>
       <style>{`
         .login-grid { background-image: linear-gradient(rgba(196,160,80,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(196,160,80,.04) 1px,transparent 1px); }
       `}</style>
@@ -169,6 +169,7 @@ function LoginPageInner() {
         style={{ backgroundSize: "60px 60px" }}
       />
 
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-10">
       <div className="w-full max-w-[460px] relative z-10">
         <div className="text-center mb-8 sm:mb-10 animate-fade-up">
           {/* Brand logo — intentionally sized wider than the "Partner Portal"
@@ -360,9 +361,10 @@ function LoginPageInner() {
           )}
         </div>
       </div>
+      </div>
 
       {/* Business info footer — required for TCR A2P 10DLC compliance */}
-      <footer className="w-full border-t border-[var(--app-border)] bg-[var(--app-bg)] py-8 px-6">
+      <footer className="relative z-10 w-full border-t border-[var(--app-border)] bg-black/60 backdrop-blur-sm py-6 px-4 sm:py-8 sm:px-6">
         <div className="max-w-xl mx-auto text-center space-y-4">
           <div className="font-body text-[13px] text-[var(--app-text-secondary)] font-semibold">
             Fintella — Financial Intelligence Network
@@ -372,11 +374,11 @@ function LoginPageInner() {
             trade compliance professionals with professional service firms handling IEEPA
             tariff refund recovery for U.S. importers. Operated by Annexation PR LLC.
           </div>
-          <div className="font-body text-[11px] text-[var(--app-text-muted)] leading-relaxed">
-            111 2nd Ave NE #1250, St. Petersburg, FL 33701
-            <span className="mx-2">·</span>
+          <div className="font-body text-[11px] text-[var(--app-text-muted)] leading-relaxed flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-0">
+            <span>111 2nd Ave NE #1250, St. Petersburg, FL 33701</span>
+            <span className="hidden sm:inline mx-2">·</span>
             <a href="mailto:support@fintella.partners" className="text-brand-gold/70 hover:text-brand-gold transition-colors">support@fintella.partners</a>
-            <span className="mx-2">·</span>
+            <span className="hidden sm:inline mx-2">·</span>
             <a href="tel:+17274001050" className="text-brand-gold/70 hover:text-brand-gold transition-colors">(727) 400-1050</a>
           </div>
           <div className="font-body text-[11px] text-[var(--app-text-muted)] leading-relaxed">
