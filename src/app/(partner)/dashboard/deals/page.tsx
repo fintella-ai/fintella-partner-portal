@@ -20,6 +20,9 @@ export default function DealsPage() {
   const [me, setMe] = useState<{ commissionRate: number; tier: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [dealsTab, setDealsTab] = useState<"my-deals" | "downline">("my-deals");
+  // Stage filters
+  const [directStageFilter, setDirectStageFilter] = useState("all");
+  const [downlineStageFilter, setDownlineStageFilter] = useState("all");
   // Pagination
   const [directPage, setDirectPage] = useState(1);
   const [directPageSize, setDirectPageSize] = useState(10);
@@ -47,10 +50,14 @@ export default function DealsPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { setDirectPage(1); }, [directStageFilter]);
+  useEffect(() => { setDownlinePage(1); }, [downlineStageFilter]);
 
-  // Paginated slices
-  const paginatedDirectDeals = deals.slice((directPage - 1) * directPageSize, directPage * directPageSize);
-  const paginatedDownlineDeals = downlineDeals.slice((downlinePage - 1) * downlinePageSize, downlinePage * downlinePageSize);
+  // Filtered + paginated slices
+  const filteredDirectDeals = directStageFilter === "all" ? deals : deals.filter((d) => d.stage === directStageFilter);
+  const filteredDownlineDeals = downlineStageFilter === "all" ? downlineDeals : downlineDeals.filter((d) => d.stage === downlineStageFilter);
+  const paginatedDirectDeals = filteredDirectDeals.slice((directPage - 1) * directPageSize, directPage * directPageSize);
+  const paginatedDownlineDeals = filteredDownlineDeals.slice((downlinePage - 1) * downlinePageSize, downlinePage * downlinePageSize);
 
   function toggleExpand(dealId: string) {
     setExpandedId(expandedId === dealId ? null : dealId);
@@ -103,6 +110,50 @@ export default function DealsPage() {
         Your direct referrals and downline partner deals.
       </p>
 
+      {/* Deal Pipeline */}
+      {(() => {
+        const activeDealList = dealsTab === "my-deals" ? deals : downlineDeals;
+        const activeFilter = dealsTab === "my-deals" ? directStageFilter : downlineStageFilter;
+        const setFilter = dealsTab === "my-deals" ? setDirectStageFilter : setDownlineStageFilter;
+        const counts: Record<string, number> = {};
+        for (const d of activeDealList) counts[d.stage] = (counts[d.stage] || 0) + 1;
+        return (
+          <>
+            <div className="card p-4 sm:p-5 mb-4">
+              <div className="font-body font-semibold text-[13px] mb-3">Deal Pipeline</div>
+              <div className="flex flex-wrap gap-2">
+                {PIPELINE_STAGES.map((s) => (
+                  <button key={s} onClick={() => setFilter(activeFilter === s ? "all" : s)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors border ${
+                      activeFilter === s ? "bg-brand-gold/20 border-brand-gold/30" : "bg-[var(--app-card-bg)] border-[var(--app-border)] hover:bg-[var(--app-card-bg)]"
+                    }`}
+                  >
+                    <StageBadge stage={s} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mb-4 border-b border-[var(--app-border)] overflow-x-auto">
+              <div className="flex gap-1 min-w-max">
+                {[{ value: "all", label: "All" }, ...PIPELINE_STAGES.map((s) => ({ value: s, label: (STAGE_LABELS[s]?.label || s) }))].map((s) => {
+                  const count = s.value === "all" ? activeDealList.length : (counts[s.value] || 0);
+                  const active = activeFilter === s.value;
+                  return (
+                    <button key={s.value} type="button" onClick={() => setFilter(s.value)}
+                      className={`font-body text-[12px] px-3 py-2 rounded-t-lg border border-b-0 transition-colors whitespace-nowrap min-h-[36px] ${
+                        active ? "text-brand-gold border-[var(--app-border)] bg-[var(--app-card-bg)] -mb-px font-semibold" : "text-[var(--app-text-muted)] border-transparent hover:text-[var(--app-text-secondary)] hover:bg-brand-gold/5"
+                      }`}
+                    >
+                      {s.label} <span className={`ml-1 text-[10px] ${active ? "text-brand-gold/80" : "text-[var(--app-text-muted)]"}`}>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
       <div className="card">
         <div className="flex gap-1 px-4 sm:px-6 pt-4 sm:pt-5 border-b border-[var(--app-border)]">
           {([
@@ -123,9 +174,9 @@ export default function DealsPage() {
           ))}
         </div>
 
-        {dealsTab === "my-deals" && (deals.length === 0 ? (
+        {dealsTab === "my-deals" && (filteredDirectDeals.length === 0 ? (
           <div className="p-12 text-center font-body text-sm text-[var(--app-text-muted)]">
-            No deals yet. Share your referral link to start earning commissions.
+            {deals.length === 0 ? "No deals yet. Share your referral link to start earning commissions." : "No deals match this stage filter."}
           </div>
         ) : device.isMobile ? (
           /* ── Mobile: Card layout ── */
@@ -226,12 +277,12 @@ export default function DealsPage() {
           </div>
         ))}
         {dealsTab === "my-deals" && deals.length > 0 && (
-          <TablePagination page={directPage} pageSize={directPageSize} totalItems={deals.length} onPageChange={setDirectPage} onPageSizeChange={setDirectPageSize} />
+          <TablePagination page={directPage} pageSize={directPageSize} totalItems={filteredDirectDeals.length} onPageChange={setDirectPage} onPageSizeChange={setDirectPageSize} />
         )}
 
-        {dealsTab === "downline" && (downlineDeals.length === 0 ? (
+        {dealsTab === "downline" && (filteredDownlineDeals.length === 0 ? (
           <div className="p-12 text-center font-body text-sm text-[var(--app-text-muted)]">
-            No downline deals yet. Recruit partners to build your team.
+            {downlineDeals.length === 0 ? "No downline deals yet. Recruit partners to build your team." : "No downline deals match this stage filter."}
           </div>
         ) : (
           <div>
@@ -261,7 +312,7 @@ export default function DealsPage() {
           </div>
         ))}
         {dealsTab === "downline" && downlineDeals.length > 0 && (
-          <TablePagination page={downlinePage} pageSize={downlinePageSize} totalItems={downlineDeals.length} onPageChange={setDownlinePage} onPageSizeChange={setDownlinePageSize} />
+          <TablePagination page={downlinePage} pageSize={downlinePageSize} totalItems={filteredDownlineDeals.length} onPageChange={setDownlinePage} onPageSizeChange={setDownlinePageSize} />
         )}
       </div>
     </div>
