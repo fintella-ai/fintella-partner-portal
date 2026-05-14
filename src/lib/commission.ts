@@ -8,7 +8,7 @@ export function calcFirmFee(refund: number, rate = DEFAULT_FIRM_FEE_RATE): numbe
  * Map a deal's stage + payment state to the canonical commission status.
  *
  *   Pre-agreement stages          → null   (no ledger row yet)
- *   agreement_sent / client_engaged / in_process → "projected"
+ *   gathering_info / agreement_sent / client_engaged → "projected"
  *   closed_won + no payment      → "pending_payment"
  *   closed_won + paymentReceived → "due"
  *   closed_lost                  → "lost"
@@ -30,7 +30,7 @@ export function resolveCommissionStatus(
   if (!stage) return null;
   if (stage === "disqualified" || stage === "closedlost") return "lost";
   if (stage === "closedwon") return paymentReceivedAt ? "due" : "pending_payment";
-  if (stage === "agreement_sent" || stage === "client_engaged" || stage === "in_process") return "projected";
+  if (stage === "gathering_info" || stage === "agreement_sent" || stage === "client_engaged" || stage === "in_process") return "projected";
   if (stage === "unresponsive") return null;
   return null;
 }

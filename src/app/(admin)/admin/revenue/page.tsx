@@ -153,9 +153,11 @@ const stageBadge: Record<string, string> = {
   no_consultation: "bg-red-500/10 text-red-400 border border-red-500/20",
   consultation_booked: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
   client_no_show: "bg-red-500/10 text-red-400 border border-red-500/20",
+  meeting_completed: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+  gathering_info: "bg-violet-500/10 text-violet-400 border border-violet-500/20",
   agreement_sent: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
   client_engaged: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-  in_process: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+  in_process: "bg-violet-500/10 text-violet-400 border border-violet-500/20",
   unresponsive: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
   closedwon: "bg-green-500/10 text-green-400 border border-green-500/20",
   closedlost: "bg-red-500/10 text-red-400 border border-red-500/20",
@@ -710,9 +712,10 @@ export default function RevenuePage() {
                   <option value="meeting_missed">Meeting Missed</option>
                   <option value="qualified">Qualified</option>
                   <option value="disqualified">Disqualified</option>
+                  <option value="meeting_completed">Meeting Completed</option>
+                  <option value="gathering_info">Gathering Information</option>
                   <option value="agreement_sent">Agreement Sent</option>
                   <option value="client_engaged">Agreement Signed</option>
-                  <option value="in_process">In Process</option>
                   <option value="unresponsive">Unresponsive</option>
                   <option value="closedwon">Closed Won</option>
                 </select>

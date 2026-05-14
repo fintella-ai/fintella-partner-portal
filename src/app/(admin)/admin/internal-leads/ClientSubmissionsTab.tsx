@@ -12,9 +12,10 @@ const PIPELINE_STAGES = [
   { value: "meeting_missed", label: "Meeting Missed" },
   { value: "qualified", label: "Qualified" },
   { value: "disqualified", label: "Disqualified" },
+  { value: "meeting_completed", label: "Meeting Completed" },
+  { value: "gathering_info", label: "Gathering Information" },
   { value: "agreement_sent", label: "Agreement Sent" },
   { value: "client_engaged", label: "Agreement Signed" },
-  { value: "in_process", label: "In Process" },
   { value: "unresponsive", label: "Unresponsive" },
   { value: "closedwon", label: "Closed Won" },
 ];

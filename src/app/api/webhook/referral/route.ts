@@ -68,11 +68,12 @@ const INTERNAL_STAGES = [
   "lead_submitted",
   "meeting_booked",
   "meeting_missed",
+  "meeting_completed",
   "qualified",
   "disqualified",
+  "gathering_info",
   "agreement_sent",
   "client_engaged",
-  "in_process",
   "unresponsive",
   "closedwon",
 ] as const;
@@ -86,8 +87,8 @@ const HUBSPOT_STAGE_MAP: Record<string, string> = {
   "3467318997": "meeting_missed",   // Meeting Missed
   "3468521174": "qualified",        // Qualified
   "3468521175": "disqualified",     // Disqualified
-  "3381784253": "qualified",        // Meeting Completed
-  "3381784254": "in_process",       // Gathering Information
+  "3381784253": "meeting_completed", // Meeting Completed
+  "3381784254": "gathering_info",   // Gathering Information
   "3381784255": "agreement_sent",   // Contract Sent
   "3381784256": "client_engaged",   // Onboarding (= Agreement Signed)
   "3381784257": "client_engaged",   // Closed Won (Frost's = Agreement Signed, not refund received)
@@ -135,7 +136,13 @@ const STAGE_MAP: Record<string, string> = (() => {
   m["signed"] = "client_engaged";
   m["agreementsigned"] = "client_engaged";
   m["agreementsent"] = "agreement_sent";
-  m["inprogress"] = "in_process";
+  m["contractsent"] = "agreement_sent";
+  m["meetingcompleted"] = "meeting_completed";
+  m["gatheringinformation"] = "gathering_info";
+  m["gatheringinfo"] = "gathering_info";
+  m["inprogress"] = "gathering_info";
+  m["inprocess"] = "gathering_info";
+  m["onboarding"] = "client_engaged";
   m["unresponsive"] = "unresponsive";
   m["noresponse"] = "unresponsive";
   return m;
