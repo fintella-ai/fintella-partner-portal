@@ -42,7 +42,8 @@
   --app-hover:           rgba(0, 0, 0, 0.04);
   --app-overlay:         rgba(0, 0, 0, 0.5);
   --app-code-bg:         #f1f5f9;
-  --app-scrollbar:       rgba(0, 0, 0, 0.15);
+  --app-scrollbar:       rgba(0, 0, 0, 0.25);
+  --app-scrollbar-track: rgba(0, 0, 0, 0.06);
 
   --app-gold:            #9a7820;
   --app-gold-text:       #725a15;
@@ -88,7 +89,8 @@
   --app-hover:           rgba(255, 255, 255, 0.04);
   --app-overlay:         rgba(0, 0, 0, 0.80);
   --app-code-bg:         rgba(255, 255, 255, 0.06);
-  --app-scrollbar:       rgba(255, 255, 255, 0.12);
+  --app-scrollbar:       rgba(255, 255, 255, 0.25);
+  --app-scrollbar-track: rgba(255, 255, 255, 0.06);
 
   --app-gold:            #d4ad55;
   --app-gold-text:       #d4ad55;
@@ -136,7 +138,8 @@
     --app-hover:           rgba(255, 255, 255, 0.04);
     --app-overlay:         rgba(0, 0, 0, 0.80);
     --app-code-bg:         rgba(255, 255, 255, 0.06);
-    --app-scrollbar:       rgba(255, 255, 255, 0.12);
+    --app-scrollbar:       rgba(255, 255, 255, 0.25);
+    --app-scrollbar-track: rgba(255, 255, 255, 0.06);
     --app-gold:            #d4ad55;
     --app-gold-text:       #d4ad55;
     --brand-gold:          #c4a050;
@@ -429,10 +432,31 @@ select option {
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track {
+  background: var(--app-scrollbar-track);
+  border-radius: 4px;
+}
 ::-webkit-scrollbar-thumb {
   background: var(--app-scrollbar);
-  border-radius: 2px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--app-gold);
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:active {
+  background: var(--brand-gold);
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar) var(--app-scrollbar-track);
 }
 
 /* ── Spinner ─────────────────────────────────────────────────────────── */

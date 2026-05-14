@@ -8,6 +8,7 @@ import GmailTabImpl from "./GmailTabImpl";
 import SmsTabImpl from "./SmsTabImpl";
 import PhoneTabImpl from "./PhoneTabImpl";
 import TeamChatPanel from "../team-chat/TeamChatPanel";
+import ScrollableRow from "@/components/ui/ScrollableRow";
 import ChannelsListPanel from "../channels/ChannelsListPanel";
 
 type Tab = "email" | "sms" | "phone" | "team-chat" | "channels";
@@ -76,26 +77,26 @@ function CommunicationsHostInner() {
       </p>
 
       {/* Top-level pill bar */}
-      <div className="flex gap-2 mb-6 overflow-x-auto">
+      <ScrollableRow className="mb-6">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => onSelectTab(t.id)}
             className={`font-body text-sm px-4 py-2 rounded-full whitespace-nowrap transition ${
               tab === t.id ? "bg-brand-gold/20 text-brand-gold" : "bg-[var(--app-input-bg)] text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
             }`}>{t.label}</button>
         ))}
-      </div>
+      </ScrollableRow>
 
       {/* Email — secondary sub-tab bar (Inbox / Compose / Templates) */}
       {tab === "email" && (
         <>
-          <div className="flex gap-1 mb-6 border-b border-[var(--app-border)] overflow-x-auto">
+          <ScrollableRow className="mb-6 border-b border-[var(--app-border)]">
             {EMAIL_VIEWS.map((v) => (
               <button key={v.id} onClick={() => onSelectEmailView(v.id)}
                 className={`font-body text-[13px] px-4 py-2.5 whitespace-nowrap transition-colors border-b-2 -mb-px ${
                   emailView === v.id ? "text-brand-gold border-brand-gold" : "text-[var(--app-text-muted)] border-transparent hover:text-[var(--app-text-secondary)]"
                 }`}>{v.label}</button>
             ))}
-          </div>
+          </ScrollableRow>
           {emailView === "gmail"     && <GmailTabImpl />}
           {emailView === "compose"   && <EmailComposeTabImpl />}
         </>

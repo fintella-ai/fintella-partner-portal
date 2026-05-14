@@ -11,6 +11,7 @@ import { fmt$, fmtDate, fmtDateTime } from "@/lib/format";
 import { resolveDealFinancials, formatRate } from "@/lib/dealCalc";
 import { STAGE_LABELS } from "@/lib/constants";
 import TablePagination from "@/components/ui/TablePagination";
+import ScrollableRow from "@/components/ui/ScrollableRow";
 
 export default function DealsPage() {
   const device = useDevice();
@@ -133,7 +134,7 @@ export default function DealsPage() {
                 ))}
               </div>
             </div>
-            <div className="mb-4 border-b border-[var(--app-border)] overflow-x-auto">
+            <ScrollableRow className="mb-4 border-b border-[var(--app-border)]">
               <div className="flex gap-1 min-w-max">
                 {[{ value: "all", label: "All" }, ...PIPELINE_STAGES.map((s) => ({ value: s, label: (STAGE_LABELS[s]?.label || s) }))].map((s) => {
                   const count = s.value === "all" ? activeDealList.length : (counts[s.value] || 0);
@@ -149,7 +150,7 @@ export default function DealsPage() {
                   );
                 })}
               </div>
-            </div>
+            </ScrollableRow>
           </>
         );
       })()}

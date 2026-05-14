@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "@/components/ui/StatusBadge";
+import ScrollableRow from "@/components/ui/ScrollableRow";
 import { fmt$, fmtDate } from "@/lib/format";
 import { useDevice } from "@/lib/useDevice";
 import {
@@ -494,7 +495,7 @@ function CommissionsPageContent() {
         <div className="px-4 sm:px-6 pt-4 sm:pt-5">
           <div className="font-body font-semibold text-sm sm:text-[15px]">Payouts</div>
         </div>
-        <div className="flex gap-1 px-4 sm:px-6 border-b border-[var(--app-border)] overflow-x-auto">
+        <ScrollableRow className="px-4 sm:px-6 border-b border-[var(--app-border)]">
           {([
             { id: "payout-all" as const, label: "All", matches: [] as string[] },
             { id: "payout-projected" as const, label: "Projected", matches: ["projected"] },
@@ -532,7 +533,7 @@ function CommissionsPageContent() {
               })()}
             </button>
           ))}
-        </div>
+        </ScrollableRow>
 
         {(() => {
           // Build entries from ledger if available, otherwise from deals
