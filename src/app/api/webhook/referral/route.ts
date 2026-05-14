@@ -86,6 +86,12 @@ const HUBSPOT_STAGE_MAP: Record<string, string> = {
   "3467318997": "meeting_missed",   // Meeting Missed
   "3468521174": "qualified",        // Qualified
   "3468521175": "disqualified",     // Disqualified
+  "3381784253": "qualified",        // Meeting Completed
+  "3381784254": "in_process",       // Gathering Information
+  "3381784255": "agreement_sent",   // Contract Sent
+  "3381784256": "client_engaged",   // Onboarding (= Agreement Signed)
+  "3381784257": "client_engaged",   // Closed Won (Frost's = Agreement Signed, not refund received)
+  "3381784258": "disqualified",     // Closed Lost
 };
 
 /**
@@ -649,8 +655,9 @@ async function postHandler(req: NextRequest): Promise<Response> {
     // "lead_submitted" when no stage provided.
     const resolvedStage = externalStage ? resolveInternalStage(externalStage) : null;
     const initialStage = resolvedStage || "lead_submitted";
+    const dqReason = get("dq_reason", "dqReason", "disqualified_reason", "disqualifiedReason", "closed_lost_reason", "closedLostReason", "lost_reason", "lostReason");
     const initialClosedLostReason =
-      resolvedStage === "disqualified" ? "disqualified" : null;
+      dqReason || (resolvedStage === "disqualified" ? "disqualified" : null);
 
     // Consultation scheduling
     const consultBookedDate = get(
@@ -1114,7 +1121,7 @@ async function patchHandler(req: NextRequest): Promise<Response> {
     if (notes) data.notes = notes;
 
     // Closed lost reason
-    const closedLostReason = pickStr("closed_lost_reason", "closedLostReason", "lost_reason", "lostReason");
+    const closedLostReason = pickStr("closed_lost_reason", "closedLostReason", "lost_reason", "lostReason", "dq_reason", "dqReason", "disqualified_reason", "disqualifiedReason");
     if (closedLostReason) data.closedLostReason = closedLostReason;
 
     // Consultation scheduling (create or reschedule)
@@ -1713,7 +1720,7 @@ function getHandler(): Response {
         "consult_booked_time",
       ],
       notes: ["affiliate_notes", "notes"],
-      other: ["closed_lost_reason"],
+      other: ["closed_lost_reason", "dq_reason"],
       locked: [
         "id", "partnerCode", "idempotencyKey",
         "l1CommissionAmount", "l1CommissionStatus",
