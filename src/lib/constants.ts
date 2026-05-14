@@ -89,8 +89,10 @@ export const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   meeting_missed: { label: "Meeting Missed", color: "#ef4444" },
   qualified: { label: "Qualified", color: "#06b6d4" },
   disqualified: { label: "Disqualified", color: "#ef4444" },
-  client_engaged: { label: "Client Engaged", color: "#3b82f6" },
+  agreement_sent: { label: "Agreement Sent", color: "#a855f7" },
+  client_engaged: { label: "Agreement Signed", color: "#3b82f6" },
   in_process: { label: "In Process", color: "#8b5cf6" },
+  unresponsive: { label: "Unresponsive", color: "#f97316" },
   closedwon: { label: "Closed Won", color: "#22c55e" },
   // Legacy aliases so existing DB rows still render correctly
   new_lead: { label: "Lead Submitted", color: "#6b7280" },
@@ -103,7 +105,7 @@ export const STAGE_LABELS: Record<string, { label: string; color: string }> = {
 
 // ─── COMMISSION STATUSES ─────────────────────────────────────────────────────
 // Lifecycle (updated 2026-04-23):
-//   projected       — deal is in client_engaged or in_process (seen + engaged)
+//   projected       — deal is in agreement_sent, client_engaged, or in_process
 //   pending_payment — deal is closed_won, firm has NOT yet paid Fintella
 //   due             — closed_won + paymentReceivedAt set → ready to batch
 //   paid            — batch processed

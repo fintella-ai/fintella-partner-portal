@@ -68,8 +68,10 @@ function getMeetingStatus(m: Meeting): { label: string; color: string } {
 const STAGE_COLORS: Record<string, string> = {
   meeting_booked: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   qualified: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  agreement_sent: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   client_engaged: "bg-green-500/10 text-green-400 border-green-500/20",
   in_process: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  unresponsive: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   closedwon: "bg-green-500/10 text-green-300 border-green-500/20",
   pending: "bg-gray-500/10 text-gray-400 border-gray-500/20",
 };

@@ -70,8 +70,10 @@ const INTERNAL_STAGES = [
   "meeting_missed",
   "qualified",
   "disqualified",
+  "agreement_sent",
   "client_engaged",
   "in_process",
+  "unresponsive",
   "closedwon",
 ] as const;
 
@@ -124,7 +126,12 @@ const STAGE_MAP: Record<string, string> = (() => {
   m["nocc"] = "meeting_missed";
   m["noconsult"] = "meeting_missed";
   m["engaged"] = "client_engaged";
+  m["signed"] = "client_engaged";
+  m["agreementsigned"] = "client_engaged";
+  m["agreementsent"] = "agreement_sent";
   m["inprogress"] = "in_process";
+  m["unresponsive"] = "unresponsive";
+  m["noresponse"] = "unresponsive";
   return m;
 })();
 

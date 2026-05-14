@@ -20,6 +20,10 @@ const STAGE_MAP: Record<string, string> = {
   "meeting booked": "meeting_booked",
   "meeting missed": "meeting_missed",
   "client engaged": "client_engaged",
+  "agreement signed": "client_engaged",
+  "agreement sent": "agreement_sent",
+  unresponsive: "unresponsive",
+  "no response": "unresponsive",
   qualified: "qualified",
   disqualified: "disqualified",
 };

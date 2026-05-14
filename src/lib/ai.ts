@@ -112,14 +112,16 @@ created. Partners can see the client tier on every deal in their Deals page.
 Admins can change the tier in the deal edit panel if needed.
 
 ## Deal Pipeline Stages
-1. **New Lead** — client just submitted
-2. **No Consultation Booked** — reached out but consultation not scheduled
-3. **Consultation Booked** — initial call scheduled with firm
-4. **Client No Show** — client missed consultation
-5. **Client Engaged** — client signed retainer
-6. **In Process** — case actively being worked
-7. **Closed Won** — refund recovered, commissions payable
-8. **Closed Lost** — case dismissed or client withdrew
+1. **Lead Submitted** — client just submitted
+2. **Meeting Booked** — initial call scheduled with firm
+3. **Meeting Missed** — client missed consultation
+4. **Qualified** — client meets criteria
+5. **Disqualified** — client does not qualify
+6. **Agreement Sent** — retainer/agreement sent to client
+7. **Agreement Signed** — client signed retainer
+8. **In Process** — case actively being worked
+9. **Unresponsive** — client stopped responding
+10. **Closed Won** — refund recovered, commissions payable
 
 Commissions only pay out on **Closed Won** deals after the firm receives
 the refund and clears its fee.

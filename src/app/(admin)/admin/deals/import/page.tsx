@@ -371,8 +371,10 @@ export default function DealImportPage() {
                   <option value="lead_submitted">Lead Submitted</option>
                   <option value="meeting_booked">Meeting Booked</option>
                   <option value="qualified">Qualified</option>
-                  <option value="client_engaged">Client Engaged</option>
+                  <option value="agreement_sent">Agreement Sent</option>
+                  <option value="client_engaged">Agreement Signed</option>
                   <option value="in_process">In Process</option>
+                  <option value="unresponsive">Unresponsive</option>
                   <option value="closedwon">Closed Won</option>
                   <option value="disqualified">Disqualified</option>
                 </select>

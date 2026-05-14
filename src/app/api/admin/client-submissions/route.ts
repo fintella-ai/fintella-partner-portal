@@ -99,7 +99,7 @@ export async function GET() {
   // Conversion funnel
   const funnel = {
     submitted: total,
-    qualified: submissions.filter((s) => s.dealStage && ["qualified", "client_engaged", "in_process", "closedwon"].includes(s.dealStage)).length,
+    qualified: submissions.filter((s) => s.dealStage && ["qualified", "agreement_sent", "client_engaged", "in_process", "closedwon"].includes(s.dealStage)).length,
     disqualified: submissions.filter((s) => s.dealStage === "disqualified").length,
     engaged: submissions.filter((s) => s.dealStage && ["client_engaged", "in_process", "closedwon"].includes(s.dealStage)).length,
     inProcess: submissions.filter((s) => s.dealStage && ["in_process", "closedwon"].includes(s.dealStage)).length,
