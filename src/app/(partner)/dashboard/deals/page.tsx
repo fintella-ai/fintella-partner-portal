@@ -272,7 +272,8 @@ export default function DealsPage() {
 /* ── Deal stages for tracker ── */
 const PIPELINE_STAGES = [
   "lead_submitted", "meeting_booked", "meeting_missed", "qualified",
-  "disqualified", "client_engaged", "in_process", "closedwon",
+  "disqualified", "agreement_sent", "client_engaged", "in_process",
+  "unresponsive", "closedwon",
 ];
 
 /* ── Deal Detail Component (read-only) ── */

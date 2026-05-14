@@ -78,7 +78,7 @@ export default function ClientOverviewTab() {
               { label: "Submitted", value: stats.funnel.submitted, color: "text-blue-400" },
               { label: "Qualified", value: stats.funnel.qualified, color: "text-emerald-400" },
               { label: "Disqualified", value: stats.funnel.disqualified, color: "text-red-400" },
-              { label: "Client Engaged", value: stats.funnel.engaged, color: "text-green-400" },
+              { label: "Agreement Signed", value: stats.funnel.engaged, color: "text-green-400" },
               { label: "In Process", value: stats.funnel.inProcess, color: "text-purple-400" },
               { label: "Won", value: stats.funnel.won, color: "text-brand-gold" },
             ] as const).map((s) => (
