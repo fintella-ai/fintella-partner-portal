@@ -115,13 +115,14 @@ Admins can change the tier in the deal edit panel if needed.
 1. **Lead Submitted** — client just submitted
 2. **Meeting Booked** — initial call scheduled with firm
 3. **Meeting Missed** — client missed consultation
-4. **Qualified** — client meets criteria
-5. **Disqualified** — client does not qualify
-6. **Agreement Sent** — retainer/agreement sent to client
-7. **Agreement Signed** — client signed retainer
-8. **In Process** — case actively being worked
-9. **Unresponsive** — client stopped responding
-10. **Closed Won** — refund recovered, commissions payable
+4. **Meeting Completed** — consultation took place
+5. **Qualified** — client meets criteria
+6. **Disqualified** — client does not qualify
+7. **Gathering Information** — firm collecting docs/details from client
+8. **Agreement Sent** — retainer/agreement sent to client
+9. **Agreement Signed** — client signed retainer (onboarding)
+10. **Unresponsive** — client stopped responding
+11. **Closed Won** — refund recovered, commissions payable
 
 Commissions only pay out on **Closed Won** deals after the firm receives
 the refund and clears its fee.

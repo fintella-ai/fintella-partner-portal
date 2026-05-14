@@ -87,13 +87,16 @@ export const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   lead_submitted: { label: "Lead Submitted", color: "#6b7280" },
   meeting_booked: { label: "Meeting Booked", color: "#f59e0b" },
   meeting_missed: { label: "Meeting Missed", color: "#ef4444" },
+  meeting_completed: { label: "Meeting Completed", color: "#10b981" },
   qualified: { label: "Qualified", color: "#06b6d4" },
   disqualified: { label: "Disqualified", color: "#ef4444" },
+  gathering_info: { label: "Gathering Information", color: "#8b5cf6" },
   agreement_sent: { label: "Agreement Sent", color: "#a855f7" },
   client_engaged: { label: "Agreement Signed", color: "#3b82f6" },
-  in_process: { label: "In Process", color: "#8b5cf6" },
   unresponsive: { label: "Unresponsive", color: "#f97316" },
   closedwon: { label: "Closed Won", color: "#22c55e" },
+  // Legacy alias — existing DB rows with in_process still render
+  in_process: { label: "Gathering Information", color: "#8b5cf6" },
   // Legacy aliases so existing DB rows still render correctly
   new_lead: { label: "Lead Submitted", color: "#6b7280" },
   no_consultation: { label: "Meeting Missed", color: "#ef4444" },
@@ -105,7 +108,7 @@ export const STAGE_LABELS: Record<string, { label: string; color: string }> = {
 
 // ─── COMMISSION STATUSES ─────────────────────────────────────────────────────
 // Lifecycle (updated 2026-04-23):
-//   projected       — deal is in agreement_sent, client_engaged, or in_process
+//   projected       — deal is in gathering_info, agreement_sent, or client_engaged
 //   pending_payment — deal is closed_won, firm has NOT yet paid Fintella
 //   due             — closed_won + paymentReceivedAt set → ready to batch
 //   paid            — batch processed

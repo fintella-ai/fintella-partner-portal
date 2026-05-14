@@ -407,9 +407,9 @@ export default function DownlinePage() {
         {/* Deal Pipeline */}
         {(() => {
           const PIPELINE_STAGES = [
-            "lead_submitted", "meeting_booked", "meeting_missed", "qualified",
-            "disqualified", "agreement_sent", "client_engaged", "in_process",
-            "unresponsive", "closedwon",
+            "lead_submitted", "meeting_booked", "meeting_missed", "meeting_completed",
+            "qualified", "disqualified", "gathering_info", "agreement_sent",
+            "client_engaged", "unresponsive", "closedwon",
           ];
           const counts: Record<string, number> = {};
           for (const d of deals) counts[d.stage] = (counts[d.stage] || 0) + 1;

@@ -18,11 +18,12 @@ const STAGES = [
   { value: "lead_submitted", label: "Lead Submitted" },
   { value: "meeting_booked", label: "Meeting Booked" },
   { value: "meeting_missed", label: "Meeting Missed" },
+  { value: "meeting_completed", label: "Meeting Completed" },
   { value: "qualified", label: "Qualified" },
   { value: "disqualified", label: "Disqualified" },
+  { value: "gathering_info", label: "Gathering Information" },
   { value: "agreement_sent", label: "Agreement Sent" },
   { value: "client_engaged", label: "Agreement Signed" },
-  { value: "in_process", label: "In Process" },
   { value: "unresponsive", label: "Unresponsive" },
   { value: "closedwon", label: "Closed Won" },
 ];
@@ -598,10 +599,11 @@ export default function AdminDealsPage() {
             <option value="" disabled>Change Stage…</option>
             <option value="lead_submitted">Lead Submitted</option>
             <option value="meeting_booked">Meeting Booked</option>
+            <option value="meeting_completed">Meeting Completed</option>
             <option value="qualified">Qualified</option>
+            <option value="gathering_info">Gathering Information</option>
             <option value="agreement_sent">Agreement Sent</option>
             <option value="client_engaged">Agreement Signed</option>
-            <option value="in_process">In Process</option>
             <option value="unresponsive">Unresponsive</option>
             <option value="disqualified">Disqualified</option>
           </select>

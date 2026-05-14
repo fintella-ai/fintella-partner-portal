@@ -182,9 +182,9 @@ export default function PartnerReportingPage() {
   const stages = useMemo(() => Array.from(new Set(allDeals.map((d) => d.stage))).sort(), [allDeals]);
 
   const PIPELINE_STAGES = [
-    "lead_submitted", "meeting_booked", "meeting_missed", "qualified",
-    "disqualified", "agreement_sent", "client_engaged", "in_process",
-    "unresponsive", "closedwon",
+    "lead_submitted", "meeting_booked", "meeting_missed", "meeting_completed",
+    "qualified", "disqualified", "gathering_info", "agreement_sent",
+    "client_engaged", "unresponsive", "closedwon",
   ];
 
   function PipelineChips({ deals, activeStage, onStageChange }: { deals: any[]; activeStage: string; onStageChange: (s: string) => void }) {
