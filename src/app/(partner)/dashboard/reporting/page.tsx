@@ -15,6 +15,7 @@ import { useResizableColumns } from "@/components/ui/ResizableTable";
 import { compareRows } from "@/lib/sortRows";
 import DocumentsView from "@/components/partner/DocumentsView";
 import TablePagination from "@/components/ui/TablePagination";
+import ScrollableRow from "@/components/ui/ScrollableRow";
 
 type PageTab = "overview" | "deals" | "downline" | "commissions" | "documents";
 
@@ -205,7 +206,7 @@ export default function PartnerReportingPage() {
             ))}
           </div>
         </div>
-        <div className="mb-4 border-b border-[var(--app-border)] overflow-x-auto">
+        <ScrollableRow className="mb-4 border-b border-[var(--app-border)]">
           <div className="flex gap-1 min-w-max">
             {[{ value: "all", label: "All" }, ...PIPELINE_STAGES.map((s) => ({ value: s, label: (STAGE_LABELS[s]?.label || s) }))].map((s) => {
               const count = s.value === "all" ? deals.length : (counts[s.value] || 0);
@@ -221,7 +222,7 @@ export default function PartnerReportingPage() {
               );
             })}
           </div>
-        </div>
+        </ScrollableRow>
       </>
     );
   }
@@ -335,7 +336,7 @@ export default function PartnerReportingPage() {
       </p>
 
       {/* ═══ PAGE TABS ═══ */}
-      <div className="flex gap-1 mb-6 border-b border-[var(--app-border)] overflow-x-auto">
+      <ScrollableRow className="mb-6 border-b border-[var(--app-border)]">
         {([
           { id: "overview" as const, label: "Overview" },
           { id: "deals" as const, label: "My Deals" },
@@ -355,7 +356,7 @@ export default function PartnerReportingPage() {
             {t.label}
           </button>
         ))}
-      </div>
+      </ScrollableRow>
 
       {/* ═══════════════ OVERVIEW TAB ═══════════════ */}
       {pageTab === "overview" && (

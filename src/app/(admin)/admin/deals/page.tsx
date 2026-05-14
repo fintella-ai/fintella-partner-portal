@@ -11,6 +11,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import PartnerLink from "@/components/ui/PartnerLink";
 import { isStarSuperAdminEmail } from "@/lib/starSuperAdmin";
 import TablePagination from "@/components/ui/TablePagination";
+import ScrollableRow from "@/components/ui/ScrollableRow";
 
 const STAGES = [
   { value: "all", label: "All Stages" },
@@ -665,7 +666,7 @@ export default function AdminDealsPage() {
           gets the gold highlight. Horizontally scrollable on narrow
           viewports so the whole row never clips. */}
       {stats?.byStage && (
-        <div className="mb-4 border-b border-[var(--app-border)] overflow-x-auto">
+        <ScrollableRow className="mb-4 border-b border-[var(--app-border)]">
           <div className="flex gap-1 min-w-max">
             {([{ value: "all", label: "All" } as { value: string; label: string }, ...STAGES.filter((s) => s.value !== "all")]).map((s) => {
               const count = s.value === "all"
@@ -691,7 +692,7 @@ export default function AdminDealsPage() {
               );
             })}
           </div>
-        </div>
+        </ScrollableRow>
       )}
 
       {/* ═══ FILTERS ═══ */}

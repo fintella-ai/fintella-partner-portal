@@ -11,6 +11,7 @@ import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 import ComposeEmailForm from "@/components/admin/ComposeEmailForm";
 import LevelTag from "@/components/ui/LevelTag";
 import { AdminGettingStartedCard } from "@/components/admin/AdminGettingStartedCard";
+import ScrollableRow from "@/components/ui/ScrollableRow";
 
 type Partner = {
   id: string;
@@ -559,7 +560,7 @@ export default function PartnerDetailPage() {
       )}
 
       {/* ─── TAB BAR ─────────────────────────────────────────────── */}
-      <div className="flex gap-1 mb-6 overflow-x-auto border-b border-[var(--app-border)]">
+      <ScrollableRow className="mb-6 border-b border-[var(--app-border)]">
         {([
           { id: "info", label: "Info" },
           { id: "notes", label: "Notes" },
@@ -582,7 +583,7 @@ export default function PartnerDetailPage() {
             {t.label}
           </button>
         ))}
-      </div>
+      </ScrollableRow>
 
       {activeTab === "notes" && (
       <div className="card mb-6">
