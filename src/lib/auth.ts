@@ -38,11 +38,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!email || !password) return null;
 
-        // Case-insensitive email lookup. Historically partner rows may have
-        // been saved with mixed-case emails (signup doesn't normalize), so a
-        // literal equality check would miss a row when the admin typed
-        // "Jane@acme.com" during creation and the partner later tries to log
-        // in with "jane@acme.com".
+        // Check PartnerUser first (corporate multi-login)
+        const partnerUser = await prisma.partnerUser.findFirst({
+          where: { email: { equals: email.trim(), mode: "insensitive" }, active: true },
+        });
+        if (partnerUser) {
+          const partner = await prisma.partner.findFirst({
+            where: { partnerCode: partnerUser.partnerCode },
+          });
+          if (!partner) return null;
+          if (partner.status === "blocked" || partner.status === "archived") return null;
+
+          const valid = await compare(password, partnerUser.passwordHash);
+          if (!valid) return null;
+
+          return {
+            id: partner.id,
+            email: partnerUser.email,
+            name: `${partnerUser.firstName} ${partnerUser.lastName}`,
+            role: "partner",
+            partnerCode: partner.partnerCode,
+            partnerType: partner.partnerType || "referral",
+          };
+        }
+
+        // Fall back to direct Partner login
         const partner = await prisma.partner.findFirst({
           where: { email: { equals: email.trim(), mode: "insensitive" } },
         });
@@ -141,13 +161,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (account?.provider !== "google") return true;
       const email = user.email?.trim();
       if (!email) return "/login?error=google-no-email";
+      // Check direct partner first
       const partner = await prisma.partner.findFirst({
         where: { email: { equals: email, mode: "insensitive" } },
       });
-      if (!partner) return "/login?error=not-invited";
-      if (partner.status === "blocked") return "/login?error=blocked";
-      if (partner.status === "archived") return "/login?error=archived";
-      return true;
+      if (partner) {
+        if (partner.status === "blocked") return "/login?error=blocked";
+        if (partner.status === "archived") return "/login?error=archived";
+        return true;
+      }
+      // Check PartnerUser (corporate team member)
+      const partnerUser = await prisma.partnerUser.findFirst({
+        where: { email: { equals: email, mode: "insensitive" }, active: true },
+      });
+      if (partnerUser) {
+        const ownerPartner = await prisma.partner.findFirst({ where: { partnerCode: partnerUser.partnerCode } });
+        if (ownerPartner?.status === "blocked") return "/login?error=blocked";
+        if (ownerPartner?.status === "archived") return "/login?error=archived";
+        return true;
+      }
+      return "/login?error=not-invited";
     },
     async jwt({ token, user, account }) {
       // Credentials providers set user.role / user.partnerCode directly.
@@ -173,7 +206,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       }
       // Google sign-ins don't populate those fields — hydrate from the
-      // Partner row keyed by email on the first JWT pass.
+      // Partner row (or PartnerUser) keyed by email on the first JWT pass.
       if (account?.provider === "google" && token.email && !token.partnerCode) {
         const partner = await prisma.partner.findFirst({
           where: { email: { equals: token.email as string, mode: "insensitive" } },
@@ -183,6 +216,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.partnerCode = partner.partnerCode;
           token.partnerType = partner.partnerType || "referral";
           (token as any).name = `${partner.firstName} ${partner.lastName}`.trim();
+        } else {
+          const pu = await prisma.partnerUser.findFirst({
+            where: { email: { equals: token.email as string, mode: "insensitive" }, active: true },
+          });
+          if (pu) {
+            const ownerPartner = await prisma.partner.findFirst({ where: { partnerCode: pu.partnerCode } });
+            if (ownerPartner) {
+              token.role = "partner";
+              token.partnerCode = ownerPartner.partnerCode;
+              token.partnerType = ownerPartner.partnerType || "referral";
+              (token as any).name = `${pu.firstName} ${pu.lastName}`.trim();
+            }
+          }
         }
       }
       return token;

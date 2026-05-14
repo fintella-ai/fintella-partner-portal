@@ -87,8 +87,8 @@ export default function PartnerDetailPage() {
   // landing card — partner info, address, admin utilities. All the other
   // long sections have been split into their own tabs so the page is no
   // longer a giant vertical scroll.
-  type PartnerTab = "info" | "notes" | "downline" | "commission" | "payout" | "documents" | "communications";
-  const PARTNER_TABS: PartnerTab[] = ["info", "notes", "downline", "commission", "payout", "documents", "communications"];
+  type PartnerTab = "info" | "notes" | "downline" | "commission" | "payout" | "documents" | "communications" | "team";
+  const PARTNER_TABS: PartnerTab[] = ["info", "notes", "downline", "commission", "payout", "documents", "communications", "team"];
   // Honor ?tab=<name> so notification deep-links open the right section.
   const initialTab: PartnerTab = (() => {
     const t = searchParams?.get("tab");
@@ -122,6 +122,14 @@ export default function PartnerDetailPage() {
   const [postingNote, setPostingNote] = useState(false);
   const [enterprisePartner, setEnterprisePartner] = useState<any>(null);
   const [commLogFilter, setCommLogFilter] = useState<"all" | "support" | "email" | "sms" | "chat" | "phone">("all");
+  // Team members (corporate multi-login)
+  type TeamMember = { id: string; email: string; firstName: string; lastName: string; active: boolean; createdAt: string };
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamForm, setTeamForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
+  const [teamAdding, setTeamAdding] = useState(false);
+  const [teamError, setTeamError] = useState("");
+  const [teamSuccess, setTeamSuccess] = useState("");
   // Inline row expand for the comms feed. Key is "<type>-<id>" so rows
   // across different sections don't collide.
   const [expandedCommKey, setExpandedCommKey] = useState<string | null>(null);
@@ -256,6 +264,57 @@ export default function PartnerDetailPage() {
   }, [id]);
 
   useEffect(() => { fetchPartner(); }, [fetchPartner]);
+
+  const fetchTeam = useCallback(async () => {
+    if (!partner?.partnerCode || partner.partnerType !== "corporate") return;
+    setTeamLoading(true);
+    try {
+      const res = await fetch(`/api/admin/partners/${id}/team`);
+      if (res.ok) { const data = await res.json(); setTeamMembers(data.members || []); }
+    } catch {} finally { setTeamLoading(false); }
+  }, [id, partner?.partnerCode, partner?.partnerType]);
+
+  useEffect(() => { fetchTeam(); }, [fetchTeam]);
+
+  async function handleAddTeamMember(e: React.FormEvent) {
+    e.preventDefault();
+    setTeamAdding(true); setTeamError(""); setTeamSuccess("");
+    try {
+      const res = await fetch(`/api/admin/partners/${id}/team`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(teamForm),
+      });
+      const data = await res.json();
+      if (!res.ok) { setTeamError(data.error || "Failed to add team member"); return; }
+      setTeamSuccess(`${teamForm.firstName} added successfully.`);
+      setTeamForm({ firstName: "", lastName: "", email: "", password: "" });
+      fetchTeam();
+    } catch { setTeamError("Network error"); } finally { setTeamAdding(false); }
+  }
+
+  async function handleToggleTeamMember(memberId: string, active: boolean) {
+    try {
+      const res = await fetch(`/api/admin/partners/${id}/team`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId, active }),
+      });
+      if (res.ok) fetchTeam();
+    } catch {}
+  }
+
+  async function handleDeleteTeamMember(memberId: string) {
+    if (!confirm("Remove this team member? They will no longer be able to log in.")) return;
+    try {
+      const res = await fetch(`/api/admin/partners/${id}/team`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId }),
+      });
+      if (res.ok) fetchTeam();
+    } catch {}
+  }
 
   // Initiate a call to the partner. Prefers the in-browser WebRTC
   // softphone (window.__fintellaSoftphone, mounted in the admin layout)
@@ -509,6 +568,7 @@ export default function PartnerDetailPage() {
           { id: "commission", label: "Commission" },
           { id: "payout", label: "Payout" },
           { id: "documents", label: "Documents" },
+          ...(isSuperAdmin && partner?.partnerType === "corporate" ? [{ id: "team" as const, label: "Team" }] : []),
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -2572,6 +2632,89 @@ export default function PartnerDetailPage() {
         )}
       </div>
 
+      </>)}
+
+      {activeTab === "team" && isSuperAdmin && partner?.partnerType === "corporate" && (<>
+      <div className="card mb-6">
+        <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
+          <div className="font-body font-semibold text-sm mb-1">Team Members</div>
+          <div className="font-body text-[11px] text-[var(--app-text-muted)]">
+            Additional users who can log in to this corporate partner account. All team members have full access to the partner portal.
+          </div>
+        </div>
+
+        {/* Add member form */}
+        <form onSubmit={handleAddTeamMember} className="px-5 py-4" style={{ borderBottom: "1px solid var(--app-border)" }}>
+          <div className="font-body text-[12px] font-semibold text-[var(--app-text-secondary)] mb-3 uppercase tracking-wider">Add Team Member</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <input
+              type="text" required placeholder="First name" value={teamForm.firstName}
+              onChange={(e) => setTeamForm(f => ({ ...f, firstName: e.target.value }))}
+              className="theme-input rounded-lg px-3 py-2.5 font-body text-[13px]"
+            />
+            <input
+              type="text" required placeholder="Last name" value={teamForm.lastName}
+              onChange={(e) => setTeamForm(f => ({ ...f, lastName: e.target.value }))}
+              className="theme-input rounded-lg px-3 py-2.5 font-body text-[13px]"
+            />
+            <input
+              type="email" required placeholder="Email address" value={teamForm.email}
+              onChange={(e) => setTeamForm(f => ({ ...f, email: e.target.value }))}
+              className="theme-input rounded-lg px-3 py-2.5 font-body text-[13px]"
+            />
+            <input
+              type="text" required placeholder="Temporary password" value={teamForm.password}
+              onChange={(e) => setTeamForm(f => ({ ...f, password: e.target.value }))}
+              className="theme-input rounded-lg px-3 py-2.5 font-body text-[13px]"
+              minLength={6}
+            />
+          </div>
+          {teamError && <div className="mb-3 font-body text-[12px] text-red-400">{teamError}</div>}
+          {teamSuccess && <div className="mb-3 font-body text-[12px] text-green-400">{teamSuccess}</div>}
+          <button type="submit" disabled={teamAdding} className="btn-gold text-[12px] px-5 py-2 disabled:opacity-50">
+            {teamAdding ? "Adding..." : "Add Member"}
+          </button>
+        </form>
+
+        {/* Members list */}
+        <div className="px-5 py-4">
+          {teamLoading ? (
+            <div className="font-body text-[13px] text-[var(--app-text-muted)] py-4 text-center">Loading team...</div>
+          ) : teamMembers.length === 0 ? (
+            <div className="font-body text-[13px] text-[var(--app-text-muted)] py-4 text-center">
+              No team members yet. Add one above to enable multi-user login for this corporate partner.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {teamMembers.map((m) => (
+                <div key={m.id} className="flex items-center justify-between gap-3 p-3 rounded-lg" style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-body text-[13px] font-medium text-[var(--app-text)]">{m.firstName} {m.lastName}</div>
+                    <div className="font-body text-[11px] text-[var(--app-text-muted)]">{m.email}</div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`font-body text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${m.active ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
+                      {m.active ? "Active" : "Disabled"}
+                    </span>
+                    <button
+                      onClick={() => handleToggleTeamMember(m.id, !m.active)}
+                      className="font-body text-[11px] text-brand-gold/70 hover:text-brand-gold transition-colors px-2 py-1"
+                    >
+                      {m.active ? "Disable" : "Enable"}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTeamMember(m.id)}
+                      className="font-body text-[11px] text-red-400/70 hover:text-red-400 transition-colors px-2 py-1"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
       </>)}
 
       {/* Bottom save */}
