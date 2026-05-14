@@ -445,6 +445,17 @@ function DealDetail({ deal, onSupport }: { deal: any; onSupport: () => void }) {
             </div>
           )}
 
+          {/* Disqualified Reason */}
+          {deal.closedLostReason && (deal.stage === "disqualified" || deal.stage === "closedlost") && (
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-red-500/5 border border-red-500/10">
+              <span className="text-sm mt-0.5 shrink-0">&#x26A0;&#xFE0F;</span>
+              <div className="flex-1">
+                <div className="font-body text-[10px] text-red-400/80 uppercase tracking-wider mb-1">Disqualified Reason</div>
+                <div className="font-body text-[13px] text-red-300">{deal.closedLostReason}</div>
+              </div>
+            </div>
+          )}
+
           {/* Close date */}
           {deal.closeDate && (
             <div className={`flex items-start gap-3 p-3 rounded-lg ${deal.stage === "closedwon" ? "bg-green-500/5 border border-green-500/10" : "bg-red-500/5 border border-red-500/10"}`}>

@@ -909,6 +909,14 @@ export default function AdminDealsPage() {
                     </div>
                   )}
 
+                  {/* Disqualified Reason */}
+                  {(deal as any).closedLostReason && (
+                    <div className="mb-3 p-2.5 rounded-lg" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                      <div className="font-body text-[10px] text-red-400/80 uppercase tracking-wider">Disqualified Reason</div>
+                      <div className="font-body text-[13px] text-red-300 mt-0.5">{(deal as any).closedLostReason}</div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3">
                     {([
                       { label: "First Name", key: "clientFirstName" },
