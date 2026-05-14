@@ -13,7 +13,8 @@ import { SkeletonTableRow, SkeletonCard } from "@/components/ui/Skeleton";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 import { fmt$, fmtDate } from "@/lib/format";
-import { DEFAULT_L2_RATE, DEFAULT_FIRM_FEE_RATE } from "@/lib/constants";
+import { DEFAULT_L2_RATE, DEFAULT_FIRM_FEE_RATE, STAGE_LABELS } from "@/lib/constants";
+import ScrollableRow from "@/components/ui/ScrollableRow";
 
 /**
  * Status values where the L1 can upload / re-upload a signed L1↔downline
@@ -80,6 +81,7 @@ export default function DownlinePage() {
   const [loading, setLoading] = useState(true);
   const [partnerView, setPartnerView] = useState<PartnerView>("list");
   const [downlineTab, setDownlineTab] = useState<"partners" | "deals">("partners");
+  const [dealsStageFilter, setDealsStageFilter] = useState("all");
 
   const loadData = useCallback(async () => {
     try {
@@ -402,21 +404,68 @@ export default function DownlinePage() {
         </>)}
 
         {downlineTab === "deals" && (<>
+        {/* Deal Pipeline */}
+        {(() => {
+          const PIPELINE_STAGES = [
+            "lead_submitted", "meeting_booked", "meeting_missed", "qualified",
+            "disqualified", "agreement_sent", "client_engaged", "in_process",
+            "unresponsive", "closedwon",
+          ];
+          const counts: Record<string, number> = {};
+          for (const d of deals) counts[d.stage] = (counts[d.stage] || 0) + 1;
+          return (
+            <>
+              <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-[var(--app-border)]">
+                <div className="font-body font-semibold text-[13px] mb-3">Deal Pipeline</div>
+                <div className="flex flex-wrap gap-2">
+                  {PIPELINE_STAGES.map((s) => (
+                    <button key={s} onClick={() => setDealsStageFilter(dealsStageFilter === s ? "all" : s)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors border ${
+                        dealsStageFilter === s ? "bg-brand-gold/20 border-brand-gold/30" : "bg-[var(--app-card-bg)] border-[var(--app-border)] hover:bg-[var(--app-card-bg)]"
+                      }`}
+                    >
+                      <StageBadge stage={s} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <ScrollableRow className="border-b border-[var(--app-border)]">
+                <div className="flex gap-1 min-w-max px-4 sm:px-6">
+                  {[{ value: "all", label: "All" }, ...PIPELINE_STAGES.map((s) => ({ value: s, label: (STAGE_LABELS[s]?.label || s) }))].map((s) => {
+                    const count = s.value === "all" ? deals.length : (counts[s.value] || 0);
+                    const active = dealsStageFilter === s.value;
+                    return (
+                      <button key={s.value} type="button" onClick={() => setDealsStageFilter(s.value)}
+                        className={`font-body text-[12px] px-3 py-2 rounded-t-lg border border-b-0 transition-colors whitespace-nowrap min-h-[36px] ${
+                          active ? "text-brand-gold border-[var(--app-border)] bg-[var(--app-card-bg)] -mb-px font-semibold" : "text-[var(--app-text-muted)] border-transparent hover:text-[var(--app-text-secondary)] hover:bg-brand-gold/5"
+                        }`}
+                      >
+                        {s.label} <span className={`ml-1 text-[10px] ${active ? "text-brand-gold/80" : "text-[var(--app-text-muted)]"}`}>{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollableRow>
+            </>
+          );
+        })()}
+
         <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-[var(--app-border)]">
           <div className="font-body font-semibold text-sm sm:text-[15px]">
-            Downline Deals
+            {dealsStageFilter === "all" ? "Downline Deals" : `Downline Deals — ${STAGE_LABELS[dealsStageFilter]?.label || dealsStageFilter}`}
           </div>
         </div>
 
-        {deals.length === 0 ? (
+        {(() => {
+          const filteredDeals = dealsStageFilter === "all" ? deals : deals.filter((d) => d.stage === dealsStageFilter);
+          return filteredDeals.length === 0 ? (
           <div className="p-12 text-center font-body text-sm text-[var(--app-text-muted)]">
-            No downline deals yet. Once your partners refer clients, their deals
-            will appear here.
+            {deals.length === 0 ? "No downline deals yet. Once your partners refer clients, their deals will appear here." : "No downline deals match this stage filter."}
           </div>
         ) : device.isMobile ? (
           /* ── Mobile: Card layout ── */
           <div>
-            {deals.map((p) => (
+            {filteredDeals.map((p) => (
                 <div
                   key={p.dealName}
                   className="px-4 py-4 border-b border-[var(--app-border-subtle)] last:border-b-0"
@@ -487,7 +536,7 @@ export default function DownlinePage() {
               </div>
             </div>
             {/* Rows */}
-            {deals.map((p) => (
+            {filteredDeals.map((p) => (
                 <div
                   key={p.dealName}
                   className="grid grid-cols-[2fr_1fr_1fr_0.6fr_1fr_0.7fr] gap-4 px-6 py-4 border-b border-[var(--app-border)] last:border-b-0 items-center hover:bg-[var(--app-card-bg)] transition-colors"
@@ -526,7 +575,8 @@ export default function DownlinePage() {
                 </div>
             ))}
           </div>
-        )}
+        );
+        })()}
         </>)}
       </div>
     </div>
