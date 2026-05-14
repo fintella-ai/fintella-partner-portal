@@ -8,7 +8,7 @@ import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import LevelTag from "@/components/ui/LevelTag";
 import { fmt$, fmtDate, fmtDateTime } from "@/lib/format";
-import { FIRM_SHORT, DEFAULT_FIRM_FEE_RATE, COMMISSION_STATUS_LABELS } from "@/lib/constants";
+import { FIRM_SHORT, DEFAULT_FIRM_FEE_RATE, COMMISSION_STATUS_LABELS, STAGE_LABELS } from "@/lib/constants";
 import DownlineTree, { type TreePartner } from "@/components/ui/DownlineTree";
 import SortHeader, { type SortDir } from "@/components/ui/SortHeader";
 import { useResizableColumns } from "@/components/ui/ResizableTable";
@@ -90,6 +90,9 @@ export default function PartnerReportingPage() {
   const [stageFilter, setStageFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  // Per-tab stage filters (My Deals + Downline)
+  const [myDealsStageFilter, setMyDealsStageFilter] = useState("all");
+  const [downlineStageFilter, setDownlineStageFilter] = useState("all");
 
   // ── Sort state (one pair per table) ──
   const [overviewSort, setOverviewSort] = useState<string>("createdAt");
@@ -159,6 +162,8 @@ export default function PartnerReportingPage() {
 
   // Reset pagination when filters/tabs change
   useEffect(() => { setOverviewPage(1); }, [sourceFilter, stageFilter, statusFilter, searchQuery]);
+  useEffect(() => { setMyDealsPage(1); }, [myDealsStageFilter]);
+  useEffect(() => { setDownlineDealsPage(1); }, [downlineStageFilter]);
   useEffect(() => { setCommPage(1); }, [commSubTab]);
 
   // Partner name map
@@ -174,6 +179,52 @@ export default function PartnerReportingPage() {
   ], [directDeals, downlineDeals]);
 
   const stages = useMemo(() => Array.from(new Set(allDeals.map((d) => d.stage))).sort(), [allDeals]);
+
+  const PIPELINE_STAGES = [
+    "lead_submitted", "meeting_booked", "meeting_missed", "qualified",
+    "disqualified", "agreement_sent", "client_engaged", "in_process",
+    "unresponsive", "closedwon",
+  ];
+
+  function PipelineChips({ deals, activeStage, onStageChange }: { deals: any[]; activeStage: string; onStageChange: (s: string) => void }) {
+    const counts: Record<string, number> = {};
+    for (const d of deals) counts[d.stage] = (counts[d.stage] || 0) + 1;
+    return (
+      <>
+        <div className="card p-4 sm:p-5 mb-4">
+          <div className="font-body font-semibold text-[13px] mb-3">Deal Pipeline</div>
+          <div className="flex flex-wrap gap-2">
+            {PIPELINE_STAGES.map((s) => (
+              <button key={s} onClick={() => onStageChange(activeStage === s ? "all" : s)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors border ${
+                  activeStage === s ? "bg-brand-gold/20 border-brand-gold/30" : "bg-[var(--app-card-bg)] border-[var(--app-border)] hover:bg-[var(--app-card-bg)]"
+                }`}
+              >
+                <StageBadge stage={s} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mb-4 border-b border-[var(--app-border)] overflow-x-auto">
+          <div className="flex gap-1 min-w-max">
+            {[{ value: "all", label: "All" }, ...PIPELINE_STAGES.map((s) => ({ value: s, label: (STAGE_LABELS[s]?.label || s) }))].map((s) => {
+              const count = s.value === "all" ? deals.length : (counts[s.value] || 0);
+              const active = activeStage === s.value;
+              return (
+                <button key={s.value} type="button" onClick={() => onStageChange(s.value)}
+                  className={`font-body text-[12px] px-3 py-2 rounded-t-lg border border-b-0 transition-colors whitespace-nowrap min-h-[36px] ${
+                    active ? "text-brand-gold border-[var(--app-border)] bg-[var(--app-card-bg)] -mb-px font-semibold" : "text-[var(--app-text-muted)] border-transparent hover:text-[var(--app-text-secondary)] hover:bg-brand-gold/5"
+                  }`}
+                >
+                  {s.label} <span className={`ml-1 text-[10px] ${active ? "text-brand-gold/80" : "text-[var(--app-text-muted)]"}`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </>
+    );
+  }
 
   // Filtered deals (overview)
   const filtered = useMemo(() => {
@@ -214,9 +265,13 @@ export default function PartnerReportingPage() {
     createdAt: (d: any) => d.createdAt,
   }), []);
 
+  const filteredDirectDeals = useMemo(
+    () => myDealsStageFilter === "all" ? directDeals : directDeals.filter((d) => d.stage === myDealsStageFilter),
+    [directDeals, myDealsStageFilter]
+  );
   const sortedDirectDeals = useMemo(
-    () => [...directDeals].sort((a, b) => compareRows(a, b, myDealsSort, myDealsDir, myDealsAccessors)),
-    [directDeals, myDealsSort, myDealsDir, myDealsAccessors]
+    () => [...filteredDirectDeals].sort((a, b) => compareRows(a, b, myDealsSort, myDealsDir, myDealsAccessors)),
+    [filteredDirectDeals, myDealsSort, myDealsDir, myDealsAccessors]
   );
 
   const downlinePartnersAccessors = useMemo(() => ({
@@ -236,9 +291,13 @@ export default function PartnerReportingPage() {
     createdAt: (d: any) => d.createdAt,
   }), [partnerNameMap]);
 
+  const filteredDownlineDeals = useMemo(
+    () => downlineStageFilter === "all" ? downlineDeals : downlineDeals.filter((d) => d.stage === downlineStageFilter),
+    [downlineDeals, downlineStageFilter]
+  );
   const sortedDownlineDeals = useMemo(
-    () => [...downlineDeals].sort((a, b) => compareRows(a, b, downlineDealsSort, downlineDealsDir, downlineDealsAccessors)),
-    [downlineDeals, downlineDealsSort, downlineDealsDir, downlineDealsAccessors]
+    () => [...filteredDownlineDeals].sort((a, b) => compareRows(a, b, downlineDealsSort, downlineDealsDir, downlineDealsAccessors)),
+    [filteredDownlineDeals, downlineDealsSort, downlineDealsDir, downlineDealsAccessors]
   );
 
   // Paginated slices
@@ -333,20 +392,19 @@ export default function PartnerReportingPage() {
             </div>
           </div>
 
+          {/* Deal Pipeline */}
+          <PipelineChips deals={allDeals} activeStage={stageFilter} onStageChange={setStageFilter} />
+
           {/* Filters */}
           <div className="card mb-6">
             <div className="px-4 sm:px-6 py-4">
               <div className="font-body font-semibold text-sm mb-3">Filters</div>
-              <div className={`grid ${device.isMobile ? "grid-cols-1 gap-3" : "grid-cols-4 gap-3"}`}>
+              <div className={`grid ${device.isMobile ? "grid-cols-1 gap-3" : "grid-cols-3 gap-3"}`}>
                 <input type="text" placeholder="Search deals, clients, partners..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={inputClass} />
                 <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value as any)} className={inputClass}>
                   <option value="all">All Sources</option>
                   <option value="direct">Direct Only</option>
                   <option value="downline">Downline Only</option>
-                </select>
-                <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className={inputClass}>
-                  <option value="all">All Stages</option>
-                  {stages.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}</option>)}
                 </select>
                 <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={inputClass}>
                   <option value="all">All Status</option>
@@ -468,6 +526,7 @@ export default function PartnerReportingPage() {
       {/* ═══════════════ MY DEALS TAB ═══════════════ */}
       {pageTab === "deals" && (
         <>
+          <PipelineChips deals={directDeals} activeStage={myDealsStageFilter} onStageChange={setMyDealsStageFilter} />
           <div className="card">
             {(() => {
               const deals = sortedDirectDeals;
@@ -567,6 +626,9 @@ export default function PartnerReportingPage() {
               <button key={t.id} onClick={() => setDownlineSubTab(t.id)} className={`font-body text-[13px] px-4 py-2.5 whitespace-nowrap transition-colors border-b-2 -mb-px ${downlineSubTab === t.id ? "text-brand-gold border-brand-gold" : "text-[var(--app-text-muted)] border-transparent hover:text-[var(--app-text-secondary)]"}`}>{t.label}</button>
             ))}
           </div>
+          {downlineSubTab === "deals" && (
+            <PipelineChips deals={downlineDeals} activeStage={downlineStageFilter} onStageChange={setDownlineStageFilter} />
+          )}
           <div className="card">
             {downlineSubTab === "partners" ? (
               downlinePartners.length === 0 ? (
