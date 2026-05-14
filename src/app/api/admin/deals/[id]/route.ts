@@ -71,7 +71,10 @@ export async function PUT(
       data.isImporterOfRecord = Boolean(body.isImporterOfRecord);
       data.serviceOfInterest = `Tariff Refund Support (${body.isImporterOfRecord ? "Tier 1" : "Tier 2"})`;
     }
-    if (body.stage !== undefined) data.stage = body.stage;
+    if (body.stage !== undefined) {
+      data.stage = body.stage;
+      data.externalStage = body.stage;
+    }
     if (body.productType !== undefined) data.productType = body.productType || null;
     if (body.importedProducts !== undefined) data.importedProducts = body.importedProducts || null;
     if (body.estimatedRefundAmount !== undefined) data.estimatedRefundAmount = parseFloat(body.estimatedRefundAmount) || 0;
