@@ -731,12 +731,19 @@ export async function fireWorkflowTrigger(
           continue;
         }
 
-        // Evaluate conditions
-        if (Array.isArray(wf.conditions)) {
-          for (const cond of wf.conditions as unknown as WorkflowCondition[]) {
-            if (!evaluateCondition(cond, payload)) {
-              overallStatus = "skipped";
-              break;
+        // Evaluate conditions (AND = all must pass, OR = any one passes)
+        if (Array.isArray(wf.conditions) && (wf.conditions as unknown[]).length > 0) {
+          const conds = wf.conditions as unknown as WorkflowCondition[];
+          const logic = (wf as any).filterLogic === "or" ? "or" : "and";
+          if (logic === "or") {
+            const anyPass = conds.some((c) => evaluateCondition(c, payload));
+            if (!anyPass) overallStatus = "skipped";
+          } else {
+            for (const cond of conds) {
+              if (!evaluateCondition(cond, payload)) {
+                overallStatus = "skipped";
+                break;
+              }
             }
           }
         }

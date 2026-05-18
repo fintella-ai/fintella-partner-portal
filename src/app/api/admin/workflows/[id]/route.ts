@@ -25,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!await guardSuperAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { name, description, trigger, triggerConfig, conditions, actions, enabled } = body;
+  const { name, description, trigger, triggerConfig, conditions, filterLogic, actions, enabled } = body;
 
   const workflow = await prisma.workflow.update({
     where: { id: params.id },
@@ -35,6 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(trigger !== undefined && { trigger }),
       ...(triggerConfig !== undefined && { triggerConfig }),
       ...(conditions !== undefined && { conditions }),
+      ...(filterLogic !== undefined && { filterLogic: filterLogic === "or" ? "or" : "and" }),
       ...(actions !== undefined && { actions }),
       ...(enabled !== undefined && { enabled }),
     },

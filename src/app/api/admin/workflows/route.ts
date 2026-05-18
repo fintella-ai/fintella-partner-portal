@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   if (!await guardSuperAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { name, description, trigger, triggerConfig, conditions, actions, enabled } = body;
+  const { name, description, trigger, triggerConfig, conditions, filterLogic, actions, enabled } = body;
 
   if (!name || !trigger || !actions) {
     return NextResponse.json({ error: "name, trigger, and actions are required" }, { status: 400 });
@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       trigger,
       triggerConfig: triggerConfig || null,
       conditions: conditions || null,
+      filterLogic: filterLogic === "or" ? "or" : "and",
       actions,
       enabled: enabled !== false,
     },

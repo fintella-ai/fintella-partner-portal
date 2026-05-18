@@ -39,6 +39,7 @@ interface Workflow {
   trigger: string;
   triggerConfig: unknown;
   conditions: unknown;
+  filterLogic: string;
   actions: unknown;
   logs: { createdAt: string; status: string }[];
 }
@@ -681,6 +682,9 @@ function WorkflowPanel({
       ? (initial.conditions as Condition[])
       : []
   );
+  const [filterLogic, setFilterLogic] = useState<"and" | "or">(
+    initial?.filterLogic === "or" ? "or" : "and"
+  );
   const [actions, setActions] = useState<ActionConfig[]>(
     Array.isArray(initial?.actions)
       ? (initial.actions as ActionConfig[])
@@ -710,6 +714,7 @@ function WorkflowPanel({
               ? { hoursBeforeCall: Math.max(1, Number(hoursBeforeCall) || 24) }
               : null,
       conditions: conditions.length ? conditions : null,
+      filterLogic,
       actions,
       enabled,
     };
@@ -949,7 +954,22 @@ function WorkflowPanel({
                 </div>
 
                 <div>
-                  <label className="block font-body text-xs theme-text-muted mb-2">Only continue if ALL of these filters match</label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-body text-xs theme-text-muted">Only continue if</span>
+                    <button
+                      type="button"
+                      onClick={() => setFilterLogic(filterLogic === "and" ? "or" : "and")}
+                      className="px-2 py-0.5 rounded font-body text-[11px] font-semibold uppercase tracking-wider transition-colors"
+                      style={{
+                        background: filterLogic === "and" ? "rgba(59,130,246,0.15)" : "rgba(168,85,247,0.15)",
+                        color: filterLogic === "and" ? "rgb(96,165,250)" : "rgb(192,132,252)",
+                        border: `1px solid ${filterLogic === "and" ? "rgba(59,130,246,0.3)" : "rgba(168,85,247,0.3)"}`,
+                      }}
+                    >
+                      {filterLogic === "and" ? "ALL" : "ANY"}
+                    </button>
+                    <span className="font-body text-xs theme-text-muted">of these filters match</span>
+                  </div>
                   <div className="space-y-2">
                     {conditions.map((c, i) => (
                       <div key={i} className="flex gap-1 items-center">
