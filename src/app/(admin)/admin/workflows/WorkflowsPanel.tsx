@@ -1235,7 +1235,7 @@ function AutomationsTab() {
   });
 
   const hasFilters = !!(nameFilter || triggerFilter || enabledFilter);
-  const uniqueTriggers = [...new Set(workflows.map((w) => w.trigger))].sort();
+  const uniqueTriggers = Array.from(new Set(workflows.map((w) => w.trigger))).sort();
 
   return (
     <div>
