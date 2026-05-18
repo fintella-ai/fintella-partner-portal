@@ -130,17 +130,18 @@ export async function PUT(
       if (!newCode) {
         data.partnerCode = "";
       } else {
-        const exists = await prisma.partner.findUnique({
+        const newPartner = await prisma.partner.findUnique({
           where: { partnerCode: newCode },
-          select: { partnerCode: true },
+          select: { partnerCode: true, commissionRate: true },
         });
-        if (!exists) {
+        if (!newPartner) {
           return NextResponse.json(
             { error: `No partner found with code ${newCode}` },
             { status: 400 }
           );
         }
         data.partnerCode = newCode;
+        data.l1CommissionRate = newPartner.commissionRate;
       }
     }
 
