@@ -1195,6 +1195,9 @@ function AutomationsTab() {
   const [editTarget, setEditTarget] = useState<Workflow | undefined>();
   const [wfPage, setWfPage] = useState(1);
   const [wfPageSize, setWfPageSize] = useState(10);
+  const [nameFilter, setNameFilter] = useState("");
+  const [triggerFilter, setTriggerFilter] = useState("");
+  const [enabledFilter, setEnabledFilter] = useState<"" | "on" | "off">("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1223,10 +1226,23 @@ function AutomationsTab() {
     load();
   }
 
+  const filtered = workflows.filter((wf) => {
+    if (nameFilter && !wf.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
+    if (triggerFilter && wf.trigger !== triggerFilter) return false;
+    if (enabledFilter === "on" && !wf.enabled) return false;
+    if (enabledFilter === "off" && wf.enabled) return false;
+    return true;
+  });
+
+  const hasFilters = !!(nameFilter || triggerFilter || enabledFilter);
+  const uniqueTriggers = [...new Set(workflows.map((w) => w.trigger))].sort();
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="font-body text-sm theme-text-muted">{workflows.length} automation{workflows.length !== 1 ? "s" : ""}</p>
+        <p className="font-body text-sm theme-text-muted">
+          {hasFilters ? `${filtered.length} of ${workflows.length}` : workflows.length} automation{workflows.length !== 1 ? "s" : ""}
+        </p>
         <button
           onClick={() => { setEditTarget(undefined); setPanelOpen(true); }}
           className="font-body text-sm px-4 py-2 rounded-lg transition-colors font-medium"
@@ -1255,9 +1271,52 @@ function AutomationsTab() {
                 <th className="font-body text-[11px] theme-text-muted uppercase tracking-wide text-center px-4 py-3" style={{ width: autoCols[4], position: "relative" }}>Enabled<span {...autoResize(4)} /></th>
                 <th className="font-body text-[11px] theme-text-muted uppercase tracking-wide text-center px-4 py-3" style={{ width: autoCols[5], position: "relative" }}><span {...autoResize(5)} /></th>
               </tr>
+              <tr style={{ borderBottom: "1px solid var(--app-border)" }}>
+                <th className="px-4 py-2">
+                  <input
+                    placeholder="Filter name…"
+                    value={nameFilter}
+                    onChange={(e) => { setNameFilter(e.target.value); setWfPage(1); }}
+                    className="w-full rounded px-2 py-1 font-body text-xs theme-input"
+                  />
+                </th>
+                <th className="px-4 py-2">
+                  <select
+                    value={triggerFilter}
+                    onChange={(e) => { setTriggerFilter(e.target.value); setWfPage(1); }}
+                    className="w-full rounded px-2 py-1 font-body text-xs theme-input"
+                  >
+                    <option value="">All triggers</option>
+                    {uniqueTriggers.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </th>
+                <th className="px-4 py-2" />
+                <th className="px-4 py-2" />
+                <th className="px-4 py-2">
+                  <select
+                    value={enabledFilter}
+                    onChange={(e) => { setEnabledFilter(e.target.value as "" | "on" | "off"); setWfPage(1); }}
+                    className="w-full rounded px-2 py-1 font-body text-xs theme-input"
+                  >
+                    <option value="">All</option>
+                    <option value="on">On</option>
+                    <option value="off">Off</option>
+                  </select>
+                </th>
+                <th className="px-4 py-2">
+                  {hasFilters && (
+                    <button
+                      onClick={() => { setNameFilter(""); setTriggerFilter(""); setEnabledFilter(""); setWfPage(1); }}
+                      className="font-body text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </th>
+              </tr>
             </thead>
             <tbody>
-              {workflows.slice((wfPage - 1) * wfPageSize, wfPage * wfPageSize).map((wf) => {
+              {filtered.slice((wfPage - 1) * wfPageSize, wfPage * wfPageSize).map((wf) => {
                 const lastLog = wf.logs?.[0];
                 return (
                   <tr key={wf.id} style={{ borderBottom: "1px solid var(--app-border)" }} className="hover:bg-brand-gold/5 transition-colors">
@@ -1319,7 +1378,7 @@ function AutomationsTab() {
           <TablePagination
             page={wfPage}
             pageSize={wfPageSize}
-            totalItems={workflows.length}
+            totalItems={filtered.length}
             onPageChange={setWfPage}
             onPageSizeChange={setWfPageSize}
           />
