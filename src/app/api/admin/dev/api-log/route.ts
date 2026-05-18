@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/admin/dev/api-log
- * Returns the 100 most recent WebhookRequestLog entries for the dev panel.
+ * Returns all WebhookRequestLog entries for the dev panel (paginated client-side).
  *
  * DELETE /api/admin/dev/api-log
  * Clears all log entries. Super admin only for both methods.
@@ -18,7 +18,6 @@ export async function GET() {
 
   const logs = await prisma.webhookRequestLog.findMany({
     orderBy: { createdAt: "desc" },
-    take: 100,
     select: {
       id: true,
       createdAt: true,

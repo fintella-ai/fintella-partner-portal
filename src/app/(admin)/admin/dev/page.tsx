@@ -1143,7 +1143,7 @@ function ApiLogSection() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkReplaying, setBulkReplaying] = useState(false);
   const [bulkResults, setBulkResults] = useState<Record<string, { status: number; ok: boolean }>>({});
-  const PAGE_SIZE = 100;
+  const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
   const [dragSelecting, setDragSelecting] = useState(false);
 
