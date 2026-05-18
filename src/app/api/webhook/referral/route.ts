@@ -433,6 +433,8 @@ async function postHandler(req: NextRequest): Promise<Response> {
 
     // Partner tracking (from utm_content query param passed through form)
     let partnerCode = get(
+      "partner_code",
+      "partnerCode",
       "utm_content",
       "utmcontent",
       "utm_Content",
@@ -440,8 +442,6 @@ async function postHandler(req: NextRequest): Promise<Response> {
       "REFERRALCODE",
       "referralCode",
       "referralcode",
-      "partner_code",
-      "partnerCode",
       "partner",
       "ref"
     );
