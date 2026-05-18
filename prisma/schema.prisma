@@ -1502,8 +1502,10 @@ model Workflow {
   trigger       String
   // Additional filter for the trigger, e.g. { "stage": "closedwon" }
   triggerConfig Json?
-  // Optional condition array [{field, op, value}] — all must pass
+  // Optional condition array [{field, op, value}]
   conditions    Json?
+  // "and" (default) = all conditions must match; "or" = any condition can match
+  filterLogic   String   @default("and")
   // Action array [{type, config}] — executed in order
   actions       Json
 

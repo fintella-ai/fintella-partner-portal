@@ -39,6 +39,7 @@ interface Workflow {
   trigger: string;
   triggerConfig: unknown;
   conditions: unknown;
+  filterLogic: string;
   actions: unknown;
   logs: { createdAt: string; status: string }[];
 }
@@ -681,6 +682,9 @@ function WorkflowPanel({
       ? (initial.conditions as Condition[])
       : []
   );
+  const [filterLogic, setFilterLogic] = useState<"and" | "or">(
+    initial?.filterLogic === "or" ? "or" : "and"
+  );
   const [actions, setActions] = useState<ActionConfig[]>(
     Array.isArray(initial?.actions)
       ? (initial.actions as ActionConfig[])
@@ -710,6 +714,7 @@ function WorkflowPanel({
               ? { hoursBeforeCall: Math.max(1, Number(hoursBeforeCall) || 24) }
               : null,
       conditions: conditions.length ? conditions : null,
+      filterLogic,
       actions,
       enabled,
     };
@@ -949,7 +954,22 @@ function WorkflowPanel({
                 </div>
 
                 <div>
-                  <label className="block font-body text-xs theme-text-muted mb-2">Only continue if ALL of these filters match</label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-body text-xs theme-text-muted">Only continue if</span>
+                    <button
+                      type="button"
+                      onClick={() => setFilterLogic(filterLogic === "and" ? "or" : "and")}
+                      className="px-2 py-0.5 rounded font-body text-[11px] font-semibold uppercase tracking-wider transition-colors"
+                      style={{
+                        background: filterLogic === "and" ? "rgba(59,130,246,0.15)" : "rgba(168,85,247,0.15)",
+                        color: filterLogic === "and" ? "rgb(96,165,250)" : "rgb(192,132,252)",
+                        border: `1px solid ${filterLogic === "and" ? "rgba(59,130,246,0.3)" : "rgba(168,85,247,0.3)"}`,
+                      }}
+                    >
+                      {filterLogic === "and" ? "ALL" : "ANY"}
+                    </button>
+                    <span className="font-body text-xs theme-text-muted">of these filters match</span>
+                  </div>
                   <div className="space-y-2">
                     {conditions.map((c, i) => (
                       <div key={i} className="flex gap-1 items-center">
@@ -1175,6 +1195,9 @@ function AutomationsTab() {
   const [editTarget, setEditTarget] = useState<Workflow | undefined>();
   const [wfPage, setWfPage] = useState(1);
   const [wfPageSize, setWfPageSize] = useState(10);
+  const [nameFilter, setNameFilter] = useState("");
+  const [triggerFilter, setTriggerFilter] = useState("");
+  const [enabledFilter, setEnabledFilter] = useState<"" | "on" | "off">("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1203,10 +1226,23 @@ function AutomationsTab() {
     load();
   }
 
+  const filtered = workflows.filter((wf) => {
+    if (nameFilter && !wf.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
+    if (triggerFilter && wf.trigger !== triggerFilter) return false;
+    if (enabledFilter === "on" && !wf.enabled) return false;
+    if (enabledFilter === "off" && wf.enabled) return false;
+    return true;
+  });
+
+  const hasFilters = !!(nameFilter || triggerFilter || enabledFilter);
+  const uniqueTriggers = [...new Set(workflows.map((w) => w.trigger))].sort();
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="font-body text-sm theme-text-muted">{workflows.length} automation{workflows.length !== 1 ? "s" : ""}</p>
+        <p className="font-body text-sm theme-text-muted">
+          {hasFilters ? `${filtered.length} of ${workflows.length}` : workflows.length} automation{workflows.length !== 1 ? "s" : ""}
+        </p>
         <button
           onClick={() => { setEditTarget(undefined); setPanelOpen(true); }}
           className="font-body text-sm px-4 py-2 rounded-lg transition-colors font-medium"
@@ -1235,9 +1271,52 @@ function AutomationsTab() {
                 <th className="font-body text-[11px] theme-text-muted uppercase tracking-wide text-center px-4 py-3" style={{ width: autoCols[4], position: "relative" }}>Enabled<span {...autoResize(4)} /></th>
                 <th className="font-body text-[11px] theme-text-muted uppercase tracking-wide text-center px-4 py-3" style={{ width: autoCols[5], position: "relative" }}><span {...autoResize(5)} /></th>
               </tr>
+              <tr style={{ borderBottom: "1px solid var(--app-border)" }}>
+                <th className="px-4 py-2">
+                  <input
+                    placeholder="Filter name…"
+                    value={nameFilter}
+                    onChange={(e) => { setNameFilter(e.target.value); setWfPage(1); }}
+                    className="w-full rounded px-2 py-1 font-body text-xs theme-input"
+                  />
+                </th>
+                <th className="px-4 py-2">
+                  <select
+                    value={triggerFilter}
+                    onChange={(e) => { setTriggerFilter(e.target.value); setWfPage(1); }}
+                    className="w-full rounded px-2 py-1 font-body text-xs theme-input"
+                  >
+                    <option value="">All triggers</option>
+                    {uniqueTriggers.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </th>
+                <th className="px-4 py-2" />
+                <th className="px-4 py-2" />
+                <th className="px-4 py-2">
+                  <select
+                    value={enabledFilter}
+                    onChange={(e) => { setEnabledFilter(e.target.value as "" | "on" | "off"); setWfPage(1); }}
+                    className="w-full rounded px-2 py-1 font-body text-xs theme-input"
+                  >
+                    <option value="">All</option>
+                    <option value="on">On</option>
+                    <option value="off">Off</option>
+                  </select>
+                </th>
+                <th className="px-4 py-2">
+                  {hasFilters && (
+                    <button
+                      onClick={() => { setNameFilter(""); setTriggerFilter(""); setEnabledFilter(""); setWfPage(1); }}
+                      className="font-body text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </th>
+              </tr>
             </thead>
             <tbody>
-              {workflows.slice((wfPage - 1) * wfPageSize, wfPage * wfPageSize).map((wf) => {
+              {filtered.slice((wfPage - 1) * wfPageSize, wfPage * wfPageSize).map((wf) => {
                 const lastLog = wf.logs?.[0];
                 return (
                   <tr key={wf.id} style={{ borderBottom: "1px solid var(--app-border)" }} className="hover:bg-brand-gold/5 transition-colors">
@@ -1299,7 +1378,7 @@ function AutomationsTab() {
           <TablePagination
             page={wfPage}
             pageSize={wfPageSize}
-            totalItems={workflows.length}
+            totalItems={filtered.length}
             onPageChange={setWfPage}
             onPageSizeChange={setWfPageSize}
           />
