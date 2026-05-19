@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
     const website = String(body.website ?? "").trim() || null;
     const audienceContext = String(body.audienceContext ?? "").trim() || null;
     const referralSource = String(body.referralSource ?? "").trim() || null;
+    const partnerType = String(body.partnerType ?? "").trim() || null;
 
     if (!firstName) return NextResponse.json({ error: "First name is required" }, { status: 400 });
     if (!lastName) return NextResponse.json({ error: "Last name is required" }, { status: 400 });
@@ -132,6 +133,7 @@ export async function POST(req: NextRequest) {
         website,
         audienceContext,
         referralSource,
+        partnerType,
         // uplineCode defaults to PTNS4XDMN (John) per schema default
         utmSource,
         utmMedium,

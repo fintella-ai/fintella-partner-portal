@@ -37,6 +37,7 @@ function ApplyForm() {
           phone: phone || undefined,
           companyName: companyName || undefined,
           website: website || undefined,
+          partnerType: partnerType || undefined,
           referralSource: plan ? `pricing_${plan}` : "apply_page",
           utm_source: searchParams.get("utm_source") || undefined,
           utm_medium: searchParams.get("utm_medium") || undefined,
