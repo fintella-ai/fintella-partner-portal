@@ -1,4 +1,5 @@
 export interface RecoverPageContent {
+  _sectionOrder?: string[];
   hero: {
     badge: string;
     headline: string;
@@ -19,6 +20,7 @@ export interface RecoverPageContent {
 }
 
 export interface PartnersPageContent {
+  _sectionOrder?: string[];
   hero: {
     badge: string;
     headline: string;
