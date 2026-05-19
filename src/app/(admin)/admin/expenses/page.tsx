@@ -62,7 +62,6 @@ const CATEGORIES: Category[] = [
     icon: "🌐",
     services: [
       { name: "fintella.partners", plan: "Annual", monthlyCost: 2.50, status: "active", note: "~$30/yr" },
-      { name: "trln.partners", plan: "Annual", monthlyCost: 2.50, status: "active", note: "Staging" },
     ],
   },
 ];
