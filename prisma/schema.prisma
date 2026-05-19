@@ -467,9 +467,10 @@ model TrainingModule {
   description String?
   category    String   // "onboarding", "sales", "product", "tools"
   content     String?  // rich text / markdown
-  videoUrl    String?
-  videoScript String?  // JSON: AI-generated slide presentation script from PDF content
-  duration    String?  // e.g., "12 min", "18 min"
+  videoUrl      String?
+  videoScript   String?  // JSON: AI-generated slide presentation script from PDF content
+  heygenVideoId String?  // HeyGen video_id while rendering; cleared once videoUrl is stored
+  duration      String?  // e.g., "12 min", "18 min"
   sortOrder   Int      @default(0)
   published   Boolean  @default(true)
   createdAt   DateTime @default(now())

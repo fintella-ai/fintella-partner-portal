@@ -20,6 +20,7 @@ type TrainingModule = {
   content: string | null;
   videoUrl: string | null;
   videoScript: string | null;
+  heygenVideoId: string | null;
   duration: string | null;
   sortOrder: number;
   published: boolean;
@@ -361,6 +362,41 @@ export default function AdminTrainingPage() {
     load();
   }, [view, fetchModules, fetchResources, fetchFaqs, fetchProgress]);
 
+  /** Resume polling for any modules whose HeyGen render survived a page refresh */
+  useEffect(() => {
+    const pending = modules.filter((m) => m.heygenVideoId);
+    if (pending.length === 0) return;
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    const startPolling = (mod: TrainingModule) => {
+      setGeneratingHeyGenId(mod.id);
+      const poll = async () => {
+        try {
+          const res = await fetch(`/api/admin/training/modules/${mod.id}/heygen-status`);
+          const data = await res.json();
+          if (data.status === "completed") {
+            await fetchModules();
+            setGeneratingHeyGenId((cur) => (cur === mod.id ? null : cur));
+          } else if (data.status === "failed") {
+            setGeneratingHeyGenId((cur) => (cur === mod.id ? null : cur));
+          } else {
+            timers.push(setTimeout(poll, 15_000));
+          }
+        } catch {
+          timers.push(setTimeout(poll, 15_000));
+        }
+      };
+      timers.push(setTimeout(poll, 5_000));
+    };
+
+    for (const mod of pending) {
+      startPolling(mod);
+    }
+
+    return () => timers.forEach(clearTimeout);
+  }, [modules, fetchModules]);
+
   // ─── FORM HELPERS ─────────────────────────────────────────────────────────
 
   /** Reset all form fields and close the form */
@@ -668,25 +704,66 @@ export default function AdminTrainingPage() {
 
   /** Generate a real HeyGen avatar video for a module */
   const handleGenerateHeyGen = async (mod: TrainingModule, opts: HeyGenOptions) => {
+    // Slides mode: just generate/regenerate the script and open the preview
+    if (opts.mode === "slides") {
+      setGeneratingVideoId(mod.id);
+      try {
+        const res = await fetch(`/api/admin/training/modules/${mod.id}/generate-video`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        if (data.success && data.script) {
+          setPreviewScript({ script: data.script, title: mod.title });
+          await fetchModules();
+        } else {
+          alert(data.error || "Failed to generate slide script.");
+        }
+      } catch {
+        alert("Failed to generate slide script. Please try again.");
+      } finally {
+        setGeneratingVideoId(null);
+      }
+      return;
+    }
+
+    // Avatar mode: submit to HeyGen, then poll for completion
     setGeneratingHeyGenId(mod.id);
     try {
       const res = await fetch(`/api/admin/training/modules/${mod.id}/generate-heygen`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ avatarId: opts.avatarId, voiceId: opts.voiceId, mode: opts.mode }),
+        body: JSON.stringify({ avatarId: opts.avatarId, voiceId: opts.voiceId }),
       });
       const data = await res.json();
-      if (data.success && data.videoUrl) {
-        alert(`HeyGen video ready! Duration: ${Math.round(data.duration || 0)}s`);
-      } else if (res.status === 202) {
-        alert(data.error || "Video is still rendering. It will appear when ready.");
-      } else {
-        alert(data.error || "Failed to generate HeyGen video.");
+      if (!data.success) {
+        alert(data.error || "Failed to submit HeyGen video.");
+        setGeneratingHeyGenId(null);
+        return;
       }
-      await fetchModules();
+
+      // Poll heygen-status every 15s until completed or failed
+      const poll = async () => {
+        try {
+          const statusRes = await fetch(`/api/admin/training/modules/${mod.id}/heygen-status`);
+          const status = await statusRes.json();
+          if (status.status === "completed") {
+            await fetchModules();
+            setGeneratingHeyGenId(null);
+          } else if (status.status === "failed") {
+            alert(status.error || "HeyGen rendering failed.");
+            setGeneratingHeyGenId(null);
+          } else {
+            setTimeout(poll, 15_000);
+          }
+        } catch {
+          setTimeout(poll, 15_000);
+        }
+      };
+      setTimeout(poll, 15_000);
     } catch {
       alert("Failed to generate HeyGen video. Please try again.");
-    } finally {
       setGeneratingHeyGenId(null);
     }
   };
@@ -1094,10 +1171,10 @@ export default function AdminTrainingPage() {
                         )}
                         <button
                           onClick={() => setHeygenModalModule(mod)}
-                          disabled={generatingHeyGenId === mod.id}
+                          disabled={generatingHeyGenId === mod.id || !!mod.heygenVideoId}
                           className="text-xs text-emerald-400/70 hover:text-emerald-400 transition disabled:opacity-50"
                         >
-                          {generatingHeyGenId === mod.id
+                          {generatingHeyGenId === mod.id || mod.heygenVideoId
                             ? "Rendering..."
                             : mod.videoUrl
                             ? "Re-render HeyGen"
@@ -1204,10 +1281,10 @@ export default function AdminTrainingPage() {
                   )}
                   <button
                     onClick={() => setHeygenModalModule(mod)}
-                    disabled={generatingHeyGenId === mod.id}
+                    disabled={generatingHeyGenId === mod.id || !!mod.heygenVideoId}
                     className="text-xs text-emerald-400/70 hover:text-emerald-400 transition disabled:opacity-50"
                   >
-                    {generatingHeyGenId === mod.id
+                    {generatingHeyGenId === mod.id || mod.heygenVideoId
                       ? "Rendering..."
                       : mod.videoUrl
                       ? "Re-render HeyGen"

@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { generateVideoScript } from "@/lib/ai-video";
 import {
   createAvatarVideo,
-  waitForVideo,
   scriptToNarration,
   isHeyGenEnabled,
 } from "@/lib/heygen";
@@ -12,9 +11,9 @@ import {
 /**
  * POST /api/admin/training/modules/[id]/generate-heygen
  *
- * Generates a full AI avatar video via HeyGen for a training module.
- * Flow: generate script from PDFs via Claude → send narration to HeyGen →
- * poll for completion → store the video URL on the module.
+ * Fire-and-forget HeyGen avatar video generation.
+ * Flow: generate script from module content → POST to HeyGen → store heygenVideoId → return 202
+ * The client polls /heygen-status to check when rendering completes.
  *
  * Body (optional): { avatarId?: string, voiceId?: string }
  */
@@ -95,7 +94,7 @@ export async function POST(
       videoScript = script;
     }
 
-    // Step 2: Build the narration and send to HeyGen
+    // Step 2: Build the narration and submit to HeyGen (fire-and-forget)
     const narration = scriptToNarration(videoScript.scenes);
 
     const createResult = await createAvatarVideo({
@@ -112,32 +111,21 @@ export async function POST(
       );
     }
 
-    // Step 3: Poll for completion (up to 10 min)
-    const statusResult = await waitForVideo(createResult.videoId);
+    // Step 3: Store the video ID for polling — do NOT wait for render
+    await prisma.trainingModule.update({
+      where: { id: moduleId },
+      data: {
+        heygenVideoId: createResult.videoId,
+        videoUrl: null, // clear any stale URL while re-rendering
+      } as any, // heygenVideoId added in schema; types regenerate on deploy
+    });
 
-    if (statusResult.status === "completed" && statusResult.videoUrl) {
-      await prisma.trainingModule.update({
-        where: { id: moduleId },
-        data: { videoUrl: statusResult.videoUrl },
-      });
-
-      return NextResponse.json({
-        success: true,
-        videoUrl: statusResult.videoUrl,
-        thumbnailUrl: statusResult.thumbnailUrl,
-        duration: statusResult.duration,
-      });
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        videoId: createResult.videoId,
-        status: statusResult.status,
-        error: statusResult.error || "Video generation did not complete in time. Check back later.",
-      },
-      { status: 202 }
-    );
+    return NextResponse.json({
+      success: true,
+      videoId: createResult.videoId,
+      status: "rendering",
+      message: "Video submitted to HeyGen. Poll /heygen-status for completion.",
+    });
   } catch (err) {
     console.error("[generate-heygen] Error:", err);
     return NextResponse.json(
