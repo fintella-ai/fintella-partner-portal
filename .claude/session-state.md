@@ -1,69 +1,66 @@
 # Session State
 
-🕒 Last updated: 2026-05-19 — **Beast-mode admin audit + cleanup. 2 PRs opened (#1012, #1014). Full 5-agent audit completed.**
+🕒 Last updated: 2026-05-19 evening — **Full beast-mode audit COMPLETE + landing visual builder shipped. 5 PRs total (#1012–#1017). Memory system initialized.**
 
 ## 🌿 Git state
-- **main HEAD:** `90b16c4` — deployed on Vercel, clean
-- **PR #1012:** `claude/admin-panel-cleanup-audit` @ `40398ea` — open, ready to merge
-- **PR #1014:** `claude/dead-code-cleanup-phase2` @ `7e2cf8b` — open, ready to merge
-- **Active branch:** `claude/dead-code-cleanup-phase2`
-- **Working tree:** 1 uncommitted change (`.claude/settings.local.json` — local only, do not stage)
+- **main HEAD:** `9c6a6c7` — billing/expenses consolidation (#1015) — clean, deployed
+- **origin/main:** in sync
+- **Active branches:**
+  - `claude/landing-visual-builder` → PR #1016 open
+  - `claude/component-graveyard-cleanup` → PR #1017 open
+- **Working tree:** on `claude/component-graveyard-cleanup`, clean after session-state commit
 
 ## ✅ What shipped this session
 
-### Beast-mode audit (5 parallel agents)
-- Pages agent: found 5 dead route stubs + 2 redirect stubs
-- API routes agent: found 8 claimed-dead endpoints; 4 were false positives, 4 confirmed dead
-- Nav/sidebar agent: confirmed all nav items substantive; found thin wrapper pages not in default nav
-- Schema agent: found `DossierDocument` model (zero usage); deprecated field claims mostly wrong
-- Dead components agent: found 3 dead lib files (`feature-gate.ts`, `monitoring.ts`, `adminChatThread.ts`); HeyGen/ai-video confirmed ACTIVE
+### Beast-mode Admin Panel Audit (5 PRs)
 
-### PR #1012 — Admin panel cleanup phase 1
-- Deleted 5 dead page stubs: `/admin/chat`, `/admin/team-chat`, `/admin/workflows`, `/admin/partner-leads`, `/admin/dev/webhook-test`
-- Deleted 2 dead lib files: `feature-gate.ts`, `monitoring.ts`
-- Layout: removed `partner-leads` child from nav, updated Live Chat button → `/admin/support?tab=livechat`
-- Billing: removed Contabo VPS (MinIO cancelled) + `trln.partners` domain entries
-- Settings: beast mode project permissions added to `.claude/settings.json`
+| PR | Branch | Status | What |
+|---|---|---|---|
+| #1012 | `admin-panel-cleanup-audit` | ✅ MERGED | 5 dead page stubs, feature-gate.ts, monitoring.ts, engagement.ts deleted; nav fixes |
+| #1014 | `dead-code-cleanup-phase2` | ✅ MERGED | 4 dead API routes deleted (analytics, engagement, research/deep, debug) |
+| #1015 | `cleanup-phase3` | ✅ MERGED | billing/page.tsx → redirect(/admin/expenses); SubscriptionRevenueSection ported |
+| #1016 | `landing-visual-builder` | 🔄 OPEN | Two-column visual builder for /admin/landing-pages with native HTML5 DnD |
+| #1017 | `component-graveyard-cleanup` | 🔄 OPEN | 13 dead components deleted (10 template stubs + BottomSheet/CopyButton/UpgradeGate) |
 
-### PR #1014 — Dead API routes phase 2
-- Deleted 4 dead API routes: `/api/admin/analytics`, `/api/admin/engagement`, `/api/admin/research/deep`, `/api/debug`
-- Deleted orphaned `src/lib/engagement.ts` (110 lines, single export only used by deleted route)
-- Expenses page: removed `trln.partners` domain entry (stale)
+**Net: ~1,380 lines of dead code removed.**
 
-## 🔄 Open PRs
+### Memory system initialized
+- Repo memory: `.claude/memory/` (4 files + MEMORY.md)
+- User memory: `C:\Users\john\.claude\projects\D--Projects-fintella-partner-portal\memory\` (mirrored)
 
-| PR | Title | Status |
-|---|---|---|
-| #1012 | Admin panel cleanup phase 1 | Open — **merge first** |
-| #1014 | Dead API routes phase 2 | Open — merge after #1012 |
-| #520 | Strip partner firm names | Open — safe to merge |
-| #562 | Dependabot group patches | Open — safe to merge |
-| #291 | @sentry/nextjs minor | Open — safe to merge |
-| #287 | postcss patch | Open — safe to merge |
-| #290 | @anthropic-ai/sdk breaking | Open — needs review |
-| #289 | typescript 5→6 MAJOR | Open — needs dedicated session |
-| #288 | next-auth beta bump | Open — needs review |
+## 🔄 Open PRs (full list)
+
+| PR | Title | Status | Action |
+|---|---|---|---|
+| #1017 | Component graveyard cleanup | OPEN | Safe to merge |
+| #1016 | Landing page visual builder | OPEN | Test `/admin/landing-pages` before merging |
+| #1013 | Section 122 regulatory update | DRAFT | Review content |
+| #964 | Fix partnerType on /apply form | OPEN | Bug fix — safe to merge |
+| #966 | Ollie telemetry dashboard | OPEN | Review |
 
 ## 🎯 What's next
 
-1. **Merge #1012 then #1014** — both clean, ready
-2. **Billing/Expenses consolidation** — `/admin/billing` has unique `SubscriptionRevenueSection`; merge pages into one Finance hub (own PR)
-3. **Schema migration** — Drop `DossierDocument` model + `DocType`/`DocStatus` enums. Needs Neon snapshot first. Zero src/ references confirmed.
-4. **Merge safe dependency PRs** — #520, #562, #291, #287
-5. **Beast mode settings** — To fully bypass permission prompts, manually edit `C:\Users\john\.claude\settings.json` and add `"defaultMode": "bypassPermissions"` to the permissions block (hook blocks Claude from doing this itself)
+1. **Merge #1017** — clean dead component removal, no risk
+2. **Test + merge #1016** — visual builder for landing pages, check `/admin/landing-pages`
+3. **Wire `_sectionOrder` to public renderers** — `/recover`, `/partners` etc. don't respect drag order yet; follow-up PR
+4. **Schema drops** — `PartnerActivity` + `DossierDocument` — take Neon snapshot first, then remove models from schema
+5. **Bug fix #964** — fix partnerType dropped on /apply form
+6. **HeyGen integration** — API key + avatar identity needed
+7. **Dep PRs** — #988 (postcss patch), #990 (sentry minor), #991 (openai minor), #963 (group) — John's approval needed per deploy trigger
 
 ## 🧠 Context for resuming
 
-- `adminChatThread.ts` was NOT deleted — it's dynamically imported by `src/app/api/webhook/referral/route.ts:752` via `await import("@/lib/adminChatThread")`. Agent missed dynamic imports.
-- Schema "deprecated" fields (`l3Enabled`, `l2Rate`, `l3Rate`) are still actively read in `settings/page.tsx` + `channelSegments.ts` — cannot drop despite deprecated comments in schema
-- `DossierDocument` model is the ONLY confirmed dead schema object — zero references in all of src/
-- `tariff-countries.ts` is ACTIVE — imported by `tariff-calculator.ts` and `tariff-audit.ts`
-- Beast mode project permissions are configured in `.claude/settings.json` (Bash, Read, Edit, Write, Glob, Grep, WebFetch, WebSearch, mcp__ide__*)
-- Build can only be run from Windows Terminal (not bash); use `node_modules\.bin\next.cmd build` from cmd.exe or PowerShell
+- **Beast mode is ON** — `.claude/settings.json` has full auto-allow. Global bypass needs manual edit to `C:\Users\john\.claude\settings.json`
+- **Landing builder follow-up**: `_sectionOrder` is stored in draft JSON; public page renderers in `src/app/recover/page.tsx`, `src/app/partners/page.tsx` etc. need updating to call `getLandingContent()` and sort sections by `_sectionOrder`
+- **Schema danger**: build script runs `prisma db push --accept-data-loss` — removing any model = production table drop on next Vercel deploy. Always snapshot Neon first
+- **Twilio SMS env vars** still UNSET pending TCR A2P 10DLC approval
+- **DossierDocument** + **PartnerActivity** both annotated DEAD in schema (comment added), not yet dropped
+- False positive patterns for dead code: dynamic imports, lazy panel components, Prisma child models via `include:` — always verify before deleting
 
-## 📂 Relevant files for next task
+## 📂 Key files for next session
 
-- `src/app/(admin)/admin/billing/page.tsx` — consolidation candidate (has SubscriptionRevenueSection)
-- `src/app/(admin)/admin/expenses/page.tsx` — the better of the two finance pages
-- `prisma/schema.prisma` — DossierDocument model to drop (needs migration plan)
-- `src/lib/reconcileNavOrder.ts` — nav cleanup logic (drops stale IDs on first render)
+- `src/app/(admin)/admin/landing-pages/page.tsx` — the new visual builder (currently on #1016 branch, will be main after merge)
+- `src/lib/getLandingContent.ts` — add `_sectionOrder` reading here for renderer follow-up
+- `src/app/recover/page.tsx`, `src/app/partners/page.tsx` — public renderers to wire up section order
+- `prisma/schema.prisma` — PartnerActivity (line ~2069) + DossierDocument (line ~2354) both annotated DEAD
+- `.claude/memory/` — memory files initialized this session
