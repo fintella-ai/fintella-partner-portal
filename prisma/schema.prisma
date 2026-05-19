@@ -2067,6 +2067,8 @@ model AuditLog {
 }
 
 // ─── PARTNER ENGAGEMENT ─────────────────────────────────────────────────────
+// DEAD — engagement scoring was descoped. Zero src/ references as of 2026-05-19.
+// Safe to drop, but requires a Neon snapshot first since build uses db push --accept-data-loss.
 model PartnerActivity {
   id          String   @id @default(cuid())
   partnerCode String
