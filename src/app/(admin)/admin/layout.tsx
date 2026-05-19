@@ -107,7 +107,7 @@ const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
   "tariff-engine": { id: "tariff-engine", href: "/admin/tariff-engine", icon: "🧮", label: "Tariff Engine" },
   settings:     { id: "settings", href: "/admin/settings", icon: "⚙️", label: "Settings" },
   subscriptions: { id: "subscriptions", href: "/admin/subscriptions", icon: "💎", label: "Subscriptions" },
-  billing:      { id: "billing", href: "/admin/billing", icon: "💳", label: "Billing" },
+  billing:      { id: "billing", href: "/admin/expenses", icon: "💳", label: "Billing & Expenses" },
   users:        { id: "users", href: "/admin/users", icon: "🔐", label: "Admin Users" },
   landingPages: { id: "landingPages", href: "/admin/landing-pages", icon: "🌐", label: "Landing Pages" },
   brokerFunnel: { id: "brokerFunnel", href: "/admin/broker-funnel", icon: "🚢", label: "Broker Funnel" },
