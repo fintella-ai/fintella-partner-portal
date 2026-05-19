@@ -1,22 +1,21 @@
 ---
-name: Landing page visual builder — shipped PR #1016
-description: Two-column visual builder for /admin/landing-pages with native HTML5 DnD, section cards, preview snippets
+name: Landing page visual builder — SHIPPED
+description: Two-column visual builder for /admin/landing-pages; drag order now wired to public renderers
 type: project
 ---
 
-Built visual block builder for `/admin/landing-pages` editor. PR #1016 open, not yet merged.
+Visual block builder shipped in PR #1016. Section order wiring shipped in PR #1019. Fully complete.
 
-**What it does:**
-- Left sidebar: section cards with drag handle (⠿), section icon, live preview snippet of current headline/count
-- Right panel: form editor for selected section (click card to switch)
-- Native HTML5 drag-and-drop — no new deps — reorders sections in local state
-- Section order stored as `_sectionOrder` in draft JSON blob (backwards-compatible)
-- Works for all 4 pages: Recovery (`/recover`), Partners (`/partners`), Brokers (`/partners/brokers`), Webinar (`/webinar`)
+**What shipped:**
+- PR #1016: Left sidebar drag handles, section cards with live preview snippets, `_sectionOrder` stored in draft/published JSON
+- PR #1019: `_sectionOrder` now respected by `/recover` (recover/page.tsx) and `/partners` (PartnersPageRenderer.tsx)
 
-**What's NOT done yet (follow-up):**
-- Public page renderers (`/recover`, `/partners`, etc.) still use fixed section order — `_sectionOrder` is saved but not yet read by the renderer
-- To complete: update `src/app/recover/page.tsx`, `src/app/partners/page.tsx` etc. to read `_sectionOrder` from `getLandingContent()`
+**How the order flows:**
+1. Admin drags sections in `/admin/landing-pages` → order saved as `_sectionOrder` in draft JSON
+2. Admin clicks Publish → `_sectionOrder` included in `published` field of `LandingPageConfig`
+3. `getRecoverContent()` / `getPartnersContent()` return content with `_sectionOrder` (type now includes it)
+4. Renderer uses `c._sectionOrder ?? DEFAULT_ORDER` to render sections in saved order
 
-**Why:** John marked "landing page visual builder" as PRIORITY. The previous editor used a double-tab system with no visual feedback.
+**Nav is always fixed at top — not in section order.**
 
-**How to apply:** When continuing on landing pages, the `_sectionOrder` field is already in the schema and stored in drafts. The renderer update is the next step.
+**How to apply:** This is done. If a webinar public page is ever built, apply the same pattern.
