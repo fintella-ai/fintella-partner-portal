@@ -32,7 +32,6 @@ const CATEGORIES: Category[] = [
       { name: "Vercel (Fintella Portal)", plan: "Pro", cost: "$20/mo", status: "active" },
       { name: "Vercel (Fintella OS)", plan: "Pro Trial", cost: "$0/mo", status: "trial", note: "Check expiry" },
       { name: "Neon Postgres", plan: "Pro", cost: "$19/mo", status: "active" },
-      { name: "Contabo VPS", plan: "Tier 2", cost: "$23/mo", status: "idle", note: "Planned for MinIO" },
       { name: "GitHub", plan: "Free", cost: "$0/mo", status: "active" },
       { name: "Cloudflare", plan: "Free", cost: "$0/mo", status: "active" },
     ],
@@ -63,7 +62,6 @@ const CATEGORIES: Category[] = [
     icon: "🌐",
     services: [
       { name: "fintella.partners", plan: "Annual", cost: "~$30/yr", status: "active" },
-      { name: "trln.partners", plan: "Annual", cost: "~$30/yr", status: "active", note: "Unused, staging" },
     ],
   },
 ];

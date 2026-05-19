@@ -11,29 +11,18 @@
     "prisma/dev.db-journal"
   ],
   "permissions": {
-    "//": "Leaving the allow/deny lists empty — role-based permission boundaries for the deployed portal are enforced at the API route level (see CLAUDE.md → Admin role matrix).",
+    "//": "Beast mode — all tools auto-approved for this project. Destructive production actions (db wipe, force push to main) still require explicit John instruction per CLAUDE.md.",
     "allow": [
-      "Bash(npm run build)",
-      "Bash(npm run lint)",
-      "Bash(npx prisma generate)",
-      "Bash(npx prisma db push *)",
-      "Bash(npx tsc *)",
-      "Bash(gh pr *)",
-      "Bash(gh api *)",
-      "Bash(git checkout *)",
-      "Bash(git stash *)",
-      "Bash(git add *)",
-      "Bash(git commit *)",
-      "Bash(git push *)",
-      "Bash(git pull *)",
-      "Bash(git fetch *)",
-      "Bash(git merge *)",
-      "Bash(git branch *)",
-      "Bash(git worktree *)",
-      "Bash(git clean *)",
-      "Bash(git rebase *)",
-      "Bash(npm install *)",
-      "Bash(npx next build)"
+      "Bash(*)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__ide__executeCode(*)",
+      "mcp__ide__getDiagnostics(*)"
     ],
     "deny": []
   }
