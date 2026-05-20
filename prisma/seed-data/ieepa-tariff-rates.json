@@ -1,7 +1,7 @@
 {
   "_metadata": {
     "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "generatedDate": "2026-05-20",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -332,7 +332,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL CHALLENGE: On May 7, 2026, the CIT ruled 2-1 that these tariffs are unlawful (Slip Op. 26-47; State of Oregon et al. v. United States + Burlap and Barrel Inc. et al. v. United States). The permanent injunction is LIMITED — it covers only 3 specific plaintiffs (Burlap & Barrel Inc., Basic Fun! Inc., and the State of Washington); nationwide relief was denied. The Federal Circuit issued an administrative stay on May 12, 2026, pending consideration of a durable stay. Duties continue to be collected from all importers except the 3 enjoined plaintiffs. Rate (10%) and endDate (Jul 24, 2026) unchanged pending appeal outcome. Monitor Federal Circuit for stay ruling and any SCOTUS cert petition.",
       "supersededBy": null
     },
     {
