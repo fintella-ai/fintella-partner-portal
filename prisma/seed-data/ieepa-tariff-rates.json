@@ -300,11 +300,11 @@
       "rateType": "reciprocal",
       "countryCode": "ANNEX-I-MODIFIED",
       "countryName": "Annex I Countries (modified rates)",
-      "rate": null,
+      "rate": 0,
       "effectiveDate": "2025-08-07",
       "endDate": "2026-02-23",
       "htsChapter99": "9903.01.25",
-      "notes": "Country-specific rates came into effect Aug 7, 2025 (delayed from Aug 1). Many rates were modified from original Annex I via tariff letters and bilateral deals. See country-specific entries below. Countries without deals or letters reverted to original Annex I rates.",
+      "notes": "Country-specific rates came into effect Aug 7, 2025 (delayed from Aug 1). Many rates were modified from original Annex I via tariff letters and bilateral deals. See country-specific entries below. Countries without deals or letters reverted to original Annex I rates. Rate=0 is a placeholder — actual rates are per-country entries below.",
       "supersededBy": "TERMINATED-SCOTUS"
     },
     {
