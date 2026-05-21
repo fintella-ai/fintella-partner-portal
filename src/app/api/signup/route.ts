@@ -92,6 +92,7 @@ async function sendFintellaAgreementForPartnerAtSignup(partner: {
     fullName: partnerName,
     email: partner.email,
     phone: partner.phone,
+    commissionRate: effectiveRate,
   });
 
   // Build recipient list: partner first, then Fintella co-signer.
