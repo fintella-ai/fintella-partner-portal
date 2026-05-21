@@ -73,7 +73,7 @@ type ProgressStats = {
 
 // ─── DEMO FALLBACK DATA ────────────────────────────────────────────────────
 
-const DEMO_MODULES: TrainingModule[] = [
+const DEMO_MODULES = [
   { id: "dm-1", title: "Welcome to Fintella", description: "Introduction to Fintella (Financial Intelligence Network) and how the partner program works.", category: "onboarding", content: null, videoUrl: "https://example.com/videos/welcome", videoScript: null, duration: "12 min", sortOrder: 1, published: true, createdAt: "2026-03-01", updatedAt: "2026-03-01" },
   { id: "dm-2", title: "Understanding Tariff Relief", description: "Deep dive into tariff relief programs, eligibility criteria, and the legal framework.", category: "product", content: null, videoUrl: "https://example.com/videos/tariff-relief", videoScript: null, duration: "18 min", sortOrder: 2, published: true, createdAt: "2026-03-01", updatedAt: "2026-03-01" },
   { id: "dm-3", title: "Partner Portal Walkthrough", description: "How to navigate the partner portal, submit leads, track deals, and monitor commissions.", category: "tools", content: null, videoUrl: "https://example.com/videos/portal-walkthrough", videoScript: null, duration: "15 min", sortOrder: 3, published: true, createdAt: "2026-03-01", updatedAt: "2026-03-01" },
@@ -82,7 +82,7 @@ const DEMO_MODULES: TrainingModule[] = [
   { id: "dm-6", title: "Client Onboarding Best Practices", description: "Step-by-step guide to helping your referred clients through the onboarding process.", category: "onboarding", content: null, videoUrl: "https://example.com/videos/client-onboarding", videoScript: null, duration: "14 min", sortOrder: 6, published: true, createdAt: "2026-03-01", updatedAt: "2026-03-01" },
   { id: "dm-7", title: "Using the CRM Tools", description: "How to leverage CRM integrations and deal tracking to manage your pipeline effectively.", category: "tools", content: null, videoUrl: null, videoScript: null, duration: "16 min", sortOrder: 7, published: true, createdAt: "2026-03-01", updatedAt: "2026-03-01" },
   { id: "dm-8", title: "Advanced Sales Strategies", description: "Advanced techniques for closing deals and upselling tariff relief services.", category: "sales", content: null, videoUrl: null, videoScript: null, duration: "22 min", sortOrder: 8, published: false, createdAt: "2026-03-01", updatedAt: "2026-03-01" },
-];
+] as TrainingModule[];
 
 const DEMO_RESOURCES: TrainingResource[] = [
   { id: "dr-1", title: "Partner Quick-Start Guide", description: "One-page overview to get started as a Fintella partner.", fileUrl: "/docs/quick-start.pdf", fileType: "pdf", fileSize: "1.2 MB", moduleId: null, category: null, sortOrder: 1, published: true, createdAt: "2026-03-01", updatedAt: "2026-03-01" },

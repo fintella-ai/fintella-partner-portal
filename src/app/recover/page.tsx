@@ -27,7 +27,7 @@ function HeroSection({
 }: {
   c: RecoverPageContent;
   partnerCode: string | null;
-  utmParams: Record<string, string | null>;
+  utmParams: { utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; utm_content: string | null; utm_term: string | null; utm_adgroup: string | null };
 }) {
   return (
     <div className="max-w-6xl mx-auto px-6 pt-16 pb-12">
