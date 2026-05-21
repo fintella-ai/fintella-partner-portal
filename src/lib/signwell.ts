@@ -150,6 +150,7 @@ export function buildPartnerTemplateFields(
     ["partner_title2", ctx.title || ""],
     ["partner_tin", ctx.tin || ""],
     ["partner_ssn", ctx.ssn || ""],
+    ["partner_commission", ratePct],
     ["partner_commission_rate", ratePct],
     ["partner_commission_rate_pct", ratePct],
     ["partner_commission_text", commissionText],
