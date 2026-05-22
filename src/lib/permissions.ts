@@ -39,7 +39,7 @@ export const ROLE_VISIBLE_NAV: Record<AdminRole, string[]> = {
     "automations", "gettingStartedEditor", "aiActivity", "aiPermissions", "knowledgeCenter", "tariff-engine",
     "payouts", "revenue", "reports",
     "brokerFunnel",
-    "settings", "billing", "users", "dev", "features",
+    "services", "settings", "billing", "users", "dev", "features",
   ],
   admin: [
     "home",
@@ -49,7 +49,7 @@ export const ROLE_VISIBLE_NAV: Record<AdminRole, string[]> = {
     "automations", "gettingStartedEditor", "aiActivity", "aiPermissions", "knowledgeCenter", "tariff-engine",
     "payouts", "reports",
     "brokerFunnel",
-    "settings",
+    "services", "settings",
   ],
   accounting: [
     "home",
