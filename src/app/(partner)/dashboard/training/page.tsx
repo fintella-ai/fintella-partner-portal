@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useDevice } from "@/lib/useDevice";
+import { useService } from "@/contexts/ServiceContext";
 import VideoModal from "@/components/ui/VideoModal";
 import SlidePlayer from "@/components/ui/SlidePlayer";
 import Accordion from "@/components/ui/Accordion";
@@ -130,6 +131,7 @@ function fileTypeIcon(fileType: string): string {
 
 export default function TrainingPage() {
   const device = useDevice();
+  const { activeServiceId } = useService();
 
   /* ---- Top-level section ---- */
   const [activeSection, setActiveSection] = useState<Section>("modules");
@@ -192,8 +194,9 @@ export default function TrainingPage() {
 
     async function fetchData() {
       try {
+        const serviceParam = activeServiceId ? `?serviceId=${activeServiceId}` : "";
         const [modulesRes, resourcesRes, faqRes, glossaryRes, rebuttalsRes] = await Promise.allSettled([
-          fetch("/api/training/modules"),
+          fetch(`/api/training/modules${serviceParam}`),
           fetch("/api/training/resources"),
           fetch("/api/training/faq"),
           fetch("/api/training/glossary"),
@@ -255,7 +258,7 @@ export default function TrainingPage() {
 
     fetchData();
     return () => { cancelled = true; };
-  }, []);
+  }, [activeServiceId]);
 
   // ESC closes the inline document viewer. Only binds when the viewer is
   // open to avoid a global listener in steady state.

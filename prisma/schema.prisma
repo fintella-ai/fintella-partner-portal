@@ -225,6 +225,7 @@ model Partner {
   widgetReferrals WidgetReferral[]
   tariffDossiers  TariffDossier[]
   subscription    Subscription?
+  serviceRates    PartnerServiceRate[]
 
   @@index([email])
   @@index([referredByPartnerCode])
@@ -432,6 +433,9 @@ model CommissionLedger {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  serviceId     String?
+  service       Service?  @relation(fields: [serviceId], references: [id])
+
   batch PayoutBatch? @relation(fields: [batchId], references: [id])
 
   // Belt-and-suspenders: only one ledger row per (deal, partner, tier). Prevents
@@ -473,6 +477,8 @@ model TrainingModule {
   duration      String?  // e.g., "12 min", "18 min"
   sortOrder   Int      @default(0)
   published   Boolean  @default(true)
+  serviceId   String?
+  service     Service?  @relation(fields: [serviceId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -978,10 +984,15 @@ model Deal {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
+  serviceId             String?
+  service               Service?  @relation(fields: [serviceId], references: [id])
+  serviceFields         Json?
+
   tariffDossiers  TariffDossier[]
 
   @@index([partnerCode])
   @@index([stage])
+  @@index([serviceId])
 }
 
 // ─── ENTERPRISE PARTNERS ────────────────────────────────────────────────────
@@ -3083,4 +3094,48 @@ model CommsGraphSummary {
   computedAt            DateTime?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+// ─── SERVICE REGISTRY ────────────────────────────────────────────────────────
+model Service {
+  id                    String   @id @default(cuid())
+  slug                  String   @unique
+  name                  String
+  shortName             String?
+  description           String?
+  active                Boolean  @default(true)
+  defaultCommissionRate Float    @default(0.25)
+  l2RateMultiplier      Float    @default(0.50)
+  l3RateMultiplier      Float    @default(0.50)
+  firmFeeRate           Float?
+  formFieldsConfig      Json?
+  fulfillmentType       String   @default("external")
+  webhookUrl            String?
+  webhookHeaders        Json?
+  landingPageSlug       String?
+  landingPageContent    Json?
+  stages                Json?
+  accentColor           String?
+  iconEmoji             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  deals                 Deal[]
+  trainingModules       TrainingModule[]
+  partnerRates          PartnerServiceRate[]
+  commissionEntries     CommissionLedger[]
+}
+
+model PartnerServiceRate {
+  id             String   @id @default(cuid())
+  partnerCode    String
+  serviceId      String
+  commissionRate Float
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  partner        Partner  @relation(fields: [partnerCode], references: [partnerCode])
+  service        Service  @relation(fields: [serviceId], references: [id])
+
+  @@unique([partnerCode, serviceId])
 }

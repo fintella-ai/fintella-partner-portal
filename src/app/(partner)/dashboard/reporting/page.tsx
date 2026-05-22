@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
+import { useService } from "@/contexts/ServiceContext";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import LevelTag from "@/components/ui/LevelTag";
@@ -23,6 +24,7 @@ export default function PartnerReportingPage() {
   const { data: session } = useSession();
   const device = useDevice();
   const router = useRouter();
+  const { activeServiceId } = useService();
   const user = session?.user as any;
 
   const [directDeals, setDirectDeals] = useState<any[]>([]);
@@ -130,9 +132,10 @@ export default function PartnerReportingPage() {
 
   const loadData = useCallback(async () => {
     try {
+      const serviceParam = activeServiceId ? `?serviceId=${activeServiceId}` : "";
       const [dealsRes, commRes, epRes] = await Promise.all([
-        fetch("/api/deals"),
-        fetch("/api/commissions"),
+        fetch(`/api/deals${serviceParam}`),
+        fetch(`/api/commissions${serviceParam}`),
         fetch("/api/partner/enterprise"),
       ]);
       if (dealsRes.ok) {
@@ -157,7 +160,7 @@ export default function PartnerReportingPage() {
       }
     } catch {}
     setLoading(false);
-  }, []);
+  }, [activeServiceId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

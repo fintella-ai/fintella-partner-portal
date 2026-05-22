@@ -40,6 +40,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Optional serviceId filter from query params
+    const serviceId = req.nextUrl.searchParams.get("serviceId");
+    const serviceFilter = serviceId ? { serviceId } : {};
+
     // Fetch partner's commission tier and rate — these drive the waterfall
     const partner = await prisma.partner.findUnique({
       where: { partnerCode },
@@ -48,7 +52,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch commission ledger entries
     const ledger = await prisma.commissionLedger.findMany({
-      where: { partnerCode },
+      where: { partnerCode, ...serviceFilter },
       orderBy: { createdAt: "desc" },
       take: 50,
     });

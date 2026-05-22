@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
 import { FIRM_SHORT } from "@/lib/constants";
+import { useService } from "@/contexts/ServiceContext";
 
 const BASE_REFERRAL_URL = "https://referral.frostlawaz.com/l/ANNEXATIONPR/";
 
@@ -12,11 +13,28 @@ export default function SubmitClientPage() {
   const { data: session } = useSession();
   const device = useDevice();
   const router = useRouter();
+  const { activeService } = useService();
   const user = session?.user as any;
   const partnerCode = user?.partnerCode || "DEMO";
   const partnerName = user?.name || "Partner";
   const [agreementSigned, setAgreementSigned] = useState<boolean | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
+  const [serviceFormFields, setServiceFormFields] = useState<any[] | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (activeService && activeService.slug !== "tariff-refund") {
+      fetch(`/api/services`)
+        .then((r) => r.json())
+        .then((data) => {
+          const svc = (data.services || []).find((s: any) => s.id === activeService.id);
+          setServiceFormFields(svc?.formFieldsConfig || null);
+        })
+        .catch(() => {});
+    }
+  }, [activeService]);
 
   useEffect(() => {
     fetch("/api/agreement")
@@ -95,6 +113,11 @@ export default function SubmitClientPage() {
         </div>
       </div>
     );
+  }
+
+  // Non-tariff services: native form instead of Frost Law iframe
+  if (activeService && activeService.slug !== "tariff-refund") {
+    return renderServiceForm();
   }
 
   return (
@@ -179,4 +202,127 @@ export default function SubmitClientPage() {
       </div>
     </div>
   );
+
+  async function handleServiceSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmitError("");
+    const fd = new FormData(e.currentTarget);
+    const body: Record<string, any> = {};
+    fd.forEach((v, k) => { body[k] = v; });
+    body.serviceSlug = activeService?.slug;
+    body.utm_content = partnerCode;
+    body.dealName = `${body.firstName || ""} ${body.lastName || ""} — ${activeService?.name || ""}`.trim();
+    try {
+      const res = await fetch("/api/webhook/referral", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Submission failed (${res.status})`);
+      }
+      setSubmitted(true);
+    } catch (err: any) {
+      setSubmitError(err.message || "Submission failed");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function renderServiceForm() {
+    if (!activeService) return null;
+    if (submitted) {
+      return (
+        <div>
+          <h2 className={`font-display ${device.isMobile ? "text-lg" : "text-[22px]"} font-bold mb-1.5`}>
+            Client Submitted
+          </h2>
+          <div className="card p-8 text-center">
+            <div className="mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: `${activeService.accentColor || "#10b981"}20` }}>
+              <span className="text-3xl">✓</span>
+            </div>
+            <h3 className="font-display text-lg font-bold mb-2">Thank you!</h3>
+            <p className="font-body text-sm text-[var(--app-text-secondary)] mb-6">
+              Your client has been submitted for {activeService.name}. Our team will follow up within 24 hours.
+            </p>
+            <button onClick={() => { setSubmitted(false); setSubmitError(""); }} className="btn-gold">
+              Submit Another Client
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <h2 className={`font-display ${device.isMobile ? "text-lg" : "text-[22px]"} font-bold mb-1.5`}>
+          Submit a Client — {activeService.name}
+        </h2>
+        <p className="font-body text-[13px] text-[var(--app-text-muted)] mb-4">
+          Fill out the form below to submit a client for {activeService.name}. This submission is tracked to your partner account.
+        </p>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 card px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${activeService.accentColor || "#10b981"}20`, border: `1px solid ${activeService.accentColor || "#10b981"}40` }}>
+              <span className="font-body text-[11px] font-bold" style={{ color: activeService.accentColor || "#10b981" }}>
+                {partnerName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+              </span>
+            </div>
+            <div>
+              <div className="font-body text-[13px] text-[var(--app-text)] font-medium">{partnerName}</div>
+              <div className="font-mono text-[11px] text-[var(--app-text-muted)]">{partnerCode}</div>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium" style={{ backgroundColor: `${activeService.accentColor || "#10b981"}20`, color: activeService.accentColor || "#10b981" }}>
+            {activeService.shortName || activeService.name}
+          </span>
+        </div>
+
+        <form onSubmit={handleServiceSubmit} className="card p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input name="firstName" placeholder="First Name *" required className="w-full px-3 py-2.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-sm font-body" />
+            <input name="lastName" placeholder="Last Name *" required className="w-full px-3 py-2.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-sm font-body" />
+          </div>
+          <input name="email" type="email" placeholder="Email *" required className="w-full px-3 py-2.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-sm font-body" />
+          <input name="phone" type="tel" placeholder="Phone" className="w-full px-3 py-2.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-sm font-body" />
+          <input name="legalEntityName" placeholder="Company / Legal Entity *" required className="w-full px-3 py-2.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-sm font-body" />
+          <input name="companyEin" placeholder="EIN (optional)" className="w-full px-3 py-2.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-sm font-body" />
+
+          {Array.isArray(serviceFormFields) && serviceFormFields.map((f: any) => (
+            <div key={f.key}>
+              {f.type === "select" && f.options ? (
+                <select name={f.key} required={f.required} className="w-full px-3 py-2.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-sm font-body">
+                  <option value="">{f.label}{f.required ? " *" : ""}</option>
+                  {f.options.map((o: string) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : f.type === "textarea" ? (
+                <textarea name={f.key} placeholder={`${f.label}${f.required ? " *" : ""}`} required={f.required} rows={3} className="w-full px-3 py-2.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-sm font-body" />
+              ) : (
+                <input name={f.key} placeholder={`${f.label}${f.required ? " *" : ""}`} required={f.required} className="w-full px-3 py-2.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-sm font-body" />
+              )}
+            </div>
+          ))}
+
+          <textarea name="affiliateNotes" placeholder="Additional Notes (optional)" rows={2} className="w-full px-3 py-2.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-sm font-body" />
+
+          {submitError && (
+            <div className="text-red-400 text-sm font-body">{submitError}</div>
+          )}
+
+          <button type="submit" disabled={submitting} className="btn-gold w-full" style={activeService.accentColor ? { backgroundColor: activeService.accentColor, borderColor: activeService.accentColor } : {}}>
+            {submitting ? "Submitting..." : `Submit Client for ${activeService.shortName || activeService.name}`}
+          </button>
+        </form>
+
+        <div className="mt-4 font-body text-[11px] text-[var(--app-text-faint)] text-center leading-relaxed">
+          All submissions are tracked to your partner account ({partnerCode}).
+          <br />
+          Contact {FIRM_SHORT} support with any questions.
+        </div>
+      </div>
+    );
+  }
 }

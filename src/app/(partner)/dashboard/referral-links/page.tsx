@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
 import { FIRM_SHORT, SUPPORT_EMAIL } from "@/lib/constants";
 import { markGettingStartedLinkShared } from "@/lib/markGettingStarted";
+import { useService } from "@/contexts/ServiceContext";
 
 interface Invite {
   id: string;
@@ -25,6 +26,7 @@ export default function ReferralLinksPage() {
   const { data: session } = useSession();
   const device = useDevice();
   const router = useRouter();
+  const { services } = useService();
   const partnerCode = (session?.user as any)?.partnerCode || "DEMO";
 
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -445,6 +447,40 @@ export default function ReferralLinksPage() {
       {partnerTier === "l3" && (
         <div className="card p-5 mb-6 text-center">
           <div className="font-body text-[13px] text-[var(--app-text-muted)]">Partner recruitment is not available for L3 partners.</div>
+        </div>
+      )}
+
+      {/* Service Referral Links */}
+      {services.length > 0 && (
+        <div className="card mb-6">
+          <div className="px-4 sm:px-6 py-4 border-b border-[var(--app-border)]">
+            <div className="font-body font-semibold text-[15px]">Service Referral Links</div>
+            <div className="font-body text-[12px] text-[var(--app-text-muted)]">Share per-service referral URLs with potential clients.</div>
+          </div>
+          <div className="p-4 sm:p-6 grid gap-3">
+            {services.map((s) => (
+              <div key={s.id} className="p-4 bg-white/5 rounded-lg border border-[var(--app-border)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.accentColor || "#666" }} />
+                  <span className="font-medium text-sm text-[var(--app-text)]">{s.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="font-mono text-[11px] text-[var(--app-text-muted)] flex-1 truncate">
+                    {`${baseUrl}/recover/${s.slug}?ref=${partnerCode}`}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${baseUrl}/recover/${s.slug}?ref=${partnerCode}`);
+                    }}
+                    className="font-body text-[11px] px-3 py-1.5 rounded-lg border border-brand-gold/20 text-brand-gold/70 hover:bg-brand-gold/10 transition-colors whitespace-nowrap"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

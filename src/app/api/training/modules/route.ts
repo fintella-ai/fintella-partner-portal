@@ -22,9 +22,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Optional serviceId filter from query params
+    const serviceId = req.nextUrl.searchParams.get("serviceId");
+    const serviceFilter = serviceId ? { serviceId } : {};
+
     // Fetch all published modules ordered by sortOrder
     const modules = await prisma.trainingModule.findMany({
-      where: { published: true },
+      where: { published: true, ...serviceFilter },
       orderBy: { sortOrder: "asc" },
     });
 

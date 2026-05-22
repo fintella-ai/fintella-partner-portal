@@ -32,7 +32,7 @@ const ADMIN_NAV_IDS_DEFAULT = [
   "training", "conference", "documents",
   "campaigns", "campaignReplies", "automations", "gettingStartedEditor", "knowledgeCenter", "tariff-engine", "aiActivity", "aiPermissions", "landingPages",
   "brokerFunnel",
-  "subscriptions", "billing", "settings", "users", "dev", "features",
+  "services", "subscriptions", "billing", "settings", "users", "dev", "features",
 ];
 
 // Built-in icon overrides — wins over the default emoji, loses to an
@@ -105,6 +105,7 @@ const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
   aiPermissions: { id: "aiPermissions", href: "/admin/ai-permissions", icon: "🛡️", label: "AI Permissions" },
   knowledgeCenter: { id: "knowledgeCenter", href: "/admin/knowledge-center", icon: "🧠", label: "Knowledge Center" },
   "tariff-engine": { id: "tariff-engine", href: "/admin/tariff-engine", icon: "🧮", label: "Tariff Engine" },
+  services:     { id: "services", href: "/admin/services", icon: "⚙️", label: "Services" },
   settings:     { id: "settings", href: "/admin/settings", icon: "⚙️", label: "Settings" },
   subscriptions: { id: "subscriptions", href: "/admin/subscriptions", icon: "💎", label: "Subscriptions" },
   billing:      { id: "billing", href: "/admin/expenses", icon: "💳", label: "Billing & Expenses" },
