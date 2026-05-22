@@ -16,6 +16,10 @@ export async function GET(req: NextRequest) {
   if (!partnerCode) return NextResponse.json({ error: "Not a partner" }, { status: 403 });
 
   try {
+    // Optional serviceId filter from query params
+    const serviceId = req.nextUrl.searchParams.get("serviceId");
+    const serviceFilter = serviceId ? { serviceId } : {};
+
     // The current partner — we need their commissionRate + tier to render
     // the Commission % column on the deals table (the partner is the L1 on
     // their own direct deals, so their own rate is what they earn). Also
@@ -27,8 +31,9 @@ export async function GET(req: NextRequest) {
 
     // Direct deals
     const directDeals = await prisma.deal.findMany({
-      where: { partnerCode },
+      where: { partnerCode, ...serviceFilter },
       orderBy: { createdAt: "desc" },
+      include: { service: { select: { id: true, shortName: true, name: true, accentColor: true } } },
     });
 
     // Downline partners
@@ -41,8 +46,9 @@ export async function GET(req: NextRequest) {
     const downlineCodes = downlinePartners.map((p) => p.partnerCode);
     const downlineDeals = downlineCodes.length > 0
       ? await prisma.deal.findMany({
-          where: { partnerCode: { in: downlineCodes } },
+          where: { partnerCode: { in: downlineCodes }, ...serviceFilter },
           orderBy: { createdAt: "desc" },
+          include: { service: { select: { id: true, shortName: true, name: true, accentColor: true } } },
         })
       : [];
 

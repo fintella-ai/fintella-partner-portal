@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
+import { useService } from "@/contexts/ServiceContext";
 import Link from "next/link";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -75,6 +76,7 @@ function MessageButton({ counterpartyCode, size = "sm" }: { counterpartyCode: st
 export default function DownlinePage() {
   const device = useDevice();
   const { data: session } = useSession();
+  const { activeServiceId } = useService();
   const [partners, setPartners] = useState<any[]>([]);
   const [l3Partners, setL3Partners] = useState<any[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
@@ -85,7 +87,7 @@ export default function DownlinePage() {
 
   const loadData = useCallback(async () => {
     try {
-      const res = await fetch("/api/deals");
+      const res = await fetch(`/api/deals${activeServiceId ? `?serviceId=${activeServiceId}` : ""}`);
       if (res.ok) {
         const data = await res.json();
         setPartners(data.downlinePartners || []);
@@ -94,7 +96,7 @@ export default function DownlinePage() {
       }
     } catch {}
     setLoading(false);
-  }, []);
+  }, [activeServiceId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

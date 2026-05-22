@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
+import { useService } from "@/contexts/ServiceContext";
 import StageBadge from "@/components/ui/StageBadge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { SkeletonTableRow } from "@/components/ui/Skeleton";
@@ -16,6 +17,7 @@ import ScrollableRow from "@/components/ui/ScrollableRow";
 export default function DealsPage() {
   const device = useDevice();
   const router = useRouter();
+  const { activeServiceId } = useService();
   const [deals, setDeals] = useState<any[]>([]);
   const [downlineDeals, setDownlineDeals] = useState<any[]>([]);
   const [me, setMe] = useState<{ commissionRate: number; tier: string } | null>(null);
@@ -39,7 +41,7 @@ export default function DealsPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const res = await fetch("/api/deals");
+      const res = await fetch(`/api/deals${activeServiceId ? `?serviceId=${activeServiceId}` : ""}`);
       if (res.ok) {
         const data = await res.json();
         setDeals(data.directDeals || []);
@@ -48,7 +50,7 @@ export default function DealsPage() {
       }
     } catch {}
     setLoading(false);
-  }, []);
+  }, [activeServiceId]);
 
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { setDirectPage(1); }, [directStageFilter]);
