@@ -14,6 +14,8 @@ import EditLayoutButton from "@/components/admin/EditLayoutButton";
 import EditableText from "@/components/ui/EditableText";
 import ChannelChatWidget from "@/components/partner/ChannelChatWidget";
 import UnifiedChatWidget from "@/components/partner/UnifiedChatWidget";
+import { ServiceProvider } from "@/contexts/ServiceContext";
+import ServiceSwitcher from "@/components/ui/ServiceSwitcher";
 
 // ─── NAV STRUCTURE ───────────────────────────────────────────────────────────
 // Main nav items (top section of sidebar)
@@ -531,6 +533,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       )}
 
+      {/* Service switcher — above nav items */}
+      <ServiceSwitcher />
+
       {/* Main Nav */}
       <div className="flex flex-col gap-0.5">
         {(() => {
@@ -660,6 +665,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
+    <ServiceProvider>
     <EditLayoutProvider>
     <div className="flex flex-col min-h-screen">
       {/* ── PWA INSTALL PROMPT ── */}
@@ -968,5 +974,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <EditLayoutButton />
     </div>
     </EditLayoutProvider>
+    </ServiceProvider>
   );
 }
