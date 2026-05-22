@@ -788,7 +788,7 @@ async function postHandler(req: NextRequest): Promise<Response> {
           l1CommissionRate: l1RateSnapshot,
           idempotencyKey: idempotencyKey || null,
           serviceId,
-          serviceFields: service?.formFieldsConfig ? extractServiceFields(body, service.formFieldsConfig) : null,
+          serviceFields: (service?.formFieldsConfig ? extractServiceFields(body, service.formFieldsConfig) : undefined) || undefined,
           notes: `Source: Referral Form | Partner: ${partnerCode || "none"}${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
         },
       });
