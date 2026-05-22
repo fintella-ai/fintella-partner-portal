@@ -6,6 +6,8 @@ import { resolveDealFinancials } from "@/lib/dealCalc";
 import { sendDealStatusUpdateEmail } from "@/lib/sendgrid";
 import { appendDealPayload } from "@/lib/appendDealPayload";
 import { normalizeStateName } from "@/lib/stateNames";
+import { getServiceBySlug, getCommissionRateForPartner } from "@/lib/services";
+import { routeToFulfillment } from "@/lib/fulfillment";
 
 /**
  * ═════════════════════════════════════════════════════════════════════════════
@@ -369,6 +371,16 @@ function makeFieldResolver(
   };
 }
 
+function extractServiceFields(body: Record<string, any>, config: any): Record<string, any> | null {
+  if (!Array.isArray(config)) return null;
+  const fields: Record<string, any> = {};
+  for (const f of config) {
+    const val = body[f.key] ?? body[f.key.replace(/([A-Z])/g, "_$1").toLowerCase()] ?? null;
+    if (val !== null && val !== undefined) fields[f.key] = val;
+  }
+  return Object.keys(fields).length > 0 ? fields : null;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // POST — create a new deal
 // ═══════════════════════════════════════════════════════════════════════════
@@ -428,6 +440,15 @@ async function postHandler(req: NextRequest): Promise<Response> {
         );
       }
     }
+
+    // ── Service resolution ──────────────────────────────────────────────
+    const serviceSlug = typeof body.serviceSlug === "string" ? body.serviceSlug.trim()
+      : typeof body.service_slug === "string" ? body.service_slug.trim()
+      : null;
+    const service = serviceSlug
+      ? await getServiceBySlug(serviceSlug)
+      : await getServiceBySlug("tariff-refund");
+    const serviceId = service?.id || null;
 
     const get = makeFieldResolver(body, req.nextUrl.searchParams);
 
@@ -766,6 +787,8 @@ async function postHandler(req: NextRequest): Promise<Response> {
           consultBookedTime: consultBookedTime || null,
           l1CommissionRate: l1RateSnapshot,
           idempotencyKey: idempotencyKey || null,
+          serviceId,
+          serviceFields: service?.formFieldsConfig ? extractServiceFields(body, service.formFieldsConfig) : null,
           notes: `Source: Referral Form | Partner: ${partnerCode || "none"}${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
         },
       });
@@ -779,6 +802,18 @@ async function postHandler(req: NextRequest): Promise<Response> {
     import("@/lib/workflow-engine").then(({ fireWorkflowTrigger }) =>
       fireWorkflowTrigger("deal.created", { deal })
     ).catch(() => {});
+
+    if (service) {
+      const partner = partnerCode && partnerCode !== "UNATTRIBUTED"
+        ? await prisma.partner.findFirst({ where: { partnerCode }, select: { firstName: true, lastName: true, email: true } }).catch(() => null)
+        : null;
+      routeToFulfillment(service as any, {
+        event: "deal.created",
+        deal: { id: deal.id, dealName: deal.dealName, stage: deal.stage, clientEmail: deal.clientEmail },
+        partner: { partnerCode, firstName: partner?.firstName || "", lastName: partner?.lastName || "", email: partner?.email || "" },
+        service: { slug: service.slug, name: service.name },
+      }).catch((err) => console.error("[webhook/referral] fulfillment error:", err));
+    }
 
     // Notify partner (if attributed)
     if (partnerCode && partnerCode !== "UNATTRIBUTED") {
@@ -1327,6 +1362,7 @@ async function patchHandler(req: NextRequest): Promise<Response> {
               dealName: d.dealName,
               tier: entry.tier,
               amount: entry.amount,
+              serviceId: deal.serviceId,
               // Closed-won transition: firm hasn't paid Fintella yet, so
               // status is "pending_payment". Flips to "due" once
               // paymentReceivedAt is stamped on the deal.
@@ -1511,6 +1547,7 @@ async function patchHandler(req: NextRequest): Promise<Response> {
                   dealName: deal.dealName,
                   tier: entry.tier,
                   amount: entry.amount,
+                  serviceId: deal.serviceId,
                   status: "projected",
                   periodMonth: new Date().toISOString().slice(0, 7),
                 },
