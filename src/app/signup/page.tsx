@@ -169,7 +169,7 @@ function SignupContent() {
                   This is the partner registration form for the Fintella Partner Portal. Account creation requires a unique invitation link sent by a Fintella administrator or existing partner (invite-only by policy).
                 </div>
                 <div className="font-body text-[12px] text-[var(--app-text-muted)] leading-relaxed mb-2" style={{ borderTop: "1px solid rgba(196,160,80,0.2)", paddingTop: 12 }}>
-                  <strong>SMS Opt-In Flow:</strong> Partners may provide explicit, optional SMS opt-in via the checkbox below during registration at https://fintella.partners/signup. SMS consent is NOT required to create an account. Program name: &quot;Fintella Partner Notifications.&quot; Message frequency varies based on deal activity. Message and data rates may apply. Reply <strong>STOP</strong> to cancel at any time; reply <strong>HELP</strong> for help. SMS opt-in consent is not shared with third parties for marketing purposes.
+                  <strong>SMS Opt-In Flow:</strong> SMS consent is collected via a separate, clearly labeled &quot;Optional&quot; checkbox. It is NOT required to create an account, use the portal, or complete any transaction. The SMS checkbox is visually separated from required account fields. Program name: &quot;Fintella Partner Notifications.&quot; Message frequency varies based on deal activity. Msg &amp; data rates may apply. Reply <strong>STOP</strong> to cancel at any time; reply <strong>HELP</strong> for help. SMS consent is not shared with third parties for marketing purposes.
                 </div>
                 <div className="font-body text-[12px] text-[var(--app-text-muted)] leading-relaxed">
                   <a href="/privacy" className="text-brand-gold underline">Privacy Policy</a>{" · "}
@@ -265,10 +265,10 @@ function SignupContent() {
                   </div>
                 </div>
 
-                {/* Communications opt-in (required) */}
+                {/* Email communications (required for account operation) */}
                 <div className="mb-4 p-4 rounded-lg" style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-border)" }}>
-                  <div className="font-body text-[12px] font-semibold theme-text-secondary mb-3">Communications Consent <span className="text-red-400">*</span></div>
-                  <label className="flex items-start gap-3 mb-3 cursor-pointer">
+                  <div className="font-body text-[12px] font-semibold theme-text-secondary mb-3">Email Communications <span className="text-red-400">*</span></div>
+                  <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={emailOptIn}
@@ -279,6 +279,11 @@ function SignupContent() {
                       I agree to receive email communications about my account activity, deal status updates, commission statements, and important program announcements. I can unsubscribe at any time via the link in any email or by contacting support.
                     </span>
                   </label>
+                </div>
+
+                {/* SMS notifications — completely separate, clearly optional */}
+                <div className="mb-4 p-4 rounded-lg" style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-border)" }}>
+                  <div className="font-body text-[12px] font-semibold theme-text-secondary mb-3">SMS Notifications <span className="font-normal theme-text-muted">(Optional — not required to register)</span></div>
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -287,9 +292,10 @@ function SignupContent() {
                       className="mt-0.5 w-4 h-4 rounded border-brand-gold/30 bg-transparent text-brand-gold focus:ring-brand-gold/50 cursor-pointer shrink-0"
                     />
                     <span className="font-body text-[12px] theme-text-secondary leading-relaxed">
-                      <span className="font-semibold">(Optional)</span> I agree to receive SMS notifications from Fintella Partner Notifications about my account activity, deal status updates, and commission payment alerts. Message frequency varies. Message and data rates may apply. Reply STOP to cancel, HELP for help. SMS consent is not required to register. See our{" "}
-                      <a href="/privacy" className="text-brand-gold underline" target="_blank">Privacy Policy</a>{" "}and{" "}
-                      <a href="/terms" className="text-brand-gold underline" target="_blank">Terms &amp; Conditions</a>.
+                      I would like to receive SMS notifications from Fintella Partner Notifications about my account activity, deal status updates, and commission payment alerts. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to cancel, HELP for help. You can register and use the platform without enabling SMS.{" "}
+                      <a href="/privacy" className="text-brand-gold underline" target="_blank">Privacy Policy</a>{" · "}
+                      <a href="/terms" className="text-brand-gold underline" target="_blank">Terms</a>{" · "}
+                      <a href="/sms-terms" className="text-brand-gold underline" target="_blank">SMS Terms</a>
                     </span>
                   </label>
                 </div>
