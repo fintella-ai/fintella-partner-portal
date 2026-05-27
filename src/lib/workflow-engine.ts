@@ -361,7 +361,8 @@ export interface WorkflowAction {
 // ─── Condition evaluation ─────────────────────────────────────────────────────
 
 function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-  return path.split(".").reduce<unknown>((cur, key) => {
+  const cleaned = path.replace(/^\{|\}$/g, "").trim();
+  return cleaned.split(".").reduce<unknown>((cur, key) => {
     if (cur != null && typeof cur === "object") {
       return (cur as Record<string, unknown>)[key];
     }
@@ -370,8 +371,7 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 }
 
 function evaluateCondition(condition: WorkflowCondition, payload: Record<string, unknown>): boolean {
-  const field = condition.field.replace(/^\{|\}$/g, "");
-  const actual = getNestedValue(payload, field);
+  const actual = getNestedValue(payload, condition.field);
   switch (condition.op) {
     case "eq":         return String(actual) === String(condition.value);
     case "neq":        return String(actual) !== String(condition.value);
