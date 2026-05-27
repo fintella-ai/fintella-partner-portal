@@ -23,6 +23,7 @@ export default function DealsPage() {
   const [me, setMe] = useState<{ commissionRate: number; tier: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [dealsTab, setDealsTab] = useState<"my-deals" | "downline">("my-deals");
+  const [serviceFilter, setServiceFilter] = useState("all");
   // Stage filters
   const [directStageFilter, setDirectStageFilter] = useState("all");
   const [downlineStageFilter, setDownlineStageFilter] = useState("all");
@@ -56,9 +57,11 @@ export default function DealsPage() {
   useEffect(() => { setDirectPage(1); }, [directStageFilter]);
   useEffect(() => { setDownlinePage(1); }, [downlineStageFilter]);
 
-  // Filtered + paginated slices
-  const filteredDirectDeals = directStageFilter === "all" ? deals : deals.filter((d) => d.stage === directStageFilter);
-  const filteredDownlineDeals = downlineStageFilter === "all" ? downlineDeals : downlineDeals.filter((d) => d.stage === downlineStageFilter);
+  // Service + stage filtered
+  const svcDirectDeals = serviceFilter === "all" ? deals : deals.filter((d: any) => (d.serviceOfInterest || "Tariff Refund Support") === serviceFilter);
+  const svcDownlineDeals = serviceFilter === "all" ? downlineDeals : downlineDeals.filter((d: any) => (d.serviceOfInterest || "Tariff Refund Support") === serviceFilter);
+  const filteredDirectDeals = directStageFilter === "all" ? svcDirectDeals : svcDirectDeals.filter((d) => d.stage === directStageFilter);
+  const filteredDownlineDeals = downlineStageFilter === "all" ? svcDownlineDeals : svcDownlineDeals.filter((d) => d.stage === downlineStageFilter);
   const paginatedDirectDeals = filteredDirectDeals.slice((directPage - 1) * directPageSize, directPage * directPageSize);
   const paginatedDownlineDeals = filteredDownlineDeals.slice((downlinePage - 1) * downlinePageSize, downlinePage * downlinePageSize);
 
@@ -113,19 +116,51 @@ export default function DealsPage() {
         Your direct referrals and downline partner deals.
       </p>
 
+      {/* Service Switcher */}
+      <div className="flex gap-2 mb-4">
+        {[
+          { value: "all", label: "All Services", color: "#d4a017", icon: "📊" },
+          { value: "Tariff Refund Support", label: "Tariff Refund", color: "#d4a017", icon: "💰" },
+          { value: "Kwong Penalty Abatement (ERC)", label: "Penalty Abatement (ERC)", color: "#14b8a6", icon: "📋" },
+        ].map((svc) => {
+          const count = svc.value === "all" ? deals.length : deals.filter((d: any) => (d.serviceOfInterest || "Tariff Refund Support") === svc.value).length;
+          const active = serviceFilter === svc.value;
+          return (
+            <button
+              key={svc.value}
+              type="button"
+              onClick={() => { setServiceFilter(svc.value); setDirectStageFilter("all"); setDownlineStageFilter("all"); }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-body text-[13px] font-semibold transition-all border ${
+                active ? "border-transparent text-white" : "border-[var(--app-border)] bg-[var(--app-card-bg)] text-[var(--app-text-muted)] hover:border-[var(--app-text-faint)]"
+              }`}
+              style={active ? { background: svc.color, borderColor: svc.color } : {}}
+            >
+              <span>{svc.icon}</span>
+              <span className="hidden sm:inline">{svc.label}</span>
+              <span className="sm:hidden">{svc.icon}</span>
+              <span className={`text-[11px] px-1.5 py-0.5 rounded-full ${active ? "bg-white/20" : "bg-[var(--app-input-bg)]"}`}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Deal Pipeline */}
       {(() => {
-        const activeDealList = dealsTab === "my-deals" ? deals : downlineDeals;
+        const activeDealList = dealsTab === "my-deals" ? svcDirectDeals : svcDownlineDeals;
         const activeFilter = dealsTab === "my-deals" ? directStageFilter : downlineStageFilter;
         const setFilter = dealsTab === "my-deals" ? setDirectStageFilter : setDownlineStageFilter;
         const counts: Record<string, number> = {};
         for (const d of activeDealList) counts[d.stage] = (counts[d.stage] || 0) + 1;
+        const isKwongFilter = serviceFilter === "Kwong Penalty Abatement (ERC)";
+        const visibleStages = isKwongFilter ? KWONG_PIPELINE : serviceFilter !== "all" ? PIPELINE_STAGES : [...PIPELINE_STAGES, ...KWONG_PIPELINE.filter((s) => !PIPELINE_STAGES.includes(s))];
         return (
           <>
             <div className="card p-4 sm:p-5 mb-4">
-              <div className="font-body font-semibold text-[13px] mb-3">Deal Pipeline</div>
+              <div className="font-body font-semibold text-[13px] mb-3">
+                {isKwongFilter ? "Penalty Abatement Pipeline" : serviceFilter === "all" ? "Deal Pipeline" : "Tariff Refund Pipeline"}
+              </div>
               <div className="flex flex-wrap gap-2">
-                {PIPELINE_STAGES.map((s) => (
+                {visibleStages.map((s) => (
                   <button key={s} onClick={() => setFilter(activeFilter === s ? "all" : s)}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors border ${
                       activeFilter === s ? "bg-brand-gold/20 border-brand-gold/30" : "bg-[var(--app-card-bg)] border-[var(--app-border)] hover:bg-[var(--app-card-bg)]"
@@ -138,7 +173,7 @@ export default function DealsPage() {
             </div>
             <ScrollableRow className="mb-4 border-b border-[var(--app-border)]">
               <div className="flex gap-1 min-w-max">
-                {[{ value: "all", label: "All" }, ...PIPELINE_STAGES.map((s) => ({ value: s, label: (STAGE_LABELS[s]?.label || s) }))].map((s) => {
+                {[{ value: "all", label: "All" }, ...visibleStages.map((s) => ({ value: s, label: (STAGE_LABELS[s]?.label || s) }))].map((s) => {
                   const count = s.value === "all" ? activeDealList.length : (counts[s.value] || 0);
                   const active = activeFilter === s.value;
                   return (
