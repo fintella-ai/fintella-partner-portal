@@ -104,7 +104,7 @@ export const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   client_no_show: { label: "Meeting Missed", color: "#ef4444" },
   client_qualified: { label: "Qualified", color: "#06b6d4" },
   closedlost: { label: "Disqualified", color: "#ef4444" },
-  // Kwong Penalty Abatement pipeline stages
+  // Kwong Penalty Abatement (ERC) pipeline stages
   engaged: { label: "Engaged", color: "#3b82f6" },
   awaiting_poa: { label: "Awaiting POA", color: "#8b5cf6" },
   poa_declined: { label: "POA Declined", color: "#ef4444" },
@@ -129,7 +129,7 @@ export const KWONG_PIPELINE_STAGES = [
   "completed",
 ] as const;
 
-export const KWONG_SERVICE_NAME = "Kwong Penalty Abatement";
+export const KWONG_SERVICE_NAME = "Kwong Penalty Abatement (ERC)";
 
 // ─── COMMISSION STATUSES ─────────────────────────────────────────────────────
 // Lifecycle (updated 2026-04-23):

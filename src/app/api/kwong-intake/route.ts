@@ -14,11 +14,22 @@ export async function POST(req: NextRequest) {
       email,
       mobile_phone,
       business_phone,
+      // Individual path
       individual_legal_name,
       individual_address_street,
       individual_address_city,
       individual_address_state,
       individual_address_zip,
+      individual_ssn,
+      filing_status,
+      // Spouse / joint filer
+      spouse_legal_name,
+      spouse_address_street,
+      spouse_address_city,
+      spouse_address_state,
+      spouse_address_zip,
+      spouse_ssn,
+      // Business path
       business_legal_name,
       business_address_street,
       business_address_city,
@@ -39,14 +50,15 @@ export async function POST(req: NextRequest) {
 
     const isIndividual = filer_type === "Individual";
     const isBusiness = filer_type === "Business";
+    const isJoint = isIndividual && filing_status === "Filed jointly";
 
     const signerName = isIndividual
       ? individual_legal_name || "Client"
       : owner_name || business_legal_name || "Client";
 
     const dealName = isIndividual
-      ? `${individual_legal_name} — Penalty Abatement`
-      : `${business_legal_name || owner_name} — Penalty Abatement`;
+      ? `${individual_legal_name} — Penalty Abatement (ERC)`
+      : `${business_legal_name || owner_name} — Penalty Abatement (ERC)`;
 
     // Look up referring partner
     const partnerCode = ref || "";
@@ -63,7 +75,7 @@ export async function POST(req: NextRequest) {
     const state = isIndividual ? individual_address_state : isBusiness ? business_address_state : "";
     const zip = isIndividual ? individual_address_zip : isBusiness ? business_address_zip : "";
 
-    // Create a deal record
+    // Create a deal record — all form fields mapped to Deal columns + serviceFields JSON
     const deal = await prisma.deal.create({
       data: {
         dealName,
@@ -72,18 +84,37 @@ export async function POST(req: NextRequest) {
         clientPhone: mobile_phone || business_phone || null,
         clientTitle: isBusiness ? signer_title : null,
         partnerCode: partner?.partnerCode || partnerCode || "DIRECT",
-        serviceOfInterest: "Kwong Penalty Abatement",
+        serviceOfInterest: "Kwong Penalty Abatement (ERC)",
         legalEntityName: isBusiness ? business_legal_name : individual_legal_name || null,
         companyEin: isBusiness ? business_ein : null,
         businessStreetAddress: street || null,
         businessCity: city || null,
         businessState: state || null,
         businessZip: zip || null,
-        stage: "new_lead",
+        stage: "lead_submitted",
+        affiliateNotes: partner ? `Referred by partner ${partner.partnerCode}` : null,
         serviceFields: {
           filer_type,
-          entity_type: entity_type || null,
-          signer_title: signer_title || null,
+          filing_status: isIndividual ? filing_status || null : null,
+          // Individual
+          individual_legal_name: isIndividual ? individual_legal_name : null,
+          individual_address: isIndividual ? [individual_address_street, individual_address_city, individual_address_state, individual_address_zip].filter(Boolean).join(", ") : null,
+          individual_ssn: isIndividual ? individual_ssn : null,
+          // Spouse (joint filers)
+          spouse_legal_name: isJoint ? spouse_legal_name : null,
+          spouse_address: isJoint ? [spouse_address_street, spouse_address_city, spouse_address_state, spouse_address_zip].filter(Boolean).join(", ") : null,
+          spouse_ssn: isJoint ? spouse_ssn : null,
+          // Business
+          business_legal_name: isBusiness ? business_legal_name : null,
+          business_address: isBusiness ? [business_address_street, business_address_city, business_address_state, business_address_zip].filter(Boolean).join(", ") : null,
+          business_ein: isBusiness ? business_ein : null,
+          owner_name: isBusiness ? owner_name : null,
+          entity_type: isBusiness ? entity_type : null,
+          signer_title: isBusiness ? signer_title : null,
+          // Contact
+          mobile_phone: mobile_phone || null,
+          business_phone: business_phone || null,
+          // Full raw intake payload (backup)
           intake_data: body,
         },
       },
@@ -113,9 +144,9 @@ export async function POST(req: NextRequest) {
       // Use defaults
     }
 
-    // Send via SignWell — embedded_signing: true returns URLs, opened in new tab (never iframe)
+    // Send via SignWell — client is auto-redirected to signing URL after form submit
     const swResult = await sendForSigning({
-      name: `Penalty Abatement Agreement — ${signerName}`,
+      name: `Penalty Abatement (ERC) Agreement — ${signerName}`,
       subject: "Fintella Data Sharing Agreement — Please Sign",
       message:
         "Please review and sign the attached Data Sharing Agreement to complete your intake process.",
@@ -145,6 +176,7 @@ export async function POST(req: NextRequest) {
           serviceFields: {
             ...(deal.serviceFields as any),
             signwellDocumentId: swResult.documentId,
+            signwellStatus: "pending",
           },
         },
       });

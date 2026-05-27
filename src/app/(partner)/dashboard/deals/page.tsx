@@ -338,7 +338,7 @@ const KWONG_PIPELINE = [
 
 /* ── Deal Detail Component (read-only) ── */
 function DealDetail({ deal, onSupport }: { deal: any; onSupport: () => void }) {
-  const isKwong = deal.serviceOfInterest === "Kwong Penalty Abatement";
+  const isKwong = deal.serviceOfInterest === "Kwong Penalty Abatement (ERC)";
   const stages = isKwong ? KWONG_PIPELINE : PIPELINE_STAGES;
   const currentIdx = stages.indexOf(deal.stage);
   const isClosed = deal.stage === "closedwon" || deal.stage === "disqualified" || deal.stage === "closedlost" || deal.stage === "completed" || deal.stage === "denied";
@@ -412,7 +412,7 @@ function DealDetail({ deal, onSupport }: { deal: any; onSupport: () => void }) {
         </div>
       </div>
 
-      {/* Kwong Penalty Abatement Intake Details (read-only for partners) */}
+      {/* Kwong Penalty Abatement (ERC) Intake Details (read-only for partners) */}
       {isKwong && deal.serviceFields && (() => {
         const sf = deal.serviceFields as any;
         const intake = sf?.intake_data || sf || {};
@@ -443,7 +443,7 @@ function DealDetail({ deal, onSupport }: { deal: any; onSupport: () => void }) {
         }
         return kwongFields.filter((f) => f.value).length > 0 ? (
           <div className="mb-4">
-            <div className="font-body text-[11px] text-teal-400 uppercase tracking-wider mb-3">Penalty Abatement Details</div>
+            <div className="font-body text-[11px] text-teal-400 uppercase tracking-wider mb-3">Penalty Abatement (ERC) Details</div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2.5">
               {kwongFields.filter((f) => f.value).map((f) => (
                 <div key={f.label}>

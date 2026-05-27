@@ -17,7 +17,7 @@ const SERVICES = [
   },
   {
     slug: "kwong",
-    name: "Penalty Abatement",
+    name: "Penalty Abatement (ERC)",
     description: "Submit a client for IRS Form 843 penalty abatement services.",
     color: "#14b8a6",
     icon: (

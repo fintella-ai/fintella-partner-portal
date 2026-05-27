@@ -55,7 +55,7 @@ export default function KwongSubmitPage() {
     return (
       <div>
         <h2 className={`font-display ${device.isMobile ? "text-lg" : "text-[22px]"} font-bold mb-1.5`}>
-          Submit a Client — Penalty Abatement
+          Submit a Client — Penalty Abatement (ERC)
         </h2>
         <div className={`card ${device.cardPadding} ${device.borderRadius} border border-yellow-500/25`}>
           <div className="text-center py-6">
@@ -80,7 +80,7 @@ export default function KwongSubmitPage() {
   return (
     <div>
       <h2 className={`font-display ${device.isMobile ? "text-lg" : "text-[22px]"} font-bold mb-1.5`}>
-        Submit a Client — Penalty Abatement
+        Submit a Client — Penalty Abatement (ERC)
       </h2>
       <p className="font-body text-[13px] text-[var(--app-text-muted)] mb-4">
         Use the form below or share the link with your client. All submissions are tracked to your account.
@@ -100,7 +100,7 @@ export default function KwongSubmitPage() {
           </div>
         </div>
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium bg-teal-500/15 text-teal-400">
-          Penalty Abatement
+          Penalty Abatement (ERC)
         </span>
       </div>
 
@@ -177,7 +177,7 @@ export default function KwongSubmitPage() {
             key={iframeKey}
             src={iframeSrc}
             className="w-full h-full border-0"
-            title="Penalty Abatement Client Intake"
+            title="Penalty Abatement (ERC) Client Intake"
             sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
           />
         </div>

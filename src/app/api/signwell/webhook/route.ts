@@ -196,11 +196,11 @@ export async function POST(req: NextRequest) {
           );
         }
       } else {
-        // No partnership agreement found — check if this is a Kwong Penalty Abatement deal.
+        // No partnership agreement found — check if this is a Kwong Penalty Abatement (ERC) deal.
         // Kwong deals store signwellDocumentId in serviceFields JSON.
         const kwongDeal = await prisma.deal.findFirst({
           where: {
-            serviceOfInterest: "Kwong Penalty Abatement",
+            serviceOfInterest: "Kwong Penalty Abatement (ERC)",
             serviceFields: { path: ["signwellDocumentId"], equals: docId },
           },
         });
