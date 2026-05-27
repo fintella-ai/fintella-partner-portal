@@ -1,59 +1,39 @@
 # Session State
 
-🕒 Last updated: 2026-05-19 evening — **5 PRs merged this continuation session (#1016–#1019 + #1017). All major backlog items cleared.**
+🕒 Last updated: 2026-05-26 — **A2P 10DLC TCR rejection fix merged (PR #1034)**
 
 ## 🌿 Git state
-- **main HEAD:** `02ac89e` — _sectionOrder + apply fix (#1019) — deployed
+- **main HEAD:** `e75096b` — fix: resolve A2P 10DLC TCR rejection — landing + consent (#1034)
 - **origin/main:** in sync
 - **Working tree:** clean on main
-- **Active branches:** none (all merged and deleted)
+- **Active branches:** none
 
-## ✅ What shipped across both sessions
+## ✅ What shipped this session
 
 | PR | What |
 |---|---|
-| #1012 ✅ | Admin panel cleanup — 5 dead stubs, 3 dead lib files, nav fix |
-| #1014 ✅ | 4 dead API routes + engagement lib removed |
-| #1015 ✅ | billing/page → redirect, SubscriptionRevenueSection ported to expenses |
-| #1016 ✅ | Landing pages visual block builder (drag-reorder, live preview) |
-| #1017 ✅ | 13 dead components deleted (10 template stubs + BottomSheet/CopyButton/UpgradeGate) |
-| #1018 ✅ | HeyGen async fix — fire-and-forget + status polling; `heygenVideoId` schema field |
-| #1019 ✅ | `_sectionOrder` wired to public renderers; partnerType bug fixed on /apply |
+| #1034 ✅ | A2P TCR fix — root URL → landing page + separate consent sections |
 
-**Net: ~1,800+ lines of dead code removed. 3 features shipped. 2 bugs fixed.**
-
-## 🔄 Open PRs (full list)
-
-| PR | Title | Status | Action |
-|---|---|---|---|
-| #964 | Fix partnerType on /apply form | OPEN | **Safe to close** — fix shipped in #1019 |
-| #1013 | Section 122 regulatory update | DRAFT | Review content |
-| #966 | Ollie telemetry dashboard | OPEN | Review |
-| #988 | postcss patch | OPEN | Dep — needs John OK |
-| #990 | sentry minor | OPEN | Dep — needs John OK |
-| #991 | openai minor | OPEN | Dep — needs John OK |
+## 🔄 What's in flight
+- **Twilio A2P 10DLC campaign resubmission** — John has copy-paste text for campaign description, sample messages, and end user consent. Deploy is live, waiting for John to resubmit in Twilio console.
+- **Twilio SMS env vars** still UNSET — don't set until TCR approves
 
 ## 🎯 What's next
 
-1. **Close #964** — cherry-pick landed in #1019, original branch is too stale
-2. **Schema drops** — `PartnerActivity` + `DossierDocument` — take Neon snapshot first, then remove models
-3. **HeyGen activation** — add `HEYGEN_API_KEY` to Vercel env vars; verify avatar IDs in `HeyGenOptionsModal.tsx` match real HeyGen account
-4. **Dep PRs** — #988 (postcss patch), #990 (sentry minor), #991 (openai minor) — John's approval needed (each triggers production deploy)
-5. **Webinar page renderer** — if `/webinar` page exists, wire `_sectionOrder` there too
+1. **Resubmit A2P campaign in Twilio** — use the provided copy-paste text (campaign description + end user consent rewrite)
+2. **Verify landing page live** — visit fintella.partners/ and confirm it shows the landing page, not login
+3. **Verify signup page** — visit fintella.partners/signup and confirm two separate consent sections
+4. **Once TCR approves** — set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER on Vercel, flip SmsTemplate.enabled=true
 
 ## 🧠 Context for resuming
 
-- **Landing page system is now fully connected** — admin drag order → published JSON `_sectionOrder` → public renderers `/recover` and `/partners` respect the order
-- **partnerType collected on /apply since this session** — historical applications (April–May 2026) have null partnerType; data can be patched manually if needed
-- **HeyGen is fully wired** — needs `HEYGEN_API_KEY` env var to activate. Avatar IDs in `HeyGenOptionsModal.tsx` are hardcoded placeholders — verify against actual HeyGen account
-- **Schema danger**: `prisma db push --accept-data-loss` in build. Removing any model = production table drop on next Vercel deploy. Always snapshot Neon first
-- **Twilio SMS env vars** still UNSET pending TCR A2P 10DLC approval
-- **DossierDocument** + **PartnerActivity** both annotated DEAD in schema, not yet dropped
+- This was the **4th TCR rejection**. Two root causes fixed: (1) root URL showed login form instead of business landing page, (2) email+SMS consent were visually grouped making SMS look required
+- Root page no longer checks `landingV2Live` DB flag — always redirects to `/landing-v2`
+- Brand SID: BN7a123f5a379794af8e56462d05ab982a
+- Messaging Service: MG16f0ee776c43f0ee51585ce9af5bbbe5
 
-## 📂 Key files for next session
-
-- `src/components/admin/HeyGenOptionsModal.tsx` — verify avatar/voice IDs against HeyGen dashboard
-- `prisma/schema.prisma` — PartnerActivity (line ~2069) + DossierDocument (line ~2354) both annotated DEAD
-- `src/app/api/apply/route.ts` — partnerType now saved correctly
-- `src/app/recover/page.tsx` — section-ordered renderer
-- `src/components/landing/PartnersPageRenderer.tsx` — section-ordered renderer
+## 📂 Key files
+- `src/app/page.tsx` — root redirect (now static, no DB call)
+- `src/app/signup/page.tsx` — consent sections (now visually separated)
+- `src/app/landing-v2/page.tsx` — full business landing page
+- `src/app/privacy/page.tsx`, `src/app/terms/page.tsx`, `src/app/sms-terms/page.tsx` — legal pages
