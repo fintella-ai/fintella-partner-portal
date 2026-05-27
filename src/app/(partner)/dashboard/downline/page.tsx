@@ -80,9 +80,13 @@ export default function DownlinePage() {
   const [partners, setPartners] = useState<any[]>([]);
   const [l3Partners, setL3Partners] = useState<any[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [partnerView, setPartnerView] = useState<PartnerView>("list");
-  const [downlineTab, setDownlineTab] = useState<"partners" | "deals">("partners");
+  const [downlineTab, setDownlineTab] = useState<"partners" | "deals" | "invites">("partners");
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [resendFeedback, setResendFeedback] = useState<Record<string, "ok" | "error" | string>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [dealsStageFilter, setDealsStageFilter] = useState("all");
 
   const loadData = useCallback(async () => {
@@ -93,6 +97,7 @@ export default function DownlinePage() {
         setPartners(data.downlinePartners || []);
         setL3Partners(data.l3Partners || []);
         setDeals(data.downlineDeals || []);
+        setPendingInvites(data.pendingInvites || []);
       }
     } catch {}
     setLoading(false);
@@ -203,6 +208,7 @@ export default function DownlinePage() {
           {([
             { id: "partners" as const, label: "Your Partners" },
             { id: "deals" as const, label: "Downline Deals" },
+            { id: "invites" as const, label: `Pending Invites${pendingInvites.length ? ` (${pendingInvites.length})` : ""}` },
           ]).map((t) => (
             <button
               key={t.id}
@@ -580,6 +586,104 @@ export default function DownlinePage() {
         );
         })()}
         </>)}
+
+        {/* ═══ PENDING INVITES TAB ═══ */}
+        {downlineTab === "invites" && (
+          <div className="px-4 sm:px-6 py-5">
+            {pendingInvites.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="font-body text-[13px] text-[var(--app-text-muted)]">No pending invites</div>
+                <p className="font-body text-[12px] text-[var(--app-text-faint)] mt-1">Invites you send will appear here until the recipient signs up.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingInvites.map((inv: any) => {
+                  const expired = inv.expiresAt && new Date(inv.expiresAt) < new Date();
+                  const feedback = resendFeedback[inv.id];
+                  return (
+                    <div key={inv.id} className="card p-4" style={{ border: `1px solid ${expired ? "rgba(239,68,68,0.2)" : "var(--app-border)"}` }}>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="font-body text-[14px] font-semibold text-[var(--app-text)]">
+                            {inv.invitedName || inv.invitedEmail || "Unnamed Invite"}
+                          </div>
+                          {inv.invitedEmail && (
+                            <div className="font-body text-[12px] text-[var(--app-text-muted)]">{inv.invitedEmail}</div>
+                          )}
+                        </div>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          expired
+                            ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                            : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                        }`}>
+                          {expired ? "EXPIRED" : "ACTIVE"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-[12px] text-[var(--app-text-secondary)] mb-3">
+                        <span>{inv.targetTier?.toUpperCase()} @ {Math.round((inv.commissionRate || 0) * 100)}%</span>
+                        {inv.expiresAt && (
+                          <span>Expires {new Date(inv.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const url = `${window.location.origin}/getstarted?token=${inv.token}`;
+                            navigator.clipboard.writeText(url).then(() => {
+                              setCopiedId(inv.id);
+                              setTimeout(() => setCopiedId((c) => c === inv.id ? null : c), 2000);
+                            });
+                          }}
+                          className="flex-1 font-body text-[12px] font-semibold text-blue-400 border border-blue-500/25 rounded-lg px-3 py-2 hover:bg-blue-500/10 transition-colors text-center"
+                        >
+                          {copiedId === inv.id ? "Copied!" : "Copy Invite Link"}
+                        </button>
+
+                        {inv.invitedEmail && (
+                          <button
+                            type="button"
+                            disabled={resendingId === inv.id}
+                            onClick={async () => {
+                              setResendingId(inv.id);
+                              try {
+                                const res = await fetch(`/api/invites/${inv.id}/resend`, { method: "POST" });
+                                if (res.ok) {
+                                  setResendFeedback((p) => ({ ...p, [inv.id]: "ok" }));
+                                  loadData();
+                                } else {
+                                  const err = await res.json().catch(() => ({}));
+                                  setResendFeedback((p) => ({ ...p, [inv.id]: err.error || "error" }));
+                                }
+                              } catch {
+                                setResendFeedback((p) => ({ ...p, [inv.id]: "error" }));
+                              }
+                              setResendingId(null);
+                              setTimeout(() => setResendFeedback((p) => { const n = { ...p }; delete n[inv.id]; return n; }), 4000);
+                            }}
+                            className={`font-body text-[12px] font-semibold border rounded-lg px-3 py-2 transition-colors ${
+                              feedback === "ok" ? "text-green-400 border-green-500/25"
+                              : feedback === "error" || (feedback && feedback !== "ok") ? "text-red-400 border-red-500/25"
+                              : "text-brand-gold border-brand-gold/25 hover:bg-brand-gold/10"
+                            }`}
+                          >
+                            {resendingId === inv.id ? "Sending…"
+                              : feedback === "ok" ? "Sent ✓"
+                              : feedback && feedback !== "ok" && feedback !== "error" ? feedback
+                              : feedback === "error" ? "Failed"
+                              : "Resend"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
     </PullToRefresh>

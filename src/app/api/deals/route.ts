@@ -75,12 +75,22 @@ export async function GET(req: NextRequest) {
     const safeDirect = directDeals.map((d) => ({ ...d, serviceFields: null as any }));
     const safeDownline = downlineDealsWithNames.map((d) => ({ ...d, serviceFields: null as any }));
 
+    // Pending invites sent by this partner (unused, not expired)
+    const pendingInvites = await prisma.recruitmentInvite.findMany({
+      where: {
+        inviterCode: partnerCode,
+        status: "active",
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
     return NextResponse.json({
       me,
       directDeals: safeDirect,
       downlinePartners,
       downlineDeals: safeDownline,
       l3Partners,
+      pendingInvites,
     });
   } catch {
     return NextResponse.json({ error: "Failed to fetch deals" }, { status: 500 });
