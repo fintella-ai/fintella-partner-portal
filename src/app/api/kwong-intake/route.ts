@@ -315,15 +315,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Build SignWell template fields
-    const today = new Date().toLocaleDateString("en-US", {
-      year: "numeric", month: "long", day: "numeric",
-    });
+    // Build SignWell template fields — DateField must be ISO 8601
+    const todayIso = new Date().toISOString().split("T")[0];
     const templateFields = [
       { api_id: "TextField_1", value: signerName },
-      { api_id: "DateField_1", value: today },
+      { api_id: "DateField_1", value: todayIso },
     ];
 
+    // Template placeholder is "taxpayer" for the client signer
     let cosignerEmail = "admin@fintella.partners";
     let cosignerName = "Fintella";
     try {
@@ -339,8 +338,7 @@ export async function POST(req: NextRequest) {
       subject: "Fintella Data Sharing Agreement — Please Sign",
       message: "Please review and sign the attached Data Sharing Agreement to complete your intake process.",
       recipients: [
-        { id: "1", email, name: signerName, role: "Client" },
-        { id: "2", email: cosignerEmail, name: cosignerName, role: "Fintella" },
+        { id: "1", email, name: signerName, role: "Taxpayer" },
       ],
       templateId: KWONG_SIGNWELL_TEMPLATE_ID,
       templateFields,
