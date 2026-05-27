@@ -103,9 +103,9 @@ const BUILT_IN_PARTNER_ICONS: Record<string, string> = {
 // Mobile bottom bar items (subset)
 const MOBILE_BAR = [
   { id: "home", href: "/dashboard/home", icon: "🏠", shortLabel: "Home" },
+  { id: "submit-client", href: "/dashboard/submit-client", icon: "✅", shortLabel: "Submit", activePaths: ["/dashboard/submit-client", "/dashboard/submit-client/tariff-refunds", "/dashboard/submit-client/kwong"] },
   { id: "deals", href: "/dashboard/deals", icon: "📋", shortLabel: "Deals" },
-  { id: "overview", href: "/dashboard/overview", icon: "📊", shortLabel: "Stats" },
-  { id: "commissions", href: "/dashboard/commissions", icon: "💲", shortLabel: "Earn" },
+  { id: "downline", href: "/dashboard/downline", icon: "👥", shortLabel: "Invite" },
   { id: "more", href: "#more", icon: "☰", shortLabel: "More" },
 ];
 
