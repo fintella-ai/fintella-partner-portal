@@ -44,6 +44,7 @@ interface SignWellSendOptions {
   templateId?: string;
   fileUrl?: string;
   templateFields?: SignWellTemplateField[];
+  metadata?: Record<string, string>;
 }
 
 /**
@@ -351,6 +352,10 @@ export async function sendForSigning(
   } else if (options.fileUrl) {
     // Non-template send: attach file
     body.files = [{ file_url: options.fileUrl }];
+  }
+
+  if (options.metadata) {
+    body.metadata = options.metadata;
   }
 
   // Attach API App ID for branded signing experience if configured

@@ -227,6 +227,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Filer type is required" }, { status: 400 });
     }
 
+    // Dedup: if the same email submitted for Kwong in the last 5 minutes, return existing deal
+    const recentDeal = await prisma.deal.findFirst({
+      where: {
+        clientEmail: email,
+        serviceOfInterest: "Kwong Penalty Abatement (ERC)",
+        createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (recentDeal) {
+      const sf = recentDeal.serviceFields as any;
+      return NextResponse.json({
+        success: true,
+        dealId: recentDeal.id,
+        signingUrl: sf?.signwellSigningUrl || "",
+        documentId: sf?.signwellDocumentId || "",
+        intakeId: sf?.intakeMarkdownId || recentDeal.id,
+        deduplicated: true,
+      });
+    }
+
     const isIndividual = filer_type === "Individual";
     const isBusiness = filer_type === "Business";
     const isJoint = isIndividual && filing_status === "Filed jointly";
@@ -329,6 +350,7 @@ export async function POST(req: NextRequest) {
       ],
       templateId: KWONG_SIGNWELL_TEMPLATE_ID,
       templateFields,
+      metadata: { dealId: deal.id, service: "kwong-penalty-abatement-erc" },
     });
 
     // Single update — markdown + SignWell data together so nothing gets overwritten
