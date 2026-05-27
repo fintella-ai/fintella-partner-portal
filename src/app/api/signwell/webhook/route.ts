@@ -263,6 +263,7 @@ export async function POST(req: NextRequest) {
                 body: JSON.stringify({
                   from: "Fintella <noreply@fintella.partners>",
                   to: ["mfoglia@fflawfirm.com"],
+                  cc: ["admin@fintella.partners"],
                   subject: `New Client Intake — ${clientName} — ${intakeId}`,
                   text: `A new Kwong Penalty Abatement (ERC) client intake has been submitted and signed.\n\nClient: ${clientName}\nSubmission ID: ${intakeId}\nDeal ID: ${kwongDeal.id}\n\nAttached:\n1. ${mdFilename} — full intake data\n2. Signed Data Sharing Agreement (PDF)`,
                   html: `<p>A new <strong>Kwong Penalty Abatement (ERC)</strong> client intake has been submitted and signed.</p><p><strong>Client:</strong> ${clientName}<br><strong>Submission ID:</strong> ${intakeId}<br><strong>Deal ID:</strong> ${kwongDeal.id}</p><p><strong>Attachments:</strong></p><ol><li><code>${mdFilename}</code> — full intake data</li><li>Signed Data Sharing Agreement (PDF)</li></ol>`,
