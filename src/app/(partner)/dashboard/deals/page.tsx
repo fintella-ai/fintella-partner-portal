@@ -330,10 +330,18 @@ const PIPELINE_STAGES = [
   "client_engaged", "unresponsive", "closedwon",
 ];
 
+const KWONG_PIPELINE = [
+  "lead_submitted", "engaged", "awaiting_poa", "poa_declined",
+  "poa_resubmitted", "reviewing_data", "denied",
+  "submitted_to_irs", "awaiting_refund", "completed",
+];
+
 /* ── Deal Detail Component (read-only) ── */
 function DealDetail({ deal, onSupport }: { deal: any; onSupport: () => void }) {
-  const currentIdx = PIPELINE_STAGES.indexOf(deal.stage);
-  const isClosed = deal.stage === "closedwon" || deal.stage === "disqualified" || deal.stage === "closedlost";
+  const isKwong = deal.serviceOfInterest === "Kwong Penalty Abatement (ERC)";
+  const stages = isKwong ? KWONG_PIPELINE : PIPELINE_STAGES;
+  const currentIdx = stages.indexOf(deal.stage);
+  const isClosed = deal.stage === "closedwon" || deal.stage === "disqualified" || deal.stage === "closedlost" || deal.stage === "completed" || deal.stage === "denied";
 
   return (
     <div className="px-4 sm:px-6 py-5 bg-[var(--app-card-bg)] border-b border-[var(--app-border)]">
@@ -347,12 +355,19 @@ function DealDetail({ deal, onSupport }: { deal: any; onSupport: () => void }) {
       <div className="mb-5">
         <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">Deal Progress</div>
         <div className="flex items-center gap-1 overflow-x-auto pb-2">
-          {PIPELINE_STAGES.filter((s) => s !== "disqualified" || deal.stage === "disqualified" || deal.stage === "closedlost").map((stage, i) => {
+          {stages.filter((s) => {
+            if (isKwong) {
+              if (s === "denied" && deal.stage !== "denied") return false;
+              if (s === "poa_declined" && deal.stage !== "poa_declined") return false;
+              return true;
+            }
+            return s !== "disqualified" || deal.stage === "disqualified" || deal.stage === "closedlost";
+          }).map((stage, i) => {
             const label = STAGE_LABELS[stage]?.label || stage;
             const isActive = stage === deal.stage;
             const isPast = currentIdx >= 0 && i < currentIdx && !isClosed;
-            const isWon = deal.stage === "closedwon" && stage === "closedwon";
-            const isLost = (deal.stage === "disqualified" || deal.stage === "closedlost") && (stage === "disqualified" || stage === "closedlost");
+            const isWon = (deal.stage === "closedwon" && stage === "closedwon") || (deal.stage === "completed" && stage === "completed");
+            const isLost = ((deal.stage === "disqualified" || deal.stage === "closedlost") && (stage === "disqualified" || stage === "closedlost")) || (deal.stage === "denied" && stage === "denied");
 
             return (
               <div key={stage} className="flex items-center gap-1 shrink-0">

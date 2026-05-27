@@ -195,6 +195,39 @@ export async function POST(req: NextRequest) {
             console.error("[SignWellWebhook] agreement-signed SMS failed:", err)
           );
         }
+      } else {
+        // No partnership agreement found — check if this is a Kwong Penalty Abatement (ERC) deal.
+        // Kwong deals store signwellDocumentId in serviceFields JSON.
+        const kwongDeal = await prisma.deal.findFirst({
+          where: {
+            serviceOfInterest: "Kwong Penalty Abatement (ERC)",
+            serviceFields: { path: ["signwellDocumentId"], equals: docId },
+          },
+        });
+
+        if (kwongDeal) {
+          // Transition from lead_submitted → engaged
+          const pdfUrl = body.data?.object?.completed_pdf?.url || "";
+          let finalPdfUrl = pdfUrl;
+          if (!finalPdfUrl && docId) {
+            try {
+              finalPdfUrl = await getCompletedPdfUrl(docId) || "";
+            } catch {}
+          }
+          await prisma.deal.update({
+            where: { id: kwongDeal.id },
+            data: {
+              stage: "engaged",
+              serviceFields: {
+                ...(kwongDeal.serviceFields as any),
+                signwellStatus: "completed",
+                signwellCompletedAt: new Date().toISOString(),
+                signwellPdfUrl: finalPdfUrl || null,
+              },
+            },
+          });
+          console.log(`[SignWellWebhook] Kwong deal ${kwongDeal.id} → engaged (doc ${docId})`);
+        }
       }
     }
 
