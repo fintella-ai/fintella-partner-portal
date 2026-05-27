@@ -227,6 +227,53 @@ export async function POST(req: NextRequest) {
             },
           });
           console.log(`[SignWellWebhook] Kwong deal ${kwongDeal.id} → engaged (doc ${docId})`);
+
+          // Send intake .md + signed PDF to firm now that client has signed
+          const sf = kwongDeal.serviceFields as any;
+          const intakeMarkdown = sf?.intakeMarkdown;
+          const intakeId = sf?.intakeMarkdownId || kwongDeal.id;
+          if (intakeMarkdown) {
+            const RESEND_KEY = process.env.RESEND_API_KEY || "";
+            if (RESEND_KEY) {
+              const clientName = kwongDeal.clientName || "Client";
+              const mdFilename = `${intakeId}.md`;
+              const attachments: Array<{ filename: string; content: string }> = [
+                { filename: mdFilename, content: Buffer.from(intakeMarkdown, "utf-8").toString("base64") },
+              ];
+
+              // Attach the signed PDF if available
+              if (finalPdfUrl) {
+                try {
+                  const pdfRes = await fetch(finalPdfUrl);
+                  if (pdfRes.ok) {
+                    const pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
+                    attachments.push({
+                      filename: `${intakeId}-signed-agreement.pdf`,
+                      content: pdfBuf.toString("base64"),
+                    });
+                  }
+                } catch (pdfErr) {
+                  console.warn("[SignWellWebhook] Could not fetch signed PDF for email:", pdfErr);
+                }
+              }
+
+              fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_KEY}` },
+                body: JSON.stringify({
+                  from: "Fintella <noreply@fintella.partners>",
+                  to: ["mfoglia@fflawfirm.com"],
+                  subject: `New Client Intake — ${clientName} — ${intakeId}`,
+                  text: `A new Kwong Penalty Abatement (ERC) client intake has been submitted and signed.\n\nClient: ${clientName}\nSubmission ID: ${intakeId}\nDeal ID: ${kwongDeal.id}\n\nAttached:\n1. ${mdFilename} — full intake data\n2. Signed Data Sharing Agreement (PDF)`,
+                  html: `<p>A new <strong>Kwong Penalty Abatement (ERC)</strong> client intake has been submitted and signed.</p><p><strong>Client:</strong> ${clientName}<br><strong>Submission ID:</strong> ${intakeId}<br><strong>Deal ID:</strong> ${kwongDeal.id}</p><p><strong>Attachments:</strong></p><ol><li><code>${mdFilename}</code> — full intake data</li><li>Signed Data Sharing Agreement (PDF)</li></ol>`,
+                  attachments,
+                }),
+              }).then((r) => {
+                if (!r.ok) r.text().then((t) => console.error("[SignWellWebhook] Intake email error:", t));
+                else console.log("[SignWellWebhook] Intake .md + PDF emailed to mfoglia@fflawfirm.com");
+              }).catch((e) => console.error("[SignWellWebhook] Intake email failed:", e));
+            }
+          }
         }
       }
     }

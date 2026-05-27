@@ -304,10 +304,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Send intake markdown email to firm (fire-and-forget)
-    sendIntakeEmail(md.text, md.id, signerName).catch((err) =>
-      console.error("[kwong-intake] Email send failed:", err)
-    );
+    // Store markdown in serviceFields — email sent on SignWell completion, not here
+    await prisma.deal.update({
+      where: { id: deal.id },
+      data: {
+        serviceFields: {
+          ...(deal.serviceFields as any),
+          intakeMarkdown: md.text,
+        },
+      },
+    });
 
     // Build SignWell template fields
     const today = new Date().toLocaleDateString("en-US", {
