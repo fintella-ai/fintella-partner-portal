@@ -4,9 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { fireWorkflowTrigger } from "@/lib/workflow-engine";
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if ((session.user as any).role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  // Accept either super_admin session OR CRON_SECRET bearer token
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get("authorization") || "";
+  const isCronAuth = cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+  if (!isCronAuth) {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if ((session.user as any).role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { dealId, partnerCode, trigger } = await req.json();
   const triggerKey = trigger || "deal.created";

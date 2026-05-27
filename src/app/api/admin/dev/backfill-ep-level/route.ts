@@ -3,9 +3,15 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if ((session.user as any).role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get("authorization") || "";
+  const isCronAuth = cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+  if (!isCronAuth) {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if ((session.user as any).role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const deals = await prisma.deal.findMany({
     where: { epLevel1: null },
