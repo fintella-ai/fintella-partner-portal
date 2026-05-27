@@ -83,7 +83,7 @@ export default function DealsPage() {
     setTimeout(() => {
       // Check if chat opened (layout sets a flag)
       if (!(window as any).__fintellaChatOpened) {
-        router.push(`/dashboard/support?newTicket=true&subject=${encodeURIComponent(`Deal Support: ${deal.dealName}`)}&category=${encodeURIComponent("Deal Tracking")}&dealRef=${encodeURIComponent(dealRef)}`);
+        router.push(`/dashboard/support?newTicket=true&subject=${encodeURIComponent(`Deal Support: ${deal.dealName}`)}&category=${encodeURIComponent("Deal Tracking")}&dealRef=${encodeURIComponent(dealRef)}&dealId=${encodeURIComponent(deal.id)}&service=${encodeURIComponent(deal.serviceOfInterest || "")}`);
       }
       delete (window as any).__fintellaChatOpened;
     }, 200);

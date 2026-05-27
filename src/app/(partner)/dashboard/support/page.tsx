@@ -13,6 +13,8 @@ interface Ticket {
   subject: string;
   category: string;
   status: TicketStatus;
+  serviceOfInterest: string | null;
+  dealId: string | null;
   createdAt: string;
   lastReply: string;
   messages: number;
@@ -44,6 +46,8 @@ export default function SupportPage() {
   // New ticket form
   const [subject, setSubject] = useState("");
   const [category, setCategory] = useState("");
+  const [serviceOfInterest, setServiceOfInterest] = useState("");
+  const [linkedDealId, setLinkedDealId] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -99,11 +103,15 @@ export default function SupportPage() {
       setView("new");
       if (params.get("subject")) setSubject(params.get("subject") || "");
       if (params.get("category")) setCategory(params.get("category") || "");
+      if (params.get("service")) setServiceOfInterest(params.get("service") || "");
+      if (params.get("dealId")) setLinkedDealId(params.get("dealId") || "");
       if (params.get("dealRef")) {
         setMessage(params.get("dealRef") || "");
-        // Extract deal ID from dealRef if present
         const dealRefMatch = (params.get("dealRef") || "").match(/ID:\s*([^\]]+)/);
-        if (dealRefMatch) setDealIds([dealRefMatch[1].trim()]);
+        if (dealRefMatch) {
+          setDealIds([dealRefMatch[1].trim()]);
+          if (!params.get("dealId")) setLinkedDealId(dealRefMatch[1].trim());
+        }
       }
     }
   }, []);
@@ -136,6 +144,8 @@ export default function SupportPage() {
         body: JSON.stringify({
           subject: subject.trim(),
           category,
+          serviceOfInterest: serviceOfInterest || null,
+          dealId: linkedDealId || (dealIds.find((id) => id.trim()) || null),
           message: [
             message.trim(),
             dealIds.some((id) => id.trim()) ? `\n\nDeal ID(s): ${dealIds.filter((id) => id.trim()).join(", ")}` : "",
@@ -158,6 +168,8 @@ export default function SupportPage() {
   function resetForm() {
     setSubject("");
     setCategory("");
+    setServiceOfInterest("");
+    setLinkedDealId("");
     setMessage("");
     setDealIds([""]);
     setMultipleDealIds(false);
@@ -345,6 +357,18 @@ export default function SupportPage() {
                   ))}
                 </select>
                 {errors.category && <div className="font-body text-[11px] text-red-400 mt-1">{errors.category}</div>}
+              </div>
+              <div>
+                <label className={labelClass}>Service</label>
+                <select
+                  className={inputClass}
+                  value={serviceOfInterest}
+                  onChange={(e) => setServiceOfInterest(e.target.value)}
+                >
+                  <option value="">Select a service...</option>
+                  <option value="Tariff Refund Support">Tariff Refund</option>
+                  <option value="Kwong Penalty Abatement (ERC)">Penalty Abatement (ERC)</option>
+                </select>
               </div>
             </div>
             {/* ── Deal ID fields (required for Deal Tracking, optional for Commission Question) ── */}
