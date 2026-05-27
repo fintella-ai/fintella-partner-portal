@@ -304,17 +304,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Store markdown in serviceFields — email sent on SignWell completion, not here
-    await prisma.deal.update({
-      where: { id: deal.id },
-      data: {
-        serviceFields: {
-          ...(deal.serviceFields as any),
-          intakeMarkdown: md.text,
-        },
-      },
-    });
-
     // Pre-fill printed name only — DateField_1 auto-fills on signing
     const templateFields = [
       { api_id: "TextField_1", value: signerName },
@@ -342,19 +331,22 @@ export async function POST(req: NextRequest) {
       templateFields,
     });
 
-    if (swResult.documentId) {
-      await prisma.deal.update({
-        where: { id: deal.id },
-        data: {
-          serviceFields: {
-            ...(deal.serviceFields as any),
+    // Single update — markdown + SignWell data together so nothing gets overwritten
+    await prisma.deal.update({
+      where: { id: deal.id },
+      data: {
+        serviceFields: {
+          ...(deal.serviceFields as any),
+          intakeMarkdown: md.text,
+          intakeMarkdownId: md.id,
+          ...(swResult.documentId ? {
             signwellDocumentId: swResult.documentId,
             signwellSigningUrl: swResult.embeddedSigningUrl || null,
             signwellStatus: "pending",
-          },
+          } : {}),
         },
-      });
-    }
+      },
+    });
 
     return NextResponse.json({
       success: true,
