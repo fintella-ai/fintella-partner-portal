@@ -841,7 +841,7 @@ export default function AdminDealsPage() {
                 )}
               </div>
               <div className="font-body text-[11px] text-[var(--app-text-secondary)] text-center truncate" title={deal.serviceOfInterest || ""}>
-                {(deal.serviceOfInterest || "Tariff Refund Support").replace(/\s*\(Tier [12]\)/, "")} <span className={`font-medium ${deal.isImporterOfRecord ? "text-emerald-400" : "text-amber-400"}`}>({deal.isImporterOfRecord ? "Tier 1" : "Tier 2"})</span>
+                {(deal.serviceOfInterest || "Tariff Refund Support").replace(/\s*\(Tier [12]\)/, "")}{deal.serviceOfInterest !== "Kwong Penalty Abatement (ERC)" && <span className={`font-medium ${deal.isImporterOfRecord ? "text-emerald-400" : "text-amber-400"}`}> ({deal.isImporterOfRecord ? "Tier 1" : "Tier 2"})</span>}
               </div>
               <div className="text-center"><StageBadge stage={deal.stage} /></div>
               <div className="font-body text-[13px] text-[var(--app-text)] text-center">{fmt$(fin.refund)}</div>
@@ -997,7 +997,7 @@ export default function AdminDealsPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3">
+                  {deal.serviceOfInterest !== "Kwong Penalty Abatement (ERC)" && <div className="mt-3">
                     <label className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider block mb-1">Client Tier (IOR Status)</label>
                     {isSuperAdmin ? (
                     <div className="flex gap-2 mt-1">
@@ -1115,7 +1115,7 @@ export default function AdminDealsPage() {
                         )}
                       </>
                     )}
-                  </div>
+                  </div>}
                   {/* ── Kwong Penalty Abatement (ERC) Intake Details ── */}
                   {deal.serviceOfInterest === "Kwong Penalty Abatement (ERC)" && deal.serviceFields && (
                     <div className="mt-4 pt-4 border-t border-[var(--app-border)]">
@@ -1733,7 +1733,7 @@ export default function AdminDealsPage() {
                 <StageBadge stage={deal.stage} />
               </div>
               <div className="font-body text-[11px] text-[var(--app-text-secondary)] mt-1">
-                {(deal.serviceOfInterest || "Tariff Refund Support").replace(/\s*\(Tier [12]\)/, "")} <span className={`font-medium ${deal.isImporterOfRecord ? "text-emerald-400" : "text-amber-400"}`}>({deal.isImporterOfRecord ? "Tier 1" : "Tier 2"})</span>
+                {(deal.serviceOfInterest || "Tariff Refund Support").replace(/\s*\(Tier [12]\)/, "")}{deal.serviceOfInterest !== "Kwong Penalty Abatement (ERC)" && <span className={`font-medium ${deal.isImporterOfRecord ? "text-emerald-400" : "text-amber-400"}`}> ({deal.isImporterOfRecord ? "Tier 1" : "Tier 2"})</span>}
               </div>
               <div className="grid grid-cols-3 gap-2 mt-3">
                 <div>
