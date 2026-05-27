@@ -316,7 +316,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Build SignWell template fields — DateField must be ISO 8601
-    const todayIso = new Date().toISOString().split("T")[0];
+    const todayIso = new Date().toISOString();
     const templateFields = [
       { api_id: "TextField_1", value: signerName },
       { api_id: "DateField_1", value: todayIso },
