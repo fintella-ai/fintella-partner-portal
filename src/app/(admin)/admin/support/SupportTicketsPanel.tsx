@@ -16,6 +16,8 @@ type Ticket = {
   category: string;
   status: "open" | "in_progress" | "resolved" | "closed";
   priority: "low" | "normal" | "high" | "urgent";
+  serviceOfInterest: string | null;
+  dealId: string | null;
   createdAt: string;
   lastReply: string;
   messageCount: number;
@@ -31,6 +33,8 @@ type TicketDetail = {
   category: string;
   status: string;
   priority: string;
+  serviceOfInterest: string | null;
+  dealId: string | null;
   adminNotes: string | null;
   messages: { id: string; authorType: string; authorId: string; content: string; createdAt: string }[];
 };
@@ -379,7 +383,14 @@ export default function SupportTicketsPanel() {
                       <PartnerLink partnerId={t.partnerId} className="text-[var(--app-text)]">{t.partnerName}</PartnerLink>
                       <div className="text-xs text-[var(--app-text-muted)]">{t.partnerCode}</div>
                     </td>
-                    <td className="px-4 py-3 text-[var(--app-text-secondary)]">{t.category}</td>
+                    <td className="px-4 py-3">
+                      <div className="text-[var(--app-text-secondary)]">{t.category}</div>
+                      {t.serviceOfInterest && (
+                        <div className={`text-[10px] font-medium mt-0.5 ${t.serviceOfInterest.includes("Kwong") ? "text-teal-400" : "text-amber-400"}`}>
+                          {t.serviceOfInterest.includes("Kwong") ? "Penalty Abatement (ERC)" : "Tariff Refund"}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`inline-block text-xs px-2 py-0.5 rounded-full capitalize ${priorityBadge[t.priority]}`}>
                         {t.priority}
@@ -426,6 +437,7 @@ export default function SupportTicketsPanel() {
                   <PartnerLink partnerId={t.partnerId} className="text-[var(--app-text-secondary)]">{t.partnerName}</PartnerLink>
                   <span>&middot;</span>
                   <span>{t.category}</span>
+                  {t.serviceOfInterest && <><span>&middot;</span><span className={t.serviceOfInterest.includes("Kwong") ? "text-teal-400" : "text-amber-400"}>{t.serviceOfInterest.includes("Kwong") ? "ERC" : "Tariff"}</span></>}
                   <span>&middot;</span>
                   <span>{fmtDate(t.lastReply)}</span>
                 </div>

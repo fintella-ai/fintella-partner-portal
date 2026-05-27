@@ -61,10 +61,20 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { subject, category, message } = body;
+    const { subject, category, message, serviceOfInterest, dealId } = body;
 
     if (!subject?.trim() || !category?.trim() || !message?.trim()) {
       return NextResponse.json({ error: "Subject, category, and message are required" }, { status: 400 });
+    }
+
+    // If dealId provided, auto-populate service from the deal
+    let resolvedService = serviceOfInterest || null;
+    if (dealId && !resolvedService) {
+      const deal = await prisma.deal.findUnique({
+        where: { id: dealId },
+        select: { serviceOfInterest: true },
+      });
+      if (deal?.serviceOfInterest) resolvedService = deal.serviceOfInterest;
     }
 
     const ticket = await prisma.supportTicket.create({
@@ -74,6 +84,8 @@ export async function POST(req: NextRequest) {
         category: category.trim(),
         status: "open",
         priority: "normal",
+        serviceOfInterest: resolvedService || null,
+        dealId: dealId || null,
         messages: {
           create: {
             authorType: "partner",
