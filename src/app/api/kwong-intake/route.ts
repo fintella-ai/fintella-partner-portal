@@ -349,6 +349,7 @@ export async function POST(req: NextRequest) {
           serviceFields: {
             ...(deal.serviceFields as any),
             signwellDocumentId: swResult.documentId,
+            signwellSigningUrl: swResult.embeddedSigningUrl || null,
             signwellStatus: "pending",
           },
         },

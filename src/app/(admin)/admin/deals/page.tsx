@@ -1201,12 +1201,12 @@ export default function AdminDealsPage() {
                                     <div className="flex items-center gap-2">
                                       <input
                                         readOnly
-                                        value={`https://app.signwell.com/sign/${sf.signwellDocumentId}`}
+                                        value={sf.signwellSigningUrl || `https://www.signwell.com/docs/${sf.signwellDocumentId}/`}
                                         className="flex-1 px-2 py-1.5 rounded text-[11px] font-mono bg-[var(--app-bg-primary)] border border-[var(--app-border)] text-[var(--app-text-secondary)] select-all"
                                       />
                                       <button
                                         type="button"
-                                        onClick={() => { navigator.clipboard.writeText(`https://app.signwell.com/sign/${sf.signwellDocumentId}`); }}
+                                        onClick={() => { navigator.clipboard.writeText(sf.signwellSigningUrl || `https://www.signwell.com/docs/${sf.signwellDocumentId}/`); }}
                                         className="px-2.5 py-1.5 rounded text-[11px] font-medium text-blue-400 border border-blue-500/25 hover:bg-blue-500/10 transition-colors"
                                       >
                                         Copy
