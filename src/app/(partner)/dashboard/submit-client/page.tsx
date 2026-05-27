@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDevice } from "@/lib/useDevice";
 
@@ -31,6 +32,61 @@ const SERVICES = [
 export default function SubmitClientPage() {
   const router = useRouter();
   const device = useDevice();
+  const [agreementSigned, setAgreementSigned] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/agreement")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        const bypassed = data.agreementBypass === true;
+        const agreementOk =
+          data.agreement?.status === "signed" ||
+          data.agreement?.status === "approved";
+        const partnerOk = data.partnerStatus === "active";
+        setAgreementSigned(bypassed || (agreementOk && partnerOk));
+      })
+      .catch(() => {
+        setAgreementSigned(true);
+      });
+  }, []);
+
+  if (agreementSigned === null) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="font-body text-sm text-[var(--app-text-muted)]">Checking agreement status...</div>
+      </div>
+    );
+  }
+
+  if (!agreementSigned) {
+    return (
+      <div>
+        <h2 className={`font-display ${device.isMobile ? "text-lg" : "text-[22px]"} font-bold mb-1.5`}>
+          Submit a Client
+        </h2>
+        <p className="font-body text-[13px] text-[var(--app-text-muted)] mb-4">
+          Choose a service to submit a client referral.
+        </p>
+        <div className={`card ${device.cardPadding} ${device.borderRadius} border border-yellow-500/25`}>
+          <div className="text-center py-6">
+            <div className="mx-auto mb-5 w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/25 flex items-center justify-center">
+              <svg className="w-8 h-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+            </div>
+            <h3 className="font-display text-lg sm:text-xl font-bold mb-2">Partnership Agreement Required</h3>
+            <p className="font-body text-sm text-[var(--app-text-secondary)] mb-6 max-w-md mx-auto leading-relaxed">
+              You must sign your partnership agreement before submitting clients.
+              Please visit the Documents tab to complete your agreement.
+            </p>
+            <button type="button" onClick={() => router.push("/dashboard/documents")} className="btn-gold w-full max-w-xs mx-auto">
+              Go to Documents &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

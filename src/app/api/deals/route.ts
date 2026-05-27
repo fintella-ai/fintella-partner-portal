@@ -72,15 +72,14 @@ export async function GET(req: NextRequest) {
 
     // Strip sensitive intake data from serviceFields before sending to partners.
     // Partners must never see SSN, EIN, addresses, spouse data, or raw payloads.
-    function stripSensitiveFields(deal: Record<string, any>) {
-      return { ...deal, serviceFields: null };
-    }
+    const safeDirect = directDeals.map((d) => ({ ...d, serviceFields: null as any }));
+    const safeDownline = downlineDealsWithNames.map((d) => ({ ...d, serviceFields: null as any }));
 
     return NextResponse.json({
       me,
-      directDeals: directDeals.map(stripSensitiveFields),
+      directDeals: safeDirect,
       downlinePartners,
-      downlineDeals: downlineDealsWithNames.map(stripSensitiveFields),
+      downlineDeals: safeDownline,
       l3Partners,
     });
   } catch {
