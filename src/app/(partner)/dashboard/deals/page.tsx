@@ -330,10 +330,18 @@ const PIPELINE_STAGES = [
   "client_engaged", "unresponsive", "closedwon",
 ];
 
+const KWONG_PIPELINE = [
+  "lead_submitted", "engaged", "awaiting_poa", "poa_declined",
+  "poa_resubmitted", "reviewing_data", "denied",
+  "submitted_to_irs", "awaiting_refund", "completed",
+];
+
 /* ── Deal Detail Component (read-only) ── */
 function DealDetail({ deal, onSupport }: { deal: any; onSupport: () => void }) {
-  const currentIdx = PIPELINE_STAGES.indexOf(deal.stage);
-  const isClosed = deal.stage === "closedwon" || deal.stage === "disqualified" || deal.stage === "closedlost";
+  const isKwong = deal.serviceOfInterest === "Kwong Penalty Abatement";
+  const stages = isKwong ? KWONG_PIPELINE : PIPELINE_STAGES;
+  const currentIdx = stages.indexOf(deal.stage);
+  const isClosed = deal.stage === "closedwon" || deal.stage === "disqualified" || deal.stage === "closedlost" || deal.stage === "completed" || deal.stage === "denied";
 
   return (
     <div className="px-4 sm:px-6 py-5 bg-[var(--app-card-bg)] border-b border-[var(--app-border)]">
@@ -347,12 +355,19 @@ function DealDetail({ deal, onSupport }: { deal: any; onSupport: () => void }) {
       <div className="mb-5">
         <div className="font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider mb-3">Deal Progress</div>
         <div className="flex items-center gap-1 overflow-x-auto pb-2">
-          {PIPELINE_STAGES.filter((s) => s !== "disqualified" || deal.stage === "disqualified" || deal.stage === "closedlost").map((stage, i) => {
+          {stages.filter((s) => {
+            if (isKwong) {
+              if (s === "denied" && deal.stage !== "denied") return false;
+              if (s === "poa_declined" && deal.stage !== "poa_declined") return false;
+              return true;
+            }
+            return s !== "disqualified" || deal.stage === "disqualified" || deal.stage === "closedlost";
+          }).map((stage, i) => {
             const label = STAGE_LABELS[stage]?.label || stage;
             const isActive = stage === deal.stage;
             const isPast = currentIdx >= 0 && i < currentIdx && !isClosed;
-            const isWon = deal.stage === "closedwon" && stage === "closedwon";
-            const isLost = (deal.stage === "disqualified" || deal.stage === "closedlost") && (stage === "disqualified" || stage === "closedlost");
+            const isWon = (deal.stage === "closedwon" && stage === "closedwon") || (deal.stage === "completed" && stage === "completed");
+            const isLost = ((deal.stage === "disqualified" || deal.stage === "closedlost") && (stage === "disqualified" || stage === "closedlost")) || (deal.stage === "denied" && stage === "denied");
 
             return (
               <div key={stage} className="flex items-center gap-1 shrink-0">
@@ -396,6 +411,50 @@ function DealDetail({ deal, onSupport }: { deal: any; onSupport: () => void }) {
           ))}
         </div>
       </div>
+
+      {/* Kwong Penalty Abatement Intake Details (read-only for partners) */}
+      {isKwong && deal.serviceFields && (() => {
+        const sf = deal.serviceFields as any;
+        const intake = sf?.intake_data || sf || {};
+        const filerType = intake.filer_type || sf?.filer_type || "";
+        const isIndividual = filerType === "Individual";
+        const isBusiness = filerType === "Business";
+        const isJoint = isIndividual && intake.filing_status === "Filed jointly";
+        const kwongFields: Array<{ label: string; value: string }> = [
+          { label: "Filer Type", value: filerType },
+        ];
+        if (isIndividual) {
+          kwongFields.push(
+            { label: "Legal Name", value: intake.individual_legal_name || "" },
+            { label: "Address", value: [intake.individual_address_street, intake.individual_address_city, intake.individual_address_state, intake.individual_address_zip].filter(Boolean).join(", ") },
+            { label: "Filing Status", value: intake.filing_status || "" },
+          );
+          if (isJoint) {
+            kwongFields.push({ label: "Spouse Name", value: intake.spouse_legal_name || "" });
+          }
+        }
+        if (isBusiness) {
+          kwongFields.push(
+            { label: "Business Name", value: intake.business_legal_name || "" },
+            { label: "Business Address", value: [intake.business_address_street, intake.business_address_city, intake.business_address_state, intake.business_address_zip].filter(Boolean).join(", ") },
+            { label: "Owner Name", value: intake.owner_name || "" },
+            { label: "Entity Type", value: intake.entity_type || sf?.entity_type || "" },
+          );
+        }
+        return kwongFields.filter((f) => f.value).length > 0 ? (
+          <div className="mb-4">
+            <div className="font-body text-[11px] text-teal-400 uppercase tracking-wider mb-3">Penalty Abatement Details</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2.5">
+              {kwongFields.filter((f) => f.value).map((f) => (
+                <div key={f.label}>
+                  <div className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider">{f.label}</div>
+                  <div className="font-body text-[13px] text-[var(--app-text-secondary)] mt-0.5">{f.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null;
+      })()}
 
       {/* Consultation */}
       {(deal.consultBookedDate || deal.consultBookedTime) && (
