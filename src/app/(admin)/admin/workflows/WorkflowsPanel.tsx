@@ -1600,11 +1600,11 @@ function LogTab() {
               </button>
 
               {expandedId === log.id && (
-                <div className="px-4 pb-4 space-y-3">
+                <div className="px-4 pb-4 space-y-3 relative z-10" style={{ background: "var(--app-card-bg)" }}>
                   {!!log.actionsRun && (
                     <div>
                       <p className="font-body text-xs theme-text-muted mb-1">Actions run</p>
-                      <pre className="font-mono text-xs rounded p-3 theme-text-secondary whitespace-pre-wrap break-all" style={{ background: "var(--app-bg-secondary)", border: "1px solid var(--app-border)" }}>
+                      <pre className="font-mono text-xs rounded p-3 theme-text-secondary whitespace-pre-wrap break-all max-h-96 overflow-y-auto" style={{ background: "var(--app-bg-secondary)", border: "1px solid var(--app-border)" }}>
                         {JSON.stringify(log.actionsRun, null, 2)}
                       </pre>
                     </div>
@@ -1612,7 +1612,7 @@ function LogTab() {
                   {!!log.triggerData && (
                     <div>
                       <p className="font-body text-xs theme-text-muted mb-1">Trigger payload (truncated)</p>
-                      <pre className="font-mono text-xs rounded p-3 theme-text-secondary whitespace-pre-wrap break-all max-h-48" style={{ background: "var(--app-bg-secondary)", border: "1px solid var(--app-border)" }}>
+                      <pre className="font-mono text-xs rounded p-3 theme-text-secondary whitespace-pre-wrap break-all max-h-64 overflow-y-auto" style={{ background: "var(--app-bg-secondary)", border: "1px solid var(--app-border)" }}>
                         {JSON.stringify(log.triggerData, null, 2)}
                       </pre>
                     </div>
