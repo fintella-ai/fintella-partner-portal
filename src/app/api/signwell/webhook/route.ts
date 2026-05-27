@@ -262,7 +262,7 @@ export async function POST(req: NextRequest) {
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_KEY}` },
                 body: JSON.stringify({
                   from: "Fintella <noreply@fintella.partners>",
-                  to: ["mfoglia@fflawfirm.com"],
+                  to: ["mvfoglia@fflawfirm.com"],
                   cc: ["admin@fintella.partners"],
                   subject: `New Client Intake — ${clientName} — ${intakeId}`,
                   text: `A new Kwong Penalty Abatement (ERC) client intake has been submitted and signed.\n\nClient: ${clientName}\nSubmission ID: ${intakeId}\nDeal ID: ${kwongDeal.id}\n\nAttached:\n1. ${mdFilename} — full intake data\n2. Signed Data Sharing Agreement (PDF)`,
@@ -271,7 +271,7 @@ export async function POST(req: NextRequest) {
                 }),
               }).then((r) => {
                 if (!r.ok) r.text().then((t) => console.error("[SignWellWebhook] Intake email error:", t));
-                else console.log("[SignWellWebhook] Intake .md + PDF emailed to mfoglia@fflawfirm.com");
+                else console.log("[SignWellWebhook] Intake .md + PDF emailed to mvfoglia@fflawfirm.com");
               }).catch((e) => console.error("[SignWellWebhook] Intake email failed:", e));
             }
           }
