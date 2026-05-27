@@ -651,12 +651,48 @@ export default function AdminDealsPage() {
         </div>
       )}
 
+      {/* ═══ SERVICE SWITCHER ═══ */}
+      <div className="flex gap-2 mb-4">
+        {[
+          { value: "all", label: "All Services", color: "#d4a017", icon: "📊" },
+          { value: "Tariff Refund Support", label: "Tariff Refund", color: "#d4a017", icon: "💰" },
+          { value: "Kwong Penalty Abatement (ERC)", label: "Penalty Abatement (ERC)", color: "#14b8a6", icon: "📋" },
+        ].map((svc) => {
+          const count = svc.value === "all" ? deals.length : deals.filter((d) => (d.serviceOfInterest || "Tariff Refund Support") === svc.value).length;
+          const active = serviceFilter === svc.value;
+          return (
+            <button
+              key={svc.value}
+              type="button"
+              onClick={() => { setServiceFilter(svc.value); setStageFilter("all"); }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-body text-[13px] font-semibold transition-all border ${
+                active
+                  ? "border-transparent text-white"
+                  : "border-[var(--app-border)] bg-[var(--app-card-bg)] text-[var(--app-text-muted)] hover:border-[var(--app-text-faint)]"
+              }`}
+              style={active ? { background: svc.color, borderColor: svc.color } : {}}
+            >
+              <span>{svc.icon}</span>
+              <span>{svc.label}</span>
+              <span className={`text-[11px] px-1.5 py-0.5 rounded-full ${active ? "bg-white/20" : "bg-[var(--app-input-bg)]"}`}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* ═══ STAGE PIPELINE (at-a-glance colored chips, no counts) ═══ */}
       {stats?.byStage && (
         <div className="card p-4 sm:p-5 mb-4">
-          <div className="font-body font-semibold text-[13px] mb-3">Deal Pipeline</div>
+          <div className="font-body font-semibold text-[13px] mb-3">
+            {serviceFilter === "Kwong Penalty Abatement (ERC)" ? "Penalty Abatement Pipeline" : serviceFilter === "all" ? "Deal Pipeline" : "Tariff Refund Pipeline"}
+          </div>
           <div className="flex flex-wrap gap-2">
-            {STAGES.filter((s) => s.value !== "all").map((s) => (
+            {(serviceFilter === "Kwong Penalty Abatement (ERC)"
+              ? STAGES.filter((s) => s.value !== "all" && ["lead_submitted", "engaged", "awaiting_poa", "poa_declined", "poa_resubmitted", "reviewing_data", "denied", "submitted_to_irs", "awaiting_refund", "completed"].includes(s.value))
+              : serviceFilter !== "all"
+                ? STAGES.filter((s) => s.value !== "all" && !["engaged", "awaiting_poa", "poa_declined", "poa_resubmitted", "reviewing_data", "denied", "submitted_to_irs", "awaiting_refund", "completed"].includes(s.value))
+                : STAGES.filter((s) => s.value !== "all")
+            ).map((s) => (
               <button
                 key={s.value}
                 onClick={() => setStageFilter(stageFilter === s.value ? "all" : s.value)}
@@ -681,7 +717,12 @@ export default function AdminDealsPage() {
       {stats?.byStage && (
         <ScrollableRow className="mb-4 border-b border-[var(--app-border)]">
           <div className="flex gap-1 min-w-max">
-            {([{ value: "all", label: "All" } as { value: string; label: string }, ...STAGES.filter((s) => s.value !== "all")]).map((s) => {
+            {([{ value: "all", label: "All" } as { value: string; label: string }, ...(serviceFilter === "Kwong Penalty Abatement (ERC)"
+              ? STAGES.filter((s) => s.value !== "all" && ["lead_submitted", "engaged", "awaiting_poa", "poa_declined", "poa_resubmitted", "reviewing_data", "denied", "submitted_to_irs", "awaiting_refund", "completed"].includes(s.value))
+              : serviceFilter !== "all"
+                ? STAGES.filter((s) => s.value !== "all" && !["engaged", "awaiting_poa", "poa_declined", "poa_resubmitted", "reviewing_data", "denied", "submitted_to_irs", "awaiting_refund", "completed"].includes(s.value))
+                : STAGES.filter((s) => s.value !== "all")
+            )]).map((s) => {
               const count = s.value === "all"
                 ? Object.values(stats.byStage as Record<string, number>).reduce((a, b) => a + b, 0)
                 : (stats.byStage[s.value] || 0);
@@ -724,16 +765,6 @@ export default function AdminDealsPage() {
           {STAGES.map((s) => (
             <option key={s.value} value={s.value} className="bg-[var(--app-bg)]">{s.label}</option>
           ))}
-        </select>
-        <select
-          className={`${inputClass} w-full sm:w-48`}
-          value={serviceFilter}
-          onChange={(e) => setServiceFilter(e.target.value)}
-        >
-          <option value="all" className="bg-[var(--app-bg)]">All Services</option>
-          <option value="Kwong Penalty Abatement (ERC)" className="bg-[var(--app-bg)]">Kwong Penalty Abatement (ERC)</option>
-          <option value="Tariff Refund Support" className="bg-[var(--app-bg)]">Tariff Refund Support</option>
-          <option value="ERC Support" className="bg-[var(--app-bg)]">ERC Support</option>
         </select>
         <select
           className={`${inputClass} w-full sm:w-48`}
