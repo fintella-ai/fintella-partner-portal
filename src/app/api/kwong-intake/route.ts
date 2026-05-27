@@ -315,11 +315,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Build SignWell template fields — DateField must be ISO 8601
-    const todayIso = new Date().toISOString();
+    // Pre-fill printed name only — DateField_1 auto-fills on signing
     const templateFields = [
       { api_id: "TextField_1", value: signerName },
-      { api_id: "DateField_1", value: todayIso },
     ];
 
     // Template placeholder is "taxpayer" for the client signer
