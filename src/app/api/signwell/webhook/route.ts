@@ -197,16 +197,24 @@ export async function POST(req: NextRequest) {
         }
       } else {
         // No partnership agreement found — check if this is a Kwong Penalty Abatement (ERC) deal.
-        // Kwong deals store signwellDocumentId in serviceFields JSON.
-        const kwongDeal = await prisma.deal.findFirst({
-          where: {
-            serviceOfInterest: "Kwong Penalty Abatement (ERC)",
-            serviceFields: { path: ["signwellDocumentId"], equals: docId },
-          },
-        });
+        // Primary lookup: metadata.dealId passed to SignWell at send time.
+        // Fallback: search serviceFields JSON for signwellDocumentId.
+        const metaDealId = body.data?.object?.metadata?.dealId;
+        let kwongDeal: any = null;
+        if (metaDealId) {
+          kwongDeal = await prisma.deal.findUnique({ where: { id: metaDealId } });
+        }
+        if (!kwongDeal) {
+          kwongDeal = await prisma.deal.findFirst({
+            where: {
+              serviceOfInterest: "Kwong Penalty Abatement (ERC)",
+              serviceFields: { path: ["signwellDocumentId"], equals: docId },
+            },
+          });
+        }
 
-        if (kwongDeal) {
-          // Transition from lead_submitted → engaged
+        if (kwongDeal && kwongDeal.stage === "lead_submitted") {
+          // Transition from lead_submitted → engaged (idempotent — skip if already past lead_submitted)
           const pdfUrl = body.data?.object?.completed_pdf?.url || "";
           let finalPdfUrl = pdfUrl;
           if (!finalPdfUrl && docId) {
