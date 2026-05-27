@@ -21,7 +21,7 @@ async function resendOne(
     if (!invite.invitedEmail) return { id, ok: false, error: "No email address" };
 
     const token = generateToken();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
 
     await prisma.recruitmentInvite.update({
       where: { id },

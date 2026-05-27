@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
         invitedEmail: email.trim(),
         invitedName,
         status: "active",
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
       },
     });
 

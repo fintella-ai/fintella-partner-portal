@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       [body.firstName?.trim(), body.lastName?.trim()].filter(Boolean).join(" ") || null;
 
     const token = generateToken();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000); // 60 days
 
     const invite = await prisma.recruitmentInvite.create({
       data: {
