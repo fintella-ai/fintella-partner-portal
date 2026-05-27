@@ -258,7 +258,13 @@ function KwongIntakeForm() {
         throw new Error(err.error || `Submission failed (${response.status})`);
       }
       const data = await response.json();
-      setSigningUrl(data.signingUrl || "");
+      const url = data.signingUrl || "";
+      setSigningUrl(url);
+      if (url) {
+        setSubmitting(false);
+        window.location.href = url;
+        return;
+      }
       setSubmitted(true);
     } catch (err: any) {
       setSubmitError(err.message || "Submission failed. Please try again.");
@@ -267,7 +273,7 @@ function KwongIntakeForm() {
     }
   }
 
-  // ── Success Screen ──
+  // ── Success Screen (fallback — normally auto-redirects to SignWell) ──
   if (submitted) {
     return (
       <div style={{ background: S.bg, minHeight: "100vh" }}>
@@ -276,13 +282,11 @@ function KwongIntakeForm() {
             <div style={{ width: 62, height: 62, borderRadius: "50%", background: S.ok, color: "#fff", fontSize: 34, lineHeight: "62px", textAlign: "center", margin: "0 auto 14px" }}>&#10003;</div>
             <h2 style={{ margin: "0 0 6px", fontSize: 22 }}>Thank You!</h2>
             <p style={{ color: S.muted, margin: "0 0 22px" }}>
-              Your intake form has been submitted successfully. {signingUrl ? "Please sign the Data Sharing Agreement to complete your submission." : "Our team will follow up within 24 hours."}
+              Your intake form has been submitted successfully. Our team will follow up within 24 hours.
             </p>
             {signingUrl && (
               <a
                 href={signingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
                 style={{
                   display: "inline-block", width: "100%", maxWidth: 400,
                   padding: "15px 20px", fontSize: 17, fontWeight: 700,
@@ -535,7 +539,7 @@ function KwongIntakeForm() {
                   fontFamily: "inherit",
                 }}
               >
-                {submitting ? "Submitting..." : "Finish Intake"}
+                {submitting ? "Submitting — please wait..." : "Finish Intake"}
               </button>
               <p style={{ textAlign: "center", color: S.muted, fontSize: 13, marginTop: 10 }}>
                 Nothing is filed with the IRS automatically — you&apos;ll get a copy of your responses.
