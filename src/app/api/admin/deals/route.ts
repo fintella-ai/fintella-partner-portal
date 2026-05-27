@@ -90,7 +90,30 @@ export async function GET(req: NextRequest) {
       }, {}),
     };
 
-    return NextResponse.json({ deals: dealsWithPartnerNames, stats, partners });
+    // Fetch recent workflow logs that fired for deals (outgoing webhooks)
+    const workflowLogs = await prisma.workflowLog.findMany({
+      where: { status: "success", triggerKey: { startsWith: "deal." } },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      select: { id: true, triggerKey: true, triggerData: true, actionsRun: true, createdAt: true, workflow: { select: { name: true } } },
+    });
+
+    // Index by dealId from triggerData
+    const outgoingByDeal: Record<string, typeof workflowLogs> = {};
+    for (const log of workflowLogs) {
+      const dealId = (log.triggerData as any)?.deal?.id || (log.triggerData as any)?.dealId;
+      if (dealId) {
+        if (!outgoingByDeal[dealId]) outgoingByDeal[dealId] = [];
+        outgoingByDeal[dealId].push(log);
+      }
+    }
+
+    const dealsWithOutgoing = dealsWithPartnerNames.map((d) => ({
+      ...d,
+      outgoingWebhooks: outgoingByDeal[d.id] || [],
+    }));
+
+    return NextResponse.json({ deals: dealsWithOutgoing, stats, partners });
   } catch {
     return NextResponse.json({ error: "Failed to fetch deals" }, { status: 500 });
   }

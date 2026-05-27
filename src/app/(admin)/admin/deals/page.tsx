@@ -909,6 +909,45 @@ export default function AdminDealsPage() {
                     );
                   })()}
 
+                  {/* Outgoing webhook payloads — from workflow engine */}
+                  {Array.isArray((deal as any).outgoingWebhooks) && (deal as any).outgoingWebhooks.length > 0 && (() => {
+                    const outgoing = (deal as any).outgoingWebhooks as Array<{ id: string; triggerKey: string; actionsRun: any; createdAt: string; workflow: { name: string } | null }>;
+                    return (
+                      <details className="mb-3 p-2.5 rounded-lg" style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}>
+                        <summary className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider cursor-pointer select-none">Outgoing Webhook Payloads ({outgoing.length} event{outgoing.length !== 1 ? "s" : ""})</summary>
+                        <div className="mt-2 space-y-2">
+                          {outgoing.map((log) => {
+                            const actions = Array.isArray(log.actionsRun) ? log.actionsRun : [];
+                            return actions.filter((a: any) => a.type === "webhook.post").map((a: any, j: number) => (
+                              <div key={`${log.id}-${j}`} className="p-2 rounded" style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-border)" }}>
+                                <div className="font-body text-[10px] text-[var(--app-text-muted)] mb-1 flex items-center gap-2">
+                                  <span className="font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">OUTGOING</span>
+                                  <span className="font-medium">{log.workflow?.name || log.triggerKey}</span>
+                                  <span>{new Date(log.createdAt).toLocaleString()}</span>
+                                </div>
+                                {a.request?.url && (
+                                  <div className="font-mono text-[10px] text-[var(--app-text-faint)] mb-1 truncate">{a.request.url}</div>
+                                )}
+                                {a.request?.body && (
+                                  <pre className="font-mono text-[11px] text-[var(--app-text-secondary)] whitespace-pre-wrap break-all mb-1">{(() => {
+                                    try { return JSON.stringify(JSON.parse(a.request.body), null, 2); }
+                                    catch { return a.request.body; }
+                                  })()}</pre>
+                                )}
+                                {a.response && (
+                                  <div className="font-mono text-[10px] mt-1 px-2 py-1 rounded" style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}>
+                                    <span className={a.response.status >= 200 && a.response.status < 400 ? "text-emerald-400" : "text-red-400"}>HTTP {a.response.status}</span>
+                                    <span className="text-[var(--app-text-faint)] ml-2">{a.response.body}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ));
+                          })}
+                        </div>
+                      </details>
+                    );
+                  })()}
+
                   {/* Meeting Booked Date/Time */}
                   {(deal.consultBookedDate || deal.consultBookedTime) && (
                     <div className="mb-3 p-2.5 rounded-lg flex items-center gap-4" style={{ background: "var(--app-gold-overlay)", border: "1px solid var(--app-gold-overlay-border)" }}>
