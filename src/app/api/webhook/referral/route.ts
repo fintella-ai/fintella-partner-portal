@@ -492,7 +492,7 @@ async function postHandler(req: NextRequest): Promise<Response> {
     // own portal. `utm_medium` variants remain accepted for backwards compat
     // with any in-flight links cut before the rename. Raw, no normalization;
     // may be null if this isn't an EA-sourced deal.
-    const epLevel1 = get("ep", "EP", "enterprise_partner", "enterprisePartner", "utm_medium", "utmmedium", "utm_Medium");
+    const epLevel1 = get("ep", "EP", "ep1_level", "ep1Level", "enterprise_partner", "enterprisePartner");
 
     // Client contact info
     const firstName = get(
