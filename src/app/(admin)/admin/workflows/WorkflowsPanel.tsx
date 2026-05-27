@@ -713,7 +713,10 @@ function WorkflowPanel({
             : trigger === "conference.call_reminder"
               ? { hoursBeforeCall: Math.max(1, Number(hoursBeforeCall) || 24) }
               : null,
-      conditions: conditions.length ? conditions : null,
+      conditions: conditions.length ? conditions.map((c) => ({
+        ...c,
+        field: c.field.replace(/^\{|\}$/g, "").trim(),
+      })) : null,
       filterLogic,
       actions,
       enabled,
@@ -1588,7 +1591,10 @@ function LogTab() {
                     {new Date(log.createdAt).toLocaleString()}
                   </span>
                 </div>
-                {log.error && (
+                {log.error && log.status === "skipped" && (
+                  <p className="font-body text-xs text-amber-400 mt-1">Skipped: {log.error}</p>
+                )}
+                {log.error && log.status !== "skipped" && (
                   <p className="font-body text-xs text-red-400 mt-1">{log.error}</p>
                 )}
               </button>

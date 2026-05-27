@@ -716,33 +716,35 @@ export async function fireWorkflowTrigger(
       let overallError: string | undefined;
 
       try {
+        let skipReason = "";
+
         // Evaluate triggerConfig — e.g. { stage: "closedwon" } for deal.stage_changed
         if (wf.triggerConfig && typeof wf.triggerConfig === "object") {
           for (const [field, expected] of Object.entries(wf.triggerConfig as Record<string, unknown>)) {
             const actual = getNestedValue(payload, field);
             if (String(actual) !== String(expected)) {
               overallStatus = "skipped";
+              skipReason = `triggerConfig: ${field}=${JSON.stringify(actual)} expected=${JSON.stringify(expected)}`;
               break;
             }
           }
         }
 
-        if (overallStatus === "skipped") {
-          // Don't log skipped workflows — too noisy
-          continue;
-        }
-
         // Evaluate conditions (AND = all must pass, OR = any one passes)
-        if (Array.isArray(wf.conditions) && (wf.conditions as unknown[]).length > 0) {
+        if (overallStatus !== "skipped" && Array.isArray(wf.conditions) && (wf.conditions as unknown[]).length > 0) {
           const conds = wf.conditions as unknown as WorkflowCondition[];
           const logic = (wf as any).filterLogic === "or" ? "or" : "and";
           if (logic === "or") {
             const anyPass = conds.some((c) => evaluateCondition(c, payload));
-            if (!anyPass) overallStatus = "skipped";
+            if (!anyPass) {
+              overallStatus = "skipped";
+              skipReason = `filters (${logic}): none matched — ${conds.map((c) => `${c.field} ${c.op} ${JSON.stringify(c.value)} (actual=${JSON.stringify(getNestedValue(payload, c.field))})`).join("; ")}`;
+            }
           } else {
             for (const cond of conds) {
               if (!evaluateCondition(cond, payload)) {
                 overallStatus = "skipped";
+                skipReason = `filter: ${cond.field} ${cond.op} ${JSON.stringify(cond.value)} (actual=${JSON.stringify(getNestedValue(payload, cond.field))})`;
                 break;
               }
             }
@@ -750,7 +752,7 @@ export async function fireWorkflowTrigger(
         }
 
         if (overallStatus === "skipped") {
-          continue;
+          overallError = skipReason;
         }
 
         // Execute actions
@@ -791,6 +793,96 @@ export async function fireWorkflowTrigger(
   } catch (err) {
     console.error("[workflow-engine] fireWorkflowTrigger failed:", err);
   }
+}
+
+/**
+ * Dry-run a workflow trigger — evaluates conditions but does NOT execute
+ * actions. Returns what would happen for each matching workflow.
+ */
+export async function dryRunWorkflowTrigger(
+  key: string,
+  payload: Record<string, unknown>
+): Promise<Array<{
+  workflowId: string;
+  workflowName: string;
+  status: "would_fire" | "would_skip";
+  skipReason?: string;
+  conditionResults: Array<{ field: string; op: string; expected: unknown; actual: unknown; passed: boolean }>;
+  actionCount: number;
+  actions: Array<{ type: string; summary: string }>;
+}>> {
+  const workflows = await prisma.workflow.findMany({
+    where: { trigger: key, enabled: true },
+  });
+
+  const results: Array<{
+    workflowId: string;
+    workflowName: string;
+    status: "would_fire" | "would_skip";
+    skipReason?: string;
+    conditionResults: Array<{ field: string; op: string; expected: unknown; actual: unknown; passed: boolean }>;
+    actionCount: number;
+    actions: Array<{ type: string; summary: string }>;
+  }> = [];
+
+  for (const wf of workflows) {
+    let status: "would_fire" | "would_skip" = "would_fire";
+    let skipReason = "";
+    const conditionResults: Array<{ field: string; op: string; expected: unknown; actual: unknown; passed: boolean }> = [];
+
+    if (wf.triggerConfig && typeof wf.triggerConfig === "object") {
+      for (const [field, expected] of Object.entries(wf.triggerConfig as Record<string, unknown>)) {
+        const actual = getNestedValue(payload, field);
+        const passed = String(actual) === String(expected);
+        conditionResults.push({ field, op: "eq", expected, actual, passed });
+        if (!passed) {
+          status = "would_skip";
+          skipReason = `triggerConfig: ${field}=${JSON.stringify(actual)} expected=${JSON.stringify(expected)}`;
+        }
+      }
+    }
+
+    if (status !== "would_skip" && Array.isArray(wf.conditions) && (wf.conditions as unknown[]).length > 0) {
+      const conds = wf.conditions as unknown as WorkflowCondition[];
+      const logic = (wf as any).filterLogic === "or" ? "or" : "and";
+
+      for (const cond of conds) {
+        const actual = getNestedValue(payload, cond.field);
+        const passed = evaluateCondition(cond, payload);
+        conditionResults.push({ field: cond.field, op: cond.op, expected: cond.value, actual, passed });
+      }
+
+      if (logic === "or") {
+        if (!conditionResults.some((r) => r.passed)) {
+          status = "would_skip";
+          skipReason = `filters (or): none matched`;
+        }
+      } else {
+        const failed = conditionResults.find((r) => !r.passed);
+        if (failed) {
+          status = "would_skip";
+          skipReason = `filter: ${failed.field} ${failed.op} ${JSON.stringify(failed.expected)} (actual=${JSON.stringify(failed.actual)})`;
+        }
+      }
+    }
+
+    const wfActions = Array.isArray(wf.actions) ? (wf.actions as unknown as WorkflowAction[]) : [];
+
+    results.push({
+      workflowId: wf.id,
+      workflowName: wf.name,
+      status,
+      skipReason: skipReason || undefined,
+      conditionResults,
+      actionCount: wfActions.length,
+      actions: wfActions.map((a) => ({
+        type: a.type,
+        summary: a.type === "webhook.post" ? `POST ${String(a.config.url || "").slice(0, 60)}` : a.type,
+      })),
+    });
+  }
+
+  return results;
 }
 
 /**
