@@ -391,6 +391,8 @@ interface ActionResult {
   status: "success" | "failed" | "skipped";
   durationMs: number;
   error?: string;
+  request?: { url?: string; body?: string };
+  response?: { status?: number; body?: string };
 }
 
 async function executeAction(
@@ -432,17 +434,28 @@ async function executeAction(
 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10_000);
+        let resStatus = 0;
+        let resBody = "";
         try {
-          await fetch(url, {
+          const res = await fetch(url, {
             method: "POST",
             headers,
             body: bodyString,
             signal: controller.signal,
           });
+          resStatus = res.status;
+          resBody = await res.text().catch(() => "");
         } finally {
           clearTimeout(timeout);
         }
-        break;
+        return {
+          type,
+          status: resStatus >= 200 && resStatus < 400 ? "success" : "failed",
+          durationMs: Date.now() - start,
+          error: resStatus >= 400 ? `HTTP ${resStatus}: ${resBody.slice(0, 200)}` : undefined,
+          request: { url, body: bodyString.slice(0, 2000) },
+          response: { status: resStatus, body: resBody.slice(0, 2000) },
+        };
       }
 
       case "notification.create": {
