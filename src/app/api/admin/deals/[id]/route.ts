@@ -151,6 +151,17 @@ export async function PUT(
       data,
     });
 
+    // Fire workflow triggers for stage changes
+    if (body.stage !== undefined && before && before.stage !== deal.stage) {
+      import("@/lib/workflow-engine").then(({ fireWorkflowTrigger }) => {
+        const previousStage = before.stage;
+        const newStage = deal.stage;
+        fireWorkflowTrigger("deal.stage_changed", { deal, previousStage, newStage }).catch(() => {});
+        if (newStage === "closedwon" || newStage === "completed") fireWorkflowTrigger("deal.closed_won", { deal }).catch(() => {});
+        if (newStage === "disqualified" || newStage === "denied") fireWorkflowTrigger("deal.closed_lost", { deal }).catch(() => {});
+      }).catch(() => {});
+    }
+
     logAudit({
       action: "deal.update",
       actorEmail: session.user.email || "unknown",
