@@ -370,7 +370,8 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 }
 
 function evaluateCondition(condition: WorkflowCondition, payload: Record<string, unknown>): boolean {
-  const actual = getNestedValue(payload, condition.field);
+  const field = condition.field.replace(/^\{|\}$/g, "");
+  const actual = getNestedValue(payload, field);
   switch (condition.op) {
     case "eq":         return String(actual) === String(condition.value);
     case "neq":        return String(actual) !== String(condition.value);
