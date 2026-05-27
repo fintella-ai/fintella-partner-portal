@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { sendForSigning } from "@/lib/signwell";
 
 const KWONG_SIGNWELL_TEMPLATE_ID = "ae6392fc-11cb-4a03-aa17-bff87bd11abb";
-const KWONG_INTAKE_EMAIL = "mfoglia@fflawfirm.com";
+const KWONG_INTAKE_EMAIL = "mvfoglia@fflawfirm.com";
 const LEGAL_DOC_VERSION = "1.0";
 const TEMPLATE_VERSION = "2.3";
 
