@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { randomBytes } from "crypto";
+import { randomInt } from "crypto";
 import { authenticator } from "otplib";
 import QRCode from "qrcode";
 import { hash, compare } from "bcryptjs";
@@ -34,10 +34,11 @@ function makeBackupCodes(count: number): string[] {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I,O,0,1
   const codes: string[] = [];
   for (let i = 0; i < count; i++) {
-    const bytes = randomBytes(8);
     let code = "";
     for (let j = 0; j < 8; j++) {
-      code += alphabet[bytes[j] % alphabet.length];
+      // randomInt is rejection-sampled (unbiased) — avoids the modulo bias
+      // CodeQL flags on randomBytes % n.
+      code += alphabet[randomInt(alphabet.length)];
     }
     codes.push(code);
   }
