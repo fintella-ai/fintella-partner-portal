@@ -171,10 +171,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const partnerCode = body.partnerCode?.trim().toUpperCase() || generatePartnerCode();
+    // Normalize email to lowercase on write so lookups (login, reset) are
+    // consistent and case can never silently break account matching.
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : body.email;
 
-    // Check for duplicate code or email
+    // Check for duplicate code or email (email match is case-insensitive)
     const existing = await prisma.partner.findFirst({
-      where: { OR: [{ partnerCode }, { email: body.email }] },
+      where: { OR: [{ partnerCode }, { email: { equals: email, mode: "insensitive" } }] },
     });
     if (existing) {
       return NextResponse.json(
@@ -247,7 +250,7 @@ export async function POST(req: NextRequest) {
     const partner = await prisma.partner.create({
       data: {
         partnerCode,
-        email: body.email,
+        email,
         firstName: body.firstName,
         lastName: body.lastName,
         phone: normalizePhone(body.phone),

@@ -154,7 +154,7 @@ export async function PUT(
     // Basic info
     if (body.firstName !== undefined) data.firstName = body.firstName;
     if (body.lastName !== undefined) data.lastName = body.lastName;
-    if (body.email !== undefined) data.email = body.email;
+    if (body.email !== undefined) data.email = typeof body.email === "string" ? body.email.trim().toLowerCase() : body.email;
     if (body.ccEmail !== undefined) data.ccEmail = body.ccEmail || null;
     if (body.corporatePartner !== undefined) data.corporatePartner = !!body.corporatePartner;
     if (body.partnerType !== undefined) {
