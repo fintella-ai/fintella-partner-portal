@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-type Step = "analyze" | "results" | "consent" | "pay" | "done";
+type Step = "analyze" | "results" | "consent" | "pay" | "sample" | "done";
 
 interface Props {
   tokenizationKey: string;
@@ -23,7 +23,14 @@ interface Props {
   platforms: string[];
 }
 
-type PricingModel = "upfront" | "widget_onetime" | "widget_per_submission";
+type PricingModel = "upfront" | "widget_onetime" | "widget_per_submission" | "per_file_volume";
+
+interface PerFile {
+  fileCount: number;
+  sampleCents: number;
+  fullCents: number;
+  remainderCents: number;
+}
 
 interface EntryRow {
   countryOfOrigin: string;
@@ -48,6 +55,7 @@ const GOLD = "#c4a050";
 const STORAGE_KEY = "tariff_diy_engagement";
 const emptyRow: EntryRow = { countryOfOrigin: "", entryDate: "", enteredValue: "", entryNumber: "", liquidationDate: "" };
 const fmt = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
+const centsLabel = (c: number) => `$${Math.round((c || 0) / 100).toLocaleString("en-US")}`;
 
 export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, feeLabel, widgetOnceLabel, widgetPerLabel, platforms }: Props) {
   const [step, setStep] = useState<Step>("analyze");
@@ -64,6 +72,9 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
   const [platform, setPlatform] = useState("");
   const [pathwayLabel, setPathwayLabel] = useState("done-for-you file");
   const [feeDisplay, setFeeDisplay] = useState(feeLabel);
+  const [perFile, setPerFile] = useState<PerFile | null>(null);
+  const [payScope, setPayScope] = useState<"sample" | "full">("full");
+  const payScopeRef = useRef<"sample" | "full">("full");
   const collectConfigured = useRef(false);
 
   // Resume after the new-tab signing redirect (?signed=1); localStorage is shared across tabs.
@@ -126,8 +137,10 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
     setFeeDisplay(
       pricingModel === "widget_onetime" ? widgetOnceLabel
         : pricingModel === "widget_per_submission" ? widgetPerLabel
+        : pricingModel === "per_file_volume" ? "per file"
         : feeLabel,
     );
+    if (pricingModel === "per_file_volume") setPathwayLabel("per-file");
     try {
       const res = await fetch("/api/tariff/engage", {
         method: "POST",
@@ -138,6 +151,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
       if (!res.ok) throw new Error(data.error || "Could not start engagement");
       setDealId(data.dealId);
       setSigningUrl(data.signingUrl || "");
+      if (data.perFile) setPerFile(data.perFile);
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ dealId: data.dealId, email: contact.email })); } catch { /* ignore */ }
       setStep("consent");
     } catch (err) {
@@ -167,19 +181,32 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, demoMode, tokenizationKey]);
 
+  // Trigger payment for a given scope (sample = one file; full = all/remainder).
+  function startPay(scope: "sample" | "full") {
+    payScopeRef.current = scope;
+    setPayScope(scope);
+    if (demoMode) { payWithToken("demo-token"); return; }
+    window.CollectJS?.startPaymentRequest();
+  }
+
   async function payWithToken(paymentToken: string) {
     setError("");
     setLoading(true);
+    const scope = payScopeRef.current;
     try {
       const res = await fetch(`/api/tariff/engage/${dealId}/pay`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentToken }),
+        body: JSON.stringify({ paymentToken, scope }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Payment failed");
-      try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
-      setStep("done");
+      if (data.sampleUnlocked && !data.fullUnlocked) {
+        setStep("sample");
+      } else {
+        try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+        setStep("done");
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -263,6 +290,14 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
             {loading ? "Starting…" : `Get my done-for-you file — ${feeLabel} →`}
           </button>
 
+          {/* Per-file volume option — pay per file, with a "try one first" sample */}
+          {summary.entryCount > 1 && (
+            <button onClick={() => engage("per_file_volume")} disabled={loading}
+              className="w-full rounded-lg py-2.5 text-sm font-semibold border border-white/15 text-white/80 hover:bg-white/5 transition disabled:opacity-50">
+              Pay per file instead — volume pricing ({summary.entryCount} files) →
+            </button>
+          )}
+
           {/* Fallback / add-on upsell — widget for CRM/TMS users */}
           {!showWidget ? (
             <button onClick={() => setShowWidget(true)} className="w-full text-sm text-white/50 hover:text-white/80 transition py-1">
@@ -313,17 +348,47 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
       {step === "pay" && (
         <div className="space-y-4">
           <h3 className="font-display text-2xl" style={{ color: GOLD }}>Checkout — {pathwayLabel}</h3>
-          <p className="text-sm text-white/60"><strong className="text-white">{feeDisplay}</strong> for your substantiated, audit-ready CAPE self-file kit. No contingency — the refund is 100% yours.</p>
-          {demoMode ? (
-            <button onClick={() => payWithToken("demo-token")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
-              {loading ? "Processing…" : `Simulate payment (demo) — ${feeDisplay}`}
-            </button>
+
+          {perFile ? (
+            <>
+              <p className="text-sm text-white/60">
+                <strong className="text-white">{perFile.fileCount} files</strong> at volume pricing —
+                <strong className="text-white"> {centsLabel(perFile.fullCents)}</strong> total. Or try one file
+                first for <strong className="text-white">{centsLabel(perFile.sampleCents)}</strong>, then unlock the
+                rest for {centsLabel(perFile.remainderCents)}.
+              </p>
+              <button onClick={() => startPay("full")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
+                {loading && payScope === "full" ? "Processing…" : `Unlock all ${perFile.fileCount} files — ${centsLabel(perFile.fullCents)}`}
+              </button>
+              <button onClick={() => startPay("sample")} disabled={loading}
+                className="w-full rounded-lg py-3 font-semibold border border-white/15 text-white/80 hover:bg-white/5 transition disabled:opacity-50">
+                {loading && payScope === "sample" ? "Processing…" : `Try one file first — ${centsLabel(perFile.sampleCents)}`}
+              </button>
+            </>
           ) : (
-            <button onClick={() => window.CollectJS?.startPaymentRequest()} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
-              {loading ? "Processing…" : `Pay ${feeDisplay} securely`}
-            </button>
+            <>
+              <p className="text-sm text-white/60"><strong className="text-white">{feeDisplay}</strong> for your substantiated, audit-ready CAPE self-file kit. No contingency — the refund is 100% yours.</p>
+              <button onClick={() => startPay("full")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
+                {loading ? "Processing…" : demoMode ? `Simulate payment (demo) — ${feeDisplay}` : `Pay ${feeDisplay} securely`}
+              </button>
+            </>
           )}
           <p className="text-xs text-white/30 text-center">Card processed securely by NMI. We never see your card details.</p>
+        </div>
+      )}
+
+      {/* Step 4b — sample unlocked, offer the rest */}
+      {step === "sample" && perFile && (
+        <div className="space-y-4">
+          <h3 className="font-display text-2xl" style={{ color: GOLD }}>Your sample file is ready</h3>
+          <p className="text-sm text-white/60">One file is unlocked below. Happy with it? Unlock all {perFile.fileCount} files for {centsLabel(perFile.remainderCents)} more.</p>
+          <div className="space-y-2">
+            <a href={`/api/tariff/engage/${dealId}/kit?format=pdf`} className="block w-full text-center rounded-lg py-3 font-semibold border border-white/15 text-white/80 hover:bg-white/5 transition">⬇ Sample analysis (PDF)</a>
+            <a href={`/api/tariff/engage/${dealId}/kit?format=csv`} className="block w-full text-center rounded-lg py-3 font-semibold border border-white/15 text-white/80 hover:bg-white/5 transition">⬇ Sample CAPE entry (CSV)</a>
+          </div>
+          <button onClick={() => startPay("full")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
+            {loading ? "Processing…" : `Unlock all ${perFile.fileCount} files — ${centsLabel(perFile.remainderCents)}`}
+          </button>
         </div>
       )}
 

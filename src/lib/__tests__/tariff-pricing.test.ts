@@ -6,6 +6,7 @@
 import assert from "node:assert/strict";
 import {
   perFileCentsForCount,
+  perFileQuote,
   feeForPricingModel,
   computeEngagementPricing,
   TARIFF_UPFRONT_FEE_CENTS,
@@ -27,6 +28,27 @@ test("10 files → $99 each", () => assert.equal(perFileCentsForCount(10), 9_900
 test("50 files → $59 each", () => assert.equal(perFileCentsForCount(50), 5_900));
 test("more files never costs more per file", () => {
   for (let n = 2; n <= 100; n++) assert.ok(perFileCentsForCount(n) <= perFileCentsForCount(n - 1));
+});
+
+console.log("\n▸ perFileQuote (sample-gate)");
+test("sample = 1-file premium rate", () => {
+  assert.equal(perFileQuote(5).sampleCents, perFileCentsForCount(1));
+});
+test("full = volume rate × count", () => {
+  const q = perFileQuote(10);
+  assert.equal(q.fullCents, perFileCentsForCount(10) * 10);
+});
+test("remainder = full − sample (sample credited)", () => {
+  const q = perFileQuote(10);
+  assert.equal(q.remainderCents, q.fullCents - q.sampleCents);
+});
+test("sample + remainder = full (no double charge)", () => {
+  const q = perFileQuote(7);
+  assert.equal(q.sampleCents + q.remainderCents, q.fullCents);
+});
+test("single file: remainder is 0 after sample", () => {
+  const q = perFileQuote(1);
+  assert.equal(q.remainderCents, 0);
 });
 
 console.log("\n▸ feeForPricingModel");
