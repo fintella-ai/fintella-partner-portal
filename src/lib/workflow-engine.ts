@@ -457,24 +457,6 @@ interface ActionResult {
   response?: { status?: number; body?: string };
 }
 
-// Hosts allowed for the optional signed-PDF fetch in webhook.post (SSRF guard).
-// SignWell serves completed PDFs from its own domain and its S3 storage.
-const ALLOWED_PDF_HOSTS = ["signwell.com", "amazonaws.com"];
-
-function isAllowedPdfHost(rawUrl: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
-    return false;
-  }
-  if (parsed.protocol !== "https:") return false;
-  const host = parsed.hostname.toLowerCase();
-  return ALLOWED_PDF_HOSTS.some(
-    (allowed) => host === allowed || host.endsWith(`.${allowed}`)
-  );
-}
-
 async function executeAction(
   action: WorkflowAction,
   payload: Record<string, unknown>
@@ -512,48 +494,10 @@ async function executeAction(
           bodyString = JSON.stringify(payload);
         }
 
-        // Optional: embed the signed agreement PDF directly in the JSON body as
-        // base64, so receivers (e.g. OpCenter) get the file without a second
-        // fetch and without depending on a (possibly expiring) SignWell URL.
-        // Enable via config.attachPdf; the source URL is {deal.signedPdfUrl}.
-        if (config.attachPdf) {
-          const deal = payload.deal as Record<string, unknown> | undefined;
-          const pdfUrl = String(deal?.signedPdfUrl || config.pdfUrl || "").trim();
-          // SSRF guard: only fetch the PDF over HTTPS from the document
-          // provider's own hosts (SignWell + its S3 storage). The URL ultimately
-          // originates from the SignWell webhook/API, but we validate it here so
-          // a tampered serviceFields value can never point the fetch at an
-          // internal/arbitrary host.
-          if (pdfUrl && isAllowedPdfHost(pdfUrl)) {
-            try {
-              const pdfRes = await fetch(pdfUrl);
-              if (pdfRes.ok) {
-                const pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
-                const pdfBase64 = pdfBuf.toString("base64");
-                const pdfFilename = `${String(deal?.id || "agreement")}-signed-agreement.pdf`;
-                try {
-                  const obj = JSON.parse(bodyString);
-                  if (obj && typeof obj === "object") {
-                    obj.pdf_base64 = pdfBase64;
-                    obj.pdf_filename = pdfFilename;
-                    obj.pdf_mime_type = "application/pdf";
-                    bodyString = JSON.stringify(obj);
-                  }
-                } catch {
-                  // Body wasn't JSON — wrap it so the PDF still rides along.
-                  bodyString = JSON.stringify({
-                    body: bodyString,
-                    pdf_base64: pdfBase64,
-                    pdf_filename: pdfFilename,
-                    pdf_mime_type: "application/pdf",
-                  });
-                }
-              }
-            } catch (pdfErr) {
-              console.warn("[workflow-engine] attachPdf fetch failed:", pdfErr);
-            }
-          }
-        }
+        // Note: to deliver the signed agreement PDF, include {deal.signedPdfUrl}
+        // in the body template — the receiver (e.g. OpCenter) fetches it. We
+        // intentionally do NOT fetch the PDF server-side here to avoid making an
+        // outbound request to a URL carried in the payload (SSRF surface).
 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10_000);

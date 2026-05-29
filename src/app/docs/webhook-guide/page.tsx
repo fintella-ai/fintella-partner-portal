@@ -930,7 +930,7 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
 }`}
                 </pre>
                 <InfoBox>
-                  <strong>Attaching the PDF binary:</strong> if the receiver should get the file inline rather than fetching the URL (SignWell URLs can expire), enable the <Code>Attach signed PDF</Code> option on the webhook action. The engine fetches <Code>{"{deal.signedPdfUrl}"}</Code>, base64-encodes it, and adds <Code>pdf_base64</Code>, <Code>pdf_filename</Code>, and <Code>pdf_mime_type</Code> to the JSON body.
+                  <strong>Getting the file:</strong> the receiver downloads the PDF from <Code>{"{deal.signedPdfUrl}"}</Code> in the payload. Fetch it promptly and store your own copy — the SignWell URL is time-limited. Pair this with <Code>{"{deal.signwellDocumentId}"}</Code> so you can reconcile or re-request the document later if needed.
                 </InfoBox>
               </SubSection>
             </Section>
