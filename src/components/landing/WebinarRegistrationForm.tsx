@@ -61,7 +61,7 @@ export default function WebinarRegistrationForm() {
             {String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
           </div>
         </div>
-        <h2 className="font-display text-lg" style={{ color: "#c4a050" }}>Reserve Your Seat</h2>
+        <h2 className="font-display text-lg" style={{ color: "#a78bfa" }}>Reserve Your Seat</h2>
         <p className="text-xs text-white/40 mt-1">Watch instantly after registering — no waiting.</p>
       </div>
 
@@ -75,7 +75,7 @@ export default function WebinarRegistrationForm() {
           <input
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#7c3aed]/50"
             placeholder="John Smith"
             autoFocus
           />
@@ -86,7 +86,7 @@ export default function WebinarRegistrationForm() {
             type="email"
             value={form.email}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#7c3aed]/50"
             placeholder="john@customsbroker.com"
           />
         </div>
@@ -95,7 +95,7 @@ export default function WebinarRegistrationForm() {
           <input
             value={form.company}
             onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#7c3aed]/50"
             placeholder="Smith Customs Brokerage"
           />
         </div>
@@ -104,7 +104,7 @@ export default function WebinarRegistrationForm() {
           <input
             value={form.phone}
             onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#7c3aed]/50"
             placeholder="(555) 123-4567"
           />
         </div>
@@ -113,8 +113,8 @@ export default function WebinarRegistrationForm() {
       <button
         onClick={submit}
         disabled={saving}
-        className="w-full mt-5 py-3.5 rounded-xl font-semibold text-sm text-black disabled:opacity-50"
-        style={{ background: "#c4a050" }}
+        className="w-full mt-5 py-3.5 rounded-xl font-semibold text-sm text-white disabled:opacity-50 transition hover:brightness-110"
+        style={{ background: "#7c3aed" }}
       >
         {saving ? "Registering..." : "Watch the Webinar Now →"}
       </button>

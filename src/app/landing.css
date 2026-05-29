@@ -3,8 +3,9 @@
    page is a single-file surgery. Re-themed to the OpCenter OLED look
    (near-black #050507 + violet #7c3aed) to match the rest of the public
    marketing shell — the .landing-root element also carries `.oc-launch`,
-   which re-points the --app-*/--brand-gold tokens, so the page's token-based
-   markup re-skins automatically; this file handles the bespoke landing bits. */
+   which re-points the app/brand-gold custom properties, so the page's
+   token-based markup re-skins automatically; this file handles the
+   bespoke landing bits. */
 
 .landing-root {
   background: radial-gradient(
