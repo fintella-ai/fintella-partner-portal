@@ -2263,6 +2263,26 @@ model WidgetTrialKey {
   @@index([email])
 }
 
+// Accuracy + KPI: each row is one scored run of the labeled fixtures through the
+// document-intake extraction + the tariff calculator. Powers the /admin
+// accuracy-KPI report (field precision, confidence calibration, drift over time).
+model AccuracyRun {
+  id                    String   @id @default(cuid())
+  runDate               DateTime @default(now())
+  totalFixtures         Int
+  overallPrecision      Float    @default(0) // field-extraction precision 0..1
+  calcAccuracy          Float?               // share of calc checks within tolerance 0..1
+  fieldPrecision        Json     // [{ field, total, correct, precision }]
+  confidenceCalibration Json     // [{ bin, count, accuracy }]
+  calcResults           Json?    // [{ fixtureId, expectedEligibility, actualEligibility, match }]
+  mode                  String   @default("baseline") // baseline | extraction | calc
+  notes                 String?
+  triggeredBy           String?
+  createdAt             DateTime @default(now())
+
+  @@index([runDate])
+}
+
 model WidgetReferral {
   id                    String   @id @default(cuid())
   widgetSessionId       String
