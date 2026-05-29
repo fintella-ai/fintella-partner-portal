@@ -5,6 +5,7 @@ import { SetVariantCookie } from "./SetVariantCookie";
 import BrokerSignupForm from "./BrokerSignupForm";
 import HeroCalculator from "./HeroCalculator";
 import { JsonLd } from "@/components/JsonLd";
+import { MarketingAtmosphere, Eyebrow, GradientText } from "@/components/marketing";
 
 export const metadata: Metadata = {
   title: "IEEPA Tariff Refund Widget for Customs Brokers | CargoWise & Magaya | Fintella",
@@ -136,9 +137,11 @@ export default function BrokersLandingPage() {
 
   return (
     <main
-      className="min-h-screen overflow-hidden font-body"
+      className="oc-launch oc-grid relative min-h-screen overflow-hidden font-body"
       style={{ background: "var(--app-bg)", color: "var(--app-text)" }}
     >
+      <MarketingAtmosphere />
+      <div className="relative z-10">
       <JsonLd data={{
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
@@ -227,35 +230,25 @@ export default function BrokersLandingPage() {
         <div className="max-w-6xl mx-auto px-6 pt-20 pb-16 relative z-10">
           <div className="text-center max-w-4xl mx-auto">
             {/* Badge */}
-            <div
-              className="inline-block rounded-full px-5 py-2 text-xs font-bold tracking-widest uppercase mb-8"
-              style={{
-                background: "var(--app-gold-overlay)",
-                color: "var(--app-gold-text)",
-                border: "1px solid var(--app-gold-overlay-border)",
-              }}
-            >
-              INDUSTRY FIRST &mdash; NO COMPETITOR HAS THIS
+            <div className="mb-8 flex justify-center">
+              <span className="inline-block rounded-full px-5 py-2 text-xs font-bold tracking-widest uppercase border bg-violet-500/10 text-violet-300 border-violet-500/20">
+                INDUSTRY FIRST &mdash; NO COMPETITOR HAS THIS
+              </span>
             </div>
+
+            <Eyebrow className="mb-5 text-center">For Licensed Customs Brokers</Eyebrow>
 
             <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl leading-[1.05] mb-8 tracking-tight">
               The Only Tariff Refund Tool
               <br />
               That Runs{" "}
-              <span style={{ color: "var(--brand-gold)" }}>
-                Inside Your TMS
-              </span>
+              <GradientText>Inside Your TMS</GradientText>
             </h1>
 
-            <p
-              className="text-lg sm:text-xl mb-10 max-w-2xl mx-auto leading-relaxed"
-              style={{ color: "var(--app-text-muted)" }}
-            >
+            <p className="text-lg sm:text-xl mb-10 max-w-2xl mx-auto leading-relaxed text-white/60">
               Embed our widget in CargoWise or Magaya. Spot refund-eligible
               clients. Refer in one click. Earn{" "}
-              <strong style={{ color: "var(--brand-gold)" }}>
-                {splitRate}%
-              </strong>{" "}
+              <strong className="text-violet-300">{splitRate}%</strong>{" "}
               on every recovery.
             </p>
 
@@ -267,14 +260,10 @@ export default function BrokersLandingPage() {
               {["CargoWise", "Magaya", "Any Browser-Based TMS"].map((label) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
-                  style={{
-                    background: "var(--app-gold-overlay-subtle)",
-                    border: "1px solid var(--app-gold-overlay-border-subtle)",
-                    color: "var(--app-text-secondary)",
-                  }}
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium border border-white/10 text-white/70"
+                  style={{ background: "rgba(255,255,255,0.03)" }}
                 >
-                  <span style={{ color: "var(--brand-gold)" }}>&#10003;</span>
+                  <span className="text-violet-400">&#10003;</span>
                   {label}
                 </span>
               ))}
@@ -307,28 +296,15 @@ export default function BrokersLandingPage() {
             ].map((s) => (
               <div
                 key={s.label}
-                className="text-center p-4 rounded-xl"
-                style={{
-                  background: "var(--app-gold-overlay-subtle)",
-                  border: "1px solid var(--app-gold-overlay-border-subtle)",
-                }}
+                className="oc-glass oc-glass--hover text-center p-4"
               >
-                <div
-                  className="font-display text-3xl font-bold mb-1"
-                  style={{ color: "var(--app-gold-text)" }}
-                >
+                <div className="oc-stat-value font-display text-3xl mb-1">
                   {s.value}
                 </div>
-                <div
-                  className="text-xs uppercase tracking-wider mb-0.5"
-                  style={{ color: "var(--app-text-faint)" }}
-                >
+                <div className="text-xs uppercase tracking-wider mb-0.5 text-white/40">
                   {s.label}
                 </div>
-                <div
-                  className="text-[10px]"
-                  style={{ color: "var(--app-text-faint)", opacity: 0.6 }}
-                >
+                <div className="text-[10px] text-white/30">
                   {s.sub}
                 </div>
               </div>
@@ -414,11 +390,11 @@ export default function BrokersLandingPage() {
                 style={{
                   background:
                     card.num === "04"
-                      ? "var(--app-gold-overlay-subtle)"
+                      ? "rgba(124, 58, 237, 0.08)"
                       : "rgba(239, 68, 68, 0.04)",
                   border:
                     card.num === "04"
-                      ? "1px solid var(--app-gold-overlay-border-subtle)"
+                      ? "1px solid rgba(124, 58, 237, 0.25)"
                       : "1px solid rgba(239, 68, 68, 0.12)",
                 }}
               >
@@ -477,11 +453,8 @@ export default function BrokersLandingPage() {
       >
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2
-              className="font-display text-3xl sm:text-4xl mb-4"
-              style={{ color: "var(--brand-gold)" }}
-            >
-              Refer. Don&apos;t File. Earn More. Risk Nothing.
+            <h2 className="font-display text-3xl sm:text-4xl mb-4">
+              <GradientText>Refer. Don&apos;t File.</GradientText> Earn More. Risk Nothing.
             </h2>
             <p
               className="text-lg max-w-2xl mx-auto"
@@ -536,8 +509,8 @@ export default function BrokersLandingPage() {
             <div
               className="p-8 rounded-2xl"
               style={{
-                background: "var(--app-gold-overlay)",
-                border: "1px solid var(--app-gold-overlay-border)",
+                background: "rgba(124, 58, 237, 0.08)",
+                border: "1px solid rgba(124, 58, 237, 0.25)",
               }}
             >
               <div
@@ -581,11 +554,8 @@ export default function BrokersLandingPage() {
       <section className="py-20">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2
-              className="font-display text-3xl sm:text-4xl mb-4"
-              style={{ color: "var(--brand-gold)" }}
-            >
-              What&apos;s Your Book Worth?
+            <h2 className="font-display text-3xl sm:text-4xl mb-4">
+              What&apos;s Your <GradientText>Book Worth?</GradientText>
             </h2>
             <p
               className="text-lg max-w-2xl mx-auto"
@@ -600,7 +570,7 @@ export default function BrokersLandingPage() {
           <div
             className="rounded-2xl overflow-hidden"
             style={{
-              border: "1px solid var(--app-gold-overlay-border)",
+              border: "1px solid rgba(124, 58, 237, 0.25)",
             }}
           >
             <div
@@ -660,8 +630,8 @@ export default function BrokersLandingPage() {
             <div
               className="p-8 text-center"
               style={{
-                background: "var(--app-gold-overlay)",
-                borderTop: "1px solid var(--app-gold-overlay-border)",
+                background: "rgba(124, 58, 237, 0.1)",
+                borderTop: "1px solid rgba(124, 58, 237, 0.25)",
               }}
             >
               <div
@@ -671,17 +641,10 @@ export default function BrokersLandingPage() {
                 20 importers &times; $50K refund &times; 25% fee &times;{" "}
                 {splitRate}% commission
               </div>
-              <div
-                className="font-display text-5xl sm:text-6xl font-bold mb-2"
-                style={{ color: "var(--brand-gold)" }}
-              >
-                $
-                {(
-                  20 *
-                  50000 *
-                  0.25 *
-                  (splitRate / 100)
-                ).toLocaleString()}
+              <div className="font-display text-5xl sm:text-6xl mb-2">
+                <GradientText>
+                  ${(20 * 50000 * 0.25 * (splitRate / 100)).toLocaleString()}
+                </GradientText>
               </div>
               <div style={{ color: "var(--app-text-muted)" }}>
                 per year in commission income &mdash;{" "}
@@ -713,12 +676,7 @@ export default function BrokersLandingPage() {
             </p>
             <Link
               href="/calculator"
-              className="inline-block text-base font-bold px-10 py-4 rounded-full transition-transform hover:scale-105 active:scale-95"
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--brand-gold) 0%, #f0d070 100%)",
-                color: "var(--app-button-gold-text)",
-              }}
+              className="oc-cta oc-cta--violet text-base font-bold px-10 py-4"
             >
               Calculate Your Revenue
             </Link>
@@ -797,11 +755,11 @@ export default function BrokersLandingPage() {
                 style={{
                   background:
                     item.num === "06"
-                      ? "var(--app-gold-overlay-subtle)"
+                      ? "rgba(124, 58, 237, 0.08)"
                       : "rgba(239, 68, 68, 0.04)",
                   border:
                     item.num === "06"
-                      ? "1px solid var(--app-gold-overlay-border-subtle)"
+                      ? "1px solid rgba(124, 58, 237, 0.25)"
                       : "1px solid rgba(239, 68, 68, 0.12)",
                 }}
               >
@@ -833,11 +791,8 @@ export default function BrokersLandingPage() {
       <section className="py-20">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2
-              className="font-display text-3xl sm:text-4xl mb-4"
-              style={{ color: "var(--brand-gold)" }}
-            >
-              Three Steps to Revenue
+            <h2 className="font-display text-3xl sm:text-4xl mb-4">
+              Three Steps to <GradientText>Revenue</GradientText>
             </h2>
             <p
               className="text-lg max-w-2xl mx-auto"
@@ -852,25 +807,21 @@ export default function BrokersLandingPage() {
             {STEPS.map((item) => (
               <div
                 key={item.num}
-                className="relative p-8 rounded-2xl transition-all duration-300 hover:-translate-y-1"
-                style={{
-                  background: "var(--app-gold-overlay-subtle)",
-                  border: "1px solid var(--app-gold-overlay-border-subtle)",
-                }}
+                className="oc-glass oc-glass--hover relative p-8"
               >
                 <div
-                  className="font-display text-6xl font-bold absolute top-4 right-6 opacity-5"
+                  className="font-display text-6xl font-bold absolute top-4 right-6 opacity-10"
                   style={{ color: "var(--brand-gold)" }}
                 >
                   {item.num}
                 </div>
-                <div className="mb-4" style={{ color: "var(--brand-gold)" }}>
+                <div className="oc-feature-icon mb-5">
                   {item.icon}
                 </div>
                 <h3 className="font-display text-xl font-semibold mb-3">
                   {item.title}
                 </h3>
-                <p style={{ color: "var(--app-text-muted)" }}>{item.body}</p>
+                <p className="text-white/60">{item.body}</p>
               </div>
             ))}
           </div>
@@ -879,12 +830,7 @@ export default function BrokersLandingPage() {
           <div className="text-center mt-12">
             <Link
               href="/calculator"
-              className="inline-block text-base font-bold px-10 py-4 rounded-full transition-transform hover:scale-105 active:scale-95"
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--brand-gold) 0%, #f0d070 100%)",
-                color: "var(--app-button-gold-text)",
-              }}
+              className="oc-cta oc-cta--violet text-base font-bold px-10 py-4"
             >
               Try the Free Calculator Now
             </Link>
@@ -899,10 +845,10 @@ export default function BrokersLandingPage() {
       >
         <div className="max-w-5xl mx-auto px-6">
           <div
-            className="p-8 sm:p-12 rounded-2xl relative overflow-hidden"
+            className="oc-glass p-8 sm:p-12 relative overflow-hidden"
             style={{
-              background: "var(--app-gold-overlay)",
-              border: "1px solid var(--app-gold-overlay-border)",
+              background: "rgba(124, 58, 237, 0.08)",
+              border: "1px solid rgba(124, 58, 237, 0.25)",
             }}
           >
             <div
@@ -918,8 +864,8 @@ export default function BrokersLandingPage() {
               <div
                 className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center"
                 style={{
-                  background: "var(--app-gold-overlay)",
-                  border: "1px solid var(--app-gold-overlay-border)",
+                  background: "rgba(124, 58, 237, 0.12)",
+                  border: "1px solid rgba(124, 58, 237, 0.3)",
                 }}
               >
                 <svg
@@ -940,14 +886,7 @@ export default function BrokersLandingPage() {
               </div>
 
               <div className="flex-1 text-center lg:text-left">
-                <div
-                  className="inline-block rounded-full px-4 py-1 text-xs font-bold tracking-widest uppercase mb-4"
-                  style={{
-                    background: "var(--app-gold-overlay)",
-                    color: "var(--app-gold-text)",
-                    border: "1px solid var(--app-gold-overlay-border)",
-                  }}
-                >
+                <div className="inline-block rounded-full px-4 py-1 text-xs font-bold tracking-widest uppercase mb-4 bg-violet-500/10 text-violet-300 border border-violet-500/20">
                   AI-Powered
                 </div>
                 <h2
@@ -972,12 +911,7 @@ export default function BrokersLandingPage() {
               <div className="shrink-0">
                 <Link
                   href="/calculator"
-                  className="inline-block text-sm font-bold px-8 py-3.5 rounded-full transition-transform hover:scale-105 active:scale-95 whitespace-nowrap"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--brand-gold) 0%, #f0d070 100%)",
-                    color: "var(--app-button-gold-text)",
-                  }}
+                  className="oc-cta oc-cta--violet text-sm font-bold px-8 py-3.5 whitespace-nowrap"
                 >
                   Try It Free
                 </Link>
@@ -990,22 +924,15 @@ export default function BrokersLandingPage() {
       {/* ── Section 8: FAQ ──────────────────────────────────────────── */}
       <section className="py-20">
         <div className="max-w-3xl mx-auto px-6">
-          <h2
-            className="font-display text-3xl sm:text-4xl mb-12 text-center"
-            style={{ color: "var(--brand-gold)" }}
-          >
-            Frequently Asked Questions
+          <h2 className="font-display text-3xl sm:text-4xl mb-12 text-center">
+            Frequently Asked <GradientText>Questions</GradientText>
           </h2>
 
           <div className="space-y-4">
             {FAQ_ITEMS.map((item) => (
               <details
                 key={item.q}
-                className="group rounded-xl overflow-hidden"
-                style={{
-                  background: "var(--app-gold-overlay-subtle)",
-                  border: "1px solid var(--app-gold-overlay-border-subtle)",
-                }}
+                className="oc-glass group overflow-hidden"
               >
                 <summary className="flex items-center justify-between px-6 py-4 cursor-pointer font-medium hover:opacity-80">
                   {item.q}
@@ -1041,16 +968,10 @@ export default function BrokersLandingPage() {
         </div>
 
         <div className="max-w-3xl mx-auto px-6 text-center relative z-10">
-          <h2
-            className="font-display text-4xl sm:text-5xl mb-6"
-            style={{ color: "var(--brand-gold)" }}
-          >
-            Stop Leaving Money on the Table
+          <h2 className="font-display text-4xl sm:text-5xl mb-6">
+            Stop Leaving Money <GradientText>on the Table</GradientText>
           </h2>
-          <p
-            className="text-xl mb-10 max-w-xl mx-auto"
-            style={{ color: "var(--app-text-muted)" }}
-          >
+          <p className="text-xl mb-10 max-w-xl mx-auto text-white/60">
             Your clients are paying duties that can be recovered. You already
             know which ones. Now you have the tools to act.
           </p>
@@ -1058,22 +979,13 @@ export default function BrokersLandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
             <a
               href="#signup-form"
-              className="text-lg font-bold px-12 py-5 rounded-full transition-transform hover:scale-105 active:scale-95"
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--brand-gold) 0%, #f0d070 100%)",
-                color: "var(--app-button-gold-text)",
-              }}
+              className="oc-cta oc-cta--violet text-lg font-bold px-12 py-5"
             >
               Become a Partner
             </a>
             <Link
               href="/calculator"
-              className="text-lg font-medium px-12 py-5 rounded-full transition"
-              style={{
-                border: "1px solid var(--app-border)",
-                color: "var(--app-text-secondary)",
-              }}
+              className="text-lg font-medium px-12 py-5 rounded-full transition border border-white/15 text-white/70 hover:border-white/30 hover:text-white"
             >
               Try the Calculator
             </Link>
@@ -1147,6 +1059,7 @@ export default function BrokersLandingPage() {
           </div>
         </div>
       </footer>
+      </div>
     </main>
   );
 }

@@ -113,8 +113,8 @@ export default function HeroCalculator() {
         <div
           className="px-5 py-3 flex items-center justify-between"
           style={{
-            background: "var(--app-gold-overlay)",
-            borderBottom: "1px solid var(--app-gold-overlay-border)",
+            background: "rgba(124,58,237,0.1)",
+            borderBottom: "1px solid rgba(124,58,237,0.22)",
           }}
         >
           <div className="flex items-center gap-2 text-xs font-semibold tracking-widest uppercase" style={{ color: "var(--app-gold-text)" }}>
@@ -137,7 +137,7 @@ export default function HeroCalculator() {
             className="mb-4 p-4 rounded-xl border-2 border-dashed text-center transition-colors cursor-pointer block"
             style={{
               borderColor: dragOver ? "var(--brand-gold)" : "var(--app-border)",
-              background: dragOver ? "rgba(196,160,80,0.05)" : "rgba(0,0,0,0.15)",
+              background: dragOver ? "rgba(124,58,237,0.08)" : "rgba(0,0,0,0.15)",
             }}
           >
             <input
@@ -216,7 +216,7 @@ export default function HeroCalculator() {
             onClick={calculate}
             disabled={loading || !value.trim()}
             className="w-full py-3 rounded-lg text-sm font-bold transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)", color: "#fff" }}
+            style={{ background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)", color: "#fff" }}
           >
             {loading ? "Analyzing..." : "Calculate Refund"}
           </button>
@@ -297,8 +297,8 @@ export default function HeroCalculator() {
               </div>
 
               {/* What Partners Get */}
-              <div className="p-4 rounded-xl" style={{ background: "rgba(196,160,80,0.05)", border: "1px solid rgba(196,160,80,0.15)" }}>
-                <div className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--brand-gold)" }}>
+              <div className="p-4 rounded-xl" style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.22)" }}>
+                <div className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--app-gold-text)" }}>
                   What You Get as a Partner
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">

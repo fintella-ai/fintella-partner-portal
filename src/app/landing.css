@@ -1,19 +1,24 @@
 /* Landing page styles (scoped via .landing-root ancestor).
    Kept separate from globals.css so removing or re-theming the landing
-   page is a single-file surgery. */
+   page is a single-file surgery. Re-themed to the OpCenter OLED look
+   (near-black #050507 + violet #7c3aed) to match the rest of the public
+   marketing shell — the .landing-root element also carries `.oc-launch`,
+   which re-points the app/brand-gold custom properties, so the page's
+   token-based markup re-skins automatically; this file handles the
+   bespoke landing bits. */
 
 .landing-root {
   background: radial-gradient(
       1000px 600px at 80% -10%,
-      rgba(196, 160, 80, 0.12),
+      rgba(124, 58, 237, 0.20),
       transparent 60%
     ),
     radial-gradient(
       900px 500px at -10% 20%,
-      rgba(196, 160, 80, 0.08),
+      rgba(56, 189, 248, 0.12),
       transparent 55%
     ),
-    var(--app-bg);
+    #050507;
 }
 
 /* Hero subtle animated glow — absolute inside a position:relative parent. */
@@ -27,11 +32,12 @@
   max-height: 900px;
   background: radial-gradient(
     circle,
-    rgba(196, 160, 80, 0.25) 0%,
-    rgba(196, 160, 80, 0.08) 40%,
+    rgba(124, 58, 237, 0.45) 0%,
+    rgba(124, 58, 237, 0.14) 40%,
     transparent 70%
   );
   border-radius: 50%;
+  filter: blur(40px);
   pointer-events: none;
   animation: landing-pulse 14s ease-in-out infinite;
 }
@@ -41,20 +47,21 @@
   50% { transform: scale(1.08) translate(-10px, 20px); opacity: 1; }
 }
 
-/* Headline gradient — gold-to-brand for the primary "Earn 20%" accent. */
+/* Headline gradient — violet → sky → cyan, matching the .oc-gradient-text accent. */
 .landing-gradient-text {
   background: linear-gradient(
-    90deg,
-    #c4a050 0%,
-    #e8c060 50%,
-    #c4a050 100%
+    100deg,
+    #a78bfa 0%,
+    #7c3aed 26%,
+    #38bdf8 68%,
+    #22d3ee 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   color: transparent;
-  animation: landing-shimmer 6s ease-in-out infinite;
+  animation: landing-shimmer 8s ease-in-out infinite;
 }
 
 @keyframes landing-shimmer {
@@ -62,15 +69,17 @@
   50% { background-position: 100% 50%; }
 }
 
-/* The application form card in the hero — elevated, subtly glowing. */
+/* The application form card in the hero — elevated dark glass with violet glow. */
 .landing-apply-card {
-  background: var(--app-card-bg);
-  border: 1px solid var(--app-card-border);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   padding: 28px;
   box-shadow:
-    0 20px 60px -20px rgba(0, 0, 0, 0.35),
-    0 0 0 1px rgba(196, 160, 80, 0.08);
+    0 24px 70px -24px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(124, 58, 237, 0.10);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   position: relative;
   overflow: hidden;
 }
@@ -84,24 +93,24 @@
   height: 3px;
   background: linear-gradient(
     90deg,
-    #c4a050 0%,
-    #e8c060 50%,
-    #c4a050 100%
+    #7c3aed 0%,
+    #38bdf8 50%,
+    #22d3ee 100%
   );
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
-/* Stat card in the opportunity section — brand glow on hover. */
+/* Stat card in the opportunity section — violet glow on hover. */
 .landing-stat-card {
-  background: var(--app-card-bg);
-  border: 1px solid var(--app-card-border);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   transition: all 0.3s ease;
 }
 
 .landing-stat-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(196, 160, 80, 0.5);
-  box-shadow: 0 12px 32px -12px rgba(196, 160, 80, 0.3);
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow: 0 16px 40px -16px rgba(124, 58, 237, 0.45);
 }
 
 /* Scroll-triggered fade-in — starts at 0 opacity + 20px y-offset. */

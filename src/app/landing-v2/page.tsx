@@ -140,7 +140,7 @@ export default async function LandingV2Page({
       : null;
 
   return (
-    <main className="landing-root min-h-screen text-[var(--app-text)]">
+    <main className="landing-root oc-launch min-h-screen text-[var(--app-text)]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structured) }} />
       {faqStructured && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructured) }} />
@@ -648,8 +648,8 @@ function CommissionTree() {
       <svg viewBox="0 0 400 360" className="w-full h-full max-w-md">
         <defs>
           <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#c4a050" />
-            <stop offset="100%" stopColor="#e8c060" />
+            <stop offset="0%" stopColor="#7c3aed" />
+            <stop offset="100%" stopColor="#a78bfa" />
           </linearGradient>
         </defs>
         <line x1="200" y1="80" x2="110" y2="180" stroke="url(#gold)" strokeWidth="2" opacity="0.5" />
@@ -660,8 +660,8 @@ function CommissionTree() {
         <line x1="290" y1="200" x2="340" y2="300" stroke="url(#gold)" strokeWidth="2" opacity="0.35" />
         <g>
           <circle cx="200" cy="60" r="32" fill="url(#gold)" />
-          <text x="200" y="58" textAnchor="middle" fontSize="11" fontWeight="700" fill="#080d1c">YOU</text>
-          <text x="200" y="72" textAnchor="middle" fontSize="10" fontWeight="600" fill="#080d1c">20%</text>
+          <text x="200" y="58" textAnchor="middle" fontSize="11" fontWeight="700" fill="#ffffff">YOU</text>
+          <text x="200" y="72" textAnchor="middle" fontSize="10" fontWeight="600" fill="#ffffff">20%</text>
         </g>
         <g>
           <circle cx="110" cy="200" r="26" fill="var(--app-card-bg)" stroke="url(#gold)" strokeWidth="2" />

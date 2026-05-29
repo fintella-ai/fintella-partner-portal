@@ -3,6 +3,7 @@ import Link from "next/link";
 import EngageFlow from "./EngageFlow";
 import TariffDemoShowcase from "./TariffDemoShowcase";
 import SavingsCalculator from "./SavingsCalculator";
+import { MarketingAtmosphere, Eyebrow, GradientText } from "@/components/marketing";
 import {
   TARIFF_UPFRONT_FEE_CENTS,
   TARIFF_WIDGET_UNLOCK_FEE_CENTS,
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const ACCENT = "#8b5cf6";
+const ACCENT = "#7c3aed";
 
 export default function TariffDiyPage({
   searchParams,
@@ -34,7 +35,9 @@ export default function TariffDiyPage({
   const widgetPerLabel = usd(TARIFF_WIDGET_PER_SUBMISSION_CENTS);
 
   return (
-    <main id="top" className="oc-launch min-h-screen bg-[#09090b] text-white">
+    <main id="top" className="oc-launch oc-grid relative overflow-hidden min-h-screen bg-[#050507] text-white">
+      <MarketingAtmosphere />
+      <div className="relative z-10">
       <nav className="border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="font-display text-xl" style={{ color: ACCENT }}>Fintella</div>
@@ -49,8 +52,9 @@ export default function TariffDiyPage({
             <div className="inline-block rounded-full px-4 py-1.5 text-xs font-semibold tracking-wider uppercase bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 mb-6">
               For smaller importers — keep 100% of your refund
             </div>
-            <h1 className="font-display text-4xl sm:text-5xl leading-tight mb-5" style={{ color: ACCENT }}>
-              Don&apos;t give away your refund.
+            <Eyebrow className="mb-4">IEEPA tariff refund · done-for-you file</Eyebrow>
+            <h1 className="font-display text-4xl sm:text-5xl leading-tight mb-5 text-white">
+              Don&apos;t <GradientText>give away your refund.</GradientText>
             </h1>
             <p className="text-lg text-white/70 mb-6 leading-relaxed">
               The big firms take <strong className="text-white">25–35% of your money</strong> to file a refund you
@@ -95,8 +99,8 @@ export default function TariffDiyPage({
           <div className="inline-block rounded-full px-3 py-1 text-[11px] font-semibold tracking-wider uppercase bg-white/5 text-white/50 border border-white/10 mb-4">
             Watch it work
           </div>
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>
-            Drop an entry summary. Get a risk analysis in seconds.
+          <h2 className="font-display text-3xl sm:text-4xl mb-3 text-white">
+            Drop an entry summary. <GradientText>Get a risk analysis in seconds.</GradientText>
           </h2>
           <p className="text-white/60">
             Our Tariff Intelligence Engine reads your CBP Form 7501, extracts every field with a confidence score,
@@ -109,8 +113,8 @@ export default function TariffDiyPage({
       {/* ── Savings calculator (exclaim the result) ──────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
         <div className="text-center max-w-2xl mx-auto mb-8">
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>
-            What others charge 30% for, you keep.
+          <h2 className="font-display text-3xl sm:text-4xl mb-3 text-white">
+            What others charge 30% for, <GradientText>you keep.</GradientText>
           </h2>
           <p className="text-white/60">
             Slide to your refund. See what a contingency firm would take — and what you keep when you pay a small
@@ -134,7 +138,7 @@ export default function TariffDiyPage({
             { n: "2", t: "Prove one file", d: "Pay to unlock your first file and inspect the real, substantiated work — the analysis, the CAPE entry, the audit. Check it line by line.", tag: "1 file" },
             { n: "3", t: "Commit when satisfied", d: "Happy with the first file? Unlock the rest at volume pricing. If you have more entries, the remainder is one click away.", tag: "the rest" },
           ].map((s) => (
-            <div key={s.n} className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div key={s.n} className="oc-glass oc-glass--hover rounded-2xl border border-white/10 bg-white/[0.02] p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center justify-center h-9 w-9 rounded-full font-bold text-sm" style={{ background: ACCENT, color: "#fff" }}>{s.n}</div>
                 <span className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10">{s.tag}</span>
@@ -167,7 +171,7 @@ export default function TariffDiyPage({
             </ul>
           </div>
           {/* DIY flat fee — featured */}
-          <div className="rounded-2xl border-2 p-6 relative" style={{ borderColor: ACCENT, background: "rgba(139,92,246,0.10)" }}>
+          <div className="rounded-2xl border-2 p-6 relative" style={{ borderColor: ACCENT, background: "rgba(124,58,237,0.10)", boxShadow: "0 0 40px -8px rgba(124,58,237,0.45)" }}>
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap" style={{ background: ACCENT, color: "#fff" }}>
               Most keep 100%
             </div>
@@ -266,7 +270,7 @@ export default function TariffDiyPage({
             { n: "2", t: "We build the file", d: "We prepare a fully substantiated, audit-ready CAPE file, pre-cleared against CBP rejection codes. One flat fee — no cut of your refund.", tag: "same day" },
             { n: "3", t: "File it — or hand it off", d: "Submit it yourself and keep 100%, or drop the finished file to your customs broker or trade attorney for a review-only sign-off.", tag: "keep 100%" },
           ].map((s) => (
-            <div key={s.n} className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div key={s.n} className="oc-glass oc-glass--hover rounded-2xl border border-white/10 bg-white/[0.02] p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center justify-center h-9 w-9 rounded-full font-bold text-sm" style={{ background: ACCENT, color: "#fff" }}>{s.n}</div>
                 <span className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10">{s.tag}</span>
@@ -279,14 +283,15 @@ export default function TariffDiyPage({
         <div className="text-center mt-10">
           <Link
             href="#top"
-            className="inline-block rounded-lg px-8 py-3.5 font-semibold transition min-h-[44px]"
-            style={{ background: ACCENT, color: "#fff" }}
+            className="inline-block rounded-full px-8 py-3.5 font-semibold transition min-h-[44px] hover:opacity-90"
+            style={{ background: ACCENT, color: "#fff", boxShadow: "0 0 32px -6px rgba(124,58,237,0.55)" }}
           >
             Check your refund — free →
           </Link>
           <p className="text-xs text-white/30 mt-3">No obligation · estimate only, not a guarantee of approval</p>
         </div>
       </section>
+      </div>
     </main>
   );
 }
