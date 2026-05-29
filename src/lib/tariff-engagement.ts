@@ -129,6 +129,28 @@ export function perFileCentsForCount(fileCount: number): number {
   return rate;
 }
 
+export interface PerFileQuote {
+  fileCount: number;
+  perFileCents: number;   // volume rate for the full set
+  fullCents: number;      // commit-now total (all files at the volume rate)
+  sampleCents: number;    // premium price to unlock ONE file first (1-file tier rate)
+  remainderCents: number; // to unlock the rest after sampling (full − sample, sample credited)
+}
+
+/**
+ * "Try one, then unlock the batch" quote. The sample is charged at the premium
+ * 1-file rate; the remainder credits the sample so committing after sampling
+ * costs the same as committing upfront.
+ */
+export function perFileQuote(fileCount: number): PerFileQuote {
+  const n = Math.max(1, fileCount);
+  const perFileCents = perFileCentsForCount(n);
+  const fullCents = perFileCents * n;
+  const sampleCents = perFileCentsForCount(1);
+  const remainderCents = Math.max(0, fullCents - sampleCents);
+  return { fileCount: n, perFileCents, fullCents, sampleCents, remainderCents };
+}
+
 /**
  * Server-authoritative fee (CENTS) for a pricing model — never trust the client.
  * Volume/percentage models read from `ctx` (file count, estimated refund).
@@ -269,4 +291,11 @@ export interface TariffEngagementState {
   backendBps?: number;       // contingency taken from the refund when it hits
   platform?: string | null;  // CRM/TMS for the widget pathway
   underwritingStatus?: "pending" | "approved" | "declined"; // buyout audit gate
+  // Per-file sample-gate state
+  fileCount?: number;
+  sampleCents?: number;
+  fullCents?: number;
+  remainderCents?: number;
+  sampleStatus?: "unpaid" | "paid"; // one-file sample unlocked
+  fullStatus?: "unpaid" | "paid";   // all files unlocked
 }

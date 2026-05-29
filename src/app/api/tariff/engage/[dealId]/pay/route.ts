@@ -40,54 +40,72 @@ export async function POST(
     }
 
     const sf = (deal.serviceFields as any) || {};
+    const isPerFile = sf.pricingModel === "per_file_volume";
+    const scope: "sample" | "full" = body?.scope === "sample" ? "sample" : "full";
 
-    // Idempotency — already paid
-    if (sf.upfrontStatus === "paid") {
-      return NextResponse.json({ success: true, alreadyPaid: true, dealId });
+    // Idempotency
+    if (sf.fullStatus === "paid" || (!isPerFile && sf.upfrontStatus === "paid")) {
+      return NextResponse.json({ success: true, alreadyPaid: true, dealId, fullUnlocked: true });
+    }
+    if (isPerFile && scope === "sample" && sf.sampleStatus === "paid") {
+      return NextResponse.json({ success: true, alreadyPaid: true, dealId, sampleUnlocked: true });
     }
 
-    const amountCents: number =
-      typeof sf.upfrontFeeCents === "number" && sf.upfrontFeeCents > 0
-        ? sf.upfrontFeeCents
-        : TARIFF_UPFRONT_FEE_CENTS;
-
-    const [firstName, ...rest] = (deal.clientName || "Client").split(" ");
-    const lastName = rest.join(" ");
-
-    const result = await chargeOneTime(paymentToken, amountCents, {
-      email: deal.clientEmail || undefined,
-      firstName,
-      lastName,
-      orderId: deal.id,
-      orderDescription: "IEEPA Tariff Refund — DIY dossier fee",
-    });
-
-    const succeeded = result.response === "1";
-
-    await prisma.paymentLog.create({
-      data: {
-        partnerCode: deal.partnerCode || "DIRECT",
-        amount: amountCents,
-        currency: "usd",
-        status: succeeded ? "success" : "failed",
-        gatewayTxnId: result.transactionid || null,
-        gatewayResponse: result.responsetext || null,
-        description: `Tariff DIY upfront fee — deal ${deal.id}`,
-      },
-    });
-
-    if (!succeeded) {
-      return NextResponse.json(
-        { error: result.responsetext || "Payment declined" },
-        { status: 402 },
-      );
+    // Determine the server-authoritative amount for this scope.
+    let amountCents: number;
+    let desc: string;
+    if (isPerFile) {
+      if (scope === "sample") {
+        amountCents = Number(sf.sampleCents) || 0;
+        desc = "per-file sample (1 file)";
+      } else {
+        amountCents = sf.sampleStatus === "paid" ? Number(sf.remainderCents) || 0 : Number(sf.fullCents) || 0;
+        desc = sf.sampleStatus === "paid" ? "per-file remainder (unlock all)" : "per-file (all files)";
+      }
+    } else {
+      amountCents = typeof sf.upfrontFeeCents === "number" && sf.upfrontFeeCents > 0 ? sf.upfrontFeeCents : TARIFF_UPFRONT_FEE_CENTS;
+      desc = "DIY dossier fee";
     }
 
-    const nextState: Partial<TariffEngagementState> = {
-      upfrontStatus: "paid",
-      upfrontTxnId: result.transactionid,
-      paidAt: new Date().toISOString(),
-    };
+    const nextState: Partial<TariffEngagementState> = { paidAt: new Date().toISOString() };
+
+    // $0 (e.g. single-file remainder already covered by the sample) — no charge.
+    if (amountCents > 0) {
+      const [firstName, ...rest] = (deal.clientName || "Client").split(" ");
+      const lastName = rest.join(" ");
+      const result = await chargeOneTime(paymentToken, amountCents, {
+        email: deal.clientEmail || undefined,
+        firstName,
+        lastName,
+        orderId: `${deal.id}-${scope}`,
+        orderDescription: `IEEPA Tariff Refund — ${desc}`,
+      });
+      const succeeded = result.response === "1";
+      await prisma.paymentLog.create({
+        data: {
+          partnerCode: deal.partnerCode || "DIRECT",
+          amount: amountCents,
+          currency: "usd",
+          status: succeeded ? "success" : "failed",
+          gatewayTxnId: result.transactionid || null,
+          gatewayResponse: result.responsetext || null,
+          description: `Tariff DIY — ${desc} — deal ${deal.id}`,
+        },
+      });
+      if (!succeeded) {
+        return NextResponse.json({ error: result.responsetext || "Payment declined" }, { status: 402 });
+      }
+      nextState.upfrontTxnId = result.transactionid;
+    }
+
+    // Apply unlock state
+    if (isPerFile && scope === "sample") {
+      nextState.sampleStatus = "paid";
+    } else {
+      nextState.fullStatus = "paid";
+      nextState.upfrontStatus = "paid";
+      if (isPerFile) nextState.sampleStatus = "paid";
+    }
 
     await prisma.deal.update({
       where: { id: deal.id },
@@ -97,8 +115,10 @@ export async function POST(
       },
     });
 
-    // Fire-and-forget: email the client their self-file kit download links.
-    if (deal.clientEmail) {
+    const fullyPaid = nextState.fullStatus === "paid" || nextState.upfrontStatus === "paid";
+
+    // Fire-and-forget: email the kit links only once the FULL set is unlocked.
+    if (fullyPaid && deal.clientEmail) {
       const base = `${APP_URL}/api/tariff/engage/${deal.id}/kit`;
       sendEmail({
         to: deal.clientEmail,
@@ -126,8 +146,11 @@ export async function POST(
     return NextResponse.json({
       success: true,
       dealId: deal.id,
-      transactionId: result.transactionid,
+      transactionId: nextState.upfrontTxnId || null,
       amountCents,
+      scope,
+      sampleUnlocked: nextState.sampleStatus === "paid",
+      fullUnlocked: fullyPaid,
     });
   } catch (err: any) {
     console.error("[tariff-pay] Error:", err);

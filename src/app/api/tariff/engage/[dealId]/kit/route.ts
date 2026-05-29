@@ -32,15 +32,24 @@ export async function GET(
     return NextResponse.json({ error: "Engagement not found" }, { status: 404 });
   }
   const sf = (deal.serviceFields as any) || {};
-  if (sf.upfrontStatus !== "paid") {
+  const fullPaid = sf.fullStatus === "paid" || sf.upfrontStatus === "paid";
+  const samplePaid = sf.sampleStatus === "paid";
+  if (!fullPaid && !samplePaid) {
     return NextResponse.json({ error: "Payment required to access your kit" }, { status: 402 });
   }
+  // Sample tier: only the first eligible entry is unlocked until the full set is paid.
+  const sampleOnly = samplePaid && !fullPaid;
 
   const dossier = await prisma.tariffDossier.findFirst({
     where: { dealId: deal.id },
     include: { entries: { orderBy: { createdAt: "asc" } } },
     orderBy: { createdAt: "desc" },
   });
+  // When only the sample is paid, expose just the first eligible entry.
+  if (dossier && sampleOnly) {
+    const firstEligible = dossier.entries.find((e) => e.eligibility === "eligible") || dossier.entries[0];
+    dossier.entries = firstEligible ? [firstEligible] : [];
+  }
 
   const format = new URL(req.url).searchParams.get("format") || "manifest";
 

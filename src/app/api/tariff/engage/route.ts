@@ -12,6 +12,7 @@ import {
   TARIFF_SIGNER_NAME_FIELD,
   computeEngagementPricing,
   requiresUnderwriting,
+  perFileQuote,
   type TariffPricingModel,
   type TariffAddOn,
   type TariffEngagementState,
@@ -121,6 +122,18 @@ export async function POST(req: NextRequest) {
       dossierId: dossierId || null,
     };
 
+    // Per-file sample-gate quote — lets the client pay for one file first
+    // (premium) then unlock the rest at the volume rate.
+    if (pricingModel === "per_file_volume") {
+      const q = perFileQuote(fileCount);
+      engagement.fileCount = q.fileCount;
+      engagement.sampleCents = q.sampleCents;
+      engagement.fullCents = q.fullCents;
+      engagement.remainderCents = q.remainderCents;
+      engagement.sampleStatus = "unpaid";
+      engagement.fullStatus = "unpaid";
+    }
+
     const deal = await prisma.deal.create({
       data: {
         dealName: `${signerName} — IEEPA Tariff Refund (DIY)`,
@@ -195,6 +208,9 @@ export async function POST(req: NextRequest) {
       backendBps: pricing.backendBps,
       lineItems: pricing.lineItems,
       underwritingRequired: underwriting,
+      perFile: pricingModel === "per_file_volume"
+        ? { fileCount: engagement.fileCount, sampleCents: engagement.sampleCents, fullCents: engagement.fullCents, remainderCents: engagement.remainderCents }
+        : null,
     });
   } catch (err: any) {
     console.error("[tariff-engage] Error:", err);
