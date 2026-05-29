@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { chargeOneTime } from "@/lib/nmi-gateway";
+import { sendEmail } from "@/lib/sendgrid";
 import {
   TARIFF_DIY_SERVICE,
   TARIFF_UPFRONT_FEE_CENTS,
   type TariffEngagementState,
 } from "@/lib/tariff-engagement";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +96,32 @@ export async function POST(
         serviceFields: { ...sf, ...nextState },
       },
     });
+
+    // Fire-and-forget: email the client their self-file kit download links.
+    if (deal.clientEmail) {
+      const base = `${APP_URL}/api/tariff/engage/${deal.id}/kit`;
+      sendEmail({
+        to: deal.clientEmail,
+        toName: deal.clientName || undefined,
+        subject: "Your IEEPA Tariff Refund self-file kit is ready",
+        template: "tariff_diy_kit",
+        partnerCode: deal.partnerCode || null,
+        text:
+          `Thank you — your payment is confirmed and your substantiated CAPE self-file kit is ready.\n\n` +
+          `Recovery analysis (PDF): ${base}?format=pdf\n` +
+          `CAPE declaration (CSV): ${base}?format=csv\n` +
+          `Step-by-step self-file guide: ${base}?format=guide\n\n` +
+          `Fintella is not a law firm and does not provide legal advice. This kit is informational and prepared for your self-filing.`,
+        html:
+          `<p>Thank you — your payment is confirmed and your substantiated <strong>CAPE self-file kit</strong> is ready.</p>` +
+          `<p>` +
+          `<a href="${base}?format=pdf">⬇ Recovery analysis (PDF)</a><br>` +
+          `<a href="${base}?format=csv">⬇ CAPE declaration (CSV)</a><br>` +
+          `<a href="${base}?format=guide">⬇ Step-by-step self-file guide</a>` +
+          `</p>` +
+          `<p style="font-size:12px;color:#888">Fintella is not a law firm and does not provide legal advice. This kit is informational and prepared for your self-filing.</p>`,
+      }).catch((e) => console.error("[tariff-pay] kit email failed:", e));
+    }
 
     return NextResponse.json({
       success: true,
