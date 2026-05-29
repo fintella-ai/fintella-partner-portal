@@ -59,7 +59,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { token, firstName, lastName, email, phone, mobilePhone, companyName, password, emailOptIn, smsOptIn } = body;
+    const { token, firstName, lastName, email: rawEmail, phone, mobilePhone, companyName, password, emailOptIn, smsOptIn } = body;
+    // Normalize email to lowercase so login / password-reset always match.
+    const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : rawEmail;
 
     // Validate invite token
     if (!token) {
@@ -86,8 +88,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
     }
 
-    // Check email not already registered — if pending, return their existing signing URL
-    const existing = await prisma.partner.findFirst({ where: { email } });
+    // Check email not already registered — if pending, return their existing signing URL (case-insensitive)
+    const existing = await prisma.partner.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
     if (existing) {
       if (existing.status === "pending") {
         const agreement = await prisma.partnershipAgreement.findFirst({

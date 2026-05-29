@@ -1023,16 +1023,15 @@ export default function PartnerDetailPage() {
                 if (!confirm(`Send a password reset link to ${partner.email}?`)) return;
                 setSendingResetLink(true);
                 try {
-                  const res = await fetch("/api/auth/forgot-password", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email: partner.email }),
-                  });
-                  if (res.ok) {
+                  // Admin-authenticated send: looks up by partner id, returns
+                  // the real outcome (sent / no_email / blocked / failed) and logs it.
+                  const res = await fetch(`/api/admin/partners/${partner.id}/send-reset`, { method: "POST" });
+                  const data = await res.json().catch(() => ({}));
+                  if (res.ok && data.status === "sent") {
                     setResetLinkSent(true);
                     setTimeout(() => setResetLinkSent(false), 4000);
                   } else {
-                    alert("Failed to send reset email.");
+                    alert(data.message || "Failed to send reset email.");
                   }
                 } catch { alert("Network error"); }
                 finally { setSendingResetLink(false); }

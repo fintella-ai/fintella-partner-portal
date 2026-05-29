@@ -213,7 +213,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { token, firstName, lastName, email, phone, mobilePhone, companyName, partnerType, password, emailOptIn, smsOptIn } = body;
+    const { token, firstName, lastName, email: rawEmail, phone, mobilePhone, companyName, partnerType, password, emailOptIn, smsOptIn } = body;
+    // Normalize email to lowercase so login / password-reset always match.
+    const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : rawEmail;
 
     if (!token || !firstName || !lastName || !email || !password) {
       return NextResponse.json({ error: "Token, first name, last name, email, and password are required" }, { status: 400 });
@@ -231,8 +233,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid invite type for this endpoint" }, { status: 400 });
     }
 
-    // Check email not already registered
-    const existing = await prisma.partner.findFirst({ where: { email } });
+    // Check email not already registered (case-insensitive)
+    const existing = await prisma.partner.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
     if (existing) return NextResponse.json({ error: "This email is already registered as a partner" }, { status: 400 });
 
     // Generate partner code
