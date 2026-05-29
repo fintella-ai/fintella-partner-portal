@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { MarketingAtmosphere, Eyebrow, GradientText } from "@/components/marketing";
 
 function ApplyForm() {
   const searchParams = useSearchParams();
@@ -67,34 +68,28 @@ function ApplyForm() {
 
   if (submitted) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center px-4"
-        style={{ background: "var(--app-bg)" }}
-      >
-        <div className="max-w-md w-full text-center">
-          <div className="text-5xl mb-4">🎉</div>
-          <h1
-            className="text-2xl font-bold mb-3"
-            style={{ color: "var(--app-text)", fontFamily: "'DM Serif Display', Georgia, serif" }}
-          >
-            Application Received
+      <div className="oc-launch oc-grid relative overflow-hidden min-h-screen flex items-center justify-center px-4">
+        <MarketingAtmosphere />
+        <div className="relative z-10 max-w-md w-full text-center">
+          <div className="oc-feature-icon mx-auto mb-5">🎉</div>
+          <Eyebrow className="justify-center mb-3">Welcome aboard</Eyebrow>
+          <h1 className="font-display text-3xl font-bold mb-3 text-white">
+            Application <GradientText>Received</GradientText>
           </h1>
-          <p className="font-body text-sm mb-6" style={{ color: "var(--app-text-muted)" }}>
+          <p className="font-body text-sm mb-6 text-white/60">
             Thank you, {firstName}! We&apos;ll review your application and be in touch within 24 hours.
             In the meantime, try our free calculator.
           </p>
           <div className="flex flex-col gap-3">
             <Link
               href="/calculator"
-              className="h-11 rounded-xl font-body text-sm font-semibold flex items-center justify-center"
-              style={{ background: "var(--brand-gold)", color: "#000" }}
+              className="btn-gold h-11 rounded-xl font-body text-sm font-semibold flex items-center justify-center"
             >
               Try the Free Calculator
             </Link>
             <Link
               href="/partners/brokers"
-              className="h-11 rounded-xl font-body text-sm font-medium flex items-center justify-center border"
-              style={{ borderColor: "var(--app-border)", color: "var(--app-text-muted)" }}
+              className="h-11 rounded-xl font-body text-sm font-medium flex items-center justify-center border border-white/15 text-white/60 transition-colors hover:text-white hover:border-white/30"
             >
               Learn More
             </Link>
@@ -105,22 +100,23 @@ function ApplyForm() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--app-bg)" }}>
+    <div className="oc-launch oc-grid relative overflow-hidden min-h-screen">
+      <MarketingAtmosphere />
+      <div className="relative z-10">
       {/* Header */}
-      <header className="border-b" style={{ borderColor: "var(--app-border-subtle)" }}>
+      <header className="border-b border-white/10">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link
             href="/"
-            className="text-xl font-bold tracking-wide"
-            style={{ color: "var(--brand-gold)", fontFamily: "'DM Serif Display', Georgia, serif" }}
+            className="font-display text-xl font-bold tracking-wide text-white"
           >
             FINTELLA
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="/calculator" className="font-body text-sm" style={{ color: "var(--app-text-muted)" }}>
+            <Link href="/calculator" className="font-body text-sm text-white/60 transition-colors hover:text-white">
               Calculator
             </Link>
-            <Link href="/login" className="font-body text-sm" style={{ color: "var(--app-text-muted)" }}>
+            <Link href="/login" className="font-body text-sm text-white/60 transition-colors hover:text-white">
               Sign In
             </Link>
           </div>
@@ -130,19 +126,11 @@ function ApplyForm() {
       <div className="max-w-5xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Left — Value prop */}
         <div className="py-8">
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium mb-4"
-            style={{ background: "rgba(176,140,48,0.1)", color: "var(--brand-gold)", border: "1px solid rgba(176,140,48,0.2)" }}
-          >
-            Free to Join — No Risk
-          </div>
-          <h1
-            className="text-3xl sm:text-4xl font-bold mb-4"
-            style={{ color: "var(--app-text)", fontFamily: "'DM Serif Display', Georgia, serif" }}
-          >
-            Become a Fintella Partner
+          <Eyebrow className="mb-4">Free to Join — No Risk</Eyebrow>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold mb-4 text-white leading-tight">
+            Become a <GradientText>Fintella Partner</GradientText>
           </h1>
-          <p className="font-body text-base mb-8" style={{ color: "var(--app-text-muted)" }}>
+          <p className="font-body text-base mb-8 text-white/60">
             Join the network of customs brokers and professionals earning 10-25% commission
             on every IEEPA tariff recovery. Free tools, no cost to join, your clients stay yours.
           </p>
@@ -156,25 +144,22 @@ function ApplyForm() {
               { icon: "📊", title: "Full Reporting", desc: "Track deals, commissions, and downline" },
             ].map((item) => (
               <div key={item.title} className="flex items-start gap-3">
-                <span className="text-xl mt-0.5">{item.icon}</span>
-                <div>
-                  <div className="font-body text-sm font-semibold" style={{ color: "var(--app-text)" }}>{item.title}</div>
-                  <div className="font-body text-xs" style={{ color: "var(--app-text-muted)" }}>{item.desc}</div>
+                <span className="oc-feature-icon shrink-0">{item.icon}</span>
+                <div className="pt-1">
+                  <div className="font-body text-sm font-semibold text-white">{item.title}</div>
+                  <div className="font-body text-xs text-white/50">{item.desc}</div>
                 </div>
               </div>
             ))}
           </div>
 
-          <div
-            className="rounded-xl p-4 flex items-center gap-3"
-            style={{ background: "rgba(176,140,48,0.05)", border: "1px solid rgba(176,140,48,0.15)" }}
-          >
+          <div className="oc-glass rounded-xl p-4 flex items-center gap-3">
             <span className="text-2xl">💎</span>
             <div>
-              <div className="font-body text-sm font-semibold" style={{ color: "var(--brand-gold)" }}>
+              <div className="oc-stat-value font-body text-sm font-semibold">
                 $166 Billion Available
               </div>
-              <div className="font-body text-xs" style={{ color: "var(--app-text-muted)" }}>
+              <div className="font-body text-xs text-white/50">
                 83% of eligible importers haven&apos;t filed. The clock is ticking.
               </div>
             </div>
@@ -183,14 +168,11 @@ function ApplyForm() {
 
         {/* Right — Form */}
         <div>
-          <div
-            className="rounded-2xl border p-6 sm:p-8"
-            style={{ borderColor: "var(--app-border)", background: "var(--app-card-bg)" }}
-          >
-            <h2 className="font-body text-lg font-bold mb-1" style={{ color: "var(--app-text)" }}>
+          <div className="oc-glass rounded-2xl p-6 sm:p-8">
+            <h2 className="font-display text-lg font-bold mb-1 text-white">
               Apply Now
             </h2>
-            <p className="font-body text-xs mb-6" style={{ color: "var(--app-text-muted)" }}>
+            <p className="font-body text-xs mb-6 text-white/50">
               We&apos;ll review your application and get back to you within 24 hours.
             </p>
 
@@ -203,7 +185,7 @@ function ApplyForm() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5" style={{ color: "var(--app-text-muted)" }}>
+                  <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5 text-white/50">
                     First Name *
                   </label>
                   <input
@@ -211,12 +193,11 @@ function ApplyForm() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
-                    className="w-full h-11 rounded-lg border px-3 font-body text-sm"
-                    style={{ background: "var(--app-input-bg)", borderColor: "var(--app-border)", color: "var(--app-text)" }}
+                    className="w-full h-11 rounded-lg border border-white/15 bg-white/5 px-3 font-body text-sm text-white placeholder-white/30 transition-colors focus:border-violet-500/60 focus:outline-none focus:ring-1 focus:ring-violet-500/40"
                   />
                 </div>
                 <div>
-                  <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5" style={{ color: "var(--app-text-muted)" }}>
+                  <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5 text-white/50">
                     Last Name *
                   </label>
                   <input
@@ -224,14 +205,13 @@ function ApplyForm() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
-                    className="w-full h-11 rounded-lg border px-3 font-body text-sm"
-                    style={{ background: "var(--app-input-bg)", borderColor: "var(--app-border)", color: "var(--app-text)" }}
+                    className="w-full h-11 rounded-lg border border-white/15 bg-white/5 px-3 font-body text-sm text-white placeholder-white/30 transition-colors focus:border-violet-500/60 focus:outline-none focus:ring-1 focus:ring-violet-500/40"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5" style={{ color: "var(--app-text-muted)" }}>
+                <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5 text-white/50">
                   Business Email *
                 </label>
                 <input
@@ -239,46 +219,42 @@ function ApplyForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full h-11 rounded-lg border px-3 font-body text-sm"
-                  style={{ background: "var(--app-input-bg)", borderColor: "var(--app-border)", color: "var(--app-text)" }}
+                  className="w-full h-11 rounded-lg border border-white/15 bg-white/5 px-3 font-body text-sm text-white placeholder-white/30 transition-colors focus:border-violet-500/60 focus:outline-none focus:ring-1 focus:ring-violet-500/40"
                 />
               </div>
 
               <div>
-                <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5" style={{ color: "var(--app-text-muted)" }}>
+                <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5 text-white/50">
                   Phone
                 </label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full h-11 rounded-lg border px-3 font-body text-sm"
-                  style={{ background: "var(--app-input-bg)", borderColor: "var(--app-border)", color: "var(--app-text)" }}
+                  className="w-full h-11 rounded-lg border border-white/15 bg-white/5 px-3 font-body text-sm text-white placeholder-white/30 transition-colors focus:border-violet-500/60 focus:outline-none focus:ring-1 focus:ring-violet-500/40"
                 />
               </div>
 
               <div>
-                <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5" style={{ color: "var(--app-text-muted)" }}>
+                <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5 text-white/50">
                   Company
                 </label>
                 <input
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full h-11 rounded-lg border px-3 font-body text-sm"
-                  style={{ background: "var(--app-input-bg)", borderColor: "var(--app-border)", color: "var(--app-text)" }}
+                  className="w-full h-11 rounded-lg border border-white/15 bg-white/5 px-3 font-body text-sm text-white placeholder-white/30 transition-colors focus:border-violet-500/60 focus:outline-none focus:ring-1 focus:ring-violet-500/40"
                 />
               </div>
 
               <div>
-                <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5" style={{ color: "var(--app-text-muted)" }}>
+                <label className="block font-body text-[10px] uppercase tracking-wider mb-1.5 text-white/50">
                   I am a...
                 </label>
                 <select
                   value={partnerType}
                   onChange={(e) => setPartnerType(e.target.value)}
-                  className="w-full h-11 rounded-lg border px-3 font-body text-sm"
-                  style={{ background: "var(--app-input-bg)", borderColor: "var(--app-border)", color: "var(--app-text)" }}
+                  className="w-full h-11 rounded-lg border border-white/15 bg-white/5 px-3 font-body text-sm text-white transition-colors focus:border-violet-500/60 focus:outline-none focus:ring-1 focus:ring-violet-500/40 [&>option]:bg-[#0d0d12] [&>option]:text-white"
                 >
                   <option value="customs_broker">Licensed Customs Broker</option>
                   <option value="referral">Referral Partner</option>
@@ -290,25 +266,21 @@ function ApplyForm() {
               <button
                 type="submit"
                 disabled={submitting || !firstName || !lastName || !email}
-                className="w-full h-12 rounded-xl font-body text-sm font-semibold transition-all disabled:opacity-40"
-                style={{
-                  background: "var(--brand-gold)",
-                  color: "#000",
-                  boxShadow: "0 4px 14px rgba(176,140,48,0.3)",
-                }}
+                className="btn-gold w-full h-12 rounded-xl font-body text-sm font-semibold transition-all disabled:opacity-40"
               >
                 {submitting ? "Submitting..." : "Submit Application"}
               </button>
             </form>
 
-            <p className="font-body text-[10px] text-center mt-4" style={{ color: "var(--app-text-muted)" }}>
+            <p className="font-body text-[10px] text-center mt-4 text-white/40">
               By applying, you agree to our{" "}
-              <Link href="/terms" className="underline">Terms</Link> and{" "}
-              <Link href="/privacy" className="underline">Privacy Policy</Link>.
+              <Link href="/terms" className="underline transition-colors hover:text-white/70">Terms</Link> and{" "}
+              <Link href="/privacy" className="underline transition-colors hover:text-white/70">Privacy Policy</Link>.
               We&apos;ll never share your information.
             </p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -318,8 +290,8 @@ export default function ApplyPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--app-bg)" }}>
-          <div className="animate-spin h-8 w-8 rounded-full border-2" style={{ borderColor: "var(--app-border)", borderTopColor: "var(--brand-gold)" }} />
+        <div className="oc-launch oc-grid relative overflow-hidden min-h-screen flex items-center justify-center bg-[#050507]">
+          <div className="animate-spin h-8 w-8 rounded-full border-2 border-white/10 border-t-violet-500" />
         </div>
       }
     >

@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const ACCENT = "#8b5cf6";
+const ACCENT = "#7c3aed";
 
 // One extracted field, shaped like ExtractedEntry: a value + a confidence, or
 // null to model a field the engine could not read (the "missing data" case).

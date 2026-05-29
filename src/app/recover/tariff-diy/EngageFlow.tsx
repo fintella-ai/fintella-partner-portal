@@ -51,7 +51,7 @@ interface Summary {
   deadlineDays: number | null;
 }
 
-const GOLD = "#8b5cf6"; // OpCenter-matched accent (violet); name kept to minimize churn
+const GOLD = "#7c3aed"; // OpCenter-matched canonical accent (violet); name kept to minimize churn
 const STORAGE_KEY = "tariff_diy_engagement";
 const emptyRow: EntryRow = { countryOfOrigin: "", entryDate: "", enteredValue: "", entryNumber: "", liquidationDate: "" };
 const fmt = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;

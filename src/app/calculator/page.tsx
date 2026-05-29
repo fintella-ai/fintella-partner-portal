@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { MarketingAtmosphere, Eyebrow, GradientText } from "@/components/marketing";
 
 /* ── Types ──────────────────────────────────────────────────────────── */
 
@@ -307,81 +308,46 @@ function CalculatorInner() {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen" style={{ background: "var(--app-bg)" }}>
+    <div
+      className="oc-launch oc-grid relative overflow-hidden min-h-screen"
+      style={{ background: "var(--app-bg)" }}
+    >
+      <MarketingAtmosphere />
+      <div className="relative z-10">
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(135deg, #060a14 0%, #0c1a32 40%, #0f1f3d 60%, #060a14 100%)",
-          }}
-        />
-        {/* Decorative grid */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
-        {/* Gold accent orb */}
-        <div
-          className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-[0.08]"
-          style={{ background: "radial-gradient(circle, var(--brand-gold) 0%, transparent 70%)" }}
-        />
-
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 pb-12 text-center">
-          {/* Logo / brand */}
-          <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border" style={{ borderColor: "var(--app-gold-overlay-border)", background: "var(--app-gold-overlay)" }}>
-            <div className="w-2 h-2 rounded-full" style={{ background: "var(--brand-gold)" }} />
-            <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: "var(--app-gold-text)" }}>
-              Fintella Tariff Intelligence
-            </span>
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-20 pb-12 text-center">
+          {/* Eyebrow / brand kicker */}
+          <div className="flex justify-center mb-6">
+            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+              <Eyebrow>Fintella Tariff Intelligence</Eyebrow>
+            </div>
           </div>
 
-          <h1
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4"
-            style={{
-              fontFamily: '"DM Serif Display", serif',
-              color: "rgba(255,255,255,0.95)",
-            }}
-          >
-            How Much Are Your Clients Owed?
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-tight mb-5 text-white">
+            How Much Are Your{" "}
+            <GradientText>Clients Owed?</GradientText>
           </h1>
 
-          <p
-            className="text-lg sm:text-xl max-w-2xl mx-auto mb-2"
-            style={{ color: "rgba(255,255,255,0.7)" }}
-          >
+          <p className="text-lg sm:text-xl max-w-2xl mx-auto mb-2 text-white/70">
             Free IEEPA tariff refund estimate — results in 30 seconds
           </p>
-          <p
-            className="text-sm max-w-xl mx-auto"
-            style={{ color: "rgba(255,255,255,0.45)" }}
-          >
+          <p className="text-sm max-w-xl mx-auto text-white/40">
             No signup required. Enter one client&#39;s import data below and see their estimated refund instantly.
           </p>
         </div>
       </section>
 
       {/* ── Calculator Form ──────────────────────────────────────── */}
-      <section className="relative -mt-4 z-10 max-w-3xl mx-auto px-4 sm:px-6">
+      <section className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6">
         <div
-          className="rounded-2xl border p-6 sm:p-8"
-          style={{
-            background: "var(--app-bg-secondary)",
-            borderColor: "var(--app-card-border)",
-            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.4)",
-          }}
+          className="oc-glass rounded-2xl p-6 sm:p-8"
+          style={{ boxShadow: "0 25px 50px -12px rgba(0,0,0,0.6)" }}
         >
           <div className="flex items-center gap-3 mb-6">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
-              style={{ background: "var(--app-gold-overlay)", border: "1px solid var(--app-gold-overlay-border)" }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--brand-gold)" }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-violet-500/15 border border-violet-500/25 text-violet-300">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="4" y="2" width="16" height="20" rx="2" />
                 <line x1="8" y1="6" x2="16" y2="6" />
                 <line x1="8" y1="10" x2="16" y2="10" />
@@ -424,6 +390,7 @@ function CalculatorInner() {
                     background: "var(--app-input-bg)",
                     borderColor: "var(--app-input-border)",
                     color: "var(--app-input-text)",
+                    colorScheme: "dark",
                   }}
                 >
                   <option value="">Select country...</option>
@@ -478,6 +445,7 @@ function CalculatorInner() {
                     background: "var(--app-input-bg)",
                     borderColor: "var(--app-input-border)",
                     color: "var(--app-input-text)",
+                    colorScheme: "dark",
                   }}
                 />
               </div>
@@ -499,6 +467,7 @@ function CalculatorInner() {
                   background: "var(--app-input-bg)",
                   borderColor: "var(--app-input-border)",
                   color: "var(--app-input-text)",
+                  colorScheme: "dark",
                 }}
               />
             </div>
@@ -516,6 +485,7 @@ function CalculatorInner() {
                   background: "var(--app-input-bg)",
                   borderColor: "var(--app-input-border)",
                   color: "var(--app-input-text)",
+                  colorScheme: "dark",
                 }}
               >
                 {ENTRY_TYPES.map((t) => (
@@ -542,11 +512,11 @@ function CalculatorInner() {
             style={{
               background: calculating
                 ? "var(--app-input-bg)"
-                : "linear-gradient(135deg, #16a34a, #15803d)",
+                : "linear-gradient(135deg, #8b5cf6, #7c3aed)",
               color: calculating ? "var(--app-text-muted)" : "#ffffff",
               boxShadow: calculating
                 ? "none"
-                : "0 4px 14px rgba(22,163,74,0.3)",
+                : "0 8px 24px -6px rgba(124,58,237,0.55)",
             }}
           >
             {calculating ? (
@@ -575,33 +545,26 @@ function CalculatorInner() {
           }}
         >
           <div
-            className="rounded-2xl border overflow-hidden"
-            style={{
-              background: "var(--app-bg-secondary)",
-              borderColor: "var(--app-card-border)",
-              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.4)",
-            }}
+            className="oc-glass rounded-2xl overflow-hidden"
+            style={{ boxShadow: "0 25px 50px -12px rgba(0,0,0,0.6)" }}
           >
             {/* Big refund number */}
             <div
-              className="p-6 sm:p-8 text-center"
+              className="p-6 sm:p-10 text-center"
               style={{
                 background:
-                  "linear-gradient(135deg, rgba(22,163,74,0.1) 0%, rgba(16,185,129,0.05) 100%)",
+                  "linear-gradient(135deg, rgba(124,58,237,0.16) 0%, rgba(56,189,248,0.06) 100%)",
                 borderBottom: "1px solid var(--app-card-border)",
               }}
             >
-              <p className="text-sm font-medium mb-2" style={{ color: "var(--app-text-muted)" }}>
+              <p className="oc-eyebrow mb-3">
                 Estimated IEEPA Refund
               </p>
-              <p
-                className="text-4xl sm:text-5xl font-bold tracking-tight mb-2"
-                style={{ color: "#22c55e" }}
-              >
+              <p className="font-display oc-gradient-text text-5xl sm:text-6xl tracking-tight mb-3">
                 {usdFmt.format(result.summary.totalEstRefund)}
               </p>
-              <p className="text-lg" style={{ color: "var(--app-text-secondary)" }}>
-                + {usdFmtFull.format(result.summary.totalEstInterest)} estimated interest
+              <p className="text-lg text-white/70">
+                + <span className="font-semibold text-white">{usdFmtFull.format(result.summary.totalEstInterest)}</span> estimated interest
               </p>
 
               {selectedCountry && (
@@ -704,7 +667,7 @@ function CalculatorInner() {
                   {result.entries[0].rateBreakdown.reciprocal != null && (
                     <span
                       className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium"
-                      style={{ background: "rgba(79,110,247,0.1)", color: "#4f6ef7" }}
+                      style={{ background: "rgba(56,189,248,0.12)", color: "#7dd3fc" }}
                     >
                       Reciprocal: {(result.entries[0].rateBreakdown.reciprocal * 100).toFixed(0)}%
                     </span>
@@ -1251,30 +1214,20 @@ function CalculatorInner() {
       {/* ── Broker Partnership CTA ─────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         <div
-          className="rounded-2xl border overflow-hidden"
-          style={{
-            borderColor: "var(--brand-gold)",
-            background: "linear-gradient(135deg, rgba(176,140,48,0.08), rgba(176,140,48,0.02))",
-          }}
+          className="oc-glass rounded-2xl overflow-hidden"
+          style={{ borderColor: "rgba(124,58,237,0.30)" }}
         >
           <div className="p-6 sm:p-8">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl">🤝</span>
-              <span
-                className="text-xs font-semibold tracking-widest uppercase"
-                style={{ color: "var(--brand-gold)" }}
-              >
-                For Customs Brokers
-              </span>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="oc-feature-icon w-8 h-8 rounded-lg text-base">🤝</span>
+              <Eyebrow>For Customs Brokers</Eyebrow>
             </div>
-            <h3
-              className="text-xl sm:text-2xl font-bold mb-3"
-              style={{ color: "var(--app-text)", fontFamily: "'DM Serif Display', Georgia, serif" }}
-            >
-              Turn Your Importer Book Into Passive Income
+            <h3 className="font-display text-2xl sm:text-3xl mb-3 text-white">
+              Turn Your Importer Book Into{" "}
+              <GradientText>Passive Income</GradientText>
             </h3>
-            <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--app-text-muted)" }}>
-              Licensed customs brokers are earning <strong style={{ color: "var(--app-text)" }}>$5,000–$50,000/month</strong> in referral commissions
+            <p className="text-sm leading-relaxed mb-6 text-white/60">
+              Licensed customs brokers are earning <strong className="text-white">$5,000–$50,000/month</strong> in referral commissions
               by connecting their existing clients to IEEPA refund recovery. No cost to join. No risk. Your clients stay yours.
             </p>
 
@@ -1285,15 +1238,12 @@ function CalculatorInner() {
                 { num: "3", title: "Earn Commission", desc: "10–25% on every successful recovery" },
               ].map((step) => (
                 <div key={step.num} className="flex items-start gap-3">
-                  <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                    style={{ background: "var(--brand-gold)", color: "#000" }}
-                  >
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-violet-500/20 border border-violet-500/30 text-violet-200">
                     <span className="text-xs font-bold">{step.num}</span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--app-text)" }}>{step.title}</p>
-                    <p className="text-xs" style={{ color: "var(--app-text-muted)" }}>{step.desc}</p>
+                    <p className="text-sm font-semibold text-white">{step.title}</p>
+                    <p className="text-xs text-white/50">{step.desc}</p>
                   </div>
                 </div>
               ))}
@@ -1302,12 +1252,7 @@ function CalculatorInner() {
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href="/apply"
-                className="h-11 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 px-6 transition-all duration-200"
-                style={{
-                  background: "var(--brand-gold)",
-                  color: "#000",
-                  boxShadow: "0 4px 14px rgba(176,140,48,0.3)",
-                }}
+                className="oc-cta oc-cta--violet h-11 text-sm justify-center px-6"
               >
                 Apply to Become a Partner
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1316,12 +1261,7 @@ function CalculatorInner() {
               </Link>
               <Link
                 href="/partners/brokers"
-                className="h-11 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 px-6 border transition-colors"
-                style={{
-                  borderColor: "var(--brand-gold)",
-                  color: "var(--brand-gold)",
-                  background: "transparent",
-                }}
+                className="h-11 rounded-full font-semibold text-sm flex items-center justify-center gap-2 px-6 border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 transition-colors"
               >
                 Learn More
               </Link>
@@ -1338,19 +1278,12 @@ function CalculatorInner() {
           ].map((item) => (
             <div
               key={item.title}
-              className="rounded-xl border p-5 text-center"
-              style={{
-                background: "var(--app-card-bg)",
-                borderColor: "var(--app-card-border)",
-              }}
+              className="oc-glass oc-glass--hover p-6 text-center"
             >
-              <p
-                className="text-2xl font-bold mb-1"
-                style={{ color: "var(--brand-gold)", fontFamily: "'DM Serif Display', Georgia, serif" }}
-              >
+              <p className="font-display oc-gradient-text text-3xl tracking-tight mb-1">
                 {item.title}
               </p>
-              <p className="text-sm" style={{ color: "var(--app-text-muted)" }}>
+              <p className="text-sm text-white/50">
                 {item.desc}
               </p>
             </div>
@@ -1358,13 +1291,12 @@ function CalculatorInner() {
         </div>
 
         <div className="text-center">
-          <p className="text-sm mb-1" style={{ color: "var(--app-text-muted)" }}>
+          <p className="text-sm mb-1 text-white/50">
             Already a Fintella partner?
           </p>
           <Link
             href="/login"
-            className="text-sm font-semibold transition-colors"
-            style={{ color: "var(--accent-blue)" }}
+            className="text-sm font-semibold text-violet-300 hover:text-violet-200 transition-colors"
           >
             Sign in to your portal
           </Link>
@@ -1374,30 +1306,26 @@ function CalculatorInner() {
       {/* ── Sticky bottom CTA bar ─────────────────────────────── */}
       {showResults && result && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-50 border-t py-3 px-4 flex items-center justify-between backdrop-blur-xl"
+          className="fixed bottom-0 left-0 right-0 z-50 border-t py-3 px-4 pb-safe flex items-center justify-between backdrop-blur-xl"
           style={{
-            background: "rgba(6,10,20,0.95)",
-            borderColor: "var(--brand-gold)",
+            background: "rgba(5,5,7,0.92)",
+            borderColor: "rgba(124,58,237,0.4)",
           }}
         >
           <div className="flex items-center gap-3">
-            <span className="text-lg">💰</span>
+            <span className="oc-feature-icon w-8 h-8 rounded-lg text-base">💰</span>
             <div>
-              <p className="text-sm font-bold" style={{ color: "var(--brand-gold)" }}>
+              <p className="text-sm font-bold text-violet-300">
                 {usdFmt.format(result.summary.totalEstRefund + result.summary.totalEstInterest)} estimated recovery
               </p>
-              <p className="text-xs" style={{ color: "var(--app-text-muted)" }}>
+              <p className="text-xs text-white/50">
                 {result.summary.eligibleCount} eligible entries
               </p>
             </div>
           </div>
           <Link
             href="/apply"
-            className="h-9 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 px-4 shrink-0"
-            style={{
-              background: "var(--brand-gold)",
-              color: "#000",
-            }}
+            className="oc-cta oc-cta--violet h-9 text-xs px-4 shrink-0"
           >
             Get Started
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1432,6 +1360,7 @@ function CalculatorInner() {
           IEEPA tariff rates sourced from Federal Register executive orders and CBP guidance. Rate data covers Feb 1, 2025 &ndash; Feb 23, 2026. Report errors to support@fintella.partners.
         </p>
       </footer>
+      </div>
     </div>
   );
 }
@@ -1476,18 +1405,12 @@ function LeadCaptureSection({ totalRefund }: { totalRefund: number }) {
   if (submitted) {
     return (
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        <div
-          className="rounded-2xl border p-6 sm:p-8 text-center"
-          style={{
-            borderColor: "rgba(22,163,74,0.3)",
-            background: "rgba(22,163,74,0.05)",
-          }}
-        >
-          <div className="text-3xl mb-3">✅</div>
-          <h3 className="text-lg font-bold mb-1" style={{ color: "var(--app-text)" }}>
+        <div className="oc-glass rounded-2xl p-6 sm:p-8 text-center">
+          <div className="oc-feature-icon mx-auto mb-3 text-xl bg-emerald-500/15 border-emerald-500/25 text-emerald-300">✓</div>
+          <h3 className="text-lg font-bold mb-1 text-white">
             Analysis Saved
           </h3>
-          <p className="text-sm" style={{ color: "var(--app-text-muted)" }}>
+          <p className="text-sm text-white/60">
             We&apos;ll follow up with a detailed recovery analysis. Check your inbox.
           </p>
         </div>
@@ -1498,22 +1421,16 @@ function LeadCaptureSection({ totalRefund }: { totalRefund: number }) {
   return (
     <section className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <div
-        className="rounded-2xl border p-6 sm:p-8"
-        style={{
-          borderColor: "var(--brand-gold)",
-          background: "linear-gradient(135deg, rgba(176,140,48,0.06), rgba(176,140,48,0.01))",
-        }}
+        className="oc-glass rounded-2xl p-6 sm:p-8"
+        style={{ borderColor: "rgba(124,58,237,0.30)" }}
       >
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xl">📄</span>
-          <h3
-            className="text-lg font-bold"
-            style={{ color: "var(--app-text)", fontFamily: "'DM Serif Display', Georgia, serif" }}
-          >
+        <div className="flex items-center gap-2.5 mb-2">
+          <span className="oc-feature-icon w-8 h-8 rounded-lg text-base">📄</span>
+          <h3 className="font-display text-lg text-white">
             Get Your Full Recovery Analysis
           </h3>
         </div>
-        <p className="text-sm mb-5" style={{ color: "var(--app-text-muted)" }}>
+        <p className="text-sm mb-5 text-white/60">
           Enter your email to receive a professional PDF summary you can share with your clients — includes entry breakdown, audit score, filing deadlines, and recommended next steps.
         </p>
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
@@ -1525,8 +1442,9 @@ function LeadCaptureSection({ totalRefund }: { totalRefund: number }) {
             className="h-11 rounded-lg border px-4 text-sm flex-1"
             style={{
               background: "var(--app-input-bg)",
-              borderColor: "var(--app-border)",
-              color: "var(--app-text)",
+              borderColor: "var(--app-input-border)",
+              color: "var(--app-input-text)",
+              colorScheme: "dark",
             }}
           />
           <input
@@ -1538,24 +1456,20 @@ function LeadCaptureSection({ totalRefund }: { totalRefund: number }) {
             className="h-11 rounded-lg border px-4 text-sm flex-1"
             style={{
               background: "var(--app-input-bg)",
-              borderColor: "var(--app-border)",
-              color: "var(--app-text)",
+              borderColor: "var(--app-input-border)",
+              color: "var(--app-input-text)",
+              colorScheme: "dark",
             }}
           />
           <button
             type="submit"
             disabled={submitting || !email.trim()}
-            className="h-11 rounded-lg font-semibold text-sm px-6 shrink-0 transition-all disabled:opacity-40"
-            style={{
-              background: "var(--brand-gold)",
-              color: "#000",
-              boxShadow: "0 4px 14px rgba(176,140,48,0.3)",
-            }}
+            className="oc-cta oc-cta--violet h-11 text-sm px-6 shrink-0 justify-center transition-all disabled:opacity-40"
           >
             {submitting ? "Sending..." : "Email My Analysis"}
           </button>
         </form>
-        <p className="text-xs mt-3" style={{ color: "var(--app-text-faint)" }}>
+        <p className="text-xs mt-3 text-white/40">
           No spam. One follow-up with your results. Unsubscribe anytime.
         </p>
       </div>
@@ -1567,8 +1481,8 @@ export default function CalculatorPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--app-bg)" }}>
-          <div className="animate-spin h-8 w-8 rounded-full border-2" style={{ borderColor: "var(--app-border)", borderTopColor: "var(--brand-gold)" }} />
+        <div className="oc-launch min-h-screen flex items-center justify-center" style={{ background: "#050507" }}>
+          <div className="animate-spin h-8 w-8 rounded-full border-2" style={{ borderColor: "rgba(255,255,255,0.1)", borderTopColor: "#7c3aed" }} />
         </div>
       }
     >

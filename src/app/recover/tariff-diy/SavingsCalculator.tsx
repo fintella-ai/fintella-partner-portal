@@ -14,7 +14,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const ACCENT = "#8b5cf6";
+const ACCENT = "#7c3aed";
 const CONTINGENCY_RATE = 0.3; // what the big firms typically take
 
 interface Props {
@@ -83,7 +83,7 @@ export default function SavingsCalculator({ upfrontFeeCents }: Props) {
             value={refund}
             onChange={(e) => setRefund(Number(e.target.value))}
             aria-label="Estimated refund amount"
-            className="w-full accent-[#8b5cf6] h-2 cursor-pointer"
+            className="w-full accent-[#7c3aed] h-2 cursor-pointer"
           />
           <div className="flex justify-between text-[11px] text-white/30 mt-1">
             <span>$5K</span><span>$500K</span>
@@ -109,7 +109,7 @@ export default function SavingsCalculator({ upfrontFeeCents }: Props) {
 
         {/* Right — the exclaimed result */}
         <div className="space-y-4">
-          <div className="rounded-2xl border-2 p-6 text-center" style={{ borderColor: ACCENT, background: "rgba(139,92,246,0.10)" }}>
+          <div className="rounded-2xl border-2 p-6 text-center" style={{ borderColor: ACCENT, background: "rgba(124,58,237,0.10)", boxShadow: "0 0 40px -10px rgba(124,58,237,0.4)" }}>
             <div className="text-xs uppercase tracking-wider text-white/50 mb-1">You keep</div>
             <div className="text-5xl font-bold tabular-nums leading-none" style={{ color: ACCENT }}>{money(keepAnim)}</div>
             <div className="text-xs text-white/40 mt-2">of your {money(refund)} refund</div>

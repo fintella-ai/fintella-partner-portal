@@ -135,8 +135,8 @@ export default function BrokerSignupForm({ variant, rate }: Props) {
         </div>
 
         <h3
-          className="text-xl font-bold mb-2"
-          style={{ color: "var(--app-text)", fontFamily: "'DM Serif Display', Georgia, serif" }}
+          className="font-display text-2xl mb-2"
+          style={{ color: "var(--app-text)" }}
         >
           Welcome to the Network
         </h3>
@@ -167,8 +167,8 @@ export default function BrokerSignupForm({ variant, rate }: Props) {
     >
       {/* Heading */}
       <h2
-        className="text-lg font-bold mb-1"
-        style={{ color: "var(--brand-gold)", fontFamily: "'DM Serif Display', Georgia, serif" }}
+        className="font-display text-xl mb-1"
+        style={{ color: "var(--app-gold-text)" }}
       >
         Join the Network
       </h2>
@@ -179,8 +179,8 @@ export default function BrokerSignupForm({ variant, rate }: Props) {
         className="font-body text-[10px] leading-relaxed mb-6 p-3 rounded-lg"
         style={{
           color: "var(--app-text-secondary)",
-          background: "rgba(196,160,80,0.04)",
-          border: "1px solid rgba(196,160,80,0.12)",
+          background: "rgba(124,58,237,0.06)",
+          border: "1px solid rgba(124,58,237,0.18)",
         }}
       >
         The information you provide below must be accurate and match your legal
@@ -215,9 +215,9 @@ export default function BrokerSignupForm({ variant, rate }: Props) {
                 style={{
                   border: `1px solid ${isBroker === opt.value ? "var(--brand-gold)" : "var(--app-border)"}`,
                   background:
-                    isBroker === opt.value ? "rgba(196,160,80,0.12)" : "rgba(0,0,0,0.3)",
+                    isBroker === opt.value ? "rgba(124,58,237,0.15)" : "rgba(0,0,0,0.3)",
                   color:
-                    isBroker === opt.value ? "var(--brand-gold)" : "var(--app-text-muted)",
+                    isBroker === opt.value ? "var(--app-gold-text)" : "var(--app-text-muted)",
                   fontWeight: isBroker === opt.value ? 600 : 400,
                   cursor: "pointer",
                 }}
@@ -359,7 +359,7 @@ export default function BrokerSignupForm({ variant, rate }: Props) {
           style={{
             background: "var(--brand-gold)",
             color: "var(--app-button-gold-text)",
-            boxShadow: "0 4px 14px rgba(176,140,48,0.3)",
+            boxShadow: "0 4px 18px rgba(124,58,237,0.45)",
           }}
         >
           {submitting ? (
