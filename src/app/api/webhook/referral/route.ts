@@ -851,10 +851,22 @@ async function postHandler(req: NextRequest): Promise<Response> {
         if (p) referralPartnerName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
       }
       const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
+      // Compose a single human-readable business address for {deal.businessAddress}.
+      // Individual line tokens ({deal.businessStreetAddress}, ...City/State/Zip)
+      // resolve directly off the spread deal; this is the convenience combined form.
+      const businessAddress = [
+        deal.businessStreetAddress,
+        deal.businessStreetAddress2,
+        [deal.businessCity, deal.businessState].filter(Boolean).join(", "),
+        deal.businessZip,
+      ]
+        .filter((part) => part && String(part).trim())
+        .join(", ");
       const enrichedDeal = {
         ...deal,
         referralPartnerName,
         dealUrl: `${PORTAL_URL}/admin/deals#${deal.id}`,
+        businessAddress,
       };
       fireWorkflowTrigger("deal.created", { deal: enrichedDeal });
     }).catch(() => {});

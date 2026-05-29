@@ -873,8 +873,12 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
                   [<Code key="6">{"{{client_title}}"}</Code>, "Client's title at their company", "CFO"],
                   [<Code key="7">{"{{company_name}}"}</Code>, "Business legal entity name", "Acme Imports LLC"],
                   [<Code key="8">{"{{company_ein}}"}</Code>, "Business EIN", "87-1234567"],
-                  [<Code key="9">{"{{company_city}}"}</Code>, "Business city", "Phoenix"],
-                  [<Code key="10">{"{{company_state}}"}</Code>, "Business state", "Arizona"],
+                  [<Code key="9">{"{{company_street_address}}"}</Code>, "Business street address (line 1)", "123 Commerce Blvd"],
+                  [<Code key="10">{"{{company_street_address_2}}"}</Code>, "Business street address (line 2 — suite/unit)", "Suite 400"],
+                  [<Code key="11">{"{{company_city}}"}</Code>, "Business city", "Phoenix"],
+                  [<Code key="12">{"{{company_state}}"}</Code>, "Business state", "Arizona"],
+                  [<Code key="13">{"{{company_zip}}"}</Code>, "Business zip / postal code", "85004"],
+                  [<Code key="14">{"{{company_address}}"}</Code>, "Full formatted business address (all lines combined)", "123 Commerce Blvd, Suite 400, Phoenix, Arizona 85004"],
                 ].map((cells, i, arr) => (
                   <TableRow key={i} cells={cells} cols={3} last={i === arr.length - 1} />
                 ))}
