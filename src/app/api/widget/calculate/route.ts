@@ -10,9 +10,11 @@ import {
   type RateRecord,
   type QuarterlyRate,
 } from "@/lib/tariff-calculator";
+import { IEEPA_TERMINATION_DATE } from "@/lib/tariff-countries";
 
-// IEEPA termination date — duties after this date are not refundable
-const IEEPA_TERMINATION = new Date("2026-02-24T00:00:00Z");
+// IEEPA termination date — duties after this date are not refundable.
+// Single source of truth lives in tariff-countries.ts.
+const IEEPA_TERMINATION = IEEPA_TERMINATION_DATE;
 
 function extractToken(req: NextRequest): string | null {
   const auth = req.headers.get("authorization");

@@ -14,6 +14,8 @@ import {
   validateEntryNumber,
   aggregateDossier,
   getRoutingBucket,
+  classifyDealTier,
+  TIER1_MAX_DUTIES,
   type RateRecord,
   type QuarterlyRate,
 } from "../tariff-calculator";
@@ -200,17 +202,76 @@ test("liquidated AD/CVD within protest window → eligible", () => {
   assert.ok(result.deadlineDays! > 0);
 });
 
-test("past protest window (>80 days) → excluded_expired", () => {
+test("past protest window (>180 days) → excluded_expired + litigation", () => {
   const liq = new Date();
-  liq.setDate(liq.getDate() - 100);
-  assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq }).status, "excluded_expired");
+  liq.setDate(liq.getDate() - 200);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
+  assert.equal(result.status, "excluded_expired");
+  assert.equal(result.filingMethod, "litigation");
 });
 
-test("urgent when ≤14 days remaining", () => {
+test("urgent when ≤14 days remaining (near 180-day deadline)", () => {
   const liq = new Date();
-  liq.setDate(liq.getDate() - 70);
+  liq.setDate(liq.getDate() - 170); // 10 days left until the 180-day deadline
   const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
   assert.equal(result.isUrgent, true);
+});
+
+// ── 4b. Filing method + new exclusions ───────────────────────────────────────
+
+console.log("\n▸ checkEligibility — filing method & exclusions");
+
+test("unliquidated → filingMethod cape_phase1", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01" });
+  assert.equal(result.filingMethod, "cape_phase1");
+});
+
+test("liquidated within 80 days → filingMethod cape_phase1", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 30);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase1");
+});
+
+test("liquidated 80–180 days ago → eligible via protest", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 120);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "protest");
+});
+
+test("drawback entry → excluded_drawback", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isDrawback: true });
+  assert.equal(result.status, "excluded_drawback");
+});
+
+test("USMCA CA goods after Mar 7, 2025 → excluded_usmca", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isUsmca: true, countryOfOrigin: "CA" });
+  assert.equal(result.status, "excluded_usmca");
+});
+
+test("USMCA flag on non-CA/MX country (CN) → still eligible", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isUsmca: true, countryOfOrigin: "CN" });
+  assert.equal(result.status, "eligible");
+});
+
+test("USMCA CA goods BEFORE Mar 7, 2025 → still eligible", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-02-15"), entryType: "01", isUsmca: true, countryOfOrigin: "CA" });
+  assert.equal(result.status, "eligible");
+});
+
+test("Section 232 goods → eligible but needsReview", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", hasSection232: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.needsReview, true);
+});
+
+test("Section 301 goods → eligible but needsReview", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", hasSection301: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.needsReview, true);
 });
 
 // ── 5. Entry Number Validation ──────────────────────────────────────────────
@@ -246,6 +307,17 @@ test("eligible → self_file", () => assert.equal(getRoutingBucket("eligible"), 
 test("excluded_date → not_applicable", () => assert.equal(getRoutingBucket("excluded_date"), "not_applicable"));
 test("excluded_adcvd → legal_required", () => assert.equal(getRoutingBucket("excluded_adcvd"), "legal_required"));
 test("excluded_expired → legal_required", () => assert.equal(getRoutingBucket("excluded_expired"), "legal_required"));
+test("excluded_drawback → not_applicable", () => assert.equal(getRoutingBucket("excluded_drawback"), "not_applicable"));
+test("excluded_usmca → not_applicable", () => assert.equal(getRoutingBucket("excluded_usmca"), "not_applicable"));
+
+// ── 6b. Deal Tiering ─────────────────────────────────────────────────────────
+
+console.log("\n▸ classifyDealTier");
+
+test("under $1M total duties → tier1", () => assert.equal(classifyDealTier(750_000), "tier1"));
+test("exactly $1M → standard", () => assert.equal(classifyDealTier(TIER1_MAX_DUTIES), "standard"));
+test("over $1M → standard", () => assert.equal(classifyDealTier(2_500_000), "standard"));
+test("$0 → tier1", () => assert.equal(classifyDealTier(0), "tier1"));
 
 // ── 7. Aggregation ──────────────────────────────────────────────────────────
 
