@@ -1124,6 +1124,75 @@ function ReplayButton({ log, onReplayComplete }: { log: ApiLog; onReplayComplete
   );
 }
 
+// ── Resend Button for outgoing webhook posts (e.g. workflow → OpCenter) ──
+// Re-POSTs the original body to the stored targetUrl. The receiver's auth is a
+// token in the URL, so no headers are needed. The resend route validates the
+// targetUrl with the api-proxy private-IP guard before fetching.
+function ResendButton({ log, onResendComplete }: { log: ApiLog; onResendComplete: () => void }) {
+  const [resending, setResending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; status: number; body: string } | null>(null);
+
+  const resend = async () => {
+    if (
+      !confirm(
+        "Resend this outbound webhook? The original body will be re-POSTed to " +
+          (log.targetUrl || "the stored target URL") +
+          ".\n\nThis makes a real outbound network call and writes a new log row."
+      )
+    )
+      return;
+    setResending(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/dev/resend-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logId: log.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setResult({ ok: false, status: res.status, body: data.error || `HTTP ${res.status}` });
+      } else {
+        setResult({
+          ok: !!data.success,
+          status: data.status ?? 0,
+          body: typeof data.responseBody === "string" ? data.responseBody : JSON.stringify(data.responseBody ?? "", null, 2),
+        });
+      }
+      onResendComplete();
+    } catch (e: any) {
+      setResult({ ok: false, status: 0, body: e?.message || "Network error" });
+    } finally {
+      setResending(false);
+    }
+  };
+
+  return (
+    <div className="pt-2 border-t border-[var(--app-border)]">
+      <div className="flex items-center gap-3 flex-wrap">
+        <button
+          onClick={resend}
+          disabled={resending}
+          className="font-body text-[11px] font-semibold border border-amber-500/30 text-amber-400 rounded-lg px-4 py-2 min-h-[36px] hover:bg-amber-500/10 transition-colors disabled:opacity-50"
+        >
+          {resending ? "Resending…" : "↑ Resend Webhook"}
+        </button>
+        {result && (
+          <span className={`font-mono text-[11px] font-semibold ${result.ok ? "text-green-400" : "text-red-400"}`}>
+            {result.ok ? "✓" : "✗"} {result.status || "ERR"} — {result.body.slice(0, 100)}
+          </span>
+        )}
+      </div>
+      {result && !result.ok && (
+        <pre className="mt-2 font-mono text-[10px] text-red-400 rounded-lg px-3 py-2 overflow-x-auto whitespace-pre-wrap"
+          style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)" }}>
+          {result.body}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 // ── API Log Tab (standalone, All / Incoming / Outgoing filter) ──
 type LogFilter = "all" | "incoming" | "outgoing";
 
@@ -1490,6 +1559,11 @@ function ApiLogSection() {
                     {/* Replay button — available for failed incoming webhook requests */}
                     {log.direction === "incoming" && log.body && (statusCode ?? 0) >= 400 && (
                       <ReplayButton log={log} onReplayComplete={fetchLogs} />
+                    )}
+
+                    {/* Resend button — available for any outgoing webhook with a targetUrl + body */}
+                    {log.direction === "outgoing" && log.targetUrl && log.body && (
+                      <ResendButton log={log} onResendComplete={fetchLogs} />
                     )}
                   </div>
                 )}
