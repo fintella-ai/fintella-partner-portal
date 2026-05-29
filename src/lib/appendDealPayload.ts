@@ -12,12 +12,20 @@
  *     don't lose that history on the first PATCH after migration.
  */
 
-export type DealPayloadMethod = "POST" | "PATCH";
+// POST / PATCH = inbound calls received on /api/webhook/referral.
+// WEBHOOK_OUT = an outbound webhook.post the workflow engine sent to an external
+//   system (e.g. OpCenter). Logged here so every inbound + outbound exchange for
+//   a deal accumulates chronologically in one place.
+export type DealPayloadMethod = "POST" | "PATCH" | "WEBHOOK_OUT";
 
 export type DealPayloadEvent = {
   ts: string;            // ISO timestamp
   method: DealPayloadMethod;
-  body: string;          // raw JSON body as received (may be truncated)
+  body: string;          // raw JSON body as received/sent (may be truncated)
+  // Outbound-only metadata (present on WEBHOOK_OUT events):
+  targetUrl?: string;    // destination URL the body was POSTed to
+  responseStatus?: number; // HTTP status returned by the receiver
+  responseBody?: string; // receiver response body (truncated)
 };
 
 const MAX_ENTRIES = 20;
@@ -55,7 +63,14 @@ function toEventArray(existing: string | null | undefined): DealPayloadEvent[] {
  */
 export function appendDealPayload(
   existing: string | null | undefined,
-  entry: { method: DealPayloadMethod; body: string; ts?: string }
+  entry: {
+    method: DealPayloadMethod;
+    body: string;
+    ts?: string;
+    targetUrl?: string;
+    responseStatus?: number;
+    responseBody?: string;
+  }
 ): string {
   const events = toEventArray(existing);
 
@@ -63,6 +78,9 @@ export function appendDealPayload(
     ts: entry.ts || new Date().toISOString(),
     method: entry.method,
     body: entry.body.slice(0, MAX_BODY_BYTES),
+    ...(entry.targetUrl ? { targetUrl: entry.targetUrl } : {}),
+    ...(entry.responseStatus != null ? { responseStatus: entry.responseStatus } : {}),
+    ...(entry.responseBody ? { responseBody: entry.responseBody.slice(0, 2000) } : {}),
   });
 
   // Cap by entry count first (cheap check).
