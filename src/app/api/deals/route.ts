@@ -131,6 +131,11 @@ export async function POST(req: NextRequest) {
         estimatedRefundAmount: body.estimatedAnnualImportValue ? parseFloat(body.estimatedAnnualImportValue) : 0,
         l1CommissionRate: l1RateSnapshot,
         notes: body.notes || null,
+        // Enrichment fields — optional partner/system correlation keys
+        external_deal_id: body.external_deal_id || body.externalDealIdPartner || null,
+        ido_key: body.ido_key || body.idoKey || null,
+        partner_response: body.partner_response ?? body.partnerResponse ?? undefined,
+        internal_raw_code: body.internal_raw_code || body.internalRawCode || null,
       },
     });
 

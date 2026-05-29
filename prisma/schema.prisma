@@ -984,6 +984,11 @@ model Deal {
   // idempotencyKey, we store it here and any re-POST with the same key
   // returns the existing dealId with HTTP 200 instead of creating a duplicate.
   idempotencyKey        String?   @unique
+  // Partner / external-system enrichment fields
+  external_deal_id      String?   // external partner CRM deal ID (e.g. Salesforce/HubSpot ID from their system)
+  ido_key               String?   @unique  // idempotency key for partner-driven dedup on update requests
+  partner_response      Json?              // raw response body received back from partner on update callbacks
+  internal_raw_code     String?            // internal processing/routing code assigned to this service request
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
