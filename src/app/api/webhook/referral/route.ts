@@ -650,6 +650,7 @@ async function postHandler(req: NextRequest): Promise<Response> {
       "entity"
     );
     const filerType = get("filer_type", "filerType", "filer");
+    const filingStatus = get("filing_status", "filingStatus", "tax_filing_status", "taxFilingStatus");
 
     // Tariff-specific fields
     const importsGoods = get(
@@ -841,9 +842,11 @@ async function postHandler(req: NextRequest): Promise<Response> {
           serviceFields: (() => {
             const extracted = service?.formFieldsConfig ? extractServiceFields(body, service.formFieldsConfig) : {};
             const merged: Record<string, unknown> = { ...(extracted || {}) };
-            // Always persist entity/filer type so {deal.entityType} resolves.
+            // Always persist entity/filer/filing fields so {deal.entityType},
+            // {deal.filingStatus} resolve.
             if (entityType) merged.entity_type = entityType;
             if (filerType) merged.filer_type = filerType;
+            if (filingStatus) merged.filing_status = filingStatus;
             return Object.keys(merged).length ? (merged as any) : undefined;
           })(),
           notes: `Source: Referral Form | Partner: ${partnerCode || "none"}${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
@@ -1295,12 +1298,14 @@ async function patchHandler(req: NextRequest): Promise<Response> {
     // existing value so {deal.entityType} fills without clobbering other fields.
     const patchEntityType = pickStr("entity_type", "entityType", "business_entity_type", "businessEntityType", "entity");
     const patchFilerType = pickStr("filer_type", "filerType", "filer");
-    if (patchEntityType || patchFilerType) {
+    const patchFilingStatus = pickStr("filing_status", "filingStatus", "tax_filing_status", "taxFilingStatus");
+    if (patchEntityType || patchFilerType || patchFilingStatus) {
       const existingSf = (deal.serviceFields as Record<string, unknown>) || {};
       data.serviceFields = {
         ...existingSf,
         ...(patchEntityType ? { entity_type: patchEntityType } : {}),
         ...(patchFilerType ? { filer_type: patchFilerType } : {}),
+        ...(patchFilingStatus ? { filing_status: patchFilingStatus } : {}),
       };
     }
 

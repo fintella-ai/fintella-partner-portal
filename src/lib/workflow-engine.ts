@@ -165,6 +165,7 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{deal.companyEin}",            description: "Business EIN / tax ID",                  example: "87-1234567" },
     { token: "{deal.entityType}",            description: "Business entity type (C Corporation, S Corporation, LLC, Partnership, etc.)", example: "C Corporation" },
     { token: "{deal.filerType}",             description: "Filer type (Business / Individual)",     example: "Business" },
+    { token: "{deal.filingStatus}",          description: "Individual filing status (e.g. Filed jointly / Filed separately)", example: "Filed jointly" },
     { token: "{deal.serviceOfInterest}",     description: "Service the client is interested in",    example: "Tariff Refund Support" },
     { token: "{deal.businessStreetAddress}", description: "Client business street address (line 1)", example: "123 Commerce Blvd" },
     { token: "{deal.businessStreetAddress2}",description: "Client business street address (line 2 — suite/unit)", example: "Suite 400" },
@@ -198,6 +199,7 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{deal.legalEntityName}",       description: "Client's legal entity name",            example: "Acme Imports LLC" },
     { token: "{deal.companyEin}",            description: "Business EIN / tax ID",                 example: "87-1234567" },
     { token: "{deal.entityType}",            description: "Business entity type",                  example: "C Corporation" },
+    { token: "{deal.filingStatus}",          description: "Individual filing status",              example: "Filed jointly" },
     { token: "{deal.businessAddress}",       description: "Full formatted business address",       example: "100 Test Drive, Suite 300, Tampa, FL 33602" },
     { token: "{deal.serviceOfInterest}",     description: "Service the client is interested in",   example: "Kwong Penalty Abatement (ERC)" },
     { token: "{deal.signedPdfUrl}",          description: "URL to the signed agreement PDF (available once the client e-signs). Send this to OpCenter to deliver the document.", example: "https://app.signwell.com/api/v1/documents/.../completed_pdf" },
@@ -413,6 +415,7 @@ export function deriveDealWorkflowFields(deal: Record<string, any> | null | unde
   return {
     entityType: sf.entity_type || "",
     filerType: sf.filer_type || "",
+    filingStatus: sf.filing_status || "",
     // Prefer the pre-composed serviceFields address (set at Kwong intake), then
     // fall back to assembling it from the structured Deal columns.
     businessAddress: sf.business_address || composedAddress || "",
