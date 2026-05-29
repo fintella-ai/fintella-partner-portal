@@ -283,6 +283,35 @@ export async function POST(req: NextRequest) {
               }).catch((e) => console.error("[SignWellWebhook] Intake email failed:", e));
             }
           }
+
+          // Fire deal.stage_changed so workflows can forward the signed
+          // agreement (and intake data) to external systems like OpCenter.
+          // The signed PDF URL is now available on serviceFields.signwellPdfUrl,
+          // surfaced as {deal.signedPdfUrl} via deriveDealWorkflowFields().
+          import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger, deriveDealWorkflowFields }) => {
+            const refreshed = await prisma.deal.findUnique({ where: { id: kwongDeal.id } }).catch(() => null);
+            const base = refreshed || { ...kwongDeal, stage: "engaged" };
+            let referralPartnerName = "";
+            if (base.partnerCode && base.partnerCode !== "UNATTRIBUTED" && base.partnerCode !== "DIRECT") {
+              const p = await prisma.partner.findUnique({
+                where: { partnerCode: base.partnerCode },
+                select: { firstName: true, lastName: true },
+              }).catch(() => null);
+              if (p) referralPartnerName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
+            }
+            const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
+            const enrichedDeal = {
+              ...base,
+              ...deriveDealWorkflowFields(base),
+              referralPartnerName,
+              dealUrl: `${PORTAL_URL}/admin/deals#${base.id}`,
+            };
+            fireWorkflowTrigger("deal.stage_changed", {
+              deal: enrichedDeal,
+              previousStage: "lead_submitted",
+              newStage: "engaged",
+            });
+          }).catch((e) => console.error("[SignWellWebhook] workflow trigger failed:", e));
         }
       }
     }

@@ -160,6 +160,8 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{deal.clientPhone}",           description: "Client phone",                           example: "+15551234567" },
     { token: "{deal.clientTitle}",           description: "Client business title",                  example: "CFO" },
     { token: "{deal.legalEntityName}",       description: "Client's legal entity name",             example: "Acme Imports LLC" },
+    { token: "{deal.entityType}",            description: "Business entity type (C Corporation, S Corporation, LLC, Partnership, etc.)", example: "C Corporation" },
+    { token: "{deal.filerType}",             description: "Filer type (Business / Individual)",     example: "Business" },
     { token: "{deal.serviceOfInterest}",     description: "Service the client is interested in",    example: "Tariff Refund Support" },
     { token: "{deal.businessStreetAddress}", description: "Client business street address (line 1)", example: "123 Commerce Blvd" },
     { token: "{deal.businessStreetAddress2}",description: "Client business street address (line 2 — suite/unit)", example: "Suite 400" },
@@ -189,6 +191,14 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{deal.externalDealId}",        description: "Upstream source's deal ID (e.g. HubSpot ID)", example: "462693304018" },
     { token: "{deal.idempotencyKey}",        description: "Idempotency / dedup key (may be empty)",example: "frost-hs-462693304018" },
     { token: "{deal.clientName}",            description: "Client display name",                   example: "Jane Doe" },
+    { token: "{deal.clientEmail}",           description: "Client email",                          example: "jane@acmeimports.com" },
+    { token: "{deal.legalEntityName}",       description: "Client's legal entity name",            example: "Acme Imports LLC" },
+    { token: "{deal.entityType}",            description: "Business entity type",                  example: "C Corporation" },
+    { token: "{deal.businessAddress}",       description: "Full formatted business address",       example: "100 Test Drive, Suite 300, Tampa, FL 33602" },
+    { token: "{deal.serviceOfInterest}",     description: "Service the client is interested in",   example: "Kwong Penalty Abatement (ERC)" },
+    { token: "{deal.signedPdfUrl}",          description: "URL to the signed agreement PDF (available once the client e-signs). Send this to OpCenter to deliver the document.", example: "https://app.signwell.com/api/v1/documents/.../completed_pdf" },
+    { token: "{deal.agreementStatus}",       description: "Agreement signing status (pending / completed)", example: "completed" },
+    { token: "{deal.signwellDocumentId}",    description: "SignWell document ID for the signed agreement", example: "f3a9c1e2-..." },
   ],
   "deal.closed_won": [
     { token: "{deal.dealName}",              description: "Deal name",                 example: "ACME Corp — Tariff Refund" },
@@ -377,6 +387,39 @@ export interface WorkflowAction {
   config: Record<string, unknown>;
 }
 
+/**
+ * Derive the workflow-template fields that live inside a deal's `serviceFields`
+ * JSON blob (or are composed from address columns) and surface them as flat
+ * top-level keys so tokens like {deal.entityType}, {deal.businessAddress} and
+ * {deal.signedPdfUrl} resolve. Spread the result onto the deal before firing a
+ * trigger:  fireWorkflowTrigger("deal.stage_changed", { deal: { ...deal, ...deriveDealWorkflowFields(deal) }, ... })
+ */
+export function deriveDealWorkflowFields(deal: Record<string, any> | null | undefined): Record<string, unknown> {
+  const sf = (deal?.serviceFields ?? {}) as Record<string, any>;
+  const composedAddress = [
+    deal?.businessStreetAddress,
+    deal?.businessStreetAddress2,
+    [deal?.businessCity, deal?.businessState].filter(Boolean).join(", "),
+    deal?.businessZip,
+  ]
+    .filter((part) => part && String(part).trim())
+    .join(", ");
+  return {
+    entityType: sf.entity_type || "",
+    filerType: sf.filer_type || "",
+    // Prefer the pre-composed serviceFields address (set at Kwong intake), then
+    // fall back to assembling it from the structured Deal columns.
+    businessAddress: sf.business_address || composedAddress || "",
+    // Signed agreement PDF — only present once SignWell completes the document.
+    signedPdfUrl: sf.signwellPdfUrl || sf.signedPdfUrl || "",
+    // Agreement signing status (pending / completed) — maps to OpCenter's
+    // expected `agreement_status` field.
+    agreementStatus: sf.signwellStatus || "",
+    // SignWell document ID — maps to OpCenter's `signwell_document_id` field.
+    signwellDocumentId: sf.signwellDocumentId || "",
+  };
+}
+
 // ─── Condition evaluation ─────────────────────────────────────────────────────
 
 function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
@@ -449,6 +492,44 @@ async function executeAction(
           bodyString = interpolate(rawBody, payload);
         } else {
           bodyString = JSON.stringify(payload);
+        }
+
+        // Optional: embed the signed agreement PDF directly in the JSON body as
+        // base64, so receivers (e.g. OpCenter) get the file without a second
+        // fetch and without depending on a (possibly expiring) SignWell URL.
+        // Enable via config.attachPdf; the source URL is {deal.signedPdfUrl}.
+        if (config.attachPdf) {
+          const deal = payload.deal as Record<string, unknown> | undefined;
+          const pdfUrl = String(deal?.signedPdfUrl || config.pdfUrl || "").trim();
+          if (pdfUrl) {
+            try {
+              const pdfRes = await fetch(pdfUrl);
+              if (pdfRes.ok) {
+                const pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
+                const pdfBase64 = pdfBuf.toString("base64");
+                const pdfFilename = `${String(deal?.id || "agreement")}-signed-agreement.pdf`;
+                try {
+                  const obj = JSON.parse(bodyString);
+                  if (obj && typeof obj === "object") {
+                    obj.pdf_base64 = pdfBase64;
+                    obj.pdf_filename = pdfFilename;
+                    obj.pdf_mime_type = "application/pdf";
+                    bodyString = JSON.stringify(obj);
+                  }
+                } catch {
+                  // Body wasn't JSON — wrap it so the PDF still rides along.
+                  bodyString = JSON.stringify({
+                    body: bodyString,
+                    pdf_base64: pdfBase64,
+                    pdf_filename: pdfFilename,
+                    pdf_mime_type: "application/pdf",
+                  });
+                }
+              }
+            } catch (pdfErr) {
+              console.warn("[workflow-engine] attachPdf fetch failed:", pdfErr);
+            }
+          }
         }
 
         const controller = new AbortController();
@@ -787,8 +868,14 @@ export async function fireWorkflowTrigger(
           overallError = skipReason;
         }
 
-        // Execute actions
-        if (Array.isArray(wf.actions)) {
+        // Execute actions — ONLY if the trigger passed its filters. When a
+        // workflow is skipped (triggerConfig mismatch or filter conditions not
+        // met), we must NOT run any actions: the webhook/email/notification
+        // should never fire for a payload that was deliberately filtered out.
+        // The log stays "skipped" ("did not meet filter requirements") rather
+        // than "failed", so admins can tell a filtered-out run apart from a
+        // genuine delivery failure.
+        if (overallStatus !== "skipped" && Array.isArray(wf.actions)) {
           for (const action of wf.actions as unknown as WorkflowAction[]) {
             const result = await executeAction(action, payload);
             actionsRun.push(result);

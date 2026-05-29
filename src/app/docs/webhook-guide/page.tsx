@@ -884,9 +884,55 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
                 ))}
               </div>
 
+              {/* Document / Agreement Variables */}
+              <div style={{ background: "var(--doc-card-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+                <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--doc-border)", background: "rgba(124,58,237,0.06)" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "var(--doc-purple)" }}>Document &amp; Agreement Variables</span>
+                </div>
+                <TableHeader cols={["Variable", "Description", "Example"]} />
+                {[
+                  [<Code key="1">{"{deal.entityType}"}</Code>, "Business entity type (C Corporation, S Corporation, LLC, Partnership, Sole Proprietor, etc.)", "C Corporation"],
+                  [<Code key="2">{"{deal.filerType}"}</Code>, "Filer type — Business or Individual", "Business"],
+                  [<Code key="3">{"{deal.businessAddress}"}</Code>, "Full formatted business address (all lines combined)", "100 Test Drive, Suite 300, Tampa, FL 33602"],
+                  [<Code key="4">{"{deal.signedPdfUrl}"}</Code>, "URL to the signed agreement PDF. Populated once the client e-signs (fires on the deal.stage_changed trigger).", "https://app.signwell.com/.../completed_pdf"],
+                  [<Code key="5">{"{deal.agreementStatus}"}</Code>, "Agreement signing status — pending or completed", "completed"],
+                  [<Code key="6">{"{deal.signwellDocumentId}"}</Code>, "SignWell document ID for the signed agreement", "f3a9c1e2-7b4d-..."],
+                ].map((cells, i, arr) => (
+                  <TableRow key={i} cells={cells} cols={3} last={i === arr.length - 1} />
+                ))}
+              </div>
+
               <InfoBox>
                 Variables that have no value for a given deal resolve to an empty string by default. To avoid awkward blanks in templates, use conditional blocks where supported: <Code>{"{{#if estimated_refund_amount}}Estimated: {{estimated_refund_amount}}{{/if}}"}</Code>
               </InfoBox>
+
+              <SubSection title="Forwarding the signed agreement to an external system (e.g. OpCenter)">
+                <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 12 }}>
+                  To push a signed agreement and its metadata to another platform, create a workflow on the <Code>deal.stage_changed</Code> trigger with a <strong>Webhook (POST)</strong> action. Point the URL at the receiving system&apos;s inbound webhook endpoint and use this JSON body template. Tokens in the body use single-brace <Code>{"{deal.field}"}</Code> syntax and are substituted at send time.
+                </p>
+                <p style={{ fontSize: 13, color: "var(--doc-text-muted)", marginBottom: 12 }}>
+                  Add a filter so it only fires when the agreement is actually signed — e.g. <Code>{"{deal.agreementStatus}"}</Code> <strong>equals</strong> <Code>completed</Code>. When the filter doesn&apos;t match, the run is logged as <strong>&ldquo;filtered out&rdquo;</strong> and no webhook is sent (it is <em>not</em> a failure).
+                </p>
+                <pre style={{ background: "var(--doc-pre-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, padding: "16px 20px", fontSize: 13, lineHeight: 1.7, color: "var(--doc-pre-text)", overflowX: "auto", margin: 0 }}>
+{`{
+  "external_deal_id": "{deal.id}",
+  "agreement_status": "{deal.agreementStatus}",
+  "agreement_pdf_url": "{deal.signedPdfUrl}",
+  "signwell_document_id": "{deal.signwellDocumentId}",
+  "client_name": "{deal.clientName}",
+  "client_email": "{deal.clientEmail}",
+  "legal_entity_name": "{deal.legalEntityName}",
+  "entity_type": "{deal.entityType}",
+  "business_address": "{deal.businessAddress}",
+  "service_of_interest": "{deal.serviceOfInterest}",
+  "referral_partner_name": "{deal.referralPartnerName}",
+  "deal_url": "{deal.dealUrl}"
+}`}
+                </pre>
+                <InfoBox>
+                  <strong>Attaching the PDF binary:</strong> if the receiver should get the file inline rather than fetching the URL (SignWell URLs can expire), enable the <Code>Attach signed PDF</Code> option on the webhook action. The engine fetches <Code>{"{deal.signedPdfUrl}"}</Code>, base64-encodes it, and adds <Code>pdf_base64</Code>, <Code>pdf_filename</Code>, and <Code>pdf_mime_type</Code> to the JSON body.
+                </InfoBox>
+              </SubSection>
             </Section>
           </div>
 

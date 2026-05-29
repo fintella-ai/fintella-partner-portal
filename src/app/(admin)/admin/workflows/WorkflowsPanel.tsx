@@ -1181,9 +1181,17 @@ function StatusBadge({ status }: { status: string }) {
     failed: "#ef4444",
     skipped: "#f59e0b",
   };
+  // "skipped" means the trigger fired but the workflow's filters/conditions
+  // weren't met, so no actions ran. Label it plainly so admins don't mistake
+  // a deliberately filtered-out run for a delivery failure.
+  const labels: Record<string, string> = {
+    success: "success",
+    failed: "failed",
+    skipped: "filtered out",
+  };
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-body text-xs font-medium" style={{ background: `${colors[status] || "#888"}22`, color: colors[status] || "#888", border: `1px solid ${colors[status] || "#888"}44` }}>
-      {status}
+      {labels[status] || status}
     </span>
   );
 }
@@ -1592,7 +1600,7 @@ function LogTab() {
                   </span>
                 </div>
                 {log.error && log.status === "skipped" && (
-                  <p className="font-body text-xs text-amber-400 mt-1">Skipped: {log.error}</p>
+                  <p className="font-body text-xs text-amber-400 mt-1">Did not meet filter requirements — no actions run: {log.error}</p>
                 )}
                 {log.error && log.status !== "skipped" && (
                   <p className="font-body text-xs text-red-400 mt-1">{log.error}</p>

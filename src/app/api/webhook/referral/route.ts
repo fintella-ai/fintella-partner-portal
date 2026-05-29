@@ -841,7 +841,7 @@ async function postHandler(req: NextRequest): Promise<Response> {
     // need: referralPartnerName ({deal.referralPartnerName}), dealUrl
     // ({deal.dealUrl}), so email/webhook/notification actions have these
     // without requiring additional DB lookups in each workflow action.
-    import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger }) => {
+    import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger, deriveDealWorkflowFields }) => {
       let referralPartnerName = "";
       if (deal.partnerCode && deal.partnerCode !== "UNATTRIBUTED") {
         const p = await prisma.partner.findUnique({
@@ -851,22 +851,13 @@ async function postHandler(req: NextRequest): Promise<Response> {
         if (p) referralPartnerName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
       }
       const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
-      // Compose a single human-readable business address for {deal.businessAddress}.
-      // Individual line tokens ({deal.businessStreetAddress}, ...City/State/Zip)
-      // resolve directly off the spread deal; this is the convenience combined form.
-      const businessAddress = [
-        deal.businessStreetAddress,
-        deal.businessStreetAddress2,
-        [deal.businessCity, deal.businessState].filter(Boolean).join(", "),
-        deal.businessZip,
-      ]
-        .filter((part) => part && String(part).trim())
-        .join(", ");
+      // Surface serviceFields-derived tokens ({deal.entityType},
+      // {deal.businessAddress}, etc.) and the deal-level enrichments.
       const enrichedDeal = {
         ...deal,
+        ...deriveDealWorkflowFields(deal),
         referralPartnerName,
         dealUrl: `${PORTAL_URL}/admin/deals#${deal.id}`,
-        businessAddress,
       };
       fireWorkflowTrigger("deal.created", { deal: enrichedDeal });
     }).catch(() => {});
@@ -1687,7 +1678,7 @@ async function patchHandler(req: NextRequest): Promise<Response> {
     // Enrich with referralPartnerName + dealUrl so workflow templates can use
     // {deal.referralPartnerName} and {deal.dealUrl} in email / webhook actions.
     if (data.stage && data.stage !== deal.stage) {
-      import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger }) => {
+      import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger, deriveDealWorkflowFields }) => {
         const previousStage = deal.stage;
         const newStage = data.stage;
         let referralPartnerName = "";
@@ -1701,6 +1692,7 @@ async function patchHandler(req: NextRequest): Promise<Response> {
         const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
         const enrichedDeal = {
           ...updated,
+          ...deriveDealWorkflowFields(updated),
           referralPartnerName,
           dealUrl: `${PORTAL_URL}/admin/deals#${updated.id}`,
         };
