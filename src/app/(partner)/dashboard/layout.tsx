@@ -12,7 +12,6 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 import { EditLayoutProvider } from "@/components/admin/EditLayoutContext";
 import EditLayoutButton from "@/components/admin/EditLayoutButton";
 import EditableText from "@/components/ui/EditableText";
-import ChannelChatWidget from "@/components/partner/ChannelChatWidget";
 import UnifiedChatWidget from "@/components/partner/UnifiedChatWidget";
 import { ServiceProvider } from "@/contexts/ServiceContext";
 import ServiceSwitcher from "@/components/ui/ServiceSwitcher";
@@ -970,7 +969,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         liveChatEnabled={liveChatSettingEnabled}
         aiEnabled={aiEnabled}
       />
-      <ChannelChatWidget />
       </div>
       {/* Level 3 Edit Layout — floating toggle, star super admin only. */}
       <EditLayoutButton />
