@@ -6,6 +6,9 @@ import {
   TARIFF_CONSENT_TEMPLATE_ID,
   TARIFF_SIGNWELL_APP_ID,
   TARIFF_UPFRONT_FEE_CENTS,
+  TARIFF_SIGNER_ROLE,
+  TARIFF_COSIGNER_ROLE,
+  TARIFF_SIGNER_NAME_FIELD,
   type TariffEngagementState,
 } from "@/lib/tariff-engagement";
 
@@ -122,11 +125,11 @@ export async function POST(req: NextRequest) {
       message:
         "Please review and sign to authorize Fintella to prepare your substantiated IEEPA tariff-refund file.",
       recipients: [
-        { id: "1", email, name: signerName, role: "Taxpayer" },
-        { id: "2", email: cosignerEmail, name: cosignerName, role: "Fintella" },
+        { id: "1", email, name: signerName, role: TARIFF_SIGNER_ROLE },
+        { id: "2", email: cosignerEmail, name: cosignerName, role: TARIFF_COSIGNER_ROLE },
       ],
       templateId: TARIFF_CONSENT_TEMPLATE_ID,
-      templateFields: [{ api_id: "TextField_1", value: signerName }],
+      templateFields: [{ api_id: TARIFF_SIGNER_NAME_FIELD, value: signerName }],
       apiApplicationId: TARIFF_SIGNWELL_APP_ID,
       metadata: { dealId: deal.id, service: "ieepa-tariff-refund-diy" },
     });

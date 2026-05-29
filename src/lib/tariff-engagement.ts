@@ -11,13 +11,25 @@ export const TARIFF_DIY_SERVICE = "IEEPA Tariff Refund (DIY)";
 
 /**
  * SignWell template for the client consent / data-sharing + release.
- * PLACEHOLDER: reuses the existing Kwong consent template until the
- * lawyer-reviewed tariff release template is built. Override with
+ * Defaults to the dedicated "Tariff Refund Workflow" template. Override with
  * SIGNWELL_TARIFF_CONSENT_TEMPLATE_ID.
  */
 export const TARIFF_CONSENT_TEMPLATE_ID =
   process.env.SIGNWELL_TARIFF_CONSENT_TEMPLATE_ID ||
-  "ae6392fc-11cb-4a03-aa17-bff87bd11abb";
+  "e1088c29-798a-4056-97be-edfde067c970";
+
+/**
+ * Signer placeholder role names on the template. SignWell 422s if a recipient's
+ * role doesn't match a template placeholder name, so these are env-overridable
+ * to match whatever the "Tariff Refund Workflow" template declares.
+ * Defaults match the Kwong template's naming (Taxpayer + Fintella cosigner).
+ */
+export const TARIFF_SIGNER_ROLE = process.env.SIGNWELL_TARIFF_SIGNER_ROLE || "Taxpayer";
+export const TARIFF_COSIGNER_ROLE = process.env.SIGNWELL_TARIFF_COSIGNER_ROLE || "Fintella";
+
+/** Template field api_id that receives the signer's printed name (if present). */
+export const TARIFF_SIGNER_NAME_FIELD =
+  process.env.SIGNWELL_TARIFF_SIGNER_NAME_FIELD || "TextField_1";
 
 /**
  * Optional dedicated SignWell API Application ID for the tariff flow (its own
