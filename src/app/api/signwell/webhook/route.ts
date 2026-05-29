@@ -6,6 +6,33 @@ import { getCompletedPdfUrl, getCompletedDocumentFields, mapSignWellFieldsToPayo
 import { put } from "@vercel/blob";
 import crypto from "crypto";
 
+// SSRF guard for server-side PDF fetches. Mirrors the private-IP/protocol
+// validation used by /api/admin/dev/api-proxy — only HTTPS to a public host.
+const PRIVATE_HOST_PATTERNS = [
+  /^localhost$/,
+  /^127\./,
+  /^0\.0\.0\.0$/,
+  /^10\./,
+  /^172\.(1[6-9]|2[0-9]|3[01])\./,
+  /^192\.168\./,
+  /^169\.254\./,
+  /^::1$/,
+  /^fc00:/,
+  /^fe80:/,
+];
+
+function isSafeFetchUrl(rawUrl: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "https:") return false;
+  const host = parsed.hostname.toLowerCase();
+  return !PRIVATE_HOST_PATTERNS.some((p) => p.test(host));
+}
+
 // SignWell sends webhooks when documents are signed, viewed, etc.
 // Webhook events: document_completed, document_viewed, document_expired
 export async function POST(req: NextRequest) {
@@ -228,8 +255,10 @@ export async function POST(req: NextRequest) {
           // Blob mirror — a permanent URL that never expires, unlike SignWell's
           // time-limited completed_pdf URL — and (b) the intake email attachment
           // below. Keeping a single fetch avoids adding a second SSRF surface.
+          // The URL comes from the SignWell webhook/API; we still validate it is
+          // HTTPS to a non-private host before fetching (SSRF guard).
           let pdfBuf: Buffer | null = null;
-          if (finalPdfUrl) {
+          if (finalPdfUrl && isSafeFetchUrl(finalPdfUrl)) {
             try {
               const pdfRes = await fetch(finalPdfUrl);
               if (pdfRes.ok) pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
