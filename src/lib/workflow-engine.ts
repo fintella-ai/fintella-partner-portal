@@ -843,7 +843,10 @@ export function previewInterpolate(
   payload: Record<string, unknown>
 ): { rendered: string; unresolvedTokens: string[] } {
   const unresolved = new Set<string>();
-  const rendered = template.replace(/\{([^}]+)\}/g, (match, path) => {
+  // [^{}]+ (not [^}]+) keeps this linear-time — tokens never contain inner
+  // braces, and disallowing '{' avoids the polynomial-ReDoS backtracking
+  // CodeQL flags on user-provided templates.
+  const rendered = template.replace(/\{([^{}]+)\}/g, (match, path) => {
     const val = getNestedValue(payload, String(path).trim());
     if (val == null || String(val) === "") {
       unresolved.add(match);
