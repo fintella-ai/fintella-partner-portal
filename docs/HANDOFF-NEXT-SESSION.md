@@ -1,28 +1,20 @@
-# HANDOFF — Next Session (updated 2026-05-29, Session 2: Small Tariff Deals)
+# HANDOFF — Next Session (updated 2026-05-29, Session 3: "beast these 4" COMPLETE)
 
 ## Step 0 — startup
-1. `git pull` (latest `main` = `cacaafa`).
-2. Read `docs/knowledge/tariff-diy-engagement.md` (durable architecture) + `terminal-logs/2026-05-29-session2-small-tariff-deals.md` (what shipped).
-3. Repo is LIVE prod (real partner data). Additive schema only; preview-test schema changes first. Never `git add -A`. Confirm before merge to main.
+1. `git pull` (latest `main` = `5de741c`).
+2. Read `docs/knowledge/tariff-trial-key-and-underwriting.md` + `docs/knowledge/tariff-diy-engagement.md` (durable architecture) + `terminal-logs/2026-05-29-session3-beast-these-4.md` (what shipped).
+3. Repo is LIVE prod (real partner data). Additive schema only; preview-test schema changes first. Never `git add -A`. **Confirm before EVERY merge to main** (per-merge gate — hard rule even in beast mode).
 
-## What's done (merged this session — #1083–#1091)
-Small-deal IEEPA tariff-refund build: TIE calc fixes, nav hygiene, DIY self-file funnel (`/recover/tariff-diy`), self-file kit (PDF+CSV+guide), full monetization pricing engine, widget fallback upsell, deal tags + segmented tariff/Kwong pipelines + frozen Frost-handoff KPI (`/admin/tariff-deals`), per-file sample-gate, and a password-reset case-sensitivity fix + admin send-reset endpoint. 96 unit tests green.
+## What's done — "beast these 4" ALL SHIPPED
+- **1. Per-file sample-gate** — #1091 (session 2).
+- **2. Widget self-serve trial-key** — #1093. `WidgetTrialKey` (`keyId @unique` + bcrypt `secretHash`, prefixed token `ftk_<keyId>.<secret>`), public mint + partial `/calculate`, `/docs/widget-trial`, EngageFlow CTA.
+- **3. Accuracy testing + KPI** — #1095. `accuracy-scoring` lib + fixtures + `AccuracyRun` model + `GET/POST /api/admin/accuracy-kpi` + `/admin/accuracy-kpi` report.
+- **4. Buyout underwriting (scaffolding)** — #1094. `tariff-risk-score` lib, NMI auth-hold on the pay route for buyout, underwriting queue + decision API/pages (approve→void / decline→capture).
 
-## ▶️ RESUME HERE — remaining "beast these 4" (1/4 shipped)
-**2. Widget self-serve trial-key** *(next — additive schema)*
-- New `WidgetTrialKey` model: `keyHash` (sha256, @unique), `keyHint`, `email`, `company`, `platform`, `dealId?`, `status` (trial/upgraded/revoked), `usageCount`, `createdAt`, `lastUsedAt`.
-- `POST /api/tariff/widget-trial` (public, from the CRM/TMS upsell on `/recover/tariff-diy`): create key + optional lead Deal; return `{apiKey, embedSnippet, docsUrl}`.
-- `POST /api/tariff/widget-trial/calculate` (key-auth via header/body): run TIE but return **partial** (eligibility + counts + deadlines; refund $ hidden/locked). Increment usage. Pay → full unlock via the existing engage flow.
-- UI: add "Get a free trial key" to the widget upsell block in `EngageFlow.tsx` (show key + 1-line embed snippet + "upgrade for full calc").
-
-**3. Accuracy testing + KPI reporting**
-- Labeled fixtures (known CF 7501 / ACE samples + expected values) → run through `src/lib/document-intake.ts` (AI extraction) + the calculator → score field-extraction precision + calc accuracy vs expected.
-- `/admin` accuracy-KPI report: per-field precision, confidence calibration, drift over time. Optional `AccuracyRun` model to persist results.
-
-**4. Buyout module** *(partial — lending-partner docs pending)*
-- Underwriting **request** flow + auto risk-score (appeal-stay, AD/CVD, drawback, liquidation status, rejection likelihood — all derivable from the audit engine).
-- NMI **auth-hold** lifecycle: `authorizeOneTime` on engage → admin approve = `voidAuth` (fee netted from lending payout) / decline = `captureAuth` (keep fee). Primitives already in `src/lib/nmi-gateway.ts`.
-- Admin underwriting queue. **Skip the actual lending payout execution** until John's lending docs land.
+## ▶️ RESUME HERE — remaining tariff work
+1. **Buyout lending-payout EXECUTION** — still deferred, BLOCKED on John's lending-partner docs. When they land: build the payout endpoint that reads the approved underwriting decision + advances the buyout %.
+2. **Real accuracy runs** — fixtures' `actual` is seeded == `expected` (baseline). Replace with real `extractFromImage` captures; consider an `accuracy:run` script pairing fixtures with source CF-7501 images + the AI extractor.
+3. **Sibling-worktree coordination** — `admin-2fa-google` / `workflow-token-preview` / `outbound-webhook-dashboard` are on STALE main (pre-#1083) and will conflict on `ADMIN_NAV_IDS_DEFAULT` + schema; they must rebase before merging.
 
 ## Then — live end-to-end test (needs John's Vercel env)
 Set: `SIGNWELL_TARIFF_APP_ID` (+ redirect URL `https://fintella.partners/recover/tariff-diy/signed`), `TARIFF_UPFRONT_FEE_CENTS`, optional `SIGNWELL_TARIFF_SIGNER_ROLE`/`_COSIGNER_ROLE` (if template `e1088c29…` placeholders ≠ Taxpayer/Fintella). Confirm `e1088c29…` is a SignWell *template* (not a workflow). Then drive `/recover/tariff-diy` end-to-end (consent + charge + kit).
