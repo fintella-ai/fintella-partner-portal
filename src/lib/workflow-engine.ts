@@ -829,6 +829,31 @@ function interpolate(template: string, payload: Record<string, unknown>): string
   });
 }
 
+/**
+ * Public wrapper around the internal single-brace `{path}` interpolation, used
+ * by the admin "Live token preview" feature. Renders a template against a
+ * payload exactly the way `webhook.post` / `notification.create` / `deal.note`
+ * do at fire time, so the admin sees the real rendered output before saving.
+ *
+ * Returns the rendered string plus the list of tokens that resolved to an
+ * empty string (missing/null/typo'd fields) so the UI can flag them.
+ */
+export function previewInterpolate(
+  template: string,
+  payload: Record<string, unknown>
+): { rendered: string; unresolvedTokens: string[] } {
+  const unresolved = new Set<string>();
+  const rendered = template.replace(/\{([^}]+)\}/g, (match, path) => {
+    const val = getNestedValue(payload, String(path).trim());
+    if (val == null || String(val) === "") {
+      unresolved.add(match);
+      return "";
+    }
+    return String(val);
+  });
+  return { rendered, unresolvedTokens: Array.from(unresolved) };
+}
+
 function renderVars(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{([^}]+)\}\}/g, (_, key) => vars[key.trim()] ?? "")
     .replace(/\{([^}]+)\}/g, (_, key) => vars[key.trim()] ?? "");
