@@ -2,24 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendAgreementSignedEmail } from "@/lib/sendgrid";
 import { sendAgreementSignedSms } from "@/lib/twilio";
-import { getCompletedPdfUrl, getCompletedDocumentFields, mapSignWellFieldsToPayoutData } from "@/lib/signwell";
+import { getCompletedPdfUrl, getCompletedDocumentFields, mapSignWellFieldsToPayoutData, downloadCompletedPdf } from "@/lib/signwell";
 import { put } from "@vercel/blob";
 import crypto from "crypto";
-
-// SSRF guard for server-side PDF fetches. Mirrors the private-IP/protocol
-// validation used by /api/admin/dev/api-proxy — only HTTPS to a public host.
-const PRIVATE_HOST_PATTERNS = [
-  /^localhost$/,
-  /^127\./,
-  /^0\.0\.0\.0$/,
-  /^10\./,
-  /^172\.(1[6-9]|2[0-9]|3[01])\./,
-  /^192\.168\./,
-  /^169\.254\./,
-  /^::1$/,
-  /^fc00:/,
-  /^fe80:/,
-];
 
 // SignWell sends webhooks when documents are signed, viewed, etc.
 // Webhook events: document_completed, document_viewed, document_expired
@@ -239,36 +224,11 @@ export async function POST(req: NextRequest) {
             } catch {}
           }
 
-          // Fetch the signed PDF ONCE. The buffer is reused for (a) the Vercel
+          // Download the signed PDF bytes ONCE via the SignWell API (constant
+          // base URL — no SSRF surface). The buffer is reused for (a) the Vercel
           // Blob mirror — a permanent URL that never expires, unlike SignWell's
-          // time-limited completed_pdf URL — and (b) the intake email attachment
-          // below. Keeping a single fetch avoids adding a second SSRF surface.
-          // The URL comes from the SignWell webhook/API; we still validate it is
-          // HTTPS to a non-private host before fetching (SSRF guard).
-          let pdfBuf: Buffer | null = null;
-          if (finalPdfUrl) {
-            // Inline SSRF validation (CodeQL recognizes this as a barrier; a
-            // boolean helper does not). Parse, require HTTPS, reject private
-            // hosts, then fetch the validated URL object.
-            let safeUrl: URL | null = null;
-            try {
-              const u = new URL(finalPdfUrl);
-              const host = u.hostname.toLowerCase();
-              if (u.protocol === "https:" && !PRIVATE_HOST_PATTERNS.some((p) => p.test(host))) {
-                safeUrl = u;
-              }
-            } catch {
-              safeUrl = null;
-            }
-            if (safeUrl) {
-              try {
-                const pdfRes = await fetch(safeUrl);
-                if (pdfRes.ok) pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
-              } catch (pdfErr) {
-                console.warn("[SignWellWebhook] Could not fetch signed PDF:", pdfErr);
-              }
-            }
-          }
+          // time-limited completed_pdf URL — and (b) the intake email attachment.
+          let pdfBuf: Buffer | null = docId ? await downloadCompletedPdf(docId) : null;
 
           // Mirror to Vercel Blob so OpCenter (and others) get a stable URL.
           let signedPdfMirrorUrl: string | null = null;
