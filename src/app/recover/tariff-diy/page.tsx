@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const GOLD = "#c4a050";
+const ACCENT = "#8b5cf6";
 
 export default function TariffDiyPage({
   searchParams,
@@ -34,10 +34,10 @@ export default function TariffDiyPage({
   const widgetPerLabel = usd(TARIFF_WIDGET_PER_SUBMISSION_CENTS);
 
   return (
-    <main id="top" className="min-h-screen bg-[#060a14] text-white">
+    <main id="top" className="oc-launch min-h-screen bg-[#09090b] text-white">
       <nav className="border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="font-display text-xl" style={{ color: GOLD }}>Fintella</div>
+          <div className="font-display text-xl" style={{ color: ACCENT }}>Fintella</div>
           <Link href="/login" className="text-sm text-white/50 hover:text-white/80 transition">Partner Login</Link>
         </div>
       </nav>
@@ -49,7 +49,7 @@ export default function TariffDiyPage({
             <div className="inline-block rounded-full px-4 py-1.5 text-xs font-semibold tracking-wider uppercase bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 mb-6">
               For smaller importers — keep 100% of your refund
             </div>
-            <h1 className="font-display text-4xl sm:text-5xl leading-tight mb-5" style={{ color: GOLD }}>
+            <h1 className="font-display text-4xl sm:text-5xl leading-tight mb-5" style={{ color: ACCENT }}>
               Don&apos;t give away your refund.
             </h1>
             <p className="text-lg text-white/70 mb-6 leading-relaxed">
@@ -62,7 +62,7 @@ export default function TariffDiyPage({
                 Already work with a customs broker or trade attorney?{" "}
                 <strong className="text-white">Still use this.</strong> Hand them the finished file for a quick{" "}
                 <strong className="text-white">review only</strong> — and cut their bill{" "}
-                <strong style={{ color: GOLD }}>75–90%</strong>. The work is done; all they do is sign off.
+                <strong style={{ color: ACCENT }}>75–90%</strong>. The work is done; all they do is sign off.
               </p>
             </div>
             <div className="space-y-3 text-white/60 text-sm mb-8">
@@ -95,7 +95,7 @@ export default function TariffDiyPage({
           <div className="inline-block rounded-full px-3 py-1 text-[11px] font-semibold tracking-wider uppercase bg-white/5 text-white/50 border border-white/10 mb-4">
             Watch it work
           </div>
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: GOLD }}>
+          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>
             Drop an entry summary. Get a risk analysis in seconds.
           </h2>
           <p className="text-white/60">
@@ -109,7 +109,7 @@ export default function TariffDiyPage({
       {/* ── Savings calculator (exclaim the result) ──────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
         <div className="text-center max-w-2xl mx-auto mb-8">
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: GOLD }}>
+          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>
             What others charge 30% for, you keep.
           </h2>
           <p className="text-white/60">
@@ -123,7 +123,7 @@ export default function TariffDiyPage({
       {/* ── Try → Prove → Commit ─────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
         <div className="text-center max-w-2xl mx-auto mb-8">
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: GOLD }}>
+          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>
             No leap of faith. Prove it on one file first.
           </h2>
           <p className="text-white/60">See the analysis before you pay. Pay to prove a single file. Commit only once you&apos;re satisfied.</p>
@@ -136,7 +136,7 @@ export default function TariffDiyPage({
           ].map((s) => (
             <div key={s.n} className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center justify-center h-9 w-9 rounded-full font-bold text-sm" style={{ background: GOLD, color: "#060a14" }}>{s.n}</div>
+                <div className="flex items-center justify-center h-9 w-9 rounded-full font-bold text-sm" style={{ background: ACCENT, color: "#fff" }}>{s.n}</div>
                 <span className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10">{s.tag}</span>
               </div>
               <div className="font-semibold text-white/90 mb-1.5">{s.t}</div>
@@ -149,7 +149,7 @@ export default function TariffDiyPage({
       {/* ── Cost comparison ──────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
         <div className="text-center max-w-2xl mx-auto mb-8">
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: GOLD }}>
+          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>
             Same refund. Keep far more of it.
           </h2>
           <p className="text-white/60">Three ways to file — you stay in control of every one.</p>
@@ -167,12 +167,12 @@ export default function TariffDiyPage({
             </ul>
           </div>
           {/* DIY flat fee — featured */}
-          <div className="rounded-2xl border-2 p-6 relative" style={{ borderColor: GOLD, background: "rgba(196,160,80,0.06)" }}>
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap" style={{ background: GOLD, color: "#060a14" }}>
+          <div className="rounded-2xl border-2 p-6 relative" style={{ borderColor: ACCENT, background: "rgba(139,92,246,0.10)" }}>
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap" style={{ background: ACCENT, color: "#fff" }}>
               Most keep 100%
             </div>
             <div className="text-xs uppercase tracking-wider text-white/50 mb-2">DIY — file it yourself</div>
-            <div className="text-3xl font-bold mb-1" style={{ color: GOLD }}>{feeLabel}</div>
+            <div className="text-3xl font-bold mb-1" style={{ color: ACCENT }}>{feeLabel}</div>
             <div className="text-xs text-white/40 mb-4">flat fee · keep 100% of the refund</div>
             <ul className="space-y-2 text-sm text-white/70">
               <li className="flex gap-2"><span className="text-emerald-400">✓</span> We do all the work — you keep the refund</li>
@@ -201,7 +201,7 @@ export default function TariffDiyPage({
             <div className="inline-block rounded-full px-3 py-1 text-[11px] font-semibold tracking-wider uppercase bg-white/5 text-white/50 border border-white/10 mb-4">
               What you hand over
             </div>
-            <h2 className="font-display text-3xl sm:text-4xl mb-4" style={{ color: GOLD }}>
+            <h2 className="font-display text-3xl sm:text-4xl mb-4" style={{ color: ACCENT }}>
               A file your broker or attorney can sign off in minutes.
             </h2>
             <p className="text-white/65 mb-5 leading-relaxed">
@@ -210,24 +210,24 @@ export default function TariffDiyPage({
               build, formatted so a reviewer can verify it fast instead of starting from scratch.
             </p>
             <ul className="space-y-2.5 text-sm text-white/65">
-              <li className="flex gap-3"><span style={{ color: GOLD }}>›</span> Recovery analysis (PDF) — entries, eligibility, refund + interest</li>
-              <li className="flex gap-3"><span style={{ color: GOLD }}>›</span> CAPE declaration (CSV) — ready to submit</li>
-              <li className="flex gap-3"><span style={{ color: GOLD }}>›</span> Pre-submission audit — every CBP rejection-code check, passed</li>
-              <li className="flex gap-3"><span style={{ color: GOLD }}>›</span> Guided self-file walkthrough — step by step</li>
+              <li className="flex gap-3"><span style={{ color: ACCENT }}>›</span> Recovery analysis (PDF) — entries, eligibility, refund + interest</li>
+              <li className="flex gap-3"><span style={{ color: ACCENT }}>›</span> CAPE declaration (CSV) — ready to submit</li>
+              <li className="flex gap-3"><span style={{ color: ACCENT }}>›</span> Pre-submission audit — every CBP rejection-code check, passed</li>
+              <li className="flex gap-3"><span style={{ color: ACCENT }}>›</span> Guided self-file walkthrough — step by step</li>
             </ul>
           </div>
           {/* Mocked report sheet */}
           <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-2 backdrop-blur">
-            <div className="rounded-xl bg-[#0b1120] border border-white/10 p-6">
+            <div className="rounded-xl bg-[#0c0c10] border border-white/10 p-6">
               <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
                 <div>
-                  <div className="font-display text-lg" style={{ color: GOLD }}>IEEPA Refund Recovery Analysis</div>
+                  <div className="font-display text-lg" style={{ color: ACCENT }}>IEEPA Refund Recovery Analysis</div>
                   <div className="text-[11px] text-white/40">Prepared by Fintella · Sample</div>
                 </div>
                 <div className="text-[10px] rounded px-2 py-1 bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 font-semibold">AUDIT-READY</div>
               </div>
               <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="rounded-lg bg-white/[0.03] p-3 text-center"><div className="text-lg font-bold" style={{ color: GOLD }}>$26,455</div><div className="text-[10px] text-white/40">est. refund</div></div>
+                <div className="rounded-lg bg-white/[0.03] p-3 text-center"><div className="text-lg font-bold" style={{ color: ACCENT }}>$26,455</div><div className="text-[10px] text-white/40">est. refund</div></div>
                 <div className="rounded-lg bg-white/[0.03] p-3 text-center"><div className="text-lg font-bold text-white/80">$1,842</div><div className="text-[10px] text-white/40">est. interest</div></div>
                 <div className="rounded-lg bg-white/[0.03] p-3 text-center"><div className="text-lg font-bold text-emerald-400">3 / 3</div><div className="text-[10px] text-white/40">eligible</div></div>
               </div>
@@ -257,7 +257,7 @@ export default function TariffDiyPage({
       {/* ── How it works / time-to-result ────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12 pb-20">
         <div className="text-center max-w-2xl mx-auto mb-10">
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: GOLD }}>From entries to filed in three steps</h2>
+          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>From entries to filed in three steps</h2>
           <p className="text-white/60">Most importers go from upload to a substantiated file the same day.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -268,7 +268,7 @@ export default function TariffDiyPage({
           ].map((s) => (
             <div key={s.n} className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center justify-center h-9 w-9 rounded-full font-bold text-sm" style={{ background: GOLD, color: "#060a14" }}>{s.n}</div>
+                <div className="flex items-center justify-center h-9 w-9 rounded-full font-bold text-sm" style={{ background: ACCENT, color: "#fff" }}>{s.n}</div>
                 <span className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10">{s.tag}</span>
               </div>
               <div className="font-semibold text-white/90 mb-1.5">{s.t}</div>
@@ -280,7 +280,7 @@ export default function TariffDiyPage({
           <Link
             href="#top"
             className="inline-block rounded-lg px-8 py-3.5 font-semibold transition min-h-[44px]"
-            style={{ background: GOLD, color: "#060a14" }}
+            style={{ background: ACCENT, color: "#fff" }}
           >
             Check your refund — free →
           </Link>

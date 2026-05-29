@@ -1,8 +1,10 @@
 /* ── Font Imports ───────────────────────────────────────────────────────
    DM Serif Display for premium serif headlines (h1/h2).
    Inter for body, UI, and subheadings.
-   Both via Google Fonts — @import must precede @tailwind directives. */
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+   Syne (display) + Geist / Geist Mono — OpCenter-matched fonts, used by the
+   scoped `.oc-launch` landing theme only (see .oc-launch block below).
+   All via Google Fonts — @import must precede @tailwind directives. */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700;800;900&family=Syne:wght@600;700;800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -353,6 +355,25 @@
 .font-display {
   font-family: "DM Serif Display", Georgia, "Times New Roman", serif !important;
   font-weight: 400;
+}
+
+/* ── OpCenter-matched landing theme (SCOPED) ─────────────────────────────
+   Applied only under `.oc-launch` (the public tariff funnel landing) so the
+   live admin/partner backoffice is untouched. Mirrors opcenter.app tokens:
+   Syne display + Geist body, zinc-950 surfaces, violet #8b5cf6 accent.
+   Backoffice rollout is a separate, deliberate task — see
+   docs/knowledge/opcenter-theme-tokens.md. */
+.oc-launch {
+  font-family: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.oc-launch .font-display {
+  font-family: "Syne", "DM Serif Display", system-ui, sans-serif !important;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.oc-launch .font-mono,
+.oc-launch code {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 h3, h4 { font-weight: 600; }

@@ -14,7 +14,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const GOLD = "#c4a050";
+const ACCENT = "#8b5cf6";
 const CONTINGENCY_RATE = 0.3; // what the big firms typically take
 
 interface Props {
@@ -73,7 +73,7 @@ export default function SavingsCalculator({ upfrontFeeCents }: Props) {
         <div>
           <div className="text-xs uppercase tracking-wider text-white/40 mb-2">Your estimated refund</div>
           <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-3xl font-bold" style={{ color: GOLD }}>{money(refund)}</span>
+            <span className="text-3xl font-bold" style={{ color: ACCENT }}>{money(refund)}</span>
           </div>
           <input
             type="range"
@@ -83,7 +83,7 @@ export default function SavingsCalculator({ upfrontFeeCents }: Props) {
             value={refund}
             onChange={(e) => setRefund(Number(e.target.value))}
             aria-label="Estimated refund amount"
-            className="w-full accent-[#c4a050] h-2 cursor-pointer"
+            className="w-full accent-[#8b5cf6] h-2 cursor-pointer"
           />
           <div className="flex justify-between text-[11px] text-white/30 mt-1">
             <span>$5K</span><span>$500K</span>
@@ -96,7 +96,7 @@ export default function SavingsCalculator({ upfrontFeeCents }: Props) {
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-white/60">Fintella service + software</span>
-              <span className="font-semibold tabular-nums" style={{ color: GOLD }}>
+              <span className="font-semibold tabular-nums" style={{ color: ACCENT }}>
                 {money(fee)} <span className="text-[11px] text-white/40">≈ {ourPct.toFixed(1)}%</span>
               </span>
             </div>
@@ -109,9 +109,9 @@ export default function SavingsCalculator({ upfrontFeeCents }: Props) {
 
         {/* Right — the exclaimed result */}
         <div className="space-y-4">
-          <div className="rounded-2xl border-2 p-6 text-center" style={{ borderColor: GOLD, background: "rgba(196,160,80,0.07)" }}>
+          <div className="rounded-2xl border-2 p-6 text-center" style={{ borderColor: ACCENT, background: "rgba(139,92,246,0.10)" }}>
             <div className="text-xs uppercase tracking-wider text-white/50 mb-1">You keep</div>
-            <div className="text-5xl font-bold tabular-nums leading-none" style={{ color: GOLD }}>{money(keepAnim)}</div>
+            <div className="text-5xl font-bold tabular-nums leading-none" style={{ color: ACCENT }}>{money(keepAnim)}</div>
             <div className="text-xs text-white/40 mt-2">of your {money(refund)} refund</div>
           </div>
           <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.08] p-4 text-center animate-[fadeIn_0.4s_ease-out]">
