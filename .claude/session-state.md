@@ -1,5 +1,12 @@
 # Session State
 
+## ▶️ RESUME HERE — NEXT STEPS
+1. **Verify prod schema** (should be in sync — Vercel build runs `prisma db push` on every deploy): pull prod env via `vercel env pull`, map `STORAGE_DATABASE_URL_UNPOOLED`→`DATABASE_URL` (by var, never inline), `npx prisma db push`. Confirms Deal cols + AiMemory + User 2FA cols.
+2. **Enroll in 2FA** at `/admin/account` (TwoFactorCard) → scan QR → save backup codes → test login with the code.
+3. **Merge open docs PR** (this branch) if not already merged.
+4. Wire an OpCenter-forwarding workflow (`deal.stage_changed`, filter `{deal.agreementStatus}`=`completed`); use the **live token preview** to validate the body before saving.
+5. Optional: enforce 2FA per-role (phase 2); build the webhook "golden payload" diff; add admin passkeys.
+
 🕒 Last updated: 2026-05-29 (late) — **Webhook vars + OpCenter + 5 follow-ups (AI chat, token preview, Blob mirror, outbound dashboard, admin 2FA)**
 
 ## 🌿 Git state
