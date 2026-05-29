@@ -835,6 +835,8 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
                   [<Code key="11">{"{{close_date}}"}</Code>, "Date the deal was closed (formatted as M/D/YYYY)", "6/15/2026"],
                   [<Code key="12">{"{{consult_date}}"}</Code>, "Scheduled consultation date", "June 1, 2026"],
                   [<Code key="13">{"{{consult_time}}"}</Code>, "Scheduled consultation time", "2:00 PM"],
+                  [<Code key="14">{"{deal.createdAt}"}</Code>, "Deal created timestamp (ISO 8601). Also returned as created_at on POST/PATCH responses.", "2026-05-29T14:03:22.000Z"],
+                  [<Code key="15">{"{deal.updatedAt}"}</Code>, "Deal last-updated timestamp (ISO 8601). Also returned as updated_at on POST/PATCH responses.", "2026-05-29T14:05:10.000Z"],
                 ].map((cells, i, arr) => (
                   <TableRow key={i} cells={cells} cols={3} last={i === arr.length - 1} />
                 ))}
@@ -873,8 +875,30 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
                   [<Code key="6">{"{{client_title}}"}</Code>, "Client's title at their company", "CFO"],
                   [<Code key="7">{"{{company_name}}"}</Code>, "Business legal entity name", "Acme Imports LLC"],
                   [<Code key="8">{"{{company_ein}}"}</Code>, "Business EIN", "87-1234567"],
-                  [<Code key="9">{"{{company_city}}"}</Code>, "Business city", "Phoenix"],
-                  [<Code key="10">{"{{company_state}}"}</Code>, "Business state", "Arizona"],
+                  [<Code key="9">{"{{company_street_address}}"}</Code>, "Business street address (line 1)", "123 Commerce Blvd"],
+                  [<Code key="10">{"{{company_street_address_2}}"}</Code>, "Business street address (line 2 — suite/unit)", "Suite 400"],
+                  [<Code key="11">{"{{company_city}}"}</Code>, "Business city", "Phoenix"],
+                  [<Code key="12">{"{{company_state}}"}</Code>, "Business state", "Arizona"],
+                  [<Code key="13">{"{{company_zip}}"}</Code>, "Business zip / postal code", "85004"],
+                  [<Code key="14">{"{{company_address}}"}</Code>, "Full formatted business address (all lines combined)", "123 Commerce Blvd, Suite 400, Phoenix, Arizona 85004"],
+                ].map((cells, i, arr) => (
+                  <TableRow key={i} cells={cells} cols={3} last={i === arr.length - 1} />
+                ))}
+              </div>
+
+              {/* Document / Agreement Variables */}
+              <div style={{ background: "var(--doc-card-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+                <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--doc-border)", background: "rgba(124,58,237,0.06)" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "var(--doc-purple)" }}>Document &amp; Agreement Variables</span>
+                </div>
+                <TableHeader cols={["Variable", "Description", "Example"]} />
+                {[
+                  [<Code key="1">{"{deal.entityType}"}</Code>, "Business entity type (C Corporation, S Corporation, LLC, Partnership, Sole Proprietor, etc.)", "C Corporation"],
+                  [<Code key="2">{"{deal.filerType}"}</Code>, "Filer type — Business or Individual", "Business"],
+                  [<Code key="3">{"{deal.businessAddress}"}</Code>, "Full formatted business address (all lines combined)", "100 Test Drive, Suite 300, Tampa, FL 33602"],
+                  [<Code key="4">{"{deal.signedPdfUrl}"}</Code>, "URL to the signed agreement PDF. Populated once the client e-signs (fires on the deal.stage_changed trigger).", "https://app.signwell.com/.../completed_pdf"],
+                  [<Code key="5">{"{deal.agreementStatus}"}</Code>, "Agreement signing status — pending or completed", "completed"],
+                  [<Code key="6">{"{deal.signwellDocumentId}"}</Code>, "SignWell document ID for the signed agreement", "f3a9c1e2-7b4d-..."],
                 ].map((cells, i, arr) => (
                   <TableRow key={i} cells={cells} cols={3} last={i === arr.length - 1} />
                 ))}
@@ -883,6 +907,36 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
               <InfoBox>
                 Variables that have no value for a given deal resolve to an empty string by default. To avoid awkward blanks in templates, use conditional blocks where supported: <Code>{"{{#if estimated_refund_amount}}Estimated: {{estimated_refund_amount}}{{/if}}"}</Code>
               </InfoBox>
+
+              <SubSection title="Forwarding the signed agreement to an external system (e.g. OpCenter)">
+                <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 12 }}>
+                  To push a signed agreement and its metadata to another platform, create a workflow on the <Code>deal.stage_changed</Code> trigger with a <strong>Webhook (POST)</strong> action. Point the URL at the receiving system&apos;s inbound webhook endpoint and use this JSON body template. Tokens in the body use single-brace <Code>{"{deal.field}"}</Code> syntax and are substituted at send time.
+                </p>
+                <p style={{ fontSize: 13, color: "var(--doc-text-muted)", marginBottom: 12 }}>
+                  Add a filter so it only fires when the agreement is actually signed — e.g. <Code>{"{deal.agreementStatus}"}</Code> <strong>equals</strong> <Code>completed</Code>. When the filter doesn&apos;t match, the run is logged as <strong>&ldquo;filtered out&rdquo;</strong> and no webhook is sent (it is <em>not</em> a failure).
+                </p>
+                <pre style={{ background: "var(--doc-pre-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, padding: "16px 20px", fontSize: 13, lineHeight: 1.7, color: "var(--doc-pre-text)", overflowX: "auto", margin: 0 }}>
+{`{
+  "external_deal_id": "{deal.id}",
+  "agreement_status": "{deal.agreementStatus}",
+  "agreement_pdf_url": "{deal.signedPdfUrl}",
+  "signwell_document_id": "{deal.signwellDocumentId}",
+  "client_name": "{deal.clientName}",
+  "client_email": "{deal.clientEmail}",
+  "legal_entity_name": "{deal.legalEntityName}",
+  "entity_type": "{deal.entityType}",
+  "business_address": "{deal.businessAddress}",
+  "service_of_interest": "{deal.serviceOfInterest}",
+  "referral_partner_name": "{deal.referralPartnerName}",
+  "deal_url": "{deal.dealUrl}",
+  "created_at": "{deal.createdAt}",
+  "updated_at": "{deal.updatedAt}"
+}`}
+                </pre>
+                <InfoBox>
+                  <strong>Getting the file:</strong> the receiver downloads the PDF from <Code>{"{deal.signedPdfUrl}"}</Code> in the payload. Fetch it promptly and store your own copy — the SignWell URL is time-limited. Pair this with <Code>{"{deal.signwellDocumentId}"}</Code> so you can reconcile or re-request the document later if needed.
+                </InfoBox>
+              </SubSection>
             </Section>
           </div>
 

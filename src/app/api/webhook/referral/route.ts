@@ -841,7 +841,7 @@ async function postHandler(req: NextRequest): Promise<Response> {
     // need: referralPartnerName ({deal.referralPartnerName}), dealUrl
     // ({deal.dealUrl}), so email/webhook/notification actions have these
     // without requiring additional DB lookups in each workflow action.
-    import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger }) => {
+    import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger, deriveDealWorkflowFields }) => {
       let referralPartnerName = "";
       if (deal.partnerCode && deal.partnerCode !== "UNATTRIBUTED") {
         const p = await prisma.partner.findUnique({
@@ -851,8 +851,11 @@ async function postHandler(req: NextRequest): Promise<Response> {
         if (p) referralPartnerName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
       }
       const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
+      // Surface serviceFields-derived tokens ({deal.entityType},
+      // {deal.businessAddress}, etc.) and the deal-level enrichments.
       const enrichedDeal = {
         ...deal,
+        ...deriveDealWorkflowFields(deal),
         referralPartnerName,
         dealUrl: `${PORTAL_URL}/admin/deals#${deal.id}`,
       };
@@ -901,6 +904,8 @@ async function postHandler(req: NextRequest): Promise<Response> {
         dealId: deal.id,
         dealName: deal.dealName,
         partnerCode: deal.partnerCode,
+        created_at: deal.createdAt,
+        updated_at: deal.updatedAt,
         // Expose IDs partners need for dedup and correlation in downstream systems.
         // external_deal_id echoes back the partner's upstream ID (e.g. HubSpot hs_object_id).
         // ido_key echoes back the partner's own idempotency key for their own dedup checks.
@@ -1675,7 +1680,7 @@ async function patchHandler(req: NextRequest): Promise<Response> {
     // Enrich with referralPartnerName + dealUrl so workflow templates can use
     // {deal.referralPartnerName} and {deal.dealUrl} in email / webhook actions.
     if (data.stage && data.stage !== deal.stage) {
-      import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger }) => {
+      import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger, deriveDealWorkflowFields }) => {
         const previousStage = deal.stage;
         const newStage = data.stage;
         let referralPartnerName = "";
@@ -1689,6 +1694,7 @@ async function patchHandler(req: NextRequest): Promise<Response> {
         const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
         const enrichedDeal = {
           ...updated,
+          ...deriveDealWorkflowFields(updated),
           referralPartnerName,
           dealUrl: `${PORTAL_URL}/admin/deals#${updated.id}`,
         };
@@ -1745,6 +1751,8 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       dealId: updated.id,
       dealName: updated.dealName,
       fieldsUpdated: Object.keys(data),
+      created_at: updated.createdAt,
+      updated_at: updated.updatedAt,
       // Echo back IDs the partner needs for downstream dedup / correlation.
       ...(updated.externalDealId && { external_deal_id: updated.externalDealId }),
       ...((updated as any).ido_key && { ido_key: (updated as any).ido_key }),
