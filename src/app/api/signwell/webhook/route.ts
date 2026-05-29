@@ -21,18 +21,6 @@ const PRIVATE_HOST_PATTERNS = [
   /^fe80:/,
 ];
 
-function isSafeFetchUrl(rawUrl: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
-    return false;
-  }
-  if (parsed.protocol !== "https:") return false;
-  const host = parsed.hostname.toLowerCase();
-  return !PRIVATE_HOST_PATTERNS.some((p) => p.test(host));
-}
-
 // SignWell sends webhooks when documents are signed, viewed, etc.
 // Webhook events: document_completed, document_viewed, document_expired
 export async function POST(req: NextRequest) {
@@ -258,12 +246,27 @@ export async function POST(req: NextRequest) {
           // The URL comes from the SignWell webhook/API; we still validate it is
           // HTTPS to a non-private host before fetching (SSRF guard).
           let pdfBuf: Buffer | null = null;
-          if (finalPdfUrl && isSafeFetchUrl(finalPdfUrl)) {
+          if (finalPdfUrl) {
+            // Inline SSRF validation (CodeQL recognizes this as a barrier; a
+            // boolean helper does not). Parse, require HTTPS, reject private
+            // hosts, then fetch the validated URL object.
+            let safeUrl: URL | null = null;
             try {
-              const pdfRes = await fetch(finalPdfUrl);
-              if (pdfRes.ok) pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
-            } catch (pdfErr) {
-              console.warn("[SignWellWebhook] Could not fetch signed PDF:", pdfErr);
+              const u = new URL(finalPdfUrl);
+              const host = u.hostname.toLowerCase();
+              if (u.protocol === "https:" && !PRIVATE_HOST_PATTERNS.some((p) => p.test(host))) {
+                safeUrl = u;
+              }
+            } catch {
+              safeUrl = null;
+            }
+            if (safeUrl) {
+              try {
+                const pdfRes = await fetch(safeUrl);
+                if (pdfRes.ok) pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
+              } catch (pdfErr) {
+                console.warn("[SignWellWebhook] Could not fetch signed PDF:", pdfErr);
+              }
             }
           }
 
