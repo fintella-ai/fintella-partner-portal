@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendAgreementSignedEmail } from "@/lib/sendgrid";
 import { sendAgreementSignedSms } from "@/lib/twilio";
-import { getCompletedPdfUrl, getCompletedDocumentFields, mapSignWellFieldsToPayoutData } from "@/lib/signwell";
+import { getCompletedPdfUrl, getCompletedDocumentFields, mapSignWellFieldsToPayoutData, downloadCompletedPdf } from "@/lib/signwell";
+import { put } from "@vercel/blob";
 import crypto from "crypto";
 
 // SignWell sends webhooks when documents are signed, viewed, etc.
@@ -222,6 +223,29 @@ export async function POST(req: NextRequest) {
               finalPdfUrl = await getCompletedPdfUrl(docId) || "";
             } catch {}
           }
+
+          // Download the signed PDF bytes ONCE via the SignWell API (constant
+          // base URL — no SSRF surface). The buffer is reused for (a) the Vercel
+          // Blob mirror — a permanent URL that never expires, unlike SignWell's
+          // time-limited completed_pdf URL — and (b) the intake email attachment.
+          let pdfBuf: Buffer | null = docId ? await downloadCompletedPdf(docId) : null;
+
+          // Mirror to Vercel Blob so OpCenter (and others) get a stable URL.
+          let signedPdfMirrorUrl: string | null = null;
+          if (pdfBuf && process.env.BLOB_READ_WRITE_TOKEN) {
+            try {
+              const blob = await put(
+                `signed-agreements/${kwongDeal.id}-signed-agreement.pdf`,
+                pdfBuf,
+                { access: "public", contentType: "application/pdf", addRandomSuffix: true }
+              );
+              signedPdfMirrorUrl = blob.url;
+              console.log(`[SignWellWebhook] Mirrored signed PDF to Blob: ${signedPdfMirrorUrl}`);
+            } catch (blobErr) {
+              console.warn("[SignWellWebhook] Blob mirror failed:", blobErr);
+            }
+          }
+
           await prisma.deal.update({
             where: { id: kwongDeal.id },
             data: {
@@ -231,6 +255,7 @@ export async function POST(req: NextRequest) {
                 signwellStatus: "completed",
                 signwellCompletedAt: new Date().toISOString(),
                 signwellPdfUrl: finalPdfUrl || null,
+                signedPdfMirrorUrl: signedPdfMirrorUrl || null,
               },
             },
           });
@@ -249,20 +274,13 @@ export async function POST(req: NextRequest) {
                 { filename: mdFilename, content: Buffer.from(intakeMarkdown, "utf-8").toString("base64") },
               ];
 
-              // Attach the signed PDF if available
-              if (finalPdfUrl) {
-                try {
-                  const pdfRes = await fetch(finalPdfUrl);
-                  if (pdfRes.ok) {
-                    const pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
-                    attachments.push({
-                      filename: `${intakeId}-signed-agreement.pdf`,
-                      content: pdfBuf.toString("base64"),
-                    });
-                  }
-                } catch (pdfErr) {
-                  console.warn("[SignWellWebhook] Could not fetch signed PDF for email:", pdfErr);
-                }
+              // Attach the signed PDF — reuse the buffer fetched above (no
+              // second network round-trip, no extra SSRF surface).
+              if (pdfBuf) {
+                attachments.push({
+                  filename: `${intakeId}-signed-agreement.pdf`,
+                  content: pdfBuf.toString("base64"),
+                });
               }
 
               fetch("https://api.resend.com/emails", {

@@ -463,6 +463,33 @@ export async function getCompletedPdfUrl(
 }
 
 /**
+ * Download the completed (signed) PDF bytes directly from the SignWell API.
+ * Unlike getCompletedPdfUrl (which returns a time-limited S3 URL), this fetches
+ * the binary from the constant SIGNWELL_API_BASE so callers can persist it
+ * (e.g. mirror to Vercel Blob) without re-fetching a user-provided URL.
+ */
+export async function downloadCompletedPdf(
+  documentId: string
+): Promise<Buffer | null> {
+  if (!SIGNWELL_API_KEY) return null;
+  try {
+    const res = await fetch(
+      `${SIGNWELL_API_BASE}/documents/${encodeURIComponent(documentId)}/completed_pdf?audit_page=true`,
+      {
+        headers: {
+          "X-Api-Key": SIGNWELL_API_KEY,
+          Accept: "application/pdf",
+        },
+      }
+    );
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch completed document field values from SignWell.
  * Returns a map of api_id → value for all fields the signer filled in.
  */
