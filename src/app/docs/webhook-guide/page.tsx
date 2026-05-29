@@ -875,6 +875,8 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
                 {[
                   [<Code key="1">{"{deal.entityType}"}</Code>, "Business entity type (C Corporation, S Corporation, LLC, Partnership, Sole Proprietor, etc.)", "C Corporation"],
                   [<Code key="2">{"{deal.filerType}"}</Code>, "Filer type — Business or Individual", "Business"],
+                  [<Code key="2b">{"{deal.filingStatus}"}</Code>, "Individual filing status (Filed jointly / Filed separately)", "Filed jointly"],
+                  [<Code key="2c">{"{deal.companyEin}"}</Code>, "Business EIN / tax ID", "87-1234567"],
                   [<Code key="3">{"{deal.businessAddress}"}</Code>, "Full formatted business address (all lines combined)", "100 Test Drive, Suite 300, Tampa, FL 33602"],
                   [<Code key="4">{"{deal.signedPdfUrl}"}</Code>, "URL to the signed agreement PDF. Populated once the client e-signs (fires on the deal.stage_changed trigger).", "https://app.signwell.com/.../completed_pdf"],
                   [<Code key="5">{"{deal.agreementStatus}"}</Code>, "Agreement signing status — pending or completed", "completed"],
@@ -906,6 +908,7 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
   "legal_entity_name": "{deal.legalEntityName}",
   "company_ein": "{deal.companyEin}",
   "entity_type": "{deal.entityType}",
+  "filing_status": "{deal.filingStatus}",
   "business_address": "{deal.businessAddress}",
   "service_of_interest": "{deal.serviceOfInterest}",
   "referral_partner_name": "{deal.referralPartnerName}",
