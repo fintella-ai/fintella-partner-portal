@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { compare } from "bcryptjs";
+import { authenticator } from "otplib";
 import { prisma } from "./prisma";
 
 /**
@@ -128,10 +129,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        totp: { label: "2FA Code", type: "text" },
       },
       async authorize(credentials) {
         const email = credentials?.email as string;
         const password = credentials?.password as string;
+        const totp = ((credentials?.totp as string) || "").trim();
 
         if (!email || !password) return null;
 
@@ -143,6 +146,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const valid = await compare(password, user.passwordHash);
         if (!valid) return null;
+
+        // Opt-in 2FA gate. Admins without totpEnabled log in exactly as before
+        // (no code required, no lockout). Only enrolled admins are challenged.
+        if (user.totpEnabled && user.totpSecret) {
+          if (!totp) return null;
+
+          let twoFactorOk = authenticator.verify({ token: totp, secret: user.totpSecret });
+
+          // Fall back to a single-use backup code. On match, consume it by
+          // removing it from the stored hashed array.
+          if (!twoFactorOk && user.totpBackupCodes) {
+            try {
+              const hashedCodes: string[] = JSON.parse(user.totpBackupCodes);
+              let matchedIndex = -1;
+              for (let i = 0; i < hashedCodes.length; i++) {
+                if (await compare(totp, hashedCodes[i])) {
+                  matchedIndex = i;
+                  break;
+                }
+              }
+              if (matchedIndex >= 0) {
+                twoFactorOk = true;
+                hashedCodes.splice(matchedIndex, 1);
+                await prisma.user.update({
+                  where: { id: user.id },
+                  data: { totpBackupCodes: JSON.stringify(hashedCodes) },
+                });
+              }
+            } catch {
+              // Corrupt JSON → treat as no valid backup code.
+            }
+          }
+
+          if (!twoFactorOk) return null;
+        }
 
         return {
           id: user.id,
@@ -180,6 +218,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (ownerPartner?.status === "archived") return "/login?error=archived";
         return true;
       }
+      // Finally, allow Google sign-in for admins (a matching User row). Google
+      // OAuth is itself the strong factor, so admins authenticated this way
+      // bypass the TOTP gate — that's the intended "Google OR TOTP" model.
+      const adminUser = await prisma.user.findFirst({
+        where: { email: { equals: email, mode: "insensitive" } },
+      });
+      if (adminUser) return true;
       return "/login?error=not-invited";
     },
     async jwt({ token, user, account }) {
@@ -228,6 +273,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               token.partnerType = ownerPartner.partnerType || "referral";
               (token as any).name = `${pu.firstName} ${pu.lastName}`.trim();
             }
+          }
+        }
+        // Still no partner match → hydrate admin role from the User row so
+        // Google-authenticated admins land with their proper admin role.
+        if (!token.partnerCode) {
+          const adminUser = await prisma.user.findFirst({
+            where: { email: { equals: token.email as string, mode: "insensitive" } },
+          });
+          if (adminUser) {
+            token.role = adminUser.role;
+            (token as any).name = adminUser.name || adminUser.email;
           }
         }
       }

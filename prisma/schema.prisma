@@ -146,6 +146,11 @@ model User {
   personalCellPhone     String?                    // for IT-emergency outbound call chain (E.164)
   lastHeartbeatAt       DateTime?                  // 60s client ping; drives isAdminOnline helper
   isITEmergencyContact  Boolean  @default(false)  // true = receives the emergencyCallSuperAdmin chain
+  // ── Opt-in admin 2FA (TOTP) — additive, no enforcement ──
+  totpSecret            String?   // base32 TOTP secret (only set once enrolled)
+  totpEnabled           Boolean   @default(false)
+  totpPendingSecret     String?   // secret during enrollment, before first verify
+  totpBackupCodes       String?   // JSON array of bcrypt-hashed one-time backup codes
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
