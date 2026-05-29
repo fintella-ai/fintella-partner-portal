@@ -46,8 +46,12 @@ export async function POST(req: NextRequest) {
 
   // Look up partner first, then admin. Partners take precedence since partner
   // accounts vastly outnumber admin accounts in the steady state.
+  // Case-INSENSITIVE match — partner emails are stored verbatim (admin-created
+  // partners can have mixed-case emails), and login matches the same way
+  // (see lib/auth.ts). A case-sensitive match here silently dropped reset
+  // emails for any partner whose stored email wasn't all-lowercase.
   const partner = await prisma.partner
-    .findFirst({ where: { email }, select: { email: true, firstName: true, lastName: true, status: true } })
+    .findFirst({ where: { email: { equals: email, mode: "insensitive" } }, select: { email: true, firstName: true, lastName: true, status: true } })
     .catch(() => null);
 
   let role: "partner" | "admin" | null = null;
@@ -60,7 +64,7 @@ export async function POST(req: NextRequest) {
     displayName = `${partner.firstName} ${partner.lastName}`.trim() || null;
   } else {
     const admin = await prisma.user
-      .findUnique({ where: { email }, select: { email: true, name: true } })
+      .findFirst({ where: { email: { equals: email, mode: "insensitive" } }, select: { email: true, name: true } })
       .catch(() => null);
     if (admin) {
       role = "admin";
