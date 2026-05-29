@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { checkPublicRateLimit } from "@/lib/tariff-rate-limiter";
 import {
   generateTrialKey,
-  hashTrialKey,
+  hashSecret,
   getTrialKeyHint,
   buildEmbedSnippet,
 } from "@/lib/widget-trial";
@@ -61,9 +61,9 @@ export async function POST(req: NextRequest) {
       partnerCode = partner?.partnerCode || ref || "DIRECT";
     }
 
-    // Mint the key — only the hash is persisted.
-    const apiKey = generateTrialKey();
-    const keyHash = hashTrialKey(apiKey);
+    // Mint the key — only the lookup id + bcrypt(secret) are persisted.
+    const { apiKey, keyId, secret } = generateTrialKey();
+    const secretHash = await hashSecret(secret);
     const keyHint = getTrialKeyHint(apiKey);
 
     // Optional lead Deal so the trial shows up in the pipeline for follow-up.
@@ -95,7 +95,8 @@ export async function POST(req: NextRequest) {
 
     await prisma.widgetTrialKey.create({
       data: {
-        keyHash,
+        keyId,
+        secretHash,
         keyHint,
         email,
         company: company || null,

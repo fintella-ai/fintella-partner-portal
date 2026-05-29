@@ -6,36 +6,54 @@
 // counts) — the refund dollar amounts stay locked until they upgrade to a
 // paid plan via the existing engage flow.
 //
-// Keys are hashed with sha256 (deterministic) so the calculate endpoint can
-// look them up directly with prisma.widgetTrialKey.findUnique({ where: { keyHash } }).
-// (Contrast widget-auth.ts, which bcrypts widget API keys behind a JWT session.)
+// Key format: `ftk_<keyId>.<secret>`
+//   - keyId   — non-secret, stored plaintext + @unique → O(1) findUnique lookup
+//   - secret  — the actual credential, stored only as a bcrypt hash
+//
+// This is the standard prefixed-token pattern (cf. Stripe-style keys): fast
+// lookup by the public id, then a slow KDF (bcrypt) verify of the secret half.
+// We deliberately bcrypt the secret (not a plain digest) so a DB leak can't be
+// used to recover or verify live keys offline.
 // ---------------------------------------------------------------------------
 
 import crypto from "crypto";
+import { hash, compare } from "bcryptjs";
 import type { FilingMethod } from "./tariff-calculator";
 
 const TRIAL_KEY_PREFIX = "ftk_";
 
-// Server-side pepper for the keyed hash. A trial key is a 256-bit random token
-// (not a user-chosen password), so a slow KDF like bcrypt buys no real security
-// here AND would break the O(1) `findUnique({ where: { keyHash } })` lookup the
-// design needs. The correct pattern for high-entropy API tokens is a fast
-// *keyed* hash (HMAC): deterministic for unique-index lookup, and a DB-only
-// leak can't verify guessed keys offline without this secret.
-const TRIAL_KEY_SECRET =
-  process.env.WIDGET_TRIAL_SECRET ||
-  process.env.WIDGET_JWT_SECRET ||
-  process.env.NEXTAUTH_SECRET ||
-  "dev-trial-secret";
-
-/** Generate a fresh trial key: `ftk_` + 32 random bytes (64 hex chars). */
-export function generateTrialKey(): string {
-  return `${TRIAL_KEY_PREFIX}${crypto.randomBytes(32).toString("hex")}`;
+/** Generate a fresh trial key plus its decomposed parts. */
+export function generateTrialKey(): { apiKey: string; keyId: string; secret: string } {
+  const keyId = crypto.randomBytes(8).toString("hex"); // 16 hex chars — public lookup id
+  const secret = crypto.randomBytes(24).toString("hex"); // 48 hex chars — the credential
+  return { apiKey: `${TRIAL_KEY_PREFIX}${keyId}.${secret}`, keyId, secret };
 }
 
-/** Deterministic HMAC-SHA256 hex digest — stored as `keyHash` (@unique) for lookup. */
-export function hashTrialKey(apiKey: string): string {
-  return crypto.createHmac("sha256", TRIAL_KEY_SECRET).update(apiKey).digest("hex");
+/** Split a presented key into its lookup id + secret, or null if malformed. */
+export function parseTrialKey(apiKey: string): { keyId: string; secret: string } | null {
+  if (typeof apiKey !== "string" || !apiKey.startsWith(TRIAL_KEY_PREFIX)) return null;
+  const body = apiKey.slice(TRIAL_KEY_PREFIX.length);
+  const parts = body.split(".");
+  if (parts.length !== 2) return null;
+  const [keyId, secret] = parts;
+  if (!keyId || !secret) return null;
+  return { keyId, secret };
+}
+
+/** Bcrypt-hash the secret half for storage (cost 10, matching widget-auth). */
+export async function hashSecret(secret: string): Promise<string> {
+  return hash(secret, 10);
+}
+
+/** Verify a presented key against the stored bcrypt hash of its secret. */
+export async function verifyTrialKey(apiKey: string, secretHash: string): Promise<boolean> {
+  const parsed = parseTrialKey(apiKey);
+  if (!parsed) return false;
+  try {
+    return await compare(parsed.secret, secretHash);
+  } catch {
+    return false;
+  }
 }
 
 /** Display hint: leading ellipsis + last 8 chars (matches widget-auth convention). */

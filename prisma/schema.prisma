@@ -2246,7 +2246,8 @@ model WidgetSession {
 // for direct findUnique lookup. dealId is a soft reference to the optional lead Deal.
 model WidgetTrialKey {
   id          String    @id @default(cuid())
-  keyHash     String    @unique
+  keyId       String    @unique // non-secret lookup id (first segment of ftk_<keyId>.<secret>)
+  secretHash  String            // bcrypt hash of the secret segment
   keyHint     String
   email       String
   company     String?

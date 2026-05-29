@@ -6,7 +6,9 @@
 import assert from "node:assert/strict";
 import {
   generateTrialKey,
-  hashTrialKey,
+  parseTrialKey,
+  hashSecret,
+  verifyTrialKey,
   getTrialKeyHint,
   toPartialTariffResult,
   buildEmbedSnippet,
@@ -16,9 +18,9 @@ import {
 let passed = 0;
 let failed = 0;
 
-function test(name: string, fn: () => void) {
+async function test(name: string, fn: () => void | Promise<void>) {
   try {
-    fn();
+    await fn();
     passed++;
     console.log(`  ✓ ${name}`);
   } catch (err: unknown) {
@@ -28,126 +30,149 @@ function test(name: string, fn: () => void) {
   }
 }
 
-console.log("\nwidget-trial helpers\n");
+async function main() {
+  console.log("\nwidget-trial helpers\n");
 
-// ── generateTrialKey ─────────────────────────────────────────────────────────
-test("generateTrialKey returns an ftk_ prefixed key", () => {
-  const key = generateTrialKey();
-  assert.ok(key.startsWith("ftk_"), `expected ftk_ prefix, got ${key}`);
-});
+  // ── generateTrialKey ───────────────────────────────────────────────────────
+  await test("generateTrialKey returns ftk_<keyId>.<secret> + parts", () => {
+    const { apiKey, keyId, secret } = generateTrialKey();
+    assert.ok(apiKey.startsWith("ftk_"), `expected ftk_ prefix, got ${apiKey}`);
+    assert.equal(apiKey, `ftk_${keyId}.${secret}`);
+    assert.match(keyId, /^[0-9a-f]{16}$/);
+    assert.match(secret, /^[0-9a-f]{48}$/);
+  });
 
-test("generateTrialKey body is 64 hex chars (32 bytes)", () => {
-  const key = generateTrialKey();
-  const body = key.slice("ftk_".length);
-  assert.equal(body.length, 64);
-  assert.match(body, /^[0-9a-f]+$/);
-});
+  await test("generateTrialKey is unique across calls", () => {
+    assert.notEqual(generateTrialKey().apiKey, generateTrialKey().apiKey);
+  });
 
-test("generateTrialKey is unique across calls", () => {
-  const a = generateTrialKey();
-  const b = generateTrialKey();
-  assert.notEqual(a, b);
-});
+  // ── parseTrialKey ──────────────────────────────────────────────────────────
+  await test("parseTrialKey round-trips a generated key", () => {
+    const { apiKey, keyId, secret } = generateTrialKey();
+    const parsed = parseTrialKey(apiKey);
+    assert.deepEqual(parsed, { keyId, secret });
+  });
 
-// ── hashTrialKey ─────────────────────────────────────────────────────────────
-test("hashTrialKey is deterministic (sha256, same input → same hash)", () => {
-  const key = "ftk_abc123";
-  assert.equal(hashTrialKey(key), hashTrialKey(key));
-});
+  await test("parseTrialKey rejects malformed keys", () => {
+    assert.equal(parseTrialKey("nope"), null);
+    assert.equal(parseTrialKey("ftk_missingdot"), null);
+    assert.equal(parseTrialKey("ftk_id.sec.extra"), null);
+    assert.equal(parseTrialKey(""), null);
+  });
 
-test("hashTrialKey produces a 64-char sha256 hex digest", () => {
-  const h = hashTrialKey("ftk_abc123");
-  assert.equal(h.length, 64);
-  assert.match(h, /^[0-9a-f]+$/);
-});
+  // ── hashSecret + verifyTrialKey ──────────────────────────────────────────────
+  await test("verifyTrialKey accepts the real key against its stored hash", async () => {
+    const { apiKey, secret } = generateTrialKey();
+    const secretHash = await hashSecret(secret);
+    assert.equal(await verifyTrialKey(apiKey, secretHash), true);
+  });
 
-test("hashTrialKey differs for different keys", () => {
-  assert.notEqual(hashTrialKey("ftk_aaa"), hashTrialKey("ftk_bbb"));
-});
+  await test("verifyTrialKey rejects a wrong key against a stored hash", async () => {
+    const a = generateTrialKey();
+    const b = generateTrialKey();
+    const secretHash = await hashSecret(a.secret);
+    assert.equal(await verifyTrialKey(b.apiKey, secretHash), false);
+  });
 
-// ── getTrialKeyHint ──────────────────────────────────────────────────────────
-test("getTrialKeyHint shows last 8 chars with leading ellipsis", () => {
-  assert.equal(getTrialKeyHint("ftk_0123456789abcdef"), "...89abcdef");
-});
+  await test("verifyTrialKey rejects a malformed key without throwing", async () => {
+    const { secret } = generateTrialKey();
+    const secretHash = await hashSecret(secret);
+    assert.equal(await verifyTrialKey("garbage", secretHash), false);
+  });
 
-// ── toPartialTariffResult ────────────────────────────────────────────────────
-const fullResult: FullTariffResult = {
-  countryOfOrigin: "CN",
-  entryDate: "2025-01-15",
-  enteredValue: 100_000,
-  ieepaRate: 1.45,
-  rateName: "Fentanyl + Reciprocal",
-  rateBreakdown: { fentanyl: 0.2, reciprocal: 1.25 },
-  ieepaDuty: 145_000,
-  estimatedInterest: 5_000,
-  estimatedRefund: 150_000,
-  eligibility: "eligible",
-  eligibilityReason: "Within CAPE Phase-1 window",
-  deadlineDays: 42,
-  isUrgent: true,
-  deadlineDate: new Date("2025-03-01"),
-  filingMethod: "cape_phase1",
-};
+  await test("hashSecret produces a bcrypt hash (salted, non-deterministic)", async () => {
+    const { secret } = generateTrialKey();
+    const h1 = await hashSecret(secret);
+    const h2 = await hashSecret(secret);
+    assert.match(h1, /^\$2[aby]\$/); // bcrypt prefix
+    assert.notEqual(h1, h2); // salted → different each time
+  });
 
-test("toPartialTariffResult hides every dollar/rate field", () => {
-  const partial = toPartialTariffResult(fullResult) as unknown as Record<string, unknown>;
-  for (const hidden of [
-    "ieepaDuty",
-    "estimatedInterest",
-    "estimatedRefund",
-    "ieepaRate",
-    "rateName",
-    "rateBreakdown",
-  ]) {
-    assert.ok(!(hidden in partial), `expected ${hidden} to be hidden, but it leaked`);
-  }
-});
+  // ── getTrialKeyHint ──────────────────────────────────────────────────────────
+  await test("getTrialKeyHint shows last 8 chars with leading ellipsis", () => {
+    assert.equal(getTrialKeyHint("ftk_0123456789abcdef"), "...89abcdef");
+  });
 
-test("toPartialTariffResult keeps eligibility, deadlines, and counts", () => {
-  const partial = toPartialTariffResult(fullResult);
-  assert.equal(partial.eligibility, "eligible");
-  assert.equal(partial.eligibilityReason, "Within CAPE Phase-1 window");
-  assert.equal(partial.deadlineDays, 42);
-  assert.equal(partial.isUrgent, true);
-  assert.equal(partial.filingMethod, "cape_phase1");
-  assert.equal(partial.countryOfOrigin, "CN");
-  assert.equal(partial.entryDate, "2025-01-15");
-});
-
-test("toPartialTariffResult flags refund as locked", () => {
-  const partial = toPartialTariffResult(fullResult);
-  assert.equal(partial.refundLocked, true);
-});
-
-test("toPartialTariffResult tolerates a result with no deadline fields", () => {
-  const minimal: FullTariffResult = {
-    countryOfOrigin: "DE",
-    entryDate: "2025-06-01",
-    enteredValue: 5_000,
-    ieepaRate: 0,
-    rateName: "None",
-    rateBreakdown: {},
-    ieepaDuty: 0,
-    estimatedInterest: 0,
-    estimatedRefund: 0,
-    eligibility: "excluded_date",
-    eligibilityReason: "Outside IEEPA window",
+  // ── toPartialTariffResult ────────────────────────────────────────────────────
+  const fullResult: FullTariffResult = {
+    countryOfOrigin: "CN",
+    entryDate: "2025-01-15",
+    enteredValue: 100_000,
+    ieepaRate: 1.45,
+    rateName: "Fentanyl + Reciprocal",
+    rateBreakdown: { fentanyl: 0.2, reciprocal: 1.25 },
+    ieepaDuty: 145_000,
+    estimatedInterest: 5_000,
+    estimatedRefund: 150_000,
+    eligibility: "eligible",
+    eligibilityReason: "Within CAPE Phase-1 window",
+    deadlineDays: 42,
+    isUrgent: true,
+    deadlineDate: new Date("2025-03-01"),
+    filingMethod: "cape_phase1",
   };
-  const partial = toPartialTariffResult(minimal);
-  assert.equal(partial.eligibility, "excluded_date");
-  assert.equal(partial.refundLocked, true);
-  assert.equal(partial.deadlineDays, undefined);
-});
 
-// ── buildEmbedSnippet ────────────────────────────────────────────────────────
-test("buildEmbedSnippet emits the exact script tag with key + origin", () => {
-  const snippet = buildEmbedSnippet("ftk_demo", "https://x.test");
-  assert.equal(
-    snippet,
-    '<script src="https://x.test/widget/tariff-trial.js" data-trial-key="ftk_demo"></script>',
-  );
-});
+  await test("toPartialTariffResult hides every dollar/rate field", () => {
+    const partial = toPartialTariffResult(fullResult) as unknown as Record<string, unknown>;
+    for (const hidden of [
+      "ieepaDuty",
+      "estimatedInterest",
+      "estimatedRefund",
+      "ieepaRate",
+      "rateName",
+      "rateBreakdown",
+    ]) {
+      assert.ok(!(hidden in partial), `expected ${hidden} to be hidden, but it leaked`);
+    }
+  });
 
-// ── summary ──────────────────────────────────────────────────────────────────
-console.log(`\n${passed} passed, ${failed} failed\n`);
-if (failed > 0) process.exit(1);
+  await test("toPartialTariffResult keeps eligibility, deadlines, and counts", () => {
+    const partial = toPartialTariffResult(fullResult);
+    assert.equal(partial.eligibility, "eligible");
+    assert.equal(partial.eligibilityReason, "Within CAPE Phase-1 window");
+    assert.equal(partial.deadlineDays, 42);
+    assert.equal(partial.isUrgent, true);
+    assert.equal(partial.filingMethod, "cape_phase1");
+    assert.equal(partial.countryOfOrigin, "CN");
+    assert.equal(partial.entryDate, "2025-01-15");
+  });
+
+  await test("toPartialTariffResult flags refund as locked", () => {
+    assert.equal(toPartialTariffResult(fullResult).refundLocked, true);
+  });
+
+  await test("toPartialTariffResult tolerates a result with no deadline fields", () => {
+    const minimal: FullTariffResult = {
+      countryOfOrigin: "DE",
+      entryDate: "2025-06-01",
+      enteredValue: 5_000,
+      ieepaRate: 0,
+      rateName: "None",
+      rateBreakdown: {},
+      ieepaDuty: 0,
+      estimatedInterest: 0,
+      estimatedRefund: 0,
+      eligibility: "excluded_date",
+      eligibilityReason: "Outside IEEPA window",
+    };
+    const partial = toPartialTariffResult(minimal);
+    assert.equal(partial.eligibility, "excluded_date");
+    assert.equal(partial.refundLocked, true);
+    assert.equal(partial.deadlineDays, undefined);
+  });
+
+  // ── buildEmbedSnippet ────────────────────────────────────────────────────────
+  await test("buildEmbedSnippet emits the exact script tag with key + origin", () => {
+    const snippet = buildEmbedSnippet("ftk_demo", "https://x.test");
+    assert.equal(
+      snippet,
+      '<script src="https://x.test/widget/tariff-trial.js" data-trial-key="ftk_demo"></script>',
+    );
+  });
+
+  // ── summary ──────────────────────────────────────────────────────────────────
+  console.log(`\n${passed} passed, ${failed} failed\n`);
+  if (failed > 0) process.exit(1);
+}
+
+main();

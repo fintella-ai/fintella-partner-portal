@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCorsHeaders } from "@/lib/widget-auth";
 import { checkWidgetRateLimit } from "@/lib/widget-rate-limit";
-import { hashTrialKey, toPartialTariffResult, type FullTariffResult } from "@/lib/widget-trial";
+import { parseTrialKey, verifyTrialKey, toPartialTariffResult, type FullTariffResult } from "@/lib/widget-trial";
 import {
   lookupCombinedRate,
   calculateIeepaDuty,
@@ -51,11 +51,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing trial key" }, { status: 401, headers: cors });
   }
 
+  const parsed = parseTrialKey(trialKey);
+  if (!parsed) {
+    return NextResponse.json({ error: "Invalid trial key" }, { status: 401, headers: cors });
+  }
+
   const record = await prisma.widgetTrialKey.findUnique({
-    where: { keyHash: hashTrialKey(trialKey) },
-    select: { id: true, keyHint: true, status: true },
+    where: { keyId: parsed.keyId },
+    select: { id: true, keyHint: true, status: true, secretHash: true },
   });
-  if (!record) {
+  if (!record || !(await verifyTrialKey(trialKey, record.secretHash))) {
     return NextResponse.json({ error: "Invalid trial key" }, { status: 401, headers: cors });
   }
   if (record.status === "revoked") {
