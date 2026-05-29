@@ -192,7 +192,7 @@ export default function TariffDemoShowcase() {
               </span>
             </div>
             <div className="flex items-end gap-3">
-              <div className="text-4xl font-bold tabular-nums" style={{ color: ACCENT }}>{gaugeScore}</div>
+              <div className="text-4xl font-bold tabular-nums oc-grad-text">{gaugeScore}</div>
               <div className="text-xs text-white/40 pb-1.5">/ 100 risk score</div>
             </div>
             <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden mt-2">

@@ -34,10 +34,10 @@ export default function TariffDiyPage({
   const widgetPerLabel = usd(TARIFF_WIDGET_PER_SUBMISSION_CENTS);
 
   return (
-    <main id="top" className="oc-launch min-h-screen bg-[#09090b] text-white">
+    <main id="top" className="oc-launch min-h-screen text-white">
       <nav className="border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="font-display text-xl" style={{ color: ACCENT }}>Fintella</div>
+          <div className="font-display text-xl oc-grad-text">Fintella</div>
           <Link href="/login" className="text-sm text-white/50 hover:text-white/80 transition">Partner Login</Link>
         </div>
       </nav>
@@ -46,23 +46,21 @@ export default function TariffDiyPage({
       <div className="max-w-6xl mx-auto px-6 pt-16 pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           <div>
-            <div className="inline-block rounded-full px-4 py-1.5 text-xs font-semibold tracking-wider uppercase bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 mb-6">
-              For smaller importers — keep 100% of your refund
-            </div>
-            <h1 className="font-display text-4xl sm:text-5xl leading-tight mb-5" style={{ color: ACCENT }}>
-              Don&apos;t give away your refund.
+            <div className="oc-eyebrow mb-6">For smaller importers — keep 100%</div>
+            <h1 className="font-display text-5xl sm:text-6xl leading-[1.05] mb-5 text-white">
+              Don&apos;t give away<br /><span className="oc-grad-text">your refund.</span>
             </h1>
-            <p className="text-lg text-white/70 mb-6 leading-relaxed">
+            <p className="text-lg text-white/65 mb-6 leading-relaxed">
               The big firms take <strong className="text-white">25–35% of your money</strong> to file a refund you
               can file yourself. We do <strong className="text-white">all the work</strong> — a fully substantiated,
               audit-ready CAPE file — then you file it and keep <strong className="text-white">every dollar</strong>.
             </p>
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 mb-6">
+            <div className="oc-card rounded-xl px-5 py-4 mb-6">
               <p className="text-sm text-white/75 leading-relaxed">
                 Already work with a customs broker or trade attorney?{" "}
                 <strong className="text-white">Still use this.</strong> Hand them the finished file for a quick{" "}
                 <strong className="text-white">review only</strong> — and cut their bill{" "}
-                <strong style={{ color: ACCENT }}>75–90%</strong>. The work is done; all they do is sign off.
+                <strong className="oc-grad-text">75–90%</strong>. The work is done; all they do is sign off.
               </p>
             </div>
             <div className="space-y-3 text-white/60 text-sm mb-8">
@@ -92,11 +90,9 @@ export default function TariffDiyPage({
       {/* ── Live engine demo ─────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
         <div className="text-center max-w-2xl mx-auto mb-8">
-          <div className="inline-block rounded-full px-3 py-1 text-[11px] font-semibold tracking-wider uppercase bg-white/5 text-white/50 border border-white/10 mb-4">
-            Watch it work
-          </div>
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>
-            Drop an entry summary. Get a risk analysis in seconds.
+          <div className="oc-eyebrow mb-4">Watch it work</div>
+          <h2 className="font-display text-3xl sm:text-4xl mb-3 text-white">
+            Drop an entry summary. <span className="oc-grad-text">Risk analysis in seconds.</span>
           </h2>
           <p className="text-white/60">
             Our Tariff Intelligence Engine reads your CBP Form 7501, extracts every field with a confidence score,
@@ -109,8 +105,8 @@ export default function TariffDiyPage({
       {/* ── Savings calculator (exclaim the result) ──────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
         <div className="text-center max-w-2xl mx-auto mb-8">
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>
-            What others charge 30% for, you keep.
+          <h2 className="font-display text-3xl sm:text-4xl mb-3 text-white">
+            What others charge 30% for, <span className="oc-grad-text">you keep.</span>
           </h2>
           <p className="text-white/60">
             Slide to your refund. See what a contingency firm would take — and what you keep when you pay a small
@@ -123,8 +119,8 @@ export default function TariffDiyPage({
       {/* ── Try → Prove → Commit ─────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
         <div className="text-center max-w-2xl mx-auto mb-8">
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>
-            No leap of faith. Prove it on one file first.
+          <h2 className="font-display text-3xl sm:text-4xl mb-3 text-white">
+            No leap of faith. <span className="oc-grad-text">Prove it on one file first.</span>
           </h2>
           <p className="text-white/60">See the analysis before you pay. Pay to prove a single file. Commit only once you&apos;re satisfied.</p>
         </div>
@@ -134,10 +130,10 @@ export default function TariffDiyPage({
             { n: "2", t: "Prove one file", d: "Pay to unlock your first file and inspect the real, substantiated work — the analysis, the CAPE entry, the audit. Check it line by line.", tag: "1 file" },
             { n: "3", t: "Commit when satisfied", d: "Happy with the first file? Unlock the rest at volume pricing. If you have more entries, the remainder is one click away.", tag: "the rest" },
           ].map((s) => (
-            <div key={s.n} className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div key={s.n} className="oc-card rounded-2xl p-6">
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center justify-center h-9 w-9 rounded-full font-bold text-sm" style={{ background: ACCENT, color: "#fff" }}>{s.n}</div>
-                <span className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10">{s.tag}</span>
+                <div className="flex items-center justify-center h-9 w-9 rounded-full font-bold text-sm text-white" style={{ background: `linear-gradient(135deg, ${ACCENT}, #38bdf8)` }}>{s.n}</div>
+                <span className="oc-eyebrow !px-2.5 !py-1">{s.tag}</span>
               </div>
               <div className="font-semibold text-white/90 mb-1.5">{s.t}</div>
               <p className="text-sm text-white/55 leading-relaxed">{s.d}</p>
@@ -149,14 +145,14 @@ export default function TariffDiyPage({
       {/* ── Cost comparison ──────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
         <div className="text-center max-w-2xl mx-auto mb-8">
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>
-            Same refund. Keep far more of it.
+          <h2 className="font-display text-3xl sm:text-4xl mb-3 text-white">
+            Same refund. <span className="oc-grad-text">Keep far more of it.</span>
           </h2>
           <p className="text-white/60">Three ways to file — you stay in control of every one.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Contingency firm */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <div className="oc-card rounded-2xl p-6">
             <div className="text-xs uppercase tracking-wider text-white/40 mb-2">Contingency firm</div>
             <div className="text-3xl font-bold text-red-300 mb-1">25–35%</div>
             <div className="text-xs text-white/40 mb-4">of your refund — gone</div>
@@ -167,12 +163,12 @@ export default function TariffDiyPage({
             </ul>
           </div>
           {/* DIY flat fee — featured */}
-          <div className="rounded-2xl border-2 p-6 relative" style={{ borderColor: ACCENT, background: "rgba(139,92,246,0.10)" }}>
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap" style={{ background: ACCENT, color: "#fff" }}>
+          <div className="rounded-2xl border-2 p-6 relative" style={{ borderColor: ACCENT, background: "rgba(139,92,246,0.08)" }}>
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap text-white" style={{ background: `linear-gradient(135deg, ${ACCENT}, #38bdf8)` }}>
               Most keep 100%
             </div>
             <div className="text-xs uppercase tracking-wider text-white/50 mb-2">DIY — file it yourself</div>
-            <div className="text-3xl font-bold mb-1" style={{ color: ACCENT }}>{feeLabel}</div>
+            <div className="text-3xl font-bold mb-1 oc-grad-text">{feeLabel}</div>
             <div className="text-xs text-white/40 mb-4">flat fee · keep 100% of the refund</div>
             <ul className="space-y-2 text-sm text-white/70">
               <li className="flex gap-2"><span className="text-emerald-400">✓</span> We do all the work — you keep the refund</li>
@@ -181,7 +177,7 @@ export default function TariffDiyPage({
             </ul>
           </div>
           {/* Broker / attorney review-only */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <div className="oc-card rounded-2xl p-6">
             <div className="text-xs uppercase tracking-wider text-white/40 mb-2">Your broker / attorney</div>
             <div className="text-3xl font-bold text-emerald-300 mb-1">−75–90%</div>
             <div className="text-xs text-white/40 mb-4">off their normal bill</div>
@@ -198,11 +194,9 @@ export default function TariffDiyPage({
       <section className="max-w-6xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
-            <div className="inline-block rounded-full px-3 py-1 text-[11px] font-semibold tracking-wider uppercase bg-white/5 text-white/50 border border-white/10 mb-4">
-              What you hand over
-            </div>
-            <h2 className="font-display text-3xl sm:text-4xl mb-4" style={{ color: ACCENT }}>
-              A file your broker or attorney can sign off in minutes.
+            <div className="oc-eyebrow mb-4">What you hand over</div>
+            <h2 className="font-display text-3xl sm:text-4xl mb-4 text-white">
+              A file your broker or attorney can <span className="oc-grad-text">sign off in minutes.</span>
             </h2>
             <p className="text-white/65 mb-5 leading-relaxed">
               Every refund comes back as a clean, substantiated package — the recovery analysis, the CAPE
@@ -217,17 +211,17 @@ export default function TariffDiyPage({
             </ul>
           </div>
           {/* Mocked report sheet */}
-          <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-2 backdrop-blur">
-            <div className="rounded-xl bg-[#0c0c10] border border-white/10 p-6">
+          <div className="oc-card rounded-2xl p-2">
+            <div className="rounded-xl p-6" style={{ background: "hsl(228 30% 4%)", border: "1px solid hsl(228 16% 12%)" }}>
               <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
                 <div>
-                  <div className="font-display text-lg" style={{ color: ACCENT }}>IEEPA Refund Recovery Analysis</div>
+                  <div className="font-display text-lg text-white">IEEPA Refund Recovery Analysis</div>
                   <div className="text-[11px] text-white/40">Prepared by Fintella · Sample</div>
                 </div>
                 <div className="text-[10px] rounded px-2 py-1 bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 font-semibold">AUDIT-READY</div>
               </div>
               <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="rounded-lg bg-white/[0.03] p-3 text-center"><div className="text-lg font-bold" style={{ color: ACCENT }}>$26,455</div><div className="text-[10px] text-white/40">est. refund</div></div>
+                <div className="rounded-lg bg-white/[0.03] p-3 text-center"><div className="text-lg font-bold oc-grad-text">$26,455</div><div className="text-[10px] text-white/40">est. refund</div></div>
                 <div className="rounded-lg bg-white/[0.03] p-3 text-center"><div className="text-lg font-bold text-white/80">$1,842</div><div className="text-[10px] text-white/40">est. interest</div></div>
                 <div className="rounded-lg bg-white/[0.03] p-3 text-center"><div className="text-lg font-bold text-emerald-400">3 / 3</div><div className="text-[10px] text-white/40">eligible</div></div>
               </div>
@@ -257,7 +251,7 @@ export default function TariffDiyPage({
       {/* ── How it works / time-to-result ────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12 pb-20">
         <div className="text-center max-w-2xl mx-auto mb-10">
-          <h2 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: ACCENT }}>From entries to filed in three steps</h2>
+          <h2 className="font-display text-3xl sm:text-4xl mb-3 text-white">From entries to filed in <span className="oc-grad-text">three steps</span></h2>
           <p className="text-white/60">Most importers go from upload to a substantiated file the same day.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -266,10 +260,10 @@ export default function TariffDiyPage({
             { n: "2", t: "We build the file", d: "We prepare a fully substantiated, audit-ready CAPE file, pre-cleared against CBP rejection codes. One flat fee — no cut of your refund.", tag: "same day" },
             { n: "3", t: "File it — or hand it off", d: "Submit it yourself and keep 100%, or drop the finished file to your customs broker or trade attorney for a review-only sign-off.", tag: "keep 100%" },
           ].map((s) => (
-            <div key={s.n} className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div key={s.n} className="oc-card rounded-2xl p-6">
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center justify-center h-9 w-9 rounded-full font-bold text-sm" style={{ background: ACCENT, color: "#fff" }}>{s.n}</div>
-                <span className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10">{s.tag}</span>
+                <div className="flex items-center justify-center h-9 w-9 rounded-full font-bold text-sm text-white" style={{ background: `linear-gradient(135deg, ${ACCENT}, #38bdf8)` }}>{s.n}</div>
+                <span className="oc-eyebrow !px-2.5 !py-1">{s.tag}</span>
               </div>
               <div className="font-semibold text-white/90 mb-1.5">{s.t}</div>
               <p className="text-sm text-white/55 leading-relaxed">{s.d}</p>
@@ -277,11 +271,7 @@ export default function TariffDiyPage({
           ))}
         </div>
         <div className="text-center mt-10">
-          <Link
-            href="#top"
-            className="inline-block rounded-lg px-8 py-3.5 font-semibold transition min-h-[44px]"
-            style={{ background: ACCENT, color: "#fff" }}
-          >
+          <Link href="#top" className="oc-btn-primary inline-block px-8 py-3.5 font-semibold min-h-[44px]">
             Check your refund — free →
           </Link>
           <p className="text-xs text-white/30 mt-3">No obligation · estimate only, not a guarantee of approval</p>

@@ -111,7 +111,7 @@ export default function SavingsCalculator({ upfrontFeeCents }: Props) {
         <div className="space-y-4">
           <div className="rounded-2xl border-2 p-6 text-center" style={{ borderColor: ACCENT, background: "rgba(139,92,246,0.10)" }}>
             <div className="text-xs uppercase tracking-wider text-white/50 mb-1">You keep</div>
-            <div className="text-5xl font-bold tabular-nums leading-none" style={{ color: ACCENT }}>{money(keepAnim)}</div>
+            <div className="text-5xl font-bold tabular-nums leading-none oc-grad-text">{money(keepAnim)}</div>
             <div className="text-xs text-white/40 mt-2">of your {money(refund)} refund</div>
           </div>
           <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.08] p-4 text-center animate-[fadeIn_0.4s_ease-out]">

@@ -359,21 +359,110 @@
 
 /* ── OpCenter-matched landing theme (SCOPED) ─────────────────────────────
    Applied only under `.oc-launch` (the public tariff funnel landing) so the
-   live admin/partner backoffice is untouched. Mirrors opcenter.app tokens:
-   Syne display + Geist body, zinc-950 surfaces, violet #8b5cf6 accent.
+   live admin/partner backoffice is untouched. Mirrors opcenter.app tokens
+   pulled from its live CSS bundle: Syne display + Geist body, deep blue-black
+   base hsl(228 35% 2%), layered violet/sky/emerald ambient glows + a faint
+   grid, gradient-fill headlines (#c4b5fd→#7dd3fc), white pill CTAs.
    Backoffice rollout is a separate, deliberate task — see
    docs/knowledge/opcenter-theme-tokens.md. */
 .oc-launch {
   font-family: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  position: relative;
+  background-color: hsl(228 35% 2%);
+  isolation: isolate;
+}
+/* Ambient glow wash (violet top-center + sky + emerald foot) — fixed so it
+   stays behind content as the page scrolls. */
+.oc-launch::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -12%, rgba(167, 139, 250, 0.26), transparent 60%),
+    radial-gradient(ellipse 100% 55% at 50% -18%, rgba(56, 189, 248, 0.12), transparent 62%),
+    radial-gradient(ellipse 70% 50% at 50% 112%, rgba(52, 211, 153, 0.06), transparent 60%);
+}
+/* Faint grid, masked so it fades toward the edges/bottom. */
+.oc-launch::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, hsla(0, 0%, 100%, 0.026) 1px, transparent 1px),
+    linear-gradient(to bottom, hsla(0, 0%, 100%, 0.026) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 0%, #000 35%, transparent 80%);
+  mask-image: radial-gradient(ellipse 85% 70% at 50% 0%, #000 35%, transparent 80%);
 }
 .oc-launch .font-display {
   font-family: "Syne", "DM Serif Display", system-ui, sans-serif !important;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 .oc-launch .font-mono,
 .oc-launch code {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+/* Gradient-fill text (violet → sky), OpCenter's headline accent. */
+.oc-grad-text {
+  background: linear-gradient(100deg, #c4b5fd 0%, #a78bfa 42%, #7dd3fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+/* White pill primary CTA (dark text) — OpCenter's primary button. */
+.oc-launch .oc-btn-primary {
+  background: #ffffff;
+  color: #0a0a12;
+  border-radius: 9999px;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.oc-launch .oc-btn-primary:hover {
+  background: rgba(255, 255, 255, 0.88);
+}
+/* Dark/outline secondary pill. */
+.oc-launch .oc-btn-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+  transition: background 0.15s ease;
+}
+.oc-launch .oc-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+/* Card surface to match OpCenter (slightly blue near-black + hairline border). */
+.oc-launch .oc-card {
+  background: hsl(228 28% 6%);
+  border: 1px solid hsl(228 16% 14%);
+}
+/* Eyebrow pill (dot + uppercase tracked label). */
+.oc-launch .oc-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.3rem 0.85rem;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.oc-launch .oc-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
 }
 
 h3, h4 { font-weight: 600; }
