@@ -28,7 +28,22 @@ interface Ticket {
   hasUnreadReply: boolean;
 }
 
-type ActiveTab = "ai" | "support" | "messages";
+type ActiveTab = "ai" | "support" | "messages" | "channels";
+
+type ChannelMessage = {
+  id: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+};
+
+type Channel = {
+  id: string;
+  name: string;
+  description: string | null;
+  replyMode?: string;
+  recentMessages: ChannelMessage[];
+};
 
 const LS_BROKER_WELCOME = "fintella.broker.welcomeSeen";
 
@@ -66,6 +81,11 @@ export default function UnifiedChatWidget({ preferredPersona, liveChatEnabled, a
   const [threadMessages, setThreadMessages] = useState<any[]>([]);
   const [dmDraft, setDmDraft] = useState("");
   const [sendingDm, setSendingDm] = useState(false);
+
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [channelUnread, setChannelUnread] = useState(0);
+  const channelSeenRef = useRef<Record<string, string>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -110,17 +130,35 @@ export default function UnifiedChatWidget({ preferredPersona, liveChatEnabled, a
     } catch {}
   }, [partnerCode]);
 
+  const loadChannels = useCallback(async () => {
+    try {
+      const r = await fetch("/api/announcements");
+      if (!r.ok) return;
+      const d = await r.json();
+      const chs: Channel[] = d.channels || [];
+      setChannels(chs);
+      let unread = 0;
+      for (const ch of chs) {
+        const latest = ch.recentMessages?.[ch.recentMessages.length - 1];
+        if (latest && latest.createdAt > (channelSeenRef.current[ch.id] || "")) unread++;
+      }
+      setChannelUnread(unread);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     if (open) {
       loadDmThreads();
       loadTickets();
+      loadChannels();
       pollRef.current = setInterval(() => {
         loadDmThreads();
         loadTickets();
+        loadChannels();
       }, 15_000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [open, loadDmThreads, loadTickets]);
+  }, [open, loadDmThreads, loadTickets, loadChannels]);
 
   useEffect(() => {
     if (!open) {
@@ -159,8 +197,8 @@ export default function UnifiedChatWidget({ preferredPersona, liveChatEnabled, a
     setSendingDm(false);
   };
 
-  const totalUnread = dmUnread + ticketUnread;
-  const priorityTab: ActiveTab = dmUnread > 0 ? "messages" : ticketUnread > 0 ? "support" : "ai";
+  const totalUnread = dmUnread + ticketUnread + channelUnread;
+  const priorityTab: ActiveTab = dmUnread > 0 ? "messages" : ticketUnread > 0 ? "support" : channelUnread > 0 ? "channels" : "ai";
 
   const fmtTime = (d: string) => {
     const ms = Date.now() - new Date(d).getTime();
@@ -257,6 +295,10 @@ export default function UnifiedChatWidget({ preferredPersona, liveChatEnabled, a
         <button className={tabStyle("messages")} onClick={() => { setActiveTab("messages"); setSelectedThread(null); }}>
           <span>Messages</span>
           <Badge count={dmUnread} pulse />
+        </button>
+        <button className={tabStyle("channels")} onClick={() => { setActiveTab("channels"); setActiveChannelId(null); }}>
+          <span>Channels</span>
+          <Badge count={channelUnread} pulse={false} />
         </button>
       </div>
 
@@ -426,6 +468,77 @@ export default function UnifiedChatWidget({ preferredPersona, liveChatEnabled, a
               </button>
             </div>
           </>
+        )}
+
+        {activeTab === "channels" && !activeChannelId && (
+          <div className="flex-1 overflow-y-auto">
+            {channels.length === 0 ? (
+              <div className="p-6 text-center">
+                <div className="text-2xl mb-2">📣</div>
+                <div className="font-body text-sm text-[var(--app-text-muted)]">No channels yet</div>
+              </div>
+            ) : (
+              <div>
+                {channels.map((ch) => {
+                  const latest = ch.recentMessages?.[ch.recentMessages.length - 1];
+                  const hasUnread = latest && latest.createdAt > (channelSeenRef.current[ch.id] || "");
+                  return (
+                    <button
+                      key={ch.id}
+                      onClick={() => {
+                        setActiveChannelId(ch.id);
+                        if (latest) channelSeenRef.current[ch.id] = latest.createdAt;
+                      }}
+                      className="w-full text-left px-4 py-3 border-b border-[var(--app-border)] hover:bg-[var(--app-card-bg)] transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-body text-sm font-medium text-[var(--app-text)] truncate flex-1">
+                          {ch.name}
+                        </span>
+                        {hasUnread && <span className="w-2 h-2 rounded-full bg-brand-gold shrink-0" />}
+                      </div>
+                      {latest && (
+                        <div className="font-body text-[11px] text-[var(--app-text-muted)] truncate mt-0.5">
+                          {latest.authorName}: {latest.content.slice(0, 60)}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "channels" && activeChannelId && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: "1px solid var(--app-border)" }}>
+              <button
+                onClick={() => setActiveChannelId(null)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--app-text-muted)] hover:bg-[var(--app-hover)]"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span className="font-body text-sm font-medium text-[var(--app-text)]">
+                {channels.find((c) => c.id === activeChannelId)?.name || "Channel"}
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+              {(channels.find((c) => c.id === activeChannelId)?.recentMessages || []).map((m) => (
+                <div key={m.id} className="rounded-lg bg-[var(--app-input-bg)] px-3 py-2">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="font-body text-[11px] font-semibold text-[var(--app-text)]">{m.authorName}</span>
+                    <span className="font-body text-[10px] text-[var(--app-text-faint)]">
+                      {new Date(m.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <div className="font-body text-[12px] text-[var(--app-text)] whitespace-pre-wrap">{m.content}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -1217,6 +1217,26 @@ model AiUsageDay {
   @@index([date])
 }
 
+// Per-user AI memory — persists facts, preferences, and context the AI learns
+// from conversations. Injected into the system prompt so the AI remembers across
+// sessions. Types: "fact" (learned about user), "preference" (how they like to
+// work), "context" (ongoing situation), "instruction" (user-given directive).
+model AiMemory {
+  id        String   @id @default(cuid())
+  userId    String   // partnerCode or admin email
+  userType  String   // "partner" | "admin"
+  type      String   // "fact" | "preference" | "context" | "instruction"
+  content   String   // the memory itself
+  source    String?  // "auto" (AI-extracted) | "user" (explicitly told) | "admin" (admin-set)
+  confidence Float   @default(0.8) // 0-1, how confident the AI was when extracting
+  expiresAt DateTime? // optional TTL for context-type memories
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, userType])
+  @@index([userId, type])
+}
+
 // ─── EMAIL TEMPLATES ─────────────────────────────────────────────────────────
 // Editable transactional email templates. Each row is a template that the
 // admin Communications Hub can edit. The `key` field is what `src/lib/sendgrid.ts`

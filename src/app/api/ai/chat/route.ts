@@ -242,6 +242,38 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Extract and persist memory blocks from AI response (fire-and-forget)
+    const MEMORY_REGEX = /\[MEMORY:save\]([\s\S]*?)\[\/MEMORY\]/g;
+    let memMatch: RegExpExecArray | null;
+    MEMORY_REGEX.lastIndex = 0;
+    while ((memMatch = MEMORY_REGEX.exec(finalResult.content)) !== null) {
+      try {
+        const parsed = JSON.parse(memMatch[1].trim());
+        if (parsed.content && parsed.type) {
+          prisma.aiMemory.create({
+            data: {
+              userId,
+              userType,
+              type: parsed.type,
+              content: parsed.content,
+              source: "auto",
+              confidence: 0.85,
+            },
+          }).catch(() => {});
+        }
+      } catch {}
+    }
+    // Strip memory blocks from the content shown to user
+    const cleanContent = finalResult.content.replace(MEMORY_REGEX, "").trim();
+
+    // Update the persisted message to not include memory blocks
+    if (cleanContent !== finalResult.content) {
+      prisma.aiMessage.update({
+        where: { id: assistantMessage.id },
+        data: { content: cleanContent },
+      }).catch(() => {});
+    }
+
     // Bump conversation timestamp
     await prisma.aiConversation.update({
       where: { id: conversation.id },
@@ -271,7 +303,7 @@ export async function POST(req: NextRequest) {
       assistantMessage: {
         id: assistantMessage.id,
         role: "assistant",
-        content: assistantMessage.content,
+        content: cleanContent || assistantMessage.content,
         createdAt: assistantMessage.createdAt,
         speakerPersona: assistantMessage.speakerPersona,
         handoffMetadata: assistantMessage.handoffMetadata,

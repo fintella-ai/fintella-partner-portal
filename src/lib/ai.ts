@@ -287,6 +287,24 @@ export async function buildUserContext(
 
     const tierDisplay = (partner.tier || "l1").toUpperCase();
 
+    // Load persisted memories for this user
+    const memories = await prisma.aiMemory.findMany({
+      where: {
+        userId,
+        userType: "partner",
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ],
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 20,
+    });
+
+    const memoriesBlock = memories.length > 0
+      ? `\n### Your Memory (things you've told me or I've learned)\n${memories.map((m) => `- [${m.type}] ${m.content}`).join("\n")}\n`
+      : "";
+
     return `
 ## Current User (live data)
 - **Name**: ${partner.firstName || ""} ${partner.lastName || ""}
@@ -305,11 +323,23 @@ export async function buildUserContext(
 
 ### Recent Deals (last 10)
 ${dealsSummary}
-
+${memoriesBlock}
 Use this data to give personalized answers. Reference specific deals by
 name when relevant. If the user asks about a deal not in this list, tell
 them you only have their 10 most recent deals and offer to help find
 older ones via the Deals page.
+
+## Memory Instructions
+When the user tells you something about themselves, their business, or how they prefer to be helped, you SHOULD remember it for future conversations. To save a memory, include a memory block in your response:
+[MEMORY:save]{"type":"fact|preference|context|instruction","content":"what to remember"}[/MEMORY]
+
+Types:
+- fact: something about the user (e.g. "works in customs brokerage", "has 3 L2 partners")
+- preference: how they like to work (e.g. "prefers bullet points", "wants short answers")
+- context: ongoing situation (e.g. "working on onboarding 5 new clients this week")
+- instruction: explicit directive (e.g. "always remind me about my commission targets")
+
+Only save genuinely useful long-term information. Don't save transient questions or greetings.
 `.trim();
   } catch (err) {
     console.error("[ai] buildUserContext error:", err);
