@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit, diffFields } from "@/lib/audit-log";
+import {
+  isFrozen,
+  addTags,
+  DEAL_TAG,
+  STAGE_SUBMITTED_TO_FROST,
+} from "@/lib/tariff-deal-tags";
 
 /**
  * GET /api/admin/deals/[id]
@@ -51,6 +57,68 @@ export async function PUT(
 
     const strOrNull = (v: any) =>
       v === undefined || v === null || String(v).trim() === "" ? null : String(v).trim();
+
+    // Load the existing deal up front so we can enforce the Frost-handoff freeze.
+    const existing = await prisma.deal.findUnique({ where: { id: params.id } });
+    if (!existing) return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+
+    // ── Submit-to-Frost action ────────────────────────────────────────────────
+    // Escalates an internal Tier-1 deal to the law-firm partner. Snapshots the
+    // handoff (amount + timestamp), tags it, and FREEZES it at this stage. The
+    // live stage can still progress downstream for conversion KPI, but the deal
+    // can no longer be manually moved off this stage or deleted.
+    if (body.submitToFrost === true) {
+      if (!["super_admin", "admin"].includes(role)) {
+        return NextResponse.json({ error: "Only admins can submit to Frost" }, { status: 403 });
+      }
+      if (isFrozen(existing)) {
+        return NextResponse.json({ error: "Deal is already submitted to Frost" }, { status: 400 });
+      }
+      const sf = (existing.serviceFields as any) || {};
+      const updated = await prisma.deal.update({
+        where: { id: params.id },
+        data: {
+          stage: STAGE_SUBMITTED_TO_FROST,
+          externalStage: STAGE_SUBMITTED_TO_FROST,
+          tags: addTags(existing.tags, DEAL_TAG.SUBMITTED_TO_FROST, DEAL_TAG.INTERNAL_LEAD),
+          serviceFields: {
+            ...sf,
+            frostSubmittedAt: new Date().toISOString(),
+            frostHandoffStage: existing.stage,
+            frostSubmittedAmount: existing.estimatedRefundAmount ?? 0,
+            frostSubmittedBy: session.user.email || "unknown",
+          },
+        },
+      });
+      logAudit({
+        action: "deal.submit_to_frost",
+        actorEmail: session.user.email || "unknown",
+        actorRole: role,
+        actorId: session.user.id,
+        targetType: "deal",
+        targetId: params.id,
+        details: { amount: existing.estimatedRefundAmount, fromStage: existing.stage },
+        ipAddress: req.headers.get("x-forwarded-for") || undefined,
+        userAgent: req.headers.get("user-agent") || undefined,
+      }).catch(() => {});
+      return NextResponse.json({ deal: updated, submittedToFrost: true });
+    }
+
+    // ── Freeze enforcement ────────────────────────────────────────────────────
+    // Once submitted to Frost, the deal is frozen: no manual stage moves off the
+    // handoff stage and no removal of the frost tag. (Conversion is recorded via
+    // the markFrostConverted flow below, not by manually moving the stage.)
+    if (isFrozen(existing) && body.stage !== undefined && body.stage !== existing.stage && body.markFrostConverted !== true) {
+      return NextResponse.json(
+        { error: "This deal is frozen at Submitted to Frost and cannot be moved." },
+        { status: 403 },
+      );
+    }
+
+    // Mark an escalated deal as converted (closed won at Frost) — KPI sync.
+    if (body.markFrostConverted === true && isFrozen(existing)) {
+      data.tags = addTags(existing.tags, DEAL_TAG.FROST_CONVERTED);
+    }
 
     if (body.dealName !== undefined) data.dealName = body.dealName;
     if (body.clientFirstName !== undefined) data.clientFirstName = strOrNull(body.clientFirstName);
@@ -145,7 +213,13 @@ export async function PUT(
       }
     }
 
-    const before = await prisma.deal.findUnique({ where: { id: params.id } });
+    // Generic tag edits (e.g. add "tier1"); never strip the frost tag once frozen.
+    if (Array.isArray(body.tags)) {
+      const next = body.tags.filter((t: any) => typeof t === "string");
+      data.tags = isFrozen(existing) ? addTags(next, DEAL_TAG.SUBMITTED_TO_FROST) : next;
+    }
+
+    const before = existing;
     const deal = await prisma.deal.update({
       where: { id: params.id },
       data,
@@ -208,6 +282,15 @@ export async function DELETE(
   if (!["super_admin", "admin", "accounting", "partner_support"].includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
+    // Frozen (submitted-to-Frost) deals are a permanent KPI record — never delete.
+    const target = await prisma.deal.findUnique({ where: { id: params.id }, select: { tags: true, stage: true } });
+    if (target && isFrozen(target)) {
+      return NextResponse.json(
+        { error: "This deal is frozen at Submitted to Frost and cannot be deleted (KPI record)." },
+        { status: 403 },
+      );
+    }
+
     const paidLedger = await prisma.commissionLedger.findMany({
       where: { dealId: params.id, status: "paid" },
       select: { id: true, tier: true, partnerCode: true },

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendForSigning } from "@/lib/signwell";
+import { classifyDealTier } from "@/lib/tariff-calculator";
+import { deriveTariffTags } from "@/lib/tariff-deal-tags";
 import {
   TARIFF_DIY_SERVICE,
   TARIFF_CONSENT_TEMPLATE_ID,
@@ -91,13 +93,16 @@ export async function POST(req: NextRequest) {
     // Pull file count + estimated refund from the linked dossier for volume / % pricing
     let fileCount = 1;
     let refundCents = 0;
+    let totalDuties = 0;
     if (dossierId) {
       const d = await prisma.tariffDossier.findUnique({ where: { id: dossierId } }).catch(() => null);
       if (d) {
         fileCount = Math.max(1, d.entryCount || 1);
-        refundCents = Math.round(Number(d.totalEstRefund || 0) * 100) + Math.round(Number(d.totalEstInterest || 0) * 100);
+        totalDuties = Number(d.totalEstRefund || 0);
+        refundCents = Math.round(totalDuties * 100) + Math.round(Number(d.totalEstInterest || 0) * 100);
       }
     }
+    const isTier1 = classifyDealTier(totalDuties) === "tier1";
 
     const pricing = computeEngagementPricing(pricingModel, { fileCount, refundCents, addOns });
 
@@ -130,6 +135,7 @@ export async function POST(req: NextRequest) {
             ? estimatedRefund
             : undefined,
         stage: "lead_submitted",
+        tags: deriveTariffTags(totalDuties, isTier1),
         serviceFields: { ...engagement },
       },
     });

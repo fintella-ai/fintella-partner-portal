@@ -301,6 +301,7 @@ export async function POST(req: NextRequest) {
         businessState: state || null,
         businessZip: zip || null,
         stage: "lead_submitted",
+        tags: ["kwong"],
         affiliateNotes: partner ? `Referred by partner ${partner.partnerCode}` : null,
         serviceFields: {
           filer_type,

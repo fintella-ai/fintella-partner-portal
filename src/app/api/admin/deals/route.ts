@@ -21,6 +21,18 @@ export async function GET(req: NextRequest) {
     const partner = req.nextUrl.searchParams.get("partner");
     if (partner) where.partnerCode = partner;
 
+    // Tag filter (segmented pipelines): ?tag=tariff|kwong|internal_lead|tier1|submitted_to_frost
+    const tag = req.nextUrl.searchParams.get("tag");
+    if (tag && tag !== "all") where.tags = { has: tag };
+
+    // Service filter — tariff is tag-driven; Kwong is matched by service name
+    // (legacy Kwong deals predate tagging).
+    const service = req.nextUrl.searchParams.get("service");
+    if (service === "tariff") where.tags = { has: "tariff" };
+    else if (service === "kwong") {
+      where.OR = [{ tags: { has: "kwong" } }, { serviceOfInterest: { contains: "Kwong" } }];
+    }
+
     const search = req.nextUrl.searchParams.get("search");
     if (search) {
       where.OR = [
