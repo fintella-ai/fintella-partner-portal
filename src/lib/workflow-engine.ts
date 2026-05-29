@@ -457,6 +457,24 @@ interface ActionResult {
   response?: { status?: number; body?: string };
 }
 
+// Hosts allowed for the optional signed-PDF fetch in webhook.post (SSRF guard).
+// SignWell serves completed PDFs from its own domain and its S3 storage.
+const ALLOWED_PDF_HOSTS = ["signwell.com", "amazonaws.com"];
+
+function isAllowedPdfHost(rawUrl: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "https:") return false;
+  const host = parsed.hostname.toLowerCase();
+  return ALLOWED_PDF_HOSTS.some(
+    (allowed) => host === allowed || host.endsWith(`.${allowed}`)
+  );
+}
+
 async function executeAction(
   action: WorkflowAction,
   payload: Record<string, unknown>
@@ -501,7 +519,12 @@ async function executeAction(
         if (config.attachPdf) {
           const deal = payload.deal as Record<string, unknown> | undefined;
           const pdfUrl = String(deal?.signedPdfUrl || config.pdfUrl || "").trim();
-          if (pdfUrl) {
+          // SSRF guard: only fetch the PDF over HTTPS from the document
+          // provider's own hosts (SignWell + its S3 storage). The URL ultimately
+          // originates from the SignWell webhook/API, but we validate it here so
+          // a tampered serviceFields value can never point the fetch at an
+          // internal/arbitrary host.
+          if (pdfUrl && isAllowedPdfHost(pdfUrl)) {
             try {
               const pdfRes = await fetch(pdfUrl);
               if (pdfRes.ok) {
