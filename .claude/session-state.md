@@ -1,12 +1,26 @@
 # Session State
 
-🕒 Last updated: 2026-05-29 — **Webhook workflow variables + OpCenter integration**
+## ▶️ RESUME HERE — NEXT STEPS
+1. **Verify prod schema** (should be in sync — Vercel build runs `prisma db push` on every deploy): pull prod env via `vercel env pull`, map `STORAGE_DATABASE_URL_UNPOOLED`→`DATABASE_URL` (by var, never inline), `npx prisma db push`. Confirms Deal cols + AiMemory + User 2FA cols.
+2. **Enroll in 2FA** at `/admin/account` (TwoFactorCard) → scan QR → save backup codes → test login with the code.
+3. **Merge open docs PR** (this branch) if not already merged.
+4. Wire an OpCenter-forwarding workflow (`deal.stage_changed`, filter `{deal.agreementStatus}`=`completed`); use the **live token preview** to validate the body before saving.
+5. Optional: enforce 2FA per-role (phase 2); build the webhook "golden payload" diff; add admin passkeys.
+
+🕒 Last updated: 2026-05-29 (late) — **Webhook vars + OpCenter + 5 follow-ups (AI chat, token preview, Blob mirror, outbound dashboard, admin 2FA)**
 
 ## 🌿 Git state
 
-- **Branch**: `main` @ `cd04242`
+- **Branch**: `main` @ `8e773fa`
 - **Working tree**: clean (only untracked `Kwong Client intake form/` — not ours)
-- All work merged. 7 PRs squashed to main this session (#1068–#1074).
+- 13 PRs merged this session: #1068–#1079, #1081.
+
+## ✅ Follow-ups merged (beast mode)
+- **#1076** unified AI chat widget + per-user cloud memory (AiMemory model) — the held mobile-bottom-nav work, rebased
+- **#1077** live token preview in workflow editor (previewInterpolate + /api/admin/workflows/preview)
+- **#1078** persistent Blob PDF mirror — SignWell completion downloads via downloadCompletedPdf() (constant base, no SSRF) → Vercel Blob → serviceFields.signedPdfMirrorUrl
+- **#1079** outbound webhook dashboard + one-click resend (/api/admin/dev/resend-webhook)
+- **#1081** opt-in admin 2FA (TOTP, otplib) + Google OAuth for admins — User += totpSecret/totpEnabled/totpPendingSecret/totpBackupCodes. Opt-in, NO lockout. Enroll at /admin/account.
 
 ## ✅ What's done (this session)
 
@@ -27,7 +41,7 @@
 - **Outbound webhooks** append to Deal.rawPayload (green "→ OUT" badge w/ status + response) AND write WebhookRequestLog(direction=outgoing).
 
 ## 🔄 In flight / OPEN
-1. **`prisma db push` STILL PENDING on prod** for #1068 columns (external_deal_id, ido_key, partner_response, internal_raw_code). Auto-classifier blocked Claude from running it. Run manually with the prod (unpooled) Neon `DATABASE_URL` pulled via `vercel env pull` — do NOT commit the credential.
+1. **`prisma db push` STILL PENDING on prod** — now covers: #1068 Deal columns (external_deal_id, ido_key, partner_response, internal_raw_code) + #1076 AiMemory table + #1081 User 2FA columns (totpSecret, totpEnabled, totpPendingSecret, totpBackupCodes). ONE push lands all. Auto-classifier blocked Claude. Run manually with the prod (unpooled) Neon `DATABASE_URL` via `vercel env pull` — do NOT commit the credential.
 2. **True Blob PDF mirror** — #1074 aliases signedPdfMirrorUrl to the *expiring* SignWell URL. Real fix: upload PDF to Vercel Blob on SignWell completion, store `serviceFields.signedPdfMirrorUrl`.
 3. **2026-05-27 AI chat work** on `claude/mobile-bottom-nav` (`d7ac792`) still needs its own PR (unified widget + AiMemory).
 
