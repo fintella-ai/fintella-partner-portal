@@ -5,10 +5,13 @@ import {
   TARIFF_DIY_SERVICE,
   TARIFF_CONSENT_TEMPLATE_ID,
   TARIFF_SIGNWELL_APP_ID,
-  TARIFF_UPFRONT_FEE_CENTS,
   TARIFF_SIGNER_ROLE,
   TARIFF_COSIGNER_ROLE,
   TARIFF_SIGNER_NAME_FIELD,
+  computeEngagementPricing,
+  requiresUnderwriting,
+  type TariffPricingModel,
+  type TariffAddOn,
   type TariffEngagementState,
 } from "@/lib/tariff-engagement";
 
@@ -59,7 +62,7 @@ export async function POST(req: NextRequest) {
         dealId: recentDeal.id,
         signingUrl: sf.signwellSigningUrl || "",
         documentId: sf.signwellDocumentId || "",
-        upfrontFeeCents: sf.upfrontFeeCents ?? TARIFF_UPFRONT_FEE_CENTS,
+        upfrontFeeCents: sf.upfrontFeeCents ?? 0,
         deduplicated: true,
       });
     }
@@ -73,12 +76,43 @@ export async function POST(req: NextRequest) {
       partnerCode = partner?.partnerCode || ref || "DIRECT";
     }
 
+    // Pricing model + add-ons
+    const VALID_MODELS: TariffPricingModel[] = [
+      "upfront", "widget_onetime", "widget_per_submission", "per_file_volume", "refund_percent", "dual", "buyout",
+    ];
+    const requested = (body?.pricingModel as TariffPricingModel) || "upfront";
+    const pricingModel: TariffPricingModel = VALID_MODELS.includes(requested) ? requested : "upfront";
+    const VALID_ADDONS: TariffAddOn[] = ["legal_review", "litigation_guarantee"];
+    const addOns: TariffAddOn[] = Array.isArray(body?.addOns)
+      ? body.addOns.filter((a: any) => VALID_ADDONS.includes(a))
+      : [];
+    const isWidget = pricingModel === "widget_onetime" || pricingModel === "widget_per_submission";
+
+    // Pull file count + estimated refund from the linked dossier for volume / % pricing
+    let fileCount = 1;
+    let refundCents = 0;
+    if (dossierId) {
+      const d = await prisma.tariffDossier.findUnique({ where: { id: dossierId } }).catch(() => null);
+      if (d) {
+        fileCount = Math.max(1, d.entryCount || 1);
+        refundCents = Math.round(Number(d.totalEstRefund || 0) * 100) + Math.round(Number(d.totalEstInterest || 0) * 100);
+      }
+    }
+
+    const pricing = computeEngagementPricing(pricingModel, { fileCount, refundCents, addOns });
+
+    const underwriting = requiresUnderwriting(pricingModel);
+
     const engagement: TariffEngagementState = {
-      pathway: "diy",
-      pricingModel: "upfront",
+      pathway: isWidget ? "widget" : "diy",
+      pricingModel,
       consentTemplateId: TARIFF_CONSENT_TEMPLATE_ID,
-      upfrontFeeCents: TARIFF_UPFRONT_FEE_CENTS,
+      upfrontFeeCents: pricing.upfrontCents,
+      backendBps: pricing.backendBps,
+      addOns,
+      platform: body?.platform || null,
       upfrontStatus: "unpaid",
+      underwritingStatus: underwriting ? "pending" : undefined,
       dossierId: dossierId || null,
     };
 
@@ -151,7 +185,10 @@ export async function POST(req: NextRequest) {
       dealId: deal.id,
       signingUrl: swResult.embeddedSigningUrl || "",
       documentId: swResult.documentId,
-      upfrontFeeCents: TARIFF_UPFRONT_FEE_CENTS,
+      upfrontFeeCents: pricing.upfrontCents,
+      backendBps: pricing.backendBps,
+      lineItems: pricing.lineItems,
+      underwritingRequired: underwriting,
     });
   } catch (err: any) {
     console.error("[tariff-engage] Error:", err);

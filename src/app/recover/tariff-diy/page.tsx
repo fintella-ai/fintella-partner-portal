@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import EngageFlow from "./EngageFlow";
-import { TARIFF_UPFRONT_FEE_CENTS } from "@/lib/tariff-engagement";
+import {
+  TARIFF_UPFRONT_FEE_CENTS,
+  TARIFF_WIDGET_UNLOCK_FEE_CENTS,
+  TARIFF_WIDGET_PER_SUBMISSION_CENTS,
+  TARIFF_WIDGET_PLATFORMS,
+} from "@/lib/tariff-engagement";
+
+const usd = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
 
 export const metadata: Metadata = {
   title: "DIY IEEPA Tariff Refund File — Keep 100% of Your Refund",
@@ -18,7 +25,9 @@ export default function TariffDiyPage({
   const partnerCode = searchParams.ref || searchParams.utm_content || null;
   const tokenizationKey = process.env.NMI_TOKENIZATION_KEY || "";
   const demoMode = !tokenizationKey;
-  const feeLabel = `$${(TARIFF_UPFRONT_FEE_CENTS / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
+  const feeLabel = usd(TARIFF_UPFRONT_FEE_CENTS);
+  const widgetOnceLabel = usd(TARIFF_WIDGET_UNLOCK_FEE_CENTS);
+  const widgetPerLabel = usd(TARIFF_WIDGET_PER_SUBMISSION_CENTS);
 
   return (
     <main className="min-h-screen bg-[#060a14] text-white">
@@ -60,6 +69,9 @@ export default function TariffDiyPage({
             demoMode={demoMode}
             partnerCode={partnerCode}
             feeLabel={feeLabel}
+            widgetOnceLabel={widgetOnceLabel}
+            widgetPerLabel={widgetPerLabel}
+            platforms={TARIFF_WIDGET_PLATFORMS}
           />
         </div>
       </div>

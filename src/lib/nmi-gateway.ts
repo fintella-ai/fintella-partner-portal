@@ -115,6 +115,45 @@ export async function chargeOneTime(
   return nmiRequest(params);
 }
 
+/**
+ * Authorization-only hold against a Collect.js token (NMI type=auth). Funds are
+ * reserved, not captured. Used for the buyout flow: hold the upfront fee until
+ * underwriting decides — void on approval (fee netted from payout), capture on
+ * decline (Fintella keeps the fee). Amount in CENTS.
+ */
+export async function authorizeOneTime(
+  paymentToken: string,
+  amountCents: number,
+  opts: { email?: string; orderId?: string; orderDescription?: string } = {},
+): Promise<NmiResponse> {
+  if (!NMI_API_KEY) {
+    return { response: "1", responsetext: "Demo mode — auth hold", transactionid: `demo_auth_${Date.now()}` };
+  }
+  const params: Record<string, string> = {
+    type: "auth",
+    payment_token: paymentToken,
+    amount: (amountCents / 100).toFixed(2),
+    order_id: opts.orderId || `hold_${Date.now()}`,
+  };
+  if (opts.email) params.email = opts.email;
+  if (opts.orderDescription) params.order_description = opts.orderDescription;
+  return nmiRequest(params);
+}
+
+/** Capture a prior authorization (NMI type=capture) — collects the held funds. */
+export async function captureAuth(transactionId: string, amountCents?: number): Promise<NmiResponse> {
+  if (!NMI_API_KEY) return { response: "1", responsetext: "Demo mode — captured", transactionid: transactionId };
+  const params: Record<string, string> = { type: "capture", transactionid: transactionId };
+  if (amountCents) params.amount = (amountCents / 100).toFixed(2);
+  return nmiRequest(params);
+}
+
+/** Void a prior authorization (NMI type=void) — releases the hold, no charge. */
+export async function voidAuth(transactionId: string): Promise<NmiResponse> {
+  if (!NMI_API_KEY) return { response: "1", responsetext: "Demo mode — voided", transactionid: transactionId };
+  return nmiRequest({ type: "void", transactionid: transactionId });
+}
+
 export async function addRecurringPlan(
   customerVaultId: string,
   planAmount: number,
