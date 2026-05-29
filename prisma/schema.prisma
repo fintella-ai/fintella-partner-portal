@@ -1001,6 +1001,11 @@ model Deal {
   service               Service?  @relation(fields: [serviceId], references: [id])
   serviceFields         Json?
 
+  // Free-form deal tags for segmented pipelines + filters + KPI
+  // (e.g. "tariff", "kwong", "internal_lead", "tier1", "submitted_to_frost",
+  // "frost_converted"). Additive — defaults to empty.
+  tags                  String[]  @default([])
+
   tariffDossiers  TariffDossier[]
 
   @@index([partnerCode])
