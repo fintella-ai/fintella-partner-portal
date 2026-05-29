@@ -10,6 +10,25 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { appendDealPayload } from "@/lib/appendDealPayload";
+
+// Header names whose values are redacted before logging outbound webhook calls.
+const REDACTED_HEADER_NAMES = new Set([
+  "authorization",
+  "x-fintella-api-key",
+  "x-webhook-secret",
+  "x-api-key",
+  "api-key",
+  "cookie",
+]);
+
+function redactHeaders(headers: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(headers)) {
+    out[k] = REDACTED_HEADER_NAMES.has(k.toLowerCase()) ? "[REDACTED]" : v;
+  }
+  return out;
+}
 import { resolveAbVariant } from "@/lib/ab-test";
 
 // ─── Trigger keys ────────────────────────────────────────────────────────────
@@ -524,10 +543,60 @@ async function executeAction(
         } finally {
           clearTimeout(timeout);
         }
+
+        // Persist this outbound exchange so it's auditable in two places:
+        //   1) the deal's Raw Source Payloads log (chronological, one per fire)
+        //   2) the developer API log (WebhookRequestLog, direction=outgoing)
+        // Fire-and-forget — logging must never break the action result.
+        const durationMs = Date.now() - start;
+        const dealForLog = payload.deal as Record<string, unknown> | undefined;
+        const dealIdForLog = dealForLog?.id ? String(dealForLog.id) : "";
+        if (dealIdForLog) {
+          (async () => {
+            try {
+              const current = await prisma.deal.findUnique({
+                where: { id: dealIdForLog },
+                select: { rawPayload: true },
+              });
+              if (current) {
+                await prisma.deal.update({
+                  where: { id: dealIdForLog },
+                  data: {
+                    rawPayload: appendDealPayload(current.rawPayload, {
+                      method: "WEBHOOK_OUT",
+                      body: bodyString,
+                      targetUrl: url,
+                      responseStatus: resStatus,
+                      responseBody: resBody,
+                    }),
+                  },
+                });
+              }
+            } catch (e) {
+              console.error("[workflow-engine] append outbound rawPayload failed:", e);
+            }
+          })();
+        }
+        prisma.webhookRequestLog
+          .create({
+            data: {
+              direction: "outgoing",
+              method: "POST",
+              path: "/workflow/webhook.post",
+              targetUrl: url,
+              headers: JSON.stringify(redactHeaders(headers)),
+              body: bodyString.slice(0, 10_000),
+              responseStatus: resStatus,
+              responseBody: resBody.slice(0, 4_000),
+              durationMs,
+            },
+          })
+          .catch((e) => console.error("[workflow-engine] outbound WebhookRequestLog failed:", e));
+
         return {
           type,
           status: resStatus >= 200 && resStatus < 400 ? "success" : "failed",
-          durationMs: Date.now() - start,
+          durationMs,
           error: resStatus >= 400 ? `HTTP ${resStatus}: ${resBody.slice(0, 200)}` : undefined,
           request: { url, body: bodyString.slice(0, 2000) },
           response: { status: resStatus, body: resBody.slice(0, 2000) },

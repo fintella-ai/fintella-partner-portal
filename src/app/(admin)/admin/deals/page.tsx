@@ -923,18 +923,38 @@ export default function AdminDealsPage() {
                       <details className="mb-3 p-2.5 rounded-lg" style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}>
                         <summary className="font-body text-[10px] text-[var(--app-text-muted)] uppercase tracking-wider cursor-pointer select-none">Raw Source Payloads ({events.length} event{events.length !== 1 ? "s" : ""})</summary>
                         <div className="mt-2 space-y-2">
-                          {events.map((evt, i) => (
+                          {events.map((evt, i) => {
+                            const isOut = evt.method === "WEBHOOK_OUT";
+                            const badgeClass = evt.method === "POST"
+                              ? "bg-blue-500/15 text-blue-400"
+                              : isOut
+                                ? "bg-emerald-500/15 text-emerald-400"
+                                : "bg-purple-500/15 text-purple-400";
+                            const ev = evt as typeof evt & { targetUrl?: string; responseStatus?: number; responseBody?: string };
+                            return (
                             <div key={i} className="p-2 rounded" style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-border)" }}>
-                              <div className="font-body text-[10px] text-[var(--app-text-muted)] mb-1 flex items-center gap-2">
-                                <span className={`font-mono px-1.5 py-0.5 rounded ${evt.method === "POST" ? "bg-blue-500/15 text-blue-400" : "bg-purple-500/15 text-purple-400"}`}>{evt.method}</span>
+                              <div className="font-body text-[10px] text-[var(--app-text-muted)] mb-1 flex items-center gap-2 flex-wrap">
+                                <span className={`font-mono px-1.5 py-0.5 rounded ${badgeClass}`}>{isOut ? "→ OUT" : evt.method}</span>
                                 <span>{evt.ts === "1970-01-01T00:00:00.000Z" ? "(time unknown — legacy entry)" : new Date(evt.ts).toLocaleString()}</span>
+                                {isOut && ev.responseStatus != null && (
+                                  <span className={`font-mono px-1.5 py-0.5 rounded ${ev.responseStatus >= 200 && ev.responseStatus < 400 ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>{ev.responseStatus}</span>
+                                )}
                               </div>
+                              {isOut && ev.targetUrl && (
+                                <div className="font-mono text-[10px] text-[var(--app-text-muted)] mb-1 break-all">→ {ev.targetUrl}</div>
+                              )}
                               <pre className="font-mono text-[11px] text-[var(--app-text-secondary)] overflow-x-auto whitespace-pre-wrap break-all">{(() => {
                                 try { return JSON.stringify(JSON.parse(evt.body), null, 2); }
                                 catch { return evt.body; }
                               })()}</pre>
+                              {isOut && ev.responseBody && (
+                                <pre className="font-mono text-[10px] text-[var(--app-text-muted)] mt-1 overflow-x-auto whitespace-pre-wrap break-all border-t border-[var(--app-border)] pt-1">↩ {(() => {
+                                  try { return JSON.stringify(JSON.parse(ev.responseBody!), null, 2); }
+                                  catch { return ev.responseBody; }
+                                })()}</pre>
+                              )}
                             </div>
-                          ))}
+                          );})}
                         </div>
                       </details>
                     );
