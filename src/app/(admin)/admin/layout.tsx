@@ -30,7 +30,7 @@ const ADMIN_NAV_IDS_DEFAULT = [
   "partners", "applications", "internal-leads", "deals", "widget-referrals", "widget-analytics", "reporting",
   "communications", "channels", "templates", "internalChats", "partnerSupport",
   "training", "conference", "documents",
-  "campaigns", "campaignReplies", "automations", "gettingStartedEditor", "knowledgeCenter", "tariff-engine", "tariffDeals", "tariffUnderwriting", "aiActivity", "aiPermissions", "landingPages",
+  "campaigns", "campaignReplies", "automations", "gettingStartedEditor", "knowledgeCenter", "tariff-engine", "tariffDeals", "tariffUnderwriting", "accuracyKpi", "aiActivity", "aiPermissions", "landingPages",
   "brokerFunnel",
   "services", "subscriptions", "billing", "settings", "users", "dev", "features",
 ];
@@ -107,6 +107,7 @@ const ADMIN_NAV_ITEMS_MAP: Record<string, NavItem> = {
   "tariff-engine": { id: "tariff-engine", href: "/admin/tariff-engine", icon: "🧮", label: "Tariff Engine" },
   tariffDeals: { id: "tariffDeals", href: "/admin/tariff-deals", icon: "📦", label: "Tariff Deals" },
   tariffUnderwriting: { id: "tariffUnderwriting", href: "/admin/tariff-underwriting", icon: "🏦", label: "Tariff Underwriting" },
+  accuracyKpi: { id: "accuracyKpi", href: "/admin/accuracy-kpi", icon: "🎯", label: "Accuracy & KPI" },
   services:     { id: "services", href: "/admin/services", icon: "⚙️", label: "Services" },
   settings:     { id: "settings", href: "/admin/settings", icon: "⚙️", label: "Settings" },
   subscriptions: { id: "subscriptions", href: "/admin/subscriptions", icon: "💎", label: "Subscriptions" },
