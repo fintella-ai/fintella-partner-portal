@@ -904,6 +904,7 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
   "client_name": "{deal.clientName}",
   "client_email": "{deal.clientEmail}",
   "legal_entity_name": "{deal.legalEntityName}",
+  "company_ein": "{deal.companyEin}",
   "entity_type": "{deal.entityType}",
   "business_address": "{deal.businessAddress}",
   "service_of_interest": "{deal.serviceOfInterest}",

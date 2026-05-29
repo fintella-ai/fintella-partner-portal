@@ -639,6 +639,18 @@ async function postHandler(req: NextRequest): Promise<Response> {
       "postcode"
     );
 
+    // Business entity classification — surfaced as {deal.entityType} /
+    // {deal.filerType}. Stored in serviceFields so deriveDealWorkflowFields()
+    // can read them regardless of whether the service has a formFieldsConfig.
+    const entityType = get(
+      "entity_type",
+      "entityType",
+      "business_entity_type",
+      "businessEntityType",
+      "entity"
+    );
+    const filerType = get("filer_type", "filerType", "filer");
+
     // Tariff-specific fields
     const importsGoods = get(
       "imports_goods",
@@ -826,7 +838,14 @@ async function postHandler(req: NextRequest): Promise<Response> {
           partner_response: partnerResponse ?? undefined,
           internal_raw_code: internalRawCode,
           serviceId,
-          serviceFields: (service?.formFieldsConfig ? extractServiceFields(body, service.formFieldsConfig) : undefined) || undefined,
+          serviceFields: (() => {
+            const extracted = service?.formFieldsConfig ? extractServiceFields(body, service.formFieldsConfig) : {};
+            const merged: Record<string, unknown> = { ...(extracted || {}) };
+            // Always persist entity/filer type so {deal.entityType} resolves.
+            if (entityType) merged.entity_type = entityType;
+            if (filerType) merged.filer_type = filerType;
+            return Object.keys(merged).length ? (merged as any) : undefined;
+          })(),
           notes: `Source: Referral Form | Partner: ${partnerCode || "none"}${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
         },
       });
@@ -1270,6 +1289,19 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       data.partner_response = typeof patchPartnerResponseRaw === "object"
         ? patchPartnerResponseRaw
         : { raw: String(patchPartnerResponseRaw) };
+    }
+
+    // Entity / filer type live in the serviceFields JSON blob — merge with the
+    // existing value so {deal.entityType} fills without clobbering other fields.
+    const patchEntityType = pickStr("entity_type", "entityType", "business_entity_type", "businessEntityType", "entity");
+    const patchFilerType = pickStr("filer_type", "filerType", "filer");
+    if (patchEntityType || patchFilerType) {
+      const existingSf = (deal.serviceFields as Record<string, unknown>) || {};
+      data.serviceFields = {
+        ...existingSf,
+        ...(patchEntityType ? { entity_type: patchEntityType } : {}),
+        ...(patchFilerType ? { filer_type: patchFilerType } : {}),
+      };
     }
 
     // Consultation scheduling (create or reschedule)
