@@ -18,7 +18,12 @@ interface Props {
   demoMode: boolean;
   partnerCode: string | null;
   feeLabel: string;
+  widgetOnceLabel: string;
+  widgetPerLabel: string;
+  platforms: string[];
 }
+
+type PricingModel = "upfront" | "widget_onetime" | "widget_per_submission";
 
 interface EntryRow {
   countryOfOrigin: string;
@@ -44,7 +49,7 @@ const STORAGE_KEY = "tariff_diy_engagement";
 const emptyRow: EntryRow = { countryOfOrigin: "", entryDate: "", enteredValue: "", entryNumber: "", liquidationDate: "" };
 const fmt = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 
-export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, feeLabel }: Props) {
+export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, feeLabel, widgetOnceLabel, widgetPerLabel, platforms }: Props) {
   const [step, setStep] = useState<Step>("analyze");
   const [contact, setContact] = useState({ clientName: "", email: "", company: "", phone: "" });
   const [rows, setRows] = useState<EntryRow[]>([{ ...emptyRow }]);
@@ -55,6 +60,10 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
   const [signingUrl, setSigningUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showWidget, setShowWidget] = useState(false);
+  const [platform, setPlatform] = useState("");
+  const [pathwayLabel, setPathwayLabel] = useState("done-for-you file");
+  const [feeDisplay, setFeeDisplay] = useState(feeLabel);
   const collectConfigured = useRef(false);
 
   // Resume after the new-tab signing redirect (?signed=1); localStorage is shared across tabs.
@@ -106,14 +115,24 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
   }
 
   // ── Step 2: engage → send consent ──────────────────────────────────────────
-  async function engage() {
+  async function engage(pricingModel: PricingModel = "upfront") {
     setError("");
     setLoading(true);
+    setPathwayLabel(
+      pricingModel === "widget_onetime" ? "widget (full unlock)"
+        : pricingModel === "widget_per_submission" ? "widget (per submission)"
+        : "done-for-you file",
+    );
+    setFeeDisplay(
+      pricingModel === "widget_onetime" ? widgetOnceLabel
+        : pricingModel === "widget_per_submission" ? widgetPerLabel
+        : feeLabel,
+    );
     try {
       const res = await fetch("/api/tariff/engage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...contact, clientCompany: contact.company, dossierId, ref: partnerCode, estimatedRefund: summary?.totalRefundWithInterest }),
+        body: JSON.stringify({ ...contact, clientCompany: contact.company, dossierId, ref: partnerCode, estimatedRefund: summary?.totalRefundWithInterest, pricingModel, platform: platform || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not start engagement");
@@ -240,9 +259,34 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
             For a flat <strong className="text-white">{feeLabel}</strong> we prepare your fully substantiated,
             audit-ready CAPE file + guided self-file kit. You keep 100% of the refund.
           </p>
-          <button onClick={engage} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
-            {loading ? "Starting…" : "Engage — prepare my file →"}
+          <button onClick={() => engage("upfront")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
+            {loading ? "Starting…" : `Get my done-for-you file — ${feeLabel} →`}
           </button>
+
+          {/* Fallback / add-on upsell — widget for CRM/TMS users */}
+          {!showWidget ? (
+            <button onClick={() => setShowWidget(true)} className="w-full text-sm text-white/50 hover:text-white/80 transition py-1">
+              Use a CRM or TMS? See the widget option →
+            </button>
+          ) : (
+            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
+              <div className="text-sm text-white/80 font-semibold">Embed tariff-refund analysis in your workflow</div>
+              <p className="text-xs text-white/50">Which platform do you use? We&apos;ll send a free trial API key + integration guide so you can run refunds right inside it.</p>
+              <select className={inputCls} value={platform} onChange={(e) => setPlatform(e.target.value)}>
+                <option value="">Select your CRM / TMS…</option>
+                {platforms.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <div className="grid grid-cols-1 gap-2 pt-1">
+                <button onClick={() => engage("widget_onetime")} disabled={loading} className="w-full rounded-lg py-2.5 text-sm font-semibold transition disabled:opacity-50" style={{ background: GOLD, color: "#060a14" }}>
+                  Full unlock — {widgetOnceLabel} one-time
+                </button>
+                <button onClick={() => engage("widget_per_submission")} disabled={loading} className="w-full rounded-lg py-2.5 text-sm font-semibold border border-white/15 text-white/80 hover:bg-white/5 transition disabled:opacity-50">
+                  Pay as you go — {widgetPerLabel} / submission
+                </button>
+              </div>
+              <p className="text-[11px] text-white/30">Free trial returns a partial analysis; full calculation + file unlock when you choose a plan.</p>
+            </div>
+          )}
           <p className="text-[11px] text-white/30 text-center">Estimate only, not a guarantee of approval. Fintella is not a law firm.</p>
         </div>
       )}
@@ -268,15 +312,15 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
       {/* Step 4 — pay */}
       {step === "pay" && (
         <div className="space-y-4">
-          <h3 className="font-display text-2xl" style={{ color: GOLD }}>File preparation fee</h3>
-          <p className="text-sm text-white/60">One-time <strong className="text-white">{feeLabel}</strong> for your substantiated, audit-ready CAPE self-file kit. No contingency — the refund is 100% yours.</p>
+          <h3 className="font-display text-2xl" style={{ color: GOLD }}>Checkout — {pathwayLabel}</h3>
+          <p className="text-sm text-white/60"><strong className="text-white">{feeDisplay}</strong> for your substantiated, audit-ready CAPE self-file kit. No contingency — the refund is 100% yours.</p>
           {demoMode ? (
             <button onClick={() => payWithToken("demo-token")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
-              {loading ? "Processing…" : `Simulate payment (demo) — ${feeLabel}`}
+              {loading ? "Processing…" : `Simulate payment (demo) — ${feeDisplay}`}
             </button>
           ) : (
             <button onClick={() => window.CollectJS?.startPaymentRequest()} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
-              {loading ? "Processing…" : `Pay ${feeLabel} securely`}
+              {loading ? "Processing…" : `Pay ${feeDisplay} securely`}
             </button>
           )}
           <p className="text-xs text-white/30 text-center">Card processed securely by NMI. We never see your card details.</p>
