@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { chargeOneTime } from "@/lib/nmi-gateway";
+import { chargeOneTime, authorizeOneTime } from "@/lib/nmi-gateway";
 import { sendEmail } from "@/lib/sendgrid";
 import {
   TARIFF_DIY_SERVICE,
@@ -49,6 +49,62 @@ export async function POST(
     }
     if (isPerFile && scope === "sample" && sf.sampleStatus === "paid") {
       return NextResponse.json({ success: true, alreadyPaid: true, dealId, sampleUnlocked: true });
+    }
+
+    // ── Buyout: place an authorization HOLD (not a charge) ────────────────────
+    // The upfront fee is reserved, not captured. Underwriting later voids the
+    // hold on approval (fee netted from the lending payout) or captures it on
+    // decline (Fintella keeps the fee). See /api/admin/tariff/underwriting.
+    if (sf.pricingModel === "buyout") {
+      // Idempotent — a hold is already in place and still pending underwriting.
+      if (sf.upfrontTxnId && (sf.underwritingStatus ?? "pending") === "pending") {
+        return NextResponse.json({ success: true, alreadyHeld: true, held: true, dealId });
+      }
+      const holdCents =
+        typeof sf.upfrontFeeCents === "number" && sf.upfrontFeeCents > 0
+          ? sf.upfrontFeeCents
+          : TARIFF_UPFRONT_FEE_CENTS;
+      const hold = await authorizeOneTime(paymentToken, holdCents, {
+        email: deal.clientEmail || undefined,
+        orderId: `${deal.id}-buyout-hold`,
+        orderDescription: "IEEPA Tariff Refund — buyout upfront hold (pending underwriting)",
+      });
+      if (hold.response !== "1") {
+        return NextResponse.json(
+          { error: hold.responsetext || "Authorization declined" },
+          { status: 402 },
+        );
+      }
+      await prisma.paymentLog.create({
+        data: {
+          partnerCode: deal.partnerCode || "DIRECT",
+          amount: holdCents,
+          currency: "usd",
+          status: "authorized", // held, not captured
+          gatewayTxnId: hold.transactionid || null,
+          gatewayResponse: hold.responsetext || null,
+          description: `Tariff buyout — upfront auth hold — deal ${deal.id}`,
+        },
+      });
+      const holdState: Partial<TariffEngagementState> = {
+        upfrontTxnId: hold.transactionid,
+        upfrontStatus: "unpaid", // reserved, awaiting underwriting decision
+        underwritingStatus: sf.underwritingStatus ?? "pending",
+      };
+      await prisma.deal.update({
+        where: { id: deal.id },
+        data: {
+          stage: deal.stage === "lead_submitted" ? "client_engaged" : deal.stage,
+          serviceFields: { ...sf, ...holdState },
+        },
+      });
+      return NextResponse.json({
+        success: true,
+        held: true,
+        dealId,
+        holdTxnId: hold.transactionid,
+        amountCents: holdCents,
+      });
     }
 
     // Determine the server-authoritative amount for this scope.

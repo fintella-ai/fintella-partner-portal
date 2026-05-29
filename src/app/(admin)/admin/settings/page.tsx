@@ -114,6 +114,7 @@ const ALL_ADMIN_NAV_ITEMS = [
   { id: "knowledgeCenter", label: "Knowledge Center", icon: "🧠" },
   { id: "tariff-engine", label: "Tariff Engine", icon: "🧮" },
   { id: "tariffDeals", label: "Tariff Deals", icon: "📦" },
+  { id: "tariffUnderwriting", label: "Tariff Underwriting", icon: "🏦" },
   { id: "aiPermissions", label: "AI Permissions", icon: "🛡️" },
   { id: "aiActivity", label: "AI Activity", icon: "🤖" },
   { id: "landingPages", label: "Landing Pages", icon: "🌐" },
