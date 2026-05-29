@@ -48,6 +48,10 @@ export interface AuditEntry {
   hasAdCvd?: boolean;
   ieepaRate?: number;
   eligibility?: string;
+  isDrawback?: boolean;     // entry on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
+  isUsmca?: boolean;        // USMCA-preferential claim (CA/MX IEEPA exemption)
+  hasSection232?: boolean;  // Section 232 goods (exempt from IEEPA per Annex II)
+  hasSection301?: boolean;  // Section 301 duties (not refundable)
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -55,8 +59,13 @@ export interface AuditEntry {
 const MAX_ENTRIES = 9999;
 const ENTRY_NUMBER_PATTERN = /^[A-Z0-9]{3}-\d{7}-\d$/;
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
-const PROTEST_WINDOW_DAYS = 80;
+/** Statutory protest deadline from liquidation — 19 U.S.C. §1514. */
+const PROTEST_WINDOW_DAYS = 180;
+/** CAPE Phase-1 automated window: entries liquidated within this many days. */
+const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 const URGENT_THRESHOLD_DAYS = 14;
+const USMCA_EXEMPTION_DATE = new Date("2025-03-07T00:00:00Z");
+const USMCA_COUNTRIES = new Set(["CA", "MX"]);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -248,14 +257,16 @@ export function runAudit(entries: AuditEntry[]): AuditResult {
         : undefined,
     });
 
-    // ELIG_LIQUIDATION — 80-day protest window
+    // ELIG_LIQUIDATION — 180-day statutory protest deadline (19 U.S.C. §1514)
     if (entry.liquidationDate) {
       const liqDate = toDate(entry.liquidationDate);
       const deadlineDate = new Date(liqDate);
       deadlineDate.setDate(deadlineDate.getDate() + PROTEST_WINDOW_DAYS);
       const now = new Date();
       const daysRemaining = daysBetween(now, deadlineDate);
+      const daysSinceLiquidation = daysBetween(liqDate, now);
       const windowOk = daysRemaining >= 0;
+      const viaCapePhase1 = daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS;
 
       checks.push({
         id: "ELIG_LIQUIDATION",
@@ -263,12 +274,17 @@ export function runAudit(entries: AuditEntry[]): AuditResult {
         severity: "error",
         passed: windowOk,
         message: windowOk
-          ? `Protest window open — ${daysRemaining} days remaining (deadline ${deadlineDate.toISOString().slice(0, 10)})`
-          : `Protest window EXPIRED ${Math.abs(daysRemaining)} days ago — cannot file CAPE refund`,
+          ? viaCapePhase1
+            ? `Eligible via CAPE Phase 1 — liquidated ${daysSinceLiquidation} days ago (protest deadline ${deadlineDate.toISOString().slice(0, 10)}, ${daysRemaining} days remaining)`
+            : `Eligible via formal protest — liquidated ${daysSinceLiquidation} days ago, ${daysRemaining} days remaining before the 180-day deadline (${deadlineDate.toISOString().slice(0, 10)})`
+          : `Protest deadline EXPIRED ${Math.abs(daysRemaining)} days ago — refund requires CIT litigation, not CAPE`,
+        detail: windowOk && !viaCapePhase1
+          ? "Liquidated more than 80 days ago: outside the CAPE Phase-1 automated window. A formal protest under 19 U.S.C. §1514 is required to recover this entry."
+          : undefined,
         entryIndex: i,
         entryNumber: entryNum || undefined,
         fix: !windowOk
-          ? "The 80-day protest window from liquidation has expired. Consult legal counsel for CIT options."
+          ? "The 180-day protest window from liquidation has expired. Consult legal counsel for Court of International Trade options."
           : undefined,
       });
 
@@ -304,6 +320,68 @@ export function runAudit(entries: AuditEntry[]): AuditResult {
         fix: !adcvdOk
           ? "Unliquidated AD/CVD entries require legal counsel — cannot use CAPE automated refund"
           : undefined,
+      });
+    }
+
+    // ELIG_DRAWBACK — entries on drawback are rejected by CAPE
+    if (entry.isDrawback) {
+      checks.push({
+        id: "ELIG_DRAWBACK",
+        category: "eligibility",
+        severity: "error",
+        passed: false,
+        message: "Entry is on drawback — CAPE rejects drawback entries (ENTRY ON DRAWBACK)",
+        entryIndex: i,
+        entryNumber: entryNum || undefined,
+        fix: "Remove drawback entries — duties already recovered via drawback are not refundable through CAPE",
+      });
+    }
+
+    // ELIG_USMCA — USMCA-compliant CA/MX goods paid no IEEPA fentanyl duty (eff. Mar 7, 2025)
+    if (
+      entry.isUsmca &&
+      USMCA_COUNTRIES.has(entry.countryOfOrigin.toUpperCase()) &&
+      entryDate >= USMCA_EXEMPTION_DATE
+    ) {
+      checks.push({
+        id: "ELIG_USMCA",
+        category: "eligibility",
+        severity: "error",
+        passed: false,
+        message: `USMCA-compliant ${entry.countryOfOrigin.toUpperCase()} goods are exempt from IEEPA fentanyl tariffs (eff. Mar 7, 2025) — no IEEPA duty was paid`,
+        entryIndex: i,
+        entryNumber: entryNum || undefined,
+        fix: "Remove USMCA-preferential CA/MX entries dated on/after Mar 7, 2025 — no IEEPA duty to refund",
+      });
+    }
+
+    // ELIG_SECTION_232 — 232 goods were exempt from IEEPA (Annex II); flag for review
+    if (entry.hasSection232) {
+      checks.push({
+        id: "ELIG_SECTION_232",
+        category: "eligibility",
+        severity: "warning",
+        passed: true,
+        message: "Entry contains Section 232 goods — these were exempt from IEEPA (Annex II)",
+        detail: "Section 232 (steel/aluminum/auto) goods did not pay IEEPA duties. If the entry is solely Section 232 goods, there is no IEEPA refund. Verify the IEEPA duty actually paid at the line level.",
+        entryIndex: i,
+        entryNumber: entryNum || undefined,
+        fix: "Confirm line-level IEEPA duty paid; exclude any Section 232 value from the refund estimate",
+      });
+    }
+
+    // ELIG_SECTION_301 — 301 duties are not refundable; only the IEEPA portion is
+    if (entry.hasSection301) {
+      checks.push({
+        id: "ELIG_SECTION_301",
+        category: "eligibility",
+        severity: "warning",
+        passed: true,
+        message: "Entry contains Section 301 duties — Section 301 is NOT refundable under the IEEPA ruling",
+        detail: "Only the IEEPA portion of duties paid is recoverable. Section 301 (China List 1–4B) duties remain owed and must be excluded from the refund estimate.",
+        entryIndex: i,
+        entryNumber: entryNum || undefined,
+        fix: "Exclude Section 301 duties from the refund estimate — claim only the IEEPA portion",
       });
     }
   }

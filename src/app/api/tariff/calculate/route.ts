@@ -12,12 +12,14 @@ import {
   type EntryForDossier,
   type RoutingBucket,
 } from "@/lib/tariff-calculator";
+import { IEEPA_TERMINATION_DATE } from "@/lib/tariff-countries";
 import { checkPublicRateLimit } from "@/lib/tariff-rate-limiter";
 
 export const dynamic = "force-dynamic";
 
-// IEEPA termination date — duties after this date are not refundable
-const IEEPA_TERMINATION = new Date("2026-02-24T00:00:00Z");
+// IEEPA termination date — duties after this date are not refundable.
+// Single source of truth lives in tariff-countries.ts.
+const IEEPA_TERMINATION = IEEPA_TERMINATION_DATE;
 
 const MAX_ENTRIES = 500;
 

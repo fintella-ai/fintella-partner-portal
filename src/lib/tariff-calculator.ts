@@ -28,12 +28,24 @@ export interface RateLookupResult {
   breakdown: { fentanyl?: number; reciprocal?: number; section122?: number };
 }
 
+/**
+ * How an eligible entry should be filed with CBP:
+ *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - none:        not eligible for any refund path
+ */
+export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+
 export interface EligibilityResult {
-  status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date"
+  status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
   reason: string;
   deadlineDays?: number;
   isUrgent?: boolean;
   deadlineDate?: Date;
+  filingMethod?: FilingMethod;
+  needsReview?: boolean;  // human-review flag (e.g. mixed Section 232/301 goods)
+  reviewNote?: string;
 }
 
 export interface DossierSummary {
@@ -59,6 +71,11 @@ export interface EntryForEligibility {
   entryType: string;      // CBP entry type code
   liquidationDate?: Date | null;
   isAdCvd?: boolean;
+  countryOfOrigin?: string; // ISO 2-letter — needed for the USMCA exemption check
+  isUsmca?: boolean;        // goods claimed USMCA-preferential (CA/MX exemption from IEEPA fentanyl tariffs)
+  isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
+  hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
+  hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
 }
 
 export interface EntryForCape {
@@ -191,14 +208,56 @@ export function calculateInterest(
 /** CBP entry types excluded from CAPE Phase 1 */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
-/** Days from liquidation within which a protest must be filed */
-const PROTEST_WINDOW_DAYS = 80;
+/**
+ * Legal protest deadline: a protest must be filed within 180 days of
+ * liquidation under 19 U.S.C. §1514. After this, the only path is CIT
+ * litigation. (NOT to be confused with the 80-day CAPE Phase-1 window.)
+ */
+const PROTEST_WINDOW_DAYS = 180;
+
+/**
+ * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
+ * entries liquidated within the last 80 days. Entries liquidated 80–180 days
+ * ago are still recoverable, but require a formal protest rather than the
+ * automated CAPE channel.
+ */
+const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
 /** Entries with <= this many days remaining are flagged urgent */
 const URGENT_THRESHOLD_DAYS = 14;
 
+/** USMCA-compliant CA/MX goods are exempt from IEEPA fentanyl tariffs from this date. */
+const USMCA_EXEMPTION_DATE = new Date("2025-03-07T00:00:00Z");
+const USMCA_COUNTRIES = new Set(["CA", "MX"]);
+
 /**
- * Checks CAPE Phase 1 eligibility for a single entry.
+ * Applies a human-review flag to an otherwise-eligible result when the entry
+ * carries Section 232 or Section 301 duties. These do not disqualify the IEEPA
+ * refund, but they affect the recoverable amount and warrant verification.
+ */
+function applySectionReviewFlag(
+  result: EligibilityResult,
+  entry: EntryForEligibility,
+): EligibilityResult {
+  const notes: string[] = [];
+  if (entry.hasSection232) {
+    notes.push(
+      "Section 232 goods were exempt from IEEPA (Annex II) — verify IEEPA duty was actually paid before claiming.",
+    );
+  }
+  if (entry.hasSection301) {
+    notes.push(
+      "Section 301 duties are not refundable — only the IEEPA portion of duties paid is recoverable.",
+    );
+  }
+  if (notes.length === 0) return result;
+  return { ...result, needsReview: true, reviewNote: notes.join(" ") };
+}
+
+/**
+ * Determines refund eligibility and the correct filing path for a single entry.
+ * Distinguishes the CAPE Phase-1 (80-day) automated window from the 180-day
+ * statutory protest deadline (19 U.S.C. §1514).
  */
 export function checkEligibility(entry: EntryForEligibility): EligibilityResult {
   // 1. Date range check
@@ -206,58 +265,95 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     return {
       status: "excluded_date",
       reason: "Entry date outside IEEPA period (Feb 1, 2025 – Feb 23, 2026)",
+      filingMethod: "none",
     };
   }
 
-  // 2. Entry type exclusion
+  // 2. Drawback exclusion — CAPE rejects entries on drawback ("ENTRY ON DRAWBACK")
+  if (entry.isDrawback) {
+    return {
+      status: "excluded_drawback",
+      reason: "Entry is on drawback — not refundable via CAPE (duties already recovered)",
+      filingMethod: "none",
+    };
+  }
+
+  // 3. USMCA exemption — USMCA-compliant CA/MX goods paid no IEEPA fentanyl duty (eff. Mar 7, 2025)
+  if (
+    entry.isUsmca &&
+    entry.countryOfOrigin &&
+    USMCA_COUNTRIES.has(entry.countryOfOrigin.toUpperCase()) &&
+    entry.entryDate >= USMCA_EXEMPTION_DATE
+  ) {
+    return {
+      status: "excluded_usmca",
+      reason: "USMCA-compliant goods exempt from IEEPA fentanyl tariffs (eff. Mar 7, 2025) — no IEEPA duty paid",
+      filingMethod: "none",
+    };
+  }
+
+  // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
       reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      filingMethod: "none",
     };
   }
 
-  // 3. AD/CVD check (unliquidated AD/CVD entries are excluded)
+  // 5. AD/CVD check (unliquidated AD/CVD entries are excluded from Phase 1)
   if (entry.isAdCvd && !entry.liquidationDate) {
     return {
       status: "excluded_adcvd",
       reason: "Unliquidated AD/CVD entry excluded from Phase 1",
+      filingMethod: "none",
     };
   }
 
-  // 4. Liquidation + protest window check
+  // 6. Liquidation → protest-deadline + filing-method determination
   if (entry.liquidationDate) {
+    const now = new Date();
     const deadlineDate = new Date(entry.liquidationDate);
     deadlineDate.setDate(deadlineDate.getDate() + PROTEST_WINDOW_DAYS);
-
-    const now = new Date();
     const daysRemaining = daysBetween(now, deadlineDate);
+    const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
+    // Past the 180-day protest deadline → litigation only
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 80 days ago)",
+        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
         deadlineDays: daysRemaining,
         deadlineDate,
+        filingMethod: "litigation",
       };
     }
 
-    return {
+    // Within 80 days of liquidation → CAPE Phase-1 automated; 80–180 days → formal protest
+    const filingMethod: FilingMethod =
+      daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase1" : "protest";
+
+    const base: EligibilityResult = {
       status: "eligible",
-      reason: entry.isAdCvd
-        ? "Liquidated AD/CVD entry — eligible with deadline"
-        : "Liquidated entry — eligible with deadline",
+      reason:
+        filingMethod === "cape_phase1"
+          ? "Liquidated within 80 days — eligible via CAPE Phase 1"
+          : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
       deadlineDays: daysRemaining,
       isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
       deadlineDate,
+      filingMethod,
     };
+    return applySectionReviewFlag(base, entry);
   }
 
-  // 5. Unliquidated, non-AD/CVD, in date range → eligible
-  return {
+  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE Phase 1, no deadline yet
+  const base: EligibilityResult = {
     status: "eligible",
-    reason: "Unliquidated entry — eligible, no immediate deadline",
+    reason: "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
+    filingMethod: "cape_phase1",
   };
+  return applySectionReviewFlag(base, entry);
 }
 
 // ── 5. validateEntryNumber ──────────────────────────────────────────────────
@@ -388,11 +484,35 @@ export function aggregateDossier(entries: EntryForDossier[]): DossierSummary {
 
 // ── Routing Buckets ──────────────────────────────────────────────────────────
 
+// ── Deal Tiering (small-deal targeting) ──────────────────────────────────────
+
+/** Upper bound (exclusive) of total IEEPA duties for a Tier-1 ("small") deal. */
+export const TIER1_MAX_DUTIES = 1_000_000;
+
+export type DealTier = "tier1" | "standard";
+
+/**
+ * Classifies a deal by total IEEPA duties paid. Tier-1 = under $1M total duties —
+ * the underserved small-deal segment Fintella targets. `standard` = $1M+.
+ */
+export function classifyDealTier(totalIeepaDuties: number): DealTier {
+  return totalIeepaDuties < TIER1_MAX_DUTIES ? "tier1" : "standard";
+}
+
 export type RoutingBucket = "self_file" | "legal_required" | "not_applicable";
 
 export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
   if (eligibilityStatus === "eligible") return "self_file";
-  if (eligibilityStatus === "excluded_date" || eligibilityStatus === "unknown") return "not_applicable";
+  // Entries that paid no refundable IEEPA duty (or none was due) → nothing to file
+  if (
+    eligibilityStatus === "excluded_date" ||
+    eligibilityStatus === "excluded_drawback" ||
+    eligibilityStatus === "excluded_usmca" ||
+    eligibilityStatus === "unknown"
+  ) {
+    return "not_applicable";
+  }
+  // excluded_type / excluded_adcvd / excluded_expired → needs counsel / litigation
   return "legal_required";
 }
 
