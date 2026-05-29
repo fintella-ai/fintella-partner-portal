@@ -146,6 +146,8 @@ export interface TriggerVariable {
 export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
   "deal.created": [
     { token: "{deal.id}",                    description: "Fintella deal ID (unique identifier — use for later PATCH updates)", example: "cmoabkqqi000e14ab8ybk8bv4" },
+    { token: "{deal.createdAt}",             description: "Timestamp the deal was created (ISO 8601)", example: "2026-05-29T14:03:22.000Z" },
+    { token: "{deal.updatedAt}",             description: "Timestamp the deal was last updated (ISO 8601)", example: "2026-05-29T14:05:10.000Z" },
     { token: "{deal.dealName}",              description: "Deal name",                              example: "ACME Corp — Tariff Refund" },
     { token: "{deal.partnerCode}",           description: "Submitting partner's code",              example: "PTNJD8K3F" },
     { token: "{deal.referralPartnerName}",   description: "Submitting partner's display name (firstName + lastName)", example: "Jane Doe" },
@@ -199,6 +201,8 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{deal.signedPdfUrl}",          description: "URL to the signed agreement PDF (available once the client e-signs). Send this to OpCenter to deliver the document.", example: "https://app.signwell.com/api/v1/documents/.../completed_pdf" },
     { token: "{deal.agreementStatus}",       description: "Agreement signing status (pending / completed)", example: "completed" },
     { token: "{deal.signwellDocumentId}",    description: "SignWell document ID for the signed agreement", example: "f3a9c1e2-..." },
+    { token: "{deal.createdAt}",             description: "Timestamp the deal was created (ISO 8601)", example: "2026-05-29T14:03:22.000Z" },
+    { token: "{deal.updatedAt}",             description: "Timestamp the deal was last updated (ISO 8601)", example: "2026-05-29T14:05:10.000Z" },
   ],
   "deal.closed_won": [
     { token: "{deal.dealName}",              description: "Deal name",                 example: "ACME Corp — Tariff Refund" },

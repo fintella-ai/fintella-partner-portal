@@ -835,6 +835,8 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
                   [<Code key="11">{"{{close_date}}"}</Code>, "Date the deal was closed (formatted as M/D/YYYY)", "6/15/2026"],
                   [<Code key="12">{"{{consult_date}}"}</Code>, "Scheduled consultation date", "June 1, 2026"],
                   [<Code key="13">{"{{consult_time}}"}</Code>, "Scheduled consultation time", "2:00 PM"],
+                  [<Code key="14">{"{deal.createdAt}"}</Code>, "Deal created timestamp (ISO 8601). Also returned as created_at on POST/PATCH responses.", "2026-05-29T14:03:22.000Z"],
+                  [<Code key="15">{"{deal.updatedAt}"}</Code>, "Deal last-updated timestamp (ISO 8601). Also returned as updated_at on POST/PATCH responses.", "2026-05-29T14:05:10.000Z"],
                 ].map((cells, i, arr) => (
                   <TableRow key={i} cells={cells} cols={3} last={i === arr.length - 1} />
                 ))}
@@ -926,7 +928,9 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
   "business_address": "{deal.businessAddress}",
   "service_of_interest": "{deal.serviceOfInterest}",
   "referral_partner_name": "{deal.referralPartnerName}",
-  "deal_url": "{deal.dealUrl}"
+  "deal_url": "{deal.dealUrl}",
+  "created_at": "{deal.createdAt}",
+  "updated_at": "{deal.updatedAt}"
 }`}
                 </pre>
                 <InfoBox>

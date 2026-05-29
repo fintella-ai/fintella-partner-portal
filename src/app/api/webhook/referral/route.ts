@@ -904,6 +904,8 @@ async function postHandler(req: NextRequest): Promise<Response> {
         dealId: deal.id,
         dealName: deal.dealName,
         partnerCode: deal.partnerCode,
+        created_at: deal.createdAt,
+        updated_at: deal.updatedAt,
         // Expose IDs partners need for dedup and correlation in downstream systems.
         // external_deal_id echoes back the partner's upstream ID (e.g. HubSpot hs_object_id).
         // ido_key echoes back the partner's own idempotency key for their own dedup checks.
@@ -1749,6 +1751,8 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       dealId: updated.id,
       dealName: updated.dealName,
       fieldsUpdated: Object.keys(data),
+      created_at: updated.createdAt,
+      updated_at: updated.updatedAt,
       // Echo back IDs the partner needs for downstream dedup / correlation.
       ...(updated.externalDealId && { external_deal_id: updated.externalDealId }),
       ...((updated as any).ido_key && { ido_key: (updated as any).ido_key }),
