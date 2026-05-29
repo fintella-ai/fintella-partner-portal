@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import WebhookGuideSidebar from "./WebhookGuideSidebar";
 
 export const metadata: Metadata = {
   title: "Fintella Webhook Integration Guide",
@@ -178,7 +179,7 @@ export default async function WebhookGuidePage() {
     <>
       <style dangerouslySetInnerHTML={{ __html: themeCSS }} />
       <div style={{ minHeight: "100vh", background: "var(--doc-bg)", color: "var(--doc-text)", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", lineHeight: 1.65 }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "clamp(20px, 5vw, 40px) clamp(12px, 4vw, 24px) 80px" }}>
+        <div style={{ maxWidth: 1140, margin: "0 auto", padding: "clamp(20px, 5vw, 40px) clamp(12px, 4vw, 24px) 60px" }}>
 
           {/* ── Logo Header ── */}
           <div style={{ marginBottom: 24 }}>
@@ -204,36 +205,15 @@ export default async function WebhookGuidePage() {
             </p>
           </div>
 
-          {/* ── Quick Navigation ── */}
-          <nav style={{ marginBottom: 44, background: "var(--doc-card-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, padding: "16px 20px" }}>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, color: "var(--doc-text-muted)", marginBottom: 12 }}>Quick Navigation</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {[
-                { href: "#overview", label: "Overview" },
-                { href: "#authentication", label: "Authentication" },
-                { href: "#inbound", label: "Inbound Webhooks" },
-                { href: "#outbound", label: "Outbound Webhooks" },
-                { href: "#workflow-variables", label: "Workflow Variables" },
-                { href: "#api-reference", label: "API Reference" },
-                { href: "#testing", label: "Testing" },
-                { href: "#services", label: "Services Reference" },
-                { href: "#error-handling", label: "Error Handling" },
-              ].map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  style={{ fontSize: 13, color: "var(--doc-gold)", background: "var(--doc-step-bg)", border: "1px solid var(--doc-step-border)", borderRadius: 8, padding: "8px 16px", textDecoration: "none", fontWeight: 500 }}
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-          </nav>
+          {/* ── Two-column layout: sticky sidebar + scrolling content ── */}
+          <div style={{ display: "flex", gap: 48, alignItems: "flex-start" }}>
+            <WebhookGuideSidebar />
+            <div style={{ flex: 1, minWidth: 0 }}>
 
           {/* ═══════════════════════════════════════════
               SECTION 1 — OVERVIEW
           ═══════════════════════════════════════════ */}
-          <div id="overview" style={{ scrollMarginTop: 20 }}>
+          <div id="overview" style={{ scrollMarginTop: 80 }}>
             <Section title="1. Overview">
               <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 20 }}>
                 Fintella uses webhooks to keep your platform and our partner portal in sync. There are two directions of data flow:
@@ -278,7 +258,7 @@ export default async function WebhookGuidePage() {
           {/* ═══════════════════════════════════════════
               SECTION 2 — AUTHENTICATION
           ═══════════════════════════════════════════ */}
-          <div id="authentication" style={{ scrollMarginTop: 20 }}>
+          <div id="authentication" style={{ scrollMarginTop: 80 }}>
             <Section title="2. Authentication">
               <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 16 }}>
                 All API calls require your partner API key. Use the <Code>Authorization</Code> header with a Bearer token on every request — both inbound calls to Fintella and when Fintella validates that it is the caller on outbound events.
@@ -361,7 +341,7 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
           {/* ═══════════════════════════════════════════
               SECTION 3 — INBOUND WEBHOOKS
           ═══════════════════════════════════════════ */}
-          <div id="inbound" style={{ scrollMarginTop: 20 }}>
+          <div id="inbound" style={{ scrollMarginTop: 80 }}>
             <Section title="3. Inbound Webhooks (Partner → Fintella)">
               <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 20 }}>
                 POST deal data to Fintella whenever a new referral is created or an existing deal progresses. The same endpoint handles both creation and updates — the presence of an identifier field (<Code>external_deal_id</Code>, <Code>hs_object_id</Code>, or <Code>dealId</Code>) determines which path executes.
@@ -601,7 +581,7 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
           {/* ═══════════════════════════════════════════
               SECTION 4 — OUTBOUND WEBHOOKS
           ═══════════════════════════════════════════ */}
-          <div id="outbound" style={{ scrollMarginTop: 20 }}>
+          <div id="outbound" style={{ scrollMarginTop: 80 }}>
             <Section title="4. Outbound Webhooks (Fintella → Partner)">
               <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 20 }}>
                 Configure a webhook URL in your partner settings and Fintella will POST a signed JSON payload to it whenever a deal event occurs. Your endpoint must respond with HTTP 200 within 10 seconds; otherwise the delivery is retried.
@@ -809,7 +789,7 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
           {/* ═══════════════════════════════════════════
               SECTION 5 — WORKFLOW VARIABLES
           ═══════════════════════════════════════════ */}
-          <div id="workflow-variables" style={{ scrollMarginTop: 20 }}>
+          <div id="workflow-variables" style={{ scrollMarginTop: 80 }}>
             <Section title="5. Workflow Variables">
               <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 20 }}>
                 When building automated workflows, email templates, or CRM automations that reference Fintella deal data, use these variables. Fintella&apos;s workflow engine substitutes them at send time. All variables use the <Code>{"{{double_brace}}"}</Code> syntax.
@@ -943,7 +923,7 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
           {/* ═══════════════════════════════════════════
               SECTION 6 — API ENDPOINTS REFERENCE
           ═══════════════════════════════════════════ */}
-          <div id="api-reference" style={{ scrollMarginTop: 20 }}>
+          <div id="api-reference" style={{ scrollMarginTop: 80 }}>
             <Section title="6. API Endpoints Reference">
               <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 20 }}>
                 All endpoints under <Code>https://fintella.partners/api/</Code> require authentication unless noted. Use your API key as described in Section 2.
@@ -1019,7 +999,7 @@ function verifySignature(rawBody: Buffer, signature: string, secret: string) {
           {/* ═══════════════════════════════════════════
               SECTION 7 — TESTING
           ═══════════════════════════════════════════ */}
-          <div id="testing" style={{ scrollMarginTop: 20 }}>
+          <div id="testing" style={{ scrollMarginTop: 80 }}>
             <Section title="7. Testing Webhooks">
               <SubSection title="Inspect Inbound Payloads Before Going Live">
                 <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 12 }}>
@@ -1103,7 +1083,7 @@ curl -X POST https://fintella.partners/api/webhook/referral \\
           {/* ═══════════════════════════════════════════
               SECTION 8 — SERVICES REFERENCE
           ═══════════════════════════════════════════ */}
-          <div id="services" style={{ scrollMarginTop: 20 }}>
+          <div id="services" style={{ scrollMarginTop: 80 }}>
             <Section title="8. Services Reference">
               <p style={{ fontSize: 14, color: "var(--doc-text-secondary)", marginBottom: 20 }}>
                 The Fintella API works for all services offered through the partner network. Use the <Code>service_of_interest</Code> field (inbound) or the <Code>{"{{service}}"}</Code> variable (workflows/outbound) to identify which service a deal is for. The API and webhook format are identical across all services.
@@ -1141,7 +1121,7 @@ curl -X POST https://fintella.partners/api/webhook/referral \\
           {/* ═══════════════════════════════════════════
               SECTION 9 — ERROR HANDLING
           ═══════════════════════════════════════════ */}
-          <div id="error-handling" style={{ scrollMarginTop: 20 }}>
+          <div id="error-handling" style={{ scrollMarginTop: 80 }}>
             <Section title="9. Error Handling &amp; Retry Strategy">
               <SubSection title="HTTP Status Codes">
                 <div style={{ background: "var(--doc-card-bg)", border: "1px solid var(--doc-border)", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
@@ -1210,7 +1190,8 @@ curl -X POST https://fintella.partners/api/webhook/referral \\
             <span>Fintella Partner Portal &mdash; Webhook Integration Guide</span>
             <span>Last updated: May 29, 2026</span>
           </div>
-
+            </div> {/* end main content column */}
+          </div>   {/* end flex row */}
         </div>
       </div>
     </>
