@@ -441,6 +441,30 @@ async function postHandler(req: NextRequest): Promise<Response> {
       }
     }
 
+    // ido_key dedup — partner-system idempotency key (distinct from our own idempotencyKey)
+    const idoKeyPost =
+      typeof body.ido_key === "string" && body.ido_key.trim()
+        ? body.ido_key.trim()
+        : typeof body.idoKey === "string" && body.idoKey.trim()
+        ? body.idoKey.trim()
+        : null;
+    if (idoKeyPost) {
+      const existingByIdo = await prisma.deal.findUnique({ where: { ido_key: idoKeyPost } });
+      if (existingByIdo) {
+        return NextResponse.json(
+          {
+            received: true,
+            dealId: existingByIdo.id,
+            dealName: existingByIdo.dealName,
+            partnerCode: existingByIdo.partnerCode,
+            idempotent: true,
+            idempotent_via: "ido_key",
+          },
+          { status: 200 }
+        );
+      }
+    }
+
     // ── Service resolution ──────────────────────────────────────────────
     const serviceSlug = typeof body.serviceSlug === "string" ? body.serviceSlug.trim()
       : typeof body.service_slug === "string" ? body.service_slug.trim()
@@ -678,6 +702,16 @@ async function postHandler(req: NextRequest): Promise<Response> {
     const externalDealIdRaw = get("hs_object_id", "hsObjectId", "hubspotDealId", "externalDealId");
     const externalDealId = externalDealIdRaw ? String(externalDealIdRaw) : null;
 
+    // New enrichment fields — stored on Deal for partner-system correlation
+    const externalDealIdPartner = get("external_deal_id", "externalDealIdPartner", "partner_deal_id", "partnerDealId") || null;
+    const idoKey = get("ido_key", "idoKey", "ido_key_partner") || null;
+    const internalRawCode = get("internal_raw_code", "internalRawCode", "internal_code", "internalCode", "raw_code", "rawCode") || null;
+    // partner_response: store raw JSON if provided as object, else string
+    const partnerResponseRaw = body.partner_response ?? body.partnerResponse ?? null;
+    const partnerResponse = partnerResponseRaw !== null
+      ? (typeof partnerResponseRaw === "object" ? partnerResponseRaw : { raw: String(partnerResponseRaw) })
+      : null;
+
     // Resolve the internal stage NOW from the external marker so we can set
     // Deal.stage at creation time for HubSpot-originated rows. Falls back to
     // "lead_submitted" when no stage provided.
@@ -787,6 +821,10 @@ async function postHandler(req: NextRequest): Promise<Response> {
           consultBookedTime: consultBookedTime || null,
           l1CommissionRate: l1RateSnapshot,
           idempotencyKey: idempotencyKey || null,
+          external_deal_id: externalDealIdPartner,
+          ido_key: idoKeyPost,
+          partner_response: partnerResponse ?? undefined,
+          internal_raw_code: internalRawCode,
           serviceId,
           serviceFields: (service?.formFieldsConfig ? extractServiceFields(body, service.formFieldsConfig) : undefined) || undefined,
           notes: `Source: Referral Form | Partner: ${partnerCode || "none"}${externalStage ? ` | External Stage: ${externalStage}` : ""}`,
@@ -798,10 +836,28 @@ async function postHandler(req: NextRequest): Promise<Response> {
       return d;
     });
 
-    // Fire workflow trigger (fire-and-forget)
-    import("@/lib/workflow-engine").then(({ fireWorkflowTrigger }) =>
-      fireWorkflowTrigger("deal.created", { deal })
-    ).catch(() => {});
+    // Fire workflow trigger (fire-and-forget).
+    // Enrich the payload with derived fields that workflow templates commonly
+    // need: referralPartnerName ({deal.referralPartnerName}), dealUrl
+    // ({deal.dealUrl}), so email/webhook/notification actions have these
+    // without requiring additional DB lookups in each workflow action.
+    import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger }) => {
+      let referralPartnerName = "";
+      if (deal.partnerCode && deal.partnerCode !== "UNATTRIBUTED") {
+        const p = await prisma.partner.findUnique({
+          where: { partnerCode: deal.partnerCode },
+          select: { firstName: true, lastName: true },
+        }).catch(() => null);
+        if (p) referralPartnerName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
+      }
+      const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
+      const enrichedDeal = {
+        ...deal,
+        referralPartnerName,
+        dealUrl: `${PORTAL_URL}/admin/deals#${deal.id}`,
+      };
+      fireWorkflowTrigger("deal.created", { deal: enrichedDeal });
+    }).catch(() => {});
 
     if (service) {
       const partner = partnerCode && partnerCode !== "UNATTRIBUTED"
@@ -845,6 +901,12 @@ async function postHandler(req: NextRequest): Promise<Response> {
         dealId: deal.id,
         dealName: deal.dealName,
         partnerCode: deal.partnerCode,
+        // Expose IDs partners need for dedup and correlation in downstream systems.
+        // external_deal_id echoes back the partner's upstream ID (e.g. HubSpot hs_object_id).
+        // ido_key echoes back the partner's own idempotency key for their own dedup checks.
+        ...(deal.externalDealId && { external_deal_id: deal.externalDealId }),
+        ...((deal as any).ido_key && { ido_key: (deal as any).ido_key }),
+        ...((deal as any).internal_raw_code && { internal_raw_code: (deal as any).internal_raw_code }),
         ...(sparseData && {
           warning:
             "Accepted but the payload had no identifying fields (name / email / company). Full payload saved to rawPayload for admin review.",
@@ -925,6 +987,28 @@ async function patchHandler(req: NextRequest): Promise<Response> {
           },
           { status: 400 }
         );
+      }
+    }
+
+    // ido_key dedup check — if partner sends ido_key and we already have it,
+    // return the existing deal without re-processing.
+    const idoKeyPatch =
+      typeof body.ido_key === "string" && body.ido_key.trim()
+        ? body.ido_key.trim()
+        : typeof body.idoKey === "string" && body.idoKey.trim()
+        ? body.idoKey.trim()
+        : null;
+    if (idoKeyPatch) {
+      const existingByIdo = await prisma.deal.findUnique({ where: { ido_key: idoKeyPatch } });
+      if (existingByIdo) {
+        return NextResponse.json({
+          updated: true,
+          dealId: existingByIdo.id,
+          dealName: existingByIdo.dealName,
+          fieldsUpdated: [],
+          idempotent: true,
+          idempotent_via: "ido_key",
+        });
       }
     }
 
@@ -1165,6 +1249,23 @@ async function patchHandler(req: NextRequest): Promise<Response> {
     // Closed lost reason
     const closedLostReason = pickStr("closed_lost_reason", "closedLostReason", "lost_reason", "lostReason", "dq_reason", "dqReason", "disqualified_reason", "disqualifiedReason");
     if (closedLostReason) data.closedLostReason = closedLostReason;
+
+    // Enrichment fields — accepted on PATCH for partner-side updates
+    const patchExternalDealId = pickStr("external_deal_id", "externalDealIdPartner", "partner_deal_id", "partnerDealId");
+    if (patchExternalDealId) data.external_deal_id = patchExternalDealId;
+
+    const patchIdoKey = idoKeyPatch; // already resolved above
+    if (patchIdoKey && !deal.ido_key) data.ido_key = patchIdoKey;
+
+    const patchInternalRawCode = pickStr("internal_raw_code", "internalRawCode", "internal_code", "internalCode", "raw_code", "rawCode");
+    if (patchInternalRawCode) data.internal_raw_code = patchInternalRawCode;
+
+    const patchPartnerResponseRaw = body.partner_response ?? body.partnerResponse ?? null;
+    if (patchPartnerResponseRaw !== null) {
+      data.partner_response = typeof patchPartnerResponseRaw === "object"
+        ? patchPartnerResponseRaw
+        : { raw: String(patchPartnerResponseRaw) };
+    }
 
     // Consultation scheduling (create or reschedule)
     const consultDate = pickStr("consult_booked_date", "consultBookedDate", "consultation_date", "consultationDate", "consult_date", "meeting_date", "meetingDate", "meeting_booked_date", "meetingBookedDate", "appointment_date", "appointmentDate", "call_date", "callDate");
@@ -1570,14 +1671,30 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       }
     }
 
-    // Fire workflow triggers for stage changes (fire-and-forget)
+    // Fire workflow triggers for stage changes (fire-and-forget).
+    // Enrich with referralPartnerName + dealUrl so workflow templates can use
+    // {deal.referralPartnerName} and {deal.dealUrl} in email / webhook actions.
     if (data.stage && data.stage !== deal.stage) {
-      import("@/lib/workflow-engine").then(({ fireWorkflowTrigger }) => {
+      import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger }) => {
         const previousStage = deal.stage;
         const newStage = data.stage;
-        fireWorkflowTrigger("deal.stage_changed", { deal: updated, previousStage, newStage }).catch(() => {});
-        if (newStage === "closedwon") fireWorkflowTrigger("deal.closed_won", { deal: updated }).catch(() => {});
-        if (newStage === "disqualified") fireWorkflowTrigger("deal.closed_lost", { deal: updated }).catch(() => {});
+        let referralPartnerName = "";
+        if (updated.partnerCode && updated.partnerCode !== "UNATTRIBUTED") {
+          const p = await prisma.partner.findUnique({
+            where: { partnerCode: updated.partnerCode },
+            select: { firstName: true, lastName: true },
+          }).catch(() => null);
+          if (p) referralPartnerName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
+        }
+        const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
+        const enrichedDeal = {
+          ...updated,
+          referralPartnerName,
+          dealUrl: `${PORTAL_URL}/admin/deals#${updated.id}`,
+        };
+        fireWorkflowTrigger("deal.stage_changed", { deal: enrichedDeal, previousStage, newStage }).catch(() => {});
+        if (newStage === "closedwon") fireWorkflowTrigger("deal.closed_won", { deal: enrichedDeal }).catch(() => {});
+        if (newStage === "disqualified") fireWorkflowTrigger("deal.closed_lost", { deal: enrichedDeal }).catch(() => {});
       }).catch(() => {});
     }
 
@@ -1628,6 +1745,10 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       dealId: updated.id,
       dealName: updated.dealName,
       fieldsUpdated: Object.keys(data),
+      // Echo back IDs the partner needs for downstream dedup / correlation.
+      ...(updated.externalDealId && { external_deal_id: updated.externalDealId }),
+      ...((updated as any).ido_key && { ido_key: (updated as any).ido_key }),
+      ...((updated as any).internal_raw_code && { internal_raw_code: (updated as any).internal_raw_code }),
       ledger: isClosedWonTransition
         ? {
             created: entriesToCreate.length,
