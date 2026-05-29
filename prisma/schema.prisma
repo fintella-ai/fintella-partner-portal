@@ -2239,6 +2239,30 @@ model WidgetSession {
   @@index([partnerId])
 }
 
+// Self-serve widget trial key — a CRM/TMS prospect can issue one from the
+// /recover/tariff-diy upsell and run the calculator in their own workflow,
+// getting a PARTIAL analysis (eligibility + deadlines, refund $ locked) until
+// they upgrade via the engage flow. keyHash is a deterministic sha256 (@unique)
+// for direct findUnique lookup. dealId is a soft reference to the optional lead Deal.
+model WidgetTrialKey {
+  id          String    @id @default(cuid())
+  keyId       String    @unique // non-secret lookup id (first segment of ftk_<keyId>.<secret>)
+  secretHash  String            // bcrypt hash of the secret segment
+  keyHint     String
+  email       String
+  company     String?
+  platform    String?
+  partnerCode String?
+  dealId      String?
+  status      String    @default("trial") // trial | upgraded | revoked
+  usageCount  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  @@index([status])
+  @@index([email])
+}
+
 model WidgetReferral {
   id                    String   @id @default(cuid())
   widgetSessionId       String

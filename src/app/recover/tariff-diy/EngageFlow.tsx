@@ -70,6 +70,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
   const [error, setError] = useState("");
   const [showWidget, setShowWidget] = useState(false);
   const [platform, setPlatform] = useState("");
+  const [trial, setTrial] = useState<{ apiKey: string; embedSnippet: string; docsUrl: string } | null>(null);
   const [pathwayLabel, setPathwayLabel] = useState("done-for-you file");
   const [feeDisplay, setFeeDisplay] = useState(feeLabel);
   const [perFile, setPerFile] = useState<PerFile | null>(null);
@@ -154,6 +155,33 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
       if (data.perFile) setPerFile(data.perFile);
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ dealId: data.dealId, email: contact.email })); } catch { /* ignore */ }
       setStep("consent");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Self-serve widget trial key ────────────────────────────────────────────
+  async function getTrialKey() {
+    setError("");
+    if (!contact.email) { setError("Enter your work email above to get a trial key."); return; }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/tariff/widget-trial", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: contact.email,
+          company: contact.company || undefined,
+          clientName: contact.clientName || undefined,
+          platform: platform || undefined,
+          ref: partnerCode || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not issue a trial key");
+      setTrial({ apiKey: data.apiKey, embedSnippet: data.embedSnippet, docsUrl: data.docsUrl });
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -319,6 +347,33 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
                   Pay as you go — {widgetPerLabel} / submission
                 </button>
               </div>
+
+              {/* Self-serve free trial key */}
+              {!trial ? (
+                <>
+                  <div className="flex items-center gap-3 py-1">
+                    <div className="h-px flex-1 bg-white/10" />
+                    <span className="text-[11px] uppercase tracking-wide text-white/30">or try free first</span>
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+                  <button onClick={getTrialKey} disabled={loading} className="w-full rounded-lg py-2.5 text-sm font-semibold border transition disabled:opacity-50" style={{ borderColor: GOLD, color: GOLD }}>
+                    {loading ? "Generating…" : "Get a free trial key →"}
+                  </button>
+                </>
+              ) : (
+                <div className="rounded-lg bg-black/30 border border-white/10 p-3 space-y-2">
+                  <div className="text-xs font-semibold" style={{ color: GOLD }}>Your free trial key</div>
+                  <code className="block w-full break-all rounded bg-black/40 px-2 py-1.5 text-[11px] text-white/80 font-mono select-all">{trial.apiKey}</code>
+                  <div className="text-[11px] text-white/40">1-line embed snippet:</div>
+                  <code className="block w-full break-all rounded bg-black/40 px-2 py-1.5 text-[11px] text-white/70 font-mono select-all">{trial.embedSnippet}</code>
+                  <p className="text-[11px] text-white/40">
+                    Returns eligibility + deadlines (refund $ locked).{" "}
+                    <a href={trial.docsUrl} target="_blank" rel="noreferrer" className="underline hover:text-white/70" style={{ color: GOLD }}>Integration guide →</a>
+                  </p>
+                  <p className="text-[11px] text-white/30">Upgrade for the full calc + file — pick a plan above.</p>
+                </div>
+              )}
+
               <p className="text-[11px] text-white/30">Free trial returns a partial analysis; full calculation + file unlock when you choose a plan.</p>
             </div>
           )}
