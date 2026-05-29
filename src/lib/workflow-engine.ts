@@ -222,6 +222,7 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{deal.businessAddress}",       description: "Full formatted business address",       example: "100 Test Drive, Suite 300, Tampa, FL 33602" },
     { token: "{deal.serviceOfInterest}",     description: "Service the client is interested in",   example: "Kwong Penalty Abatement (ERC)" },
     { token: "{deal.signedPdfUrl}",          description: "URL to the signed agreement PDF (available once the client e-signs). Send this to OpCenter to deliver the document.", example: "https://app.signwell.com/api/v1/documents/.../completed_pdf" },
+    { token: "{deal.signedPdfMirrorUrl}",    description: "Same as signedPdfUrl (persistent Blob mirror if available, else the SignWell URL). Use in webhook bodies that map to agreement_pdf_url.", example: "https://app.signwell.com/api/v1/documents/.../completed_pdf" },
     { token: "{deal.agreementStatus}",       description: "Agreement signing status (pending / completed)", example: "completed" },
     { token: "{deal.signwellDocumentId}",    description: "SignWell document ID for the signed agreement", example: "f3a9c1e2-..." },
     { token: "{deal.createdAt}",             description: "Timestamp the deal was created (ISO 8601)", example: "2026-05-29T14:03:22.000Z" },
@@ -440,6 +441,10 @@ export function deriveDealWorkflowFields(deal: Record<string, any> | null | unde
     businessAddress: sf.business_address || composedAddress || "",
     // Signed agreement PDF — only present once SignWell completes the document.
     signedPdfUrl: sf.signwellPdfUrl || sf.signedPdfUrl || "",
+    // Alias used in some webhook templates ({deal.signedPdfMirrorUrl}). Prefers a
+    // persistent Blob mirror if one has been stored, else falls back to the
+    // (time-limited) SignWell URL so the field is never empty.
+    signedPdfMirrorUrl: sf.signedPdfMirrorUrl || sf.signwellPdfUrl || sf.signedPdfUrl || "",
     // Agreement signing status (pending / completed) — maps to OpCenter's
     // expected `agreement_status` field.
     agreementStatus: sf.signwellStatus || "",
