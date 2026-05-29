@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import TwoFactorCard from "@/components/admin/TwoFactorCard";
 
 export default function AdminAccountPage() {
   const [loading, setLoading] = useState(true);
@@ -130,6 +131,9 @@ export default function AdminAccountPage() {
           </div>
         </div>
       </div>
+
+      {/* Two-Factor Authentication (opt-in) */}
+      <TwoFactorCard />
 
       {/* Message */}
       {message && (

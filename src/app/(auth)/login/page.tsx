@@ -31,6 +31,7 @@ function LoginPageInner() {
   const [mode, setMode] = useState<"partner" | "admin">("partner");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [totp, setTotp] = useState("");
   const [error, setError] = useState("");
   const [archived, setArchived] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -80,6 +81,9 @@ function LoginPageInner() {
       const result = await signIn(providerId, {
         email: email.trim(),
         password,
+        // 2FA is opt-in: only enrolled admins are challenged. Sending an empty
+        // string for admins who never enrolled is a no-op (provider ignores it).
+        ...(mode === "admin" ? { totp: totp.trim() } : {}),
         redirect: false,
       });
 
@@ -268,6 +272,39 @@ function LoginPageInner() {
             </>
           )}
 
+          {/* Google sign-in for admins — works when the Google email matches an
+              admin User row (handled in the auth signIn/jwt callbacks). OAuth is
+              the strong factor here, so admin Google logins skip the TOTP gate. */}
+          {mode === "admin" && (
+            <>
+              <button
+                type="button"
+                disabled={googleLoading}
+                onClick={() => {
+                  setError("");
+                  setGoogleLoading(true);
+                  void signIn("google", { callbackUrl: "/admin" });
+                }}
+                className="w-full mb-5 flex items-center justify-center gap-3 rounded-lg border border-[var(--app-border)] bg-white text-gray-800 px-4 py-3 font-body text-sm hover:bg-gray-50 transition-colors disabled:opacity-60"
+              >
+                <svg viewBox="0 0 48 48" className="w-5 h-5" aria-hidden="true">
+                  <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
+                  <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+                  <path fill="#4CAF50" d="M24 44c5.2 0 9.8-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+                  <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.4l.1-.1 6.2 5.2C37.1 40 44 33.8 44 24c0-1.3-.1-2.4-.4-3.5z"/>
+                </svg>
+                <span className="font-semibold">
+                  {googleLoading ? "Redirecting to Google…" : "Continue with Google"}
+                </span>
+              </button>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 h-px bg-[var(--app-border)]" />
+                <span className="font-body text-[10px] uppercase tracking-[1.5px] theme-text-muted">or sign in with email</span>
+                <div className="flex-1 h-px bg-[var(--app-border)]" />
+              </div>
+            </>
+          )}
+
           <form onSubmit={handleSubmit}>
             <div className="mb-5">
               <label className="font-body text-[11px] tracking-[1px] uppercase theme-text-muted mb-2 block">
@@ -304,6 +341,28 @@ function LoginPageInner() {
                 </a>
               </div>
             </div>
+
+            {/* Optional 2FA code — admins only. Leave blank unless you've
+                enrolled in two-factor auth (Settings → Security). Opt-in:
+                admins without 2FA sign in exactly as before. */}
+            {mode === "admin" && (
+              <div className="mb-7">
+                <label className="font-body text-[11px] tracking-[1px] uppercase theme-text-muted mb-2 block">
+                  2FA Code <span className="theme-text-faint normal-case tracking-normal">(if enabled)</span>
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="123456 or backup code"
+                  value={totp}
+                  onChange={(e) => setTotp(e.target.value)}
+                  className="w-full theme-input rounded-lg px-4 py-3.5 sm:py-3 font-body text-sm sm:text-[14px] outline-none focus:border-brand-gold/40 transition-colors tracking-[0.2em]"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                />
+              </div>
+            )}
 
             {archived && (
               <div className="mb-5 p-4 bg-amber-500/[0.08] border border-amber-500/25 rounded-lg">
