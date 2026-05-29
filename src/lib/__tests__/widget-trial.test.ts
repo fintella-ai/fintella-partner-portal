@@ -140,10 +140,12 @@ test("toPartialTariffResult tolerates a result with no deadline fields", () => {
 });
 
 // ── buildEmbedSnippet ────────────────────────────────────────────────────────
-test("buildEmbedSnippet embeds the api key and origin", () => {
-  const snippet = buildEmbedSnippet("ftk_demo", "https://fintella.partners");
-  assert.ok(snippet.includes("ftk_demo"), "snippet should include the key");
-  assert.ok(snippet.includes("https://fintella.partners"), "snippet should include the origin");
+test("buildEmbedSnippet emits the exact script tag with key + origin", () => {
+  const snippet = buildEmbedSnippet("ftk_demo", "https://x.test");
+  assert.equal(
+    snippet,
+    '<script src="https://x.test/widget/tariff-trial.js" data-trial-key="ftk_demo"></script>',
+  );
 });
 
 // ── summary ──────────────────────────────────────────────────────────────────

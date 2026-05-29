@@ -16,14 +16,26 @@ import type { FilingMethod } from "./tariff-calculator";
 
 const TRIAL_KEY_PREFIX = "ftk_";
 
+// Server-side pepper for the keyed hash. A trial key is a 256-bit random token
+// (not a user-chosen password), so a slow KDF like bcrypt buys no real security
+// here AND would break the O(1) `findUnique({ where: { keyHash } })` lookup the
+// design needs. The correct pattern for high-entropy API tokens is a fast
+// *keyed* hash (HMAC): deterministic for unique-index lookup, and a DB-only
+// leak can't verify guessed keys offline without this secret.
+const TRIAL_KEY_SECRET =
+  process.env.WIDGET_TRIAL_SECRET ||
+  process.env.WIDGET_JWT_SECRET ||
+  process.env.NEXTAUTH_SECRET ||
+  "dev-trial-secret";
+
 /** Generate a fresh trial key: `ftk_` + 32 random bytes (64 hex chars). */
 export function generateTrialKey(): string {
   return `${TRIAL_KEY_PREFIX}${crypto.randomBytes(32).toString("hex")}`;
 }
 
-/** Deterministic sha256 hex digest — stored as `keyHash` (@unique) for lookup. */
+/** Deterministic HMAC-SHA256 hex digest — stored as `keyHash` (@unique) for lookup. */
 export function hashTrialKey(apiKey: string): string {
-  return crypto.createHash("sha256").update(apiKey).digest("hex");
+  return crypto.createHmac("sha256", TRIAL_KEY_SECRET).update(apiKey).digest("hex");
 }
 
 /** Display hint: leading ellipsis + last 8 chars (matches widget-auth convention). */
