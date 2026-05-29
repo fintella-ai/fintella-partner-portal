@@ -31,6 +31,27 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
   const [error, setError] = useState("");
   const collectConfigured = useRef(false);
 
+  const STORAGE_KEY = "tariff_diy_engagement";
+
+  // Resume after the new-tab signing redirect (?signed=1). localStorage is
+  // shared across same-origin tabs, so the deal created in the original tab is
+  // available here — jump straight to payment.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const signed = new URLSearchParams(window.location.search).get("signed");
+    if (signed !== "1") return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      if (saved?.dealId) {
+        setDealId(saved.dealId);
+        if (saved.email) setForm((f) => ({ ...f, email: saved.email }));
+        setStep("pay");
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   // ── Step 1: create engagement + send consent ──────────────────────────────
   async function startEngagement(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +67,11 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
       if (!res.ok) throw new Error(data.error || "Could not start engagement");
       setDealId(data.dealId);
       setSigningUrl(data.signingUrl || "");
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ dealId: data.dealId, email: form.email }));
+      } catch {
+        /* ignore */
+      }
       setStep("consent");
     } catch (err) {
       setError((err as Error).message);
@@ -87,6 +113,11 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Payment failed");
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
       setStep("done");
     } catch (err) {
       setError((err as Error).message);
