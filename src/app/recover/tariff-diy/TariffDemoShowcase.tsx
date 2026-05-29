@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const GOLD = "#c4a050";
+const ACCENT = "#8b5cf6";
 
 // One extracted field, shaped like ExtractedEntry: a value + a confidence, or
 // null to model a field the engine could not read (the "missing data" case).
@@ -145,13 +145,13 @@ export default function TariffDemoShowcase() {
         </div>
         <div className="flex items-center gap-2 tabular-nums">
           <span className="text-xs text-white/40">⏱</span>
-          <span className="text-sm font-mono font-semibold" style={{ color: GOLD }}>{liveSeconds.toFixed(1)}s</span>
+          <span className="text-sm font-mono font-semibold" style={{ color: ACCENT }}>{liveSeconds.toFixed(1)}s</span>
         </div>
       </div>
 
       {/* Scan progress */}
       <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden mb-6">
-        <div className="h-full rounded-full transition-[width] duration-150 ease-out" style={{ width: `${progress}%`, background: GOLD }} />
+        <div className="h-full rounded-full transition-[width] duration-150 ease-out" style={{ width: `${progress}%`, background: ACCENT }} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -192,7 +192,7 @@ export default function TariffDemoShowcase() {
               </span>
             </div>
             <div className="flex items-end gap-3">
-              <div className="text-4xl font-bold tabular-nums" style={{ color: GOLD }}>{gaugeScore}</div>
+              <div className="text-4xl font-bold tabular-nums" style={{ color: ACCENT }}>{gaugeScore}</div>
               <div className="text-xs text-white/40 pb-1.5">/ 100 risk score</div>
             </div>
             <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden mt-2">

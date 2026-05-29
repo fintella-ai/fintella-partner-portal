@@ -51,7 +51,7 @@ interface Summary {
   deadlineDays: number | null;
 }
 
-const GOLD = "#c4a050";
+const GOLD = "#8b5cf6"; // OpCenter-matched accent (violet); name kept to minimize churn
 const STORAGE_KEY = "tariff_diy_engagement";
 const emptyRow: EntryRow = { countryOfOrigin: "", entryDate: "", enteredValue: "", entryNumber: "", liquidationDate: "" };
 const fmt = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
@@ -286,7 +286,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
             <button type="button" onClick={() => setRows([...rows, { ...emptyRow }])} className="text-sm text-white/50 hover:text-white/80 transition">+ Add another entry</button>
           </div>
 
-          <button type="submit" disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
+          <button type="submit" disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#fff" }}>
             {loading ? "Analyzing…" : "See my refund estimate →"}
           </button>
         </form>
@@ -314,7 +314,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
             For a flat <strong className="text-white">{feeLabel}</strong> we prepare your fully substantiated,
             audit-ready CAPE file + guided self-file kit. You keep 100% of the refund.
           </p>
-          <button onClick={() => engage("upfront")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
+          <button onClick={() => engage("upfront")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#fff" }}>
             {loading ? "Starting…" : `Get my done-for-you file — ${feeLabel} →`}
           </button>
 
@@ -340,7 +340,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
                 {platforms.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
               <div className="grid grid-cols-1 gap-2 pt-1">
-                <button onClick={() => engage("widget_onetime")} disabled={loading} className="w-full rounded-lg py-2.5 text-sm font-semibold transition disabled:opacity-50" style={{ background: GOLD, color: "#060a14" }}>
+                <button onClick={() => engage("widget_onetime")} disabled={loading} className="w-full rounded-lg py-2.5 text-sm font-semibold transition disabled:opacity-50" style={{ background: GOLD, color: "#fff" }}>
                   Full unlock — {widgetOnceLabel} one-time
                 </button>
                 <button onClick={() => engage("widget_per_submission")} disabled={loading} className="w-full rounded-lg py-2.5 text-sm font-semibold border border-white/15 text-white/80 hover:bg-white/5 transition disabled:opacity-50">
@@ -387,7 +387,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
           <h3 className="font-display text-2xl" style={{ color: GOLD }}>Sign your consent & authorization</h3>
           <p className="text-sm text-white/60">Review and sign so we can prepare your file. Opens in a new tab.</p>
           {signingUrl ? (
-            <a href={signingUrl} target="_blank" rel="noopener noreferrer" className="block w-full text-center rounded-lg py-3 font-semibold transition" style={{ background: GOLD, color: "#060a14" }}>
+            <a href={signingUrl} target="_blank" rel="noopener noreferrer" className="block w-full text-center rounded-lg py-3 font-semibold transition" style={{ background: GOLD, color: "#fff" }}>
               Open agreement to sign →
             </a>
           ) : (
@@ -412,7 +412,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
                 first for <strong className="text-white">{centsLabel(perFile.sampleCents)}</strong>, then unlock the
                 rest for {centsLabel(perFile.remainderCents)}.
               </p>
-              <button onClick={() => startPay("full")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
+              <button onClick={() => startPay("full")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#fff" }}>
                 {loading && payScope === "full" ? "Processing…" : `Unlock all ${perFile.fileCount} files — ${centsLabel(perFile.fullCents)}`}
               </button>
               <button onClick={() => startPay("sample")} disabled={loading}
@@ -423,7 +423,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
           ) : (
             <>
               <p className="text-sm text-white/60"><strong className="text-white">{feeDisplay}</strong> for your substantiated, audit-ready CAPE self-file kit. No contingency — the refund is 100% yours.</p>
-              <button onClick={() => startPay("full")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
+              <button onClick={() => startPay("full")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#fff" }}>
                 {loading ? "Processing…" : demoMode ? `Simulate payment (demo) — ${feeDisplay}` : `Pay ${feeDisplay} securely`}
               </button>
             </>
@@ -441,7 +441,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
             <a href={`/api/tariff/engage/${dealId}/kit?format=pdf`} className="block w-full text-center rounded-lg py-3 font-semibold border border-white/15 text-white/80 hover:bg-white/5 transition">⬇ Sample analysis (PDF)</a>
             <a href={`/api/tariff/engage/${dealId}/kit?format=csv`} className="block w-full text-center rounded-lg py-3 font-semibold border border-white/15 text-white/80 hover:bg-white/5 transition">⬇ Sample CAPE entry (CSV)</a>
           </div>
-          <button onClick={() => startPay("full")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#060a14" }}>
+          <button onClick={() => startPay("full")} disabled={loading} className={btnPrimary} style={{ background: GOLD, color: "#fff" }}>
             {loading ? "Processing…" : `Unlock all ${perFile.fileCount} files — ${centsLabel(perFile.remainderCents)}`}
           </button>
         </div>
@@ -454,7 +454,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
           <h3 className="font-display text-2xl" style={{ color: GOLD }}>Your self-file kit is ready</h3>
           <p className="text-sm text-white/60">Payment received. Download your substantiated kit below — we&apos;ve also emailed a copy to <strong className="text-white">{contact.email}</strong>.</p>
           <div className="space-y-2">
-            <a href={`/api/tariff/engage/${dealId}/kit?format=pdf`} className="block w-full rounded-lg py-3 font-semibold transition" style={{ background: GOLD, color: "#060a14" }}>⬇ Recovery analysis (PDF)</a>
+            <a href={`/api/tariff/engage/${dealId}/kit?format=pdf`} className="block w-full rounded-lg py-3 font-semibold transition" style={{ background: GOLD, color: "#fff" }}>⬇ Recovery analysis (PDF)</a>
             <a href={`/api/tariff/engage/${dealId}/kit?format=csv`} className="block w-full rounded-lg py-3 font-semibold border border-white/15 text-white/80 hover:bg-white/5 transition">⬇ CAPE declaration (CSV)</a>
             <a href={`/api/tariff/engage/${dealId}/kit?format=guide`} className="block w-full rounded-lg py-3 font-semibold border border-white/15 text-white/80 hover:bg-white/5 transition">⬇ Step-by-step self-file guide</a>
           </div>
