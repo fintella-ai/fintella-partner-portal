@@ -836,10 +836,28 @@ async function postHandler(req: NextRequest): Promise<Response> {
       return d;
     });
 
-    // Fire workflow trigger (fire-and-forget)
-    import("@/lib/workflow-engine").then(({ fireWorkflowTrigger }) =>
-      fireWorkflowTrigger("deal.created", { deal })
-    ).catch(() => {});
+    // Fire workflow trigger (fire-and-forget).
+    // Enrich the payload with derived fields that workflow templates commonly
+    // need: referralPartnerName ({deal.referralPartnerName}), dealUrl
+    // ({deal.dealUrl}), so email/webhook/notification actions have these
+    // without requiring additional DB lookups in each workflow action.
+    import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger }) => {
+      let referralPartnerName = "";
+      if (deal.partnerCode && deal.partnerCode !== "UNATTRIBUTED") {
+        const p = await prisma.partner.findUnique({
+          where: { partnerCode: deal.partnerCode },
+          select: { firstName: true, lastName: true },
+        }).catch(() => null);
+        if (p) referralPartnerName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
+      }
+      const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
+      const enrichedDeal = {
+        ...deal,
+        referralPartnerName,
+        dealUrl: `${PORTAL_URL}/admin/deals#${deal.id}`,
+      };
+      fireWorkflowTrigger("deal.created", { deal: enrichedDeal });
+    }).catch(() => {});
 
     if (service) {
       const partner = partnerCode && partnerCode !== "UNATTRIBUTED"
@@ -883,6 +901,12 @@ async function postHandler(req: NextRequest): Promise<Response> {
         dealId: deal.id,
         dealName: deal.dealName,
         partnerCode: deal.partnerCode,
+        // Expose IDs partners need for dedup and correlation in downstream systems.
+        // external_deal_id echoes back the partner's upstream ID (e.g. HubSpot hs_object_id).
+        // ido_key echoes back the partner's own idempotency key for their own dedup checks.
+        ...(deal.externalDealId && { external_deal_id: deal.externalDealId }),
+        ...((deal as any).ido_key && { ido_key: (deal as any).ido_key }),
+        ...((deal as any).internal_raw_code && { internal_raw_code: (deal as any).internal_raw_code }),
         ...(sparseData && {
           warning:
             "Accepted but the payload had no identifying fields (name / email / company). Full payload saved to rawPayload for admin review.",
@@ -1647,14 +1671,30 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       }
     }
 
-    // Fire workflow triggers for stage changes (fire-and-forget)
+    // Fire workflow triggers for stage changes (fire-and-forget).
+    // Enrich with referralPartnerName + dealUrl so workflow templates can use
+    // {deal.referralPartnerName} and {deal.dealUrl} in email / webhook actions.
     if (data.stage && data.stage !== deal.stage) {
-      import("@/lib/workflow-engine").then(({ fireWorkflowTrigger }) => {
+      import("@/lib/workflow-engine").then(async ({ fireWorkflowTrigger }) => {
         const previousStage = deal.stage;
         const newStage = data.stage;
-        fireWorkflowTrigger("deal.stage_changed", { deal: updated, previousStage, newStage }).catch(() => {});
-        if (newStage === "closedwon") fireWorkflowTrigger("deal.closed_won", { deal: updated }).catch(() => {});
-        if (newStage === "disqualified") fireWorkflowTrigger("deal.closed_lost", { deal: updated }).catch(() => {});
+        let referralPartnerName = "";
+        if (updated.partnerCode && updated.partnerCode !== "UNATTRIBUTED") {
+          const p = await prisma.partner.findUnique({
+            where: { partnerCode: updated.partnerCode },
+            select: { firstName: true, lastName: true },
+          }).catch(() => null);
+          if (p) referralPartnerName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
+        }
+        const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
+        const enrichedDeal = {
+          ...updated,
+          referralPartnerName,
+          dealUrl: `${PORTAL_URL}/admin/deals#${updated.id}`,
+        };
+        fireWorkflowTrigger("deal.stage_changed", { deal: enrichedDeal, previousStage, newStage }).catch(() => {});
+        if (newStage === "closedwon") fireWorkflowTrigger("deal.closed_won", { deal: enrichedDeal }).catch(() => {});
+        if (newStage === "disqualified") fireWorkflowTrigger("deal.closed_lost", { deal: enrichedDeal }).catch(() => {});
       }).catch(() => {});
     }
 
@@ -1705,6 +1745,10 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       dealId: updated.id,
       dealName: updated.dealName,
       fieldsUpdated: Object.keys(data),
+      // Echo back IDs the partner needs for downstream dedup / correlation.
+      ...(updated.externalDealId && { external_deal_id: updated.externalDealId }),
+      ...((updated as any).ido_key && { ido_key: (updated as any).ido_key }),
+      ...((updated as any).internal_raw_code && { internal_raw_code: (updated as any).internal_raw_code }),
       ledger: isClosedWonTransition
         ? {
             created: entriesToCreate.length,
