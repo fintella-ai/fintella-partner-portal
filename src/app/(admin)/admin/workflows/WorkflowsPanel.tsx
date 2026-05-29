@@ -256,9 +256,11 @@ type WebhookPostConfig = {
 function WebhookPostEditor({
   config,
   onChange,
+  trigger,
 }: {
   config: Record<string, unknown>;
   onChange: (patch: Partial<WebhookPostConfig>) => void;
+  trigger: TriggerKey | null;
 }) {
   // Represent headers as an ordered list of [key, value] pairs while the
   // admin edits, then flatten to a Record<string, string> on save. Using
@@ -279,6 +281,49 @@ function WebhookPostEditor({
   }
 
   const bodyVal = typeof config.body === "string" ? config.body : "";
+
+  // ── Live token preview state ──────────────────────────────────────────────
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewResult, setPreviewResult] = useState<{
+    rendered: string;
+    usedDealId: string | null;
+    unresolvedTokens: string[];
+  } | null>(null);
+
+  async function runPreview() {
+    if (!trigger) {
+      setPreviewError("Pick a trigger first to preview rendered values.");
+      setPreviewOpen(true);
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewError(null);
+    setPreviewOpen(true);
+    try {
+      const res = await fetch("/api/admin/workflows/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trigger, template: bodyVal }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Preview failed (HTTP ${res.status})`);
+      }
+      const data = await res.json();
+      setPreviewResult({
+        rendered: String(data.rendered ?? ""),
+        usedDealId: data.usedDealId ?? null,
+        unresolvedTokens: Array.isArray(data.unresolvedTokens) ? data.unresolvedTokens : [],
+      });
+    } catch (err) {
+      setPreviewError(err instanceof Error ? err.message : "Preview failed");
+      setPreviewResult(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
 
   return (
     <>
@@ -357,6 +402,73 @@ function WebhookPostEditor({
         <div className="font-body text-[10px] theme-text-faint mt-1">
           Tokens are substituted at fire time. Use the variable chips above to copy exact field names. If the body can&rsquo;t be parsed as JSON, the request still sends with the raw string — set <code className="font-mono">Content-Type</code> in headers accordingly.
         </div>
+      </div>
+
+      {/* ── Live token preview ─────────────────────────────────────────── */}
+      <div className="rounded-lg p-3" style={{ background: "var(--app-bg-secondary)", border: "1px solid var(--app-border)" }}>
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-body text-[11px] theme-text-faint uppercase tracking-wider">Live token preview</span>
+          <button
+            type="button"
+            onClick={runPreview}
+            disabled={previewLoading}
+            className="font-body text-[11px] px-2.5 py-1 rounded transition-colors theme-input hover:text-brand-gold disabled:opacity-50"
+            title="Render this body against the most recent matching deal"
+          >
+            {previewLoading ? "Rendering…" : "Preview"}
+          </button>
+        </div>
+        <p className="font-body text-[10px] theme-text-faint mt-1 leading-relaxed">
+          Renders the body with real values from the most recent matching deal. Empty / typo&rsquo;d tokens are flagged so you can fix them before saving.
+        </p>
+
+        {previewOpen && (
+          <div className="mt-2 space-y-2">
+            {previewError && (
+              <div className="font-body text-[11px] text-red-400">{previewError}</div>
+            )}
+
+            {previewResult && !previewError && (
+              <>
+                {previewResult.unresolvedTokens.length > 0 && (
+                  <div
+                    className="rounded p-2"
+                    style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.35)" }}
+                  >
+                    <div className="font-body text-[11px] font-semibold text-amber-500 mb-1">
+                      {previewResult.unresolvedTokens.length} token
+                      {previewResult.unresolvedTokens.length === 1 ? "" : "s"} resolved to empty
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {previewResult.unresolvedTokens.map((tok) => (
+                        <code
+                          key={tok}
+                          className="font-mono text-[10px] px-1.5 py-0.5 rounded text-amber-500"
+                          style={{ background: "rgba(245, 158, 11, 0.12)" }}
+                        >
+                          {tok}
+                        </code>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="font-body text-[10px] theme-text-faint">
+                  {previewResult.usedDealId
+                    ? <>Rendered against deal <code className="font-mono">{previewResult.usedDealId}</code>.</>
+                    : "No matching deal found — rendered against example values."}
+                </div>
+
+                <pre
+                  className="rounded p-2 font-mono text-[11px] whitespace-pre-wrap break-words overflow-x-auto max-h-72 overflow-y-auto theme-text-secondary"
+                  style={{ background: "var(--app-input-bg)", border: "1px solid var(--app-border)" }}
+                >
+                  {previewResult.rendered || "(empty)"}
+                </pre>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </>
   );
@@ -455,6 +567,7 @@ function ActionEditor({
           {a.type === "webhook.post" && (
             <WebhookPostEditor
               config={a.config}
+              trigger={trigger}
               onChange={(patch) => {
                 const next = [...actions];
                 next[i] = { ...next[i], config: { ...next[i].config, ...patch } };
