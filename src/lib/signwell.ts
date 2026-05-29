@@ -45,6 +45,13 @@ interface SignWellSendOptions {
   fileUrl?: string;
   templateFields?: SignWellTemplateField[];
   metadata?: Record<string, string>;
+  /**
+   * Optional SignWell API Application ID override. Lets a specific flow (e.g.
+   * the tariff-refund consent) use its own branded signing app + redirect URL
+   * without affecting the default partner-agreement flow. Falls back to the
+   * global SIGNWELL_API_APP_ID when omitted.
+   */
+  apiApplicationId?: string;
 }
 
 /**
@@ -358,9 +365,12 @@ export async function sendForSigning(
     body.metadata = options.metadata;
   }
 
-  // Attach API App ID for branded signing experience if configured
-  if (SIGNWELL_API_APP_ID) {
-    body.api_application_id = SIGNWELL_API_APP_ID;
+  // Attach API App ID for branded signing experience if configured.
+  // A per-send override (options.apiApplicationId) lets a specific flow use its
+  // own SignWell app + redirect URL; otherwise fall back to the global app id.
+  const appId = options.apiApplicationId || SIGNWELL_API_APP_ID;
+  if (appId) {
+    body.api_application_id = appId;
   }
 
   // Template docs: POST /document_templates/documents

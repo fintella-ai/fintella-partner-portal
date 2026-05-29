@@ -87,6 +87,34 @@ export async function chargeCustomerVault(customerVaultId: string, amount: numbe
   });
 }
 
+/**
+ * One-time sale charged directly against a Collect.js payment token — no
+ * customer vault required. Used for one-off client fees (e.g. the upfront
+ * tariff-refund dossier fee). Amount is in CENTS.
+ */
+export async function chargeOneTime(
+  paymentToken: string,
+  amountCents: number,
+  opts: { email?: string; firstName?: string; lastName?: string; orderId?: string; orderDescription?: string } = {},
+): Promise<NmiResponse> {
+  if (!NMI_API_KEY) {
+    return { response: "1", responsetext: "Demo mode — NMI_API_KEY not set", transactionid: `demo_txn_${Date.now()}` };
+  }
+
+  const params: Record<string, string> = {
+    type: "sale",
+    payment_token: paymentToken,
+    amount: (amountCents / 100).toFixed(2),
+    order_id: opts.orderId || `fee_${Date.now()}`,
+  };
+  if (opts.email) params.email = opts.email;
+  if (opts.firstName) params.first_name = opts.firstName;
+  if (opts.lastName) params.last_name = opts.lastName;
+  if (opts.orderDescription) params.order_description = opts.orderDescription;
+
+  return nmiRequest(params);
+}
+
 export async function addRecurringPlan(
   customerVaultId: string,
   planAmount: number,
