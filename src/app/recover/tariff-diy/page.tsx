@@ -75,7 +75,7 @@ export default function TariffDiyPage({
               <div className="flex items-center gap-3"><span className="text-emerald-400">✓</span> Risk analysis + missing-data report in <strong className="text-white">~30 seconds</strong></div>
               <div className="flex items-center gap-3"><span className="text-emerald-400">✓</span> File it yourself, or drop it to your broker/attorney for a review-only fee</div>
             </div>
-            <p className="text-xs text-white/30 max-w-md leading-relaxed">
+            <p className="text-xs text-white/60 max-w-md leading-relaxed">
               Fintella is not a law firm and does not provide legal advice. We prepare your refund file and,
               where needed, connect you to licensed filing and legal partners. Refund estimates are not a guarantee of approval.
             </p>
@@ -288,7 +288,7 @@ export default function TariffDiyPage({
           >
             Check your refund — free →
           </Link>
-          <p className="text-xs text-white/30 mt-3">No obligation · estimate only, not a guarantee of approval</p>
+          <p className="text-xs text-white/60 mt-3">No obligation · estimate only, not a guarantee of approval</p>
         </div>
       </section>
       </div>

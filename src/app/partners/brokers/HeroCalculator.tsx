@@ -174,8 +174,8 @@ export default function HeroCalculator() {
             <select
               value={country}
               onChange={(e) => { setCountry(e.target.value); setResult(null); }}
-              className="w-full px-4 py-2.5 rounded-lg text-sm"
-              style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--app-border)", color: "var(--app-text)", outline: "none" }}
+              className="w-full px-4 py-2.5 rounded-lg text-sm focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/60"
+              style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--app-border)", color: "var(--app-text)", outline: "none", colorScheme: "dark" }}
             >
               {countries.length === 0 && <option value="CN">China</option>}
               {countries.map((c) => (
@@ -205,8 +205,8 @@ export default function HeroCalculator() {
                 onChange={(e) => { setValue(e.target.value); setResult(null); }}
                 onKeyDown={(e) => e.key === "Enter" && calculate()}
                 placeholder="$500,000"
-                className="w-full px-4 py-2.5 rounded-lg text-sm"
-                style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--app-border)", color: "var(--app-text)", outline: "none" }}
+                className="w-full px-4 py-2.5 rounded-lg text-sm focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/60"
+                style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--app-border)", color: "var(--app-text)", outline: "none", colorScheme: "dark" }}
               />
             </div>
           </div>

@@ -119,7 +119,7 @@ export default function WebinarRegistrationForm() {
         {saving ? "Registering..." : "Watch the Webinar Now →"}
       </button>
 
-      <p className="text-[10px] text-white/20 text-center mt-4">
+      <p className="text-[10px] text-white/55 text-center mt-4">
         We respect your privacy. No spam. Unsubscribe anytime.
       </p>
     </div>

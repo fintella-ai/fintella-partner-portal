@@ -60,14 +60,14 @@ export default function WebinarPlayer() {
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-center p-8">
             <div className="text-5xl mb-4">🎬</div>
-            <h3 className="font-display text-lg mb-2" style={{ color: "#c4a050" }}>Webinar Video Coming Soon</h3>
+            <h3 className="font-display text-lg mb-2" style={{ color: "var(--brand-gold)" }}>Webinar Video Coming Soon</h3>
             <p className="text-sm text-white/50 max-w-md">
               The video presentation is being produced. In the meantime, learn about the opportunity at our partner page.
             </p>
             <a
               href="/partners/brokers"
               className="mt-4 inline-block px-6 py-2.5 rounded-xl font-semibold text-sm text-black"
-              style={{ background: "#c4a050" }}
+              style={{ background: "var(--brand-gold)" }}
             >
               View Partner Details →
             </a>
@@ -80,9 +80,9 @@ export default function WebinarPlayer() {
 
       {/* CTA overlay — appears at 10min and 13min marks */}
       {showCta && (
-        <div className="absolute bottom-4 left-4 right-4 bg-black/90 backdrop-blur-sm border border-[#c4a050]/30 rounded-xl p-4 flex items-center justify-between gap-4">
+        <div className="absolute bottom-4 left-4 right-4 bg-black/90 backdrop-blur-sm border border-[var(--brand-gold)]/30 rounded-xl p-4 flex items-center justify-between gap-4">
           <div>
-            <div className="font-semibold text-sm" style={{ color: "#c4a050" }}>Ready to start earning?</div>
+            <div className="font-semibold text-sm" style={{ color: "var(--brand-gold)" }}>Ready to start earning?</div>
             <div className="text-xs text-white/50">Apply to the partner program — free, no obligations.</div>
           </div>
           <div className="flex gap-2 shrink-0">
@@ -95,7 +95,7 @@ export default function WebinarPlayer() {
             <a
               href="/partners/brokers"
               className="px-4 py-2 rounded-lg font-semibold text-xs text-black"
-              style={{ background: "#c4a050" }}
+              style={{ background: "var(--brand-gold)" }}
             >
               Apply Now
             </a>
