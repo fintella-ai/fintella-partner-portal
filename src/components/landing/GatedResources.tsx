@@ -122,7 +122,7 @@ export default function GatedResources({ partnerCode }: Props) {
   return (
     <div className="border-t border-white/5">
       <div className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="font-display text-2xl text-center mb-3" style={{ color: "#c4a050" }}>Free Resources</h2>
+        <h2 className="font-display text-2xl text-center mb-3" style={{ color: "var(--brand-gold)" }}>Free Resources</h2>
         <p className="text-sm text-white/40 text-center mb-10">
           Download these guides to understand the IEEPA tariff recovery process.
         </p>
@@ -131,12 +131,12 @@ export default function GatedResources({ partnerCode }: Props) {
             <button
               key={r.id}
               onClick={() => handleDownloadClick(r)}
-              className="group p-6 rounded-2xl border border-white/10 hover:border-[#c4a050]/30 hover:bg-[#c4a050]/[0.03] transition-all text-left"
+              className="group p-6 rounded-2xl border border-white/10 hover:border-[var(--brand-gold)]/30 hover:bg-[var(--brand-gold)]/[0.03] transition-all text-left"
             >
               <div className="text-3xl mb-3">{r.icon}</div>
-              <h3 className="font-semibold text-sm text-white/90 mb-2 group-hover:text-[#c4a050] transition">{r.title}</h3>
+              <h3 className="font-semibold text-sm text-white/90 mb-2 group-hover:text-[var(--brand-gold)] transition">{r.title}</h3>
               <p className="text-xs text-white/40 mb-3">{r.description}</p>
-              <span className="text-xs text-[#c4a050]/70 font-medium">
+              <span className="text-xs text-[var(--brand-gold)]/70 font-medium">
                 {unlocked ? "Download PDF →" : "🔒 Download PDF →"}
               </span>
             </button>
@@ -150,7 +150,7 @@ export default function GatedResources({ partnerCode }: Props) {
           <div className="w-full max-w-md bg-[#0c1220] border border-white/10 rounded-2xl p-6 sm:p-8">
             <div className="text-center mb-6">
               <div className="text-3xl mb-2">{selectedResource.icon}</div>
-              <h3 className="font-display text-lg" style={{ color: "#c4a050" }}>{selectedResource.title}</h3>
+              <h3 className="font-display text-lg" style={{ color: "var(--brand-gold)" }}>{selectedResource.title}</h3>
               <p className="text-xs text-white/40 mt-2">Enter your details to download this free guide.</p>
             </div>
 
@@ -164,7 +164,7 @@ export default function GatedResources({ partnerCode }: Props) {
                 <input
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40"
                   placeholder="Jane Smith"
                   autoFocus
                 />
@@ -175,7 +175,7 @@ export default function GatedResources({ partnerCode }: Props) {
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40"
                   placeholder="jane@acmeimports.com"
                 />
               </div>
@@ -187,7 +187,7 @@ export default function GatedResources({ partnerCode }: Props) {
                     type="tel"
                     value={form.phone}
                     onChange={(e) => handlePhoneChange(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-r-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+                    className="w-full bg-white/5 border border-white/10 rounded-r-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40"
                     placeholder="(555) 123-4567"
                   />
                 </div>
@@ -197,7 +197,7 @@ export default function GatedResources({ partnerCode }: Props) {
                 <input
                   value={form.company}
                   onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40"
                   placeholder="Acme Imports LLC"
                 />
               </div>
@@ -208,7 +208,7 @@ export default function GatedResources({ partnerCode }: Props) {
                 type="checkbox"
                 checked={form.commsOptIn}
                 onChange={(e) => setForm((f) => ({ ...f, commsOptIn: e.target.checked }))}
-                className="mt-0.5 w-4 h-4 rounded border-white/20 bg-white/5 accent-[#c4a050] shrink-0"
+                className="mt-0.5 w-4 h-4 rounded border-white/20 bg-white/5 accent-[var(--brand-gold)] shrink-0"
               />
               <span className="text-[11px] text-white/40 group-hover/opt:text-white/60 transition leading-relaxed">
                 I agree to receive tariff recovery updates and tips via email{form.phone.trim() ? " and SMS" : ""}. Unsubscribe anytime. Msg & data rates may apply.
@@ -219,7 +219,7 @@ export default function GatedResources({ partnerCode }: Props) {
               onClick={submitAndDownload}
               disabled={saving}
               className="w-full mt-5 py-3.5 rounded-xl font-semibold text-sm text-black disabled:opacity-50"
-              style={{ background: "#c4a050" }}
+              style={{ background: "var(--brand-gold)" }}
             >
               {saving ? "Processing..." : "Download Free Guide"}
             </button>
@@ -230,7 +230,7 @@ export default function GatedResources({ partnerCode }: Props) {
               Cancel
             </button>
 
-            <p className="text-[10px] text-white/20 text-center mt-4">
+            <p className="text-[10px] text-white/55 text-center mt-4">
               We&apos;ll send you the guide and occasional tariff recovery updates. Unsubscribe anytime.
             </p>
           </div>

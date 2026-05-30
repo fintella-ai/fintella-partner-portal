@@ -1,9 +1,22 @@
-# HANDOFF — Next Session (updated 2026-05-29, Session 3: "beast these 4" COMPLETE)
+# HANDOFF — Next Session (updated 2026-05-29 — OpCenter OLED marketing rollout SHIPPED)
 
 ## Step 0 — startup
-1. `git pull` (latest `main` = `5de741c`).
-2. Read `docs/knowledge/tariff-trial-key-and-underwriting.md` + `docs/knowledge/tariff-diy-engagement.md` (durable architecture) + `terminal-logs/2026-05-29-session3-beast-these-4.md` (what shipped).
-3. Repo is LIVE prod (real partner data). Additive schema only; preview-test schema changes first. Never `git add -A`. **Confirm before EVERY merge to main** (per-merge gate — hard rule even in beast mode).
+1. `git pull` (latest `main` = `8a71dfe` — the OLED marketing rollout; or newer if the follow-up PR merged).
+2. Read `terminal-logs/2026-05-29-session-oled-marketing-rollout.md` + `docs/knowledge/opcenter-theme-tokens.md` (the proven `.oc-launch` pattern) for the marketing theme; `docs/knowledge/tariff-*.md` + `terminal-logs/2026-05-29-session3-beast-these-4.md` for the tariff engine.
+3. Repo is LIVE prod (real partner data). Additive schema only; preview-test schema changes first. Never `git add -A`. **Confirm before EVERY merge to main** (per-merge gate — hard rule even in beast mode). NEVER `npm run build` (it `prisma db push`-es the live DB) — use `./node_modules/.bin/next dev`.
+
+## ▶️ RESUME HERE — OpCenter OLED rollout (shipped 2026-05-29)
+- **DONE + LIVE:** public marketing shell on the OLED look via PR **#1101 (`8a71dfe`)** — scoped `.oc-launch` token-override + `src/components/marketing/` kit. landing-v2/apply/pricing/brokers/webinar/calculator/tariff-diy. #1099 closed (superseded). Screenshot- + browser-verified on fintella.partners.
+- **IN FLIGHT — follow-up PR `claude/oled-marketing-followup-fixes`:** post-ship audit fixes — 2 gold leaks (`src/components/landing/WebinarPlayer.tsx`, `src/app/recover/tariff-diy/signed/page.tsx`) + WCAG-AA contrast on legal/disclaimer micro-copy (`text-white/20-30`→`/55-60`) + focus-ring regressions (BrokerSignupForm, HeroCalculator) + leftover gold focus border (PartnerInterestForm). Screenshot-verify affected pages, then merge on John's go.
+- **NOT YET DONE (decide / next):**
+  1. `/booker` renders light-mode (no `.oc-launch`) — confirm if it joins the rollout, then apply the recipe.
+  2. Pre-existing brokers A/B bug (NOT from this rollout): `partners/brokers/page.tsx` hardcodes `rate={25}` + imports unused `SetVariantCookie`; backend may expect a fraction. Confirm `/api/partners/broker-signup` contract first.
+  3. **Backoffice OLED rollout** = same `.oc-launch` scoped-token pattern behind `data-portal-theme="opcenter"` (see knowledge doc). Deliberate separate task.
+  4. Beast ideas: token source-of-truth + TS mirror, CI visual-regression guard (no Vercel previews here = real gap), "Deadline Radar" refund-decay countdown, "Recovery Confidence Score" shareable broker scorecard.
+- **GOTCHA:** never put `*/` inside a CSS comment (e.g. `--foo-*/`) — closes the comment, breaks the app-wide compile; CI green won't catch it (previews canceled), only a local `next dev` screenshot will.
+
+---
+## (Prior) Session 3 — "beast these 4" backlog (still relevant)
 
 ## What's done — "beast these 4" ALL SHIPPED
 - **1. Per-file sample-gate** — #1091 (session 2).

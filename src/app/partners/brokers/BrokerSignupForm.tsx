@@ -104,11 +104,12 @@ export default function BrokerSignupForm({ variant, rate }: Props) {
   const labelStyle = { color: "var(--app-text-muted)" };
 
   const inputClass =
-    "w-full h-11 rounded-lg border px-3 font-body text-sm outline-none transition-colors focus:border-[var(--brand-gold)]";
+    "w-full h-11 rounded-lg border px-3 font-body text-sm outline-none transition-colors focus:border-[var(--brand-gold)] focus:ring-2 focus:ring-violet-500/50 placeholder:text-[rgba(255,255,255,0.45)]";
   const inputStyle = {
     background: "rgba(0,0,0,0.3)",
     borderColor: "var(--app-border)",
     color: "var(--app-text)",
+    colorScheme: "dark" as const,
   };
 
   /* ── Success state ─────────────────────────────────────────────── */

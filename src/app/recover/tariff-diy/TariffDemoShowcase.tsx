@@ -165,7 +165,7 @@ export default function TariffDemoShowcase() {
             {shownFields.map((f) => (
               <div key={f.label} className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.03] px-3 py-2 animate-[fadeIn_0.3s_ease-out]">
                 <div className="min-w-0">
-                  <div className="text-[10px] uppercase tracking-wide text-white/35">{f.label}</div>
+                  <div className="text-[10px] uppercase tracking-wide text-white/55">{f.label}</div>
                   <div className={`text-sm font-medium truncate ${f.value == null ? "text-red-300 italic" : "text-white/85"}`}>
                     {f.value ?? "— not found —"}
                   </div>
@@ -176,7 +176,7 @@ export default function TariffDemoShowcase() {
               </div>
             ))}
             {shownFields.length === 0 && (
-              <div className="text-sm text-white/30 py-8 text-center">Scanning entry summary…</div>
+              <div className="text-sm text-white/60 py-8 text-center">Scanning entry summary…</div>
             )}
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function TariffDemoShowcase() {
                 </div>
               ))}
               {phase !== "auditing" && phase !== "done" && (
-                <div className="text-xs text-white/30 py-3 text-center">Audit runs after extraction…</div>
+                <div className="text-xs text-white/60 py-3 text-center">Audit runs after extraction…</div>
               )}
             </div>
           </div>
@@ -236,7 +236,7 @@ export default function TariffDemoShowcase() {
 
       {/* Replay */}
       <div className="mt-5 flex items-center justify-between">
-        <span className="text-[11px] text-white/30">Animated example · canned data · no upload or AI call</span>
+        <span className="text-[11px] text-white/60">Animated example · canned data · no upload or AI call</span>
         <button
           onClick={play}
           className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/5 transition min-h-[36px]"

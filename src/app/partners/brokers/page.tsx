@@ -304,7 +304,7 @@ export default function BrokersLandingPage() {
                 <div className="text-xs uppercase tracking-wider mb-0.5 text-white/40">
                   {s.label}
                 </div>
-                <div className="text-[10px] text-white/30">
+                <div className="text-[10px] text-white/55">
                   {s.sub}
                 </div>
               </div>

@@ -374,7 +374,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
                 </div>
               )}
 
-              <p className="text-[11px] text-white/30">Free trial returns a partial analysis; full calculation + file unlock when you choose a plan.</p>
+              <p className="text-[11px] text-white/60">Free trial returns a partial analysis; full calculation + file unlock when you choose a plan.</p>
             </div>
           )}
           <p className="text-[11px] text-white/30 text-center">Estimate only, not a guarantee of approval. Fintella is not a law firm.</p>
@@ -428,7 +428,7 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
               </button>
             </>
           )}
-          <p className="text-xs text-white/30 text-center">Card processed securely by NMI. We never see your card details.</p>
+          <p className="text-xs text-white/60 text-center">Card processed securely by NMI. We never see your card details.</p>
         </div>
       )}
 

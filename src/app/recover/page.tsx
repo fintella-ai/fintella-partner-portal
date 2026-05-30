@@ -94,7 +94,7 @@ function HowItWorksSection({ c }: { c: RecoverPageContent }) {
 function FooterSection({ c }: { c: RecoverPageContent }) {
   return (
     <div className="border-t border-white/5">
-      <div className="max-w-6xl mx-auto px-6 py-8 text-center text-xs text-white/30">
+      <div className="max-w-6xl mx-auto px-6 py-8 text-center text-xs text-white/55">
         <p>{c.footer.copyright}</p>
         <p className="mt-2">{c.footer.disclaimer}</p>
         <div className="mt-3 flex justify-center gap-4">

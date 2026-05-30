@@ -60,12 +60,12 @@ export default function PartnerInterestForm() {
     return (
       <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8 backdrop-blur-sm text-center">
         <div className="text-4xl mb-4">✅</div>
-        <h2 className="font-display text-xl mb-2" style={{ color: "#c4a050" }}>Application Received</h2>
+        <h2 className="font-display text-xl mb-2" style={{ color: "var(--brand-gold)" }}>Application Received</h2>
         <p className="text-sm text-white/60 mb-4">
           Thank you for your interest in the Fintella Partner Program. A member of our team will review your application and reach out within 24 hours.
         </p>
         <p className="text-xs text-white/30">
-          In the meantime, feel free to explore our <a href="/recover" className="text-[#c4a050]/70 hover:text-[#c4a050] transition underline">client refund calculator</a> to see how it works.
+          In the meantime, feel free to explore our <a href="/recover" className="text-[var(--brand-gold)]/70 hover:text-[var(--brand-gold)] transition underline">client refund calculator</a> to see how it works.
         </p>
       </div>
     );
@@ -73,7 +73,7 @@ export default function PartnerInterestForm() {
 
   return (
     <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
-      <h2 className="font-display text-xl mb-1" style={{ color: "#c4a050" }}>Apply to Partner</h2>
+      <h2 className="font-display text-xl mb-1" style={{ color: "var(--brand-gold)" }}>Apply to Partner</h2>
       <p className="text-sm text-white/40 mb-5">Free to join. No obligations. Start earning on referrals.</p>
 
       {error && (
@@ -86,7 +86,7 @@ export default function PartnerInterestForm() {
           <input
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40"
             placeholder="John Smith"
           />
         </div>
@@ -96,7 +96,7 @@ export default function PartnerInterestForm() {
             type="email"
             value={form.email}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40"
             placeholder="john@customsbroker.com"
           />
         </div>
@@ -105,7 +105,7 @@ export default function PartnerInterestForm() {
           <input
             value={form.company}
             onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40"
             placeholder="Smith Customs Brokerage LLC"
           />
         </div>
@@ -114,7 +114,7 @@ export default function PartnerInterestForm() {
           <input
             value={form.phone}
             onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40"
             placeholder="(555) 123-4567"
           />
         </div>
@@ -123,7 +123,7 @@ export default function PartnerInterestForm() {
           <select
             value={form.professionalType}
             onChange={(e) => setForm((f) => ({ ...f, professionalType: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40 appearance-none"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40 appearance-none"
           >
             <option value="" className="bg-[#0c1220]">Select your profession</option>
             {PROFESSIONAL_TYPES.map((t) => (
@@ -136,7 +136,7 @@ export default function PartnerInterestForm() {
           <input
             value={form.estimatedClients}
             onChange={(e) => setForm((f) => ({ ...f, estimatedClients: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40"
             placeholder="e.g. 50"
           />
         </div>
@@ -145,7 +145,7 @@ export default function PartnerInterestForm() {
           <textarea
             value={form.message}
             onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40 resize-none"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40 resize-none"
             rows={3}
             placeholder="Optional — tell us about your practice"
           />
@@ -156,13 +156,13 @@ export default function PartnerInterestForm() {
         onClick={submit}
         disabled={saving}
         className="w-full mt-5 py-3.5 rounded-xl font-semibold text-sm text-black disabled:opacity-50"
-        style={{ background: "#c4a050" }}
+        style={{ background: "var(--brand-gold)" }}
       >
         {saving ? "Submitting..." : "Apply to Become a Partner"}
       </button>
 
-      <p className="text-[10px] text-white/20 text-center mt-4">
-        By applying, you agree to our <a href="/terms" className="underline hover:text-white/30">Terms</a> and <a href="/privacy" className="underline hover:text-white/30">Privacy Policy</a>.
+      <p className="text-[10px] text-white/55 text-center mt-4">
+        By applying, you agree to our <a href="/terms" className="underline text-violet-300 hover:text-white/70">Terms</a> and <a href="/privacy" className="underline text-violet-300 hover:text-white/70">Privacy Policy</a>.
       </p>
     </div>
   );

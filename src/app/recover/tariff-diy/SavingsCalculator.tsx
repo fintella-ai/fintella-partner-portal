@@ -85,7 +85,7 @@ export default function SavingsCalculator({ upfrontFeeCents }: Props) {
             aria-label="Estimated refund amount"
             className="w-full accent-[#7c3aed] h-2 cursor-pointer"
           />
-          <div className="flex justify-between text-[11px] text-white/30 mt-1">
+          <div className="flex justify-between text-[11px] text-white/55 mt-1">
             <span>$5K</span><span>$500K</span>
           </div>
 
@@ -101,7 +101,7 @@ export default function SavingsCalculator({ upfrontFeeCents }: Props) {
               </span>
             </div>
           </div>
-          <p className="text-[11px] text-white/30 mt-3 leading-relaxed">
+          <p className="text-[11px] text-white/60 mt-3 leading-relaxed">
             One flat fee for the work + the software that produced your audit-ready file — a few percent of your
             refund instead of a third of it. Estimate only, not a guarantee of approval.
           </p>

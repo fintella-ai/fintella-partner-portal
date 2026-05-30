@@ -4,6 +4,23 @@ Captured 2026-05-29. Source: live CSS bundle at `opcenter.app/_next/static/css/*
 (read-only fetch of the public site — the OpCenter **repo** is never read/edited
 from this repo per the hard isolation rule).
 
+## ✅ SHIPPED — public marketing OLED rollout (PR #1101, `8a71dfe`, 2026-05-29)
+The PUBLIC marketing shell now wears this look in prod. **Reuse this exact mechanism for the backoffice rollout below.**
+
+**The pattern that worked (low-risk, no global-token edits):**
+- A scoped `.oc-launch` block in `src/app/globals.css` **re-points the `--app-*` and `--brand-gold` CSS custom properties locally**. Custom properties cascade from the nearest ancestor, so any element under an `.oc-launch` root reads OLED values while the global `:root` defs (the live backoffice) stay byte-for-byte untouched. Token-driven markup (`var(--app-*)`, `.card`, `.btn-gold`, `.stat-card`) re-skins automatically.
+- Reusable kit: `src/components/marketing/` (MarketingShell, MarketingAtmosphere, Eyebrow, GradientText, GlassCard, StatCard, FeatureIcon). Utilities under `.oc-launch`: `.oc-gradient-text` (violet→sky→cyan), `.oc-eyebrow`, `.oc-glass`/`--hover`, `.oc-feature-icon`, `.oc-stat-value`, `.oc-cta`/`--violet`.
+- Per-page recipe: add `oc-launch oc-grid relative overflow-hidden` to the root → `<MarketingAtmosphere/>` as first child → wrap content in `<div className="relative z-10">` → polish (GradientText hero key-phrase, Eyebrow kicker, white/violet pill CTAs, glass cards). landing-v2 used a `landing.css` OLED rewrite + `oc-launch` on `.landing-root`.
+- Fonts already loaded via `@import` in globals.css (Syne/Geist) + `.oc-launch .font-display`→Syne — **did NOT need `next/font`** (avoided a risky global `layout.tsx` edit).
+- Canonical accent: violet **#7c3aed** (NOT the earlier flat #8b5cf6). OLED surface **#050507**.
+
+**Gotchas learned (don't repeat):**
+1. Never put `*/` inside a CSS comment (e.g. writing `--app-*/--brand-gold`) — it closes the comment early and breaks the **app-wide** compile. CI "Vercel SUCCESS" did NOT catch it because this project **cancels all preview deployments**; only a local `next dev` + screenshot caught it.
+2. No reachable Vercel preview here → verify visually with `./node_modules/.bin/next dev` + Playwright, never assume the green check means it renders.
+3. NEVER `npm run build` to verify (it `prisma db push`-es the live DB) — use `next dev`/`next build` directly. Worktrees need `ln -sfn ../tariff-partner-portal/node_modules node_modules`.
+
+For the BACKOFFICE rollout, apply the SAME scoped approach but behind `data-portal-theme="opcenter"` (opt-in, reversible) per the plan below — do not overwrite the `default` theme tokens.
+
 ## Real OpCenter design tokens
 
 | Token | Value | Notes |

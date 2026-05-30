@@ -74,7 +74,7 @@ export default function WebinarWatchPage({
 
         {/* Footer */}
         <div className="border-t border-white/5">
-          <div className="max-w-6xl mx-auto px-6 py-8 text-center text-xs text-white/30">
+          <div className="max-w-6xl mx-auto px-6 py-8 text-center text-xs text-white/55">
             <p>© {new Date().getFullYear()} Fintella — Financial Intelligence Network. All rights reserved.</p>
           </div>
         </div>

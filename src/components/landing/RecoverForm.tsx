@@ -151,7 +151,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
       {step !== "done" && step !== "not_qualified" && (
         <div className="flex gap-1 mb-6">
           {[1, 2, 3, 4, 5].map((s) => (
-            <div key={s} className={`h-1 flex-1 rounded-full transition-all ${s <= progress ? "bg-[#c4a050]" : "bg-white/10"}`} />
+            <div key={s} className={`h-1 flex-1 rounded-full transition-all ${s <= progress ? "bg-[var(--brand-gold)]" : "bg-white/10"}`} />
           ))}
         </div>
       )}
@@ -159,7 +159,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
       {/* Step 1: What do you import? */}
       {step === "product" && (
         <>
-          <h2 className="font-display text-xl mb-1" style={{ color: "#c4a050" }}>What do you import?</h2>
+          <h2 className="font-display text-xl mb-1" style={{ color: "var(--brand-gold)" }}>What do you import?</h2>
           <p className="text-sm text-white/50 mb-5">Select the category that best matches your imports.</p>
           <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
             {HTS_CATEGORIES.map((c) => (
@@ -171,11 +171,11 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-white/80 font-medium">{c.label}</span>
-                    <span className="text-white/30 text-xs ml-2">HTS {c.code}</span>
+                    <span className="text-white/55 text-xs ml-2">HTS {c.code}</span>
                   </div>
-                  <span className="text-white/20 group-hover:text-white/40 transition">→</span>
+                  <span aria-hidden="true" className="text-white/20 group-hover:text-white/40 transition">→</span>
                 </div>
-                <div className="text-[11px] text-white/30 mt-0.5">{c.example}</div>
+                <div className="text-[11px] text-white/55 mt-0.5">{c.example}</div>
               </button>
             ))}
           </div>
@@ -185,7 +185,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
       {/* Step 2: How much in duties? */}
       {step === "duties" && (
         <>
-          <h2 className="font-display text-xl mb-1" style={{ color: "#c4a050" }}>Approximate IEEPA duties paid?</h2>
+          <h2 className="font-display text-xl mb-1" style={{ color: "var(--brand-gold)" }}>Approximate IEEPA duties paid?</h2>
           <p className="text-sm text-white/50 mb-1">Category: <strong className="text-white/70">{selectedCategory?.label}</strong></p>
           <p className="text-sm text-white/40 mb-5">Enter total IEEPA tariff duties paid (not total import value).</p>
           <div className="relative mb-4">
@@ -194,7 +194,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
               type="text"
               value={customDuties}
               onChange={(e) => setCustomDuties(e.target.value.replace(/[^0-9.,]/g, ""))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-4 text-2xl text-white outline-none focus:border-[#c4a050]/40 font-display"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-4 text-2xl text-white outline-none focus:border-[var(--brand-gold)]/40 font-display"
               placeholder="500,000"
               autoFocus
             />
@@ -210,7 +210,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
               onClick={() => dutiesAmount > 0 && setStep("timing")}
               disabled={dutiesAmount <= 0}
               className="flex-1 py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-30"
-              style={{ background: dutiesAmount > 0 ? "#c4a050" : undefined, color: dutiesAmount > 0 ? "#000" : undefined }}
+              style={{ background: dutiesAmount > 0 ? "var(--brand-gold)" : undefined, color: dutiesAmount > 0 ? "#000" : undefined }}
             >
               Next →
             </button>
@@ -221,7 +221,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
       {/* Step 3: When were duties paid? */}
       {step === "timing" && (
         <>
-          <h2 className="font-display text-xl mb-1" style={{ color: "#c4a050" }}>When were these duties paid?</h2>
+          <h2 className="font-display text-xl mb-1" style={{ color: "var(--brand-gold)" }}>When were these duties paid?</h2>
           <p className="text-sm text-white/50 mb-5">This affects which CAPE phase your entries fall under.</p>
           <div className="space-y-2 mb-4">
             {ENTRY_PERIODS.map((p) => (
@@ -232,7 +232,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-white/80 font-medium">{p.label}</span>
-                  <span className="text-[10px] text-white/30">{p.phase}</span>
+                  <span className="text-[10px] text-white/55">{p.phase}</span>
                 </div>
               </button>
             ))}
@@ -244,7 +244,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
       {/* Step 4: Results — show BEFORE asking for info */}
       {step === "result" && (
         <>
-          <h2 className="font-display text-xl mb-4" style={{ color: "#c4a050" }}>Your Estimated Recovery</h2>
+          <h2 className="font-display text-xl mb-4" style={{ color: "var(--brand-gold)" }}>Your Estimated Recovery</h2>
 
           <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-6 mb-4">
             <div className="text-center">
@@ -254,11 +254,11 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
             <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-green-500/10">
               <div className="text-center">
                 <div className="text-lg text-green-400 font-semibold">{fmt$(estimatedRefund)}</div>
-                <div className="text-[10px] text-white/30">Duty Refund</div>
+                <div className="text-[10px] text-white/55">Duty Refund</div>
               </div>
               <div className="text-center">
                 <div className="text-lg text-green-400 font-semibold">{fmt$(estimatedInterest)}</div>
-                <div className="text-[10px] text-white/30">Accrued Interest</div>
+                <div className="text-[10px] text-white/55">Accrued Interest</div>
               </div>
             </div>
           </div>
@@ -282,7 +282,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
           <button
             onClick={() => setStep("contact")}
             className="w-full py-3.5 rounded-xl font-semibold text-sm text-black"
-            style={{ background: "#c4a050" }}
+            style={{ background: "var(--brand-gold)" }}
           >
             Claim Your Refund — Free Assessment →
           </button>
@@ -293,7 +293,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
       {/* Step 5: Contact info */}
       {step === "contact" && (
         <>
-          <h2 className="font-display text-xl mb-1" style={{ color: "#c4a050" }}>Last Step — Your Details</h2>
+          <h2 className="font-display text-xl mb-1" style={{ color: "var(--brand-gold)" }}>Last Step — Your Details</h2>
           <p className="text-sm text-white/50 mb-1">Recovery estimate: <strong className="text-green-400">{fmt$(totalRecovery)}</strong></p>
           <p className="text-sm text-white/40 mb-5">A specialist will review your eligibility within 24 hours. No obligation.</p>
 
@@ -306,22 +306,22 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">First Name *</label>
-                <input value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="Jane" />
+                <input value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40" placeholder="Jane" />
               </div>
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Last Name *</label>
-                <input value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="Smith" />
+                <input value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40" placeholder="Smith" />
               </div>
             </div>
             {/* Row 2: Phone */}
             <div>
               <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Mobile Phone Number *</label>
-              <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="(555) 123-4567" />
+              <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40" placeholder="(555) 123-4567" />
             </div>
             {/* Row 2: Email */}
             <div>
               <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Business Email Address *</label>
-              <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="jane@acmeimports.com" />
+              <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40" placeholder="jane@acmeimports.com" />
             </div>
             {/* Row 3: Service + Title */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -331,31 +331,31 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
               </div>
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Your Business Title</label>
-                <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="CEO, Owner, Import Manager..." />
+                <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40" placeholder="CEO, Owner, Import Manager..." />
               </div>
             </div>
             {/* Row 4: Affiliate Notes */}
             <div>
               <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Affiliate Notes</label>
-              <textarea value={form.affiliateNotes} onChange={(e) => setForm((f) => ({ ...f, affiliateNotes: e.target.value }))} rows={2} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40 resize-y" placeholder="Any additional notes..." />
+              <textarea value={form.affiliateNotes} onChange={(e) => setForm((f) => ({ ...f, affiliateNotes: e.target.value }))} rows={2} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40 resize-y" placeholder="Any additional notes..." />
             </div>
 
-            <div className="font-display text-sm mt-2 mb-1" style={{ color: "#c4a050" }}>Business Details</div>
+            <div className="font-display text-sm mt-2 mb-1" style={{ color: "var(--brand-gold)" }}>Business Details</div>
 
             {/* Row 5: Legal Entity */}
             <div>
               <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Legal Entity / Business Name *</label>
-              <input value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="Acme Imports LLC" />
+              <input value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40" placeholder="Acme Imports LLC" />
             </div>
             {/* Row 6: City + State */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">City *</label>
-                <input value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="Los Angeles" />
+                <input value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40" placeholder="Los Angeles" />
               </div>
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">State *</label>
-                <select value={form.state} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40">
+                <select value={form.state} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40">
                   <option value="" className="bg-[#0a0e1a]">Select...</option>
                   {["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","District of Columbia","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"].map((s) => (
                     <option key={s} value={s} className="bg-[#0a0e1a]">{s}</option>
@@ -367,11 +367,11 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">EIN (optional)</label>
-                <input value={form.ein} onChange={(e) => setForm((f) => ({ ...f, ein: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40" placeholder="12-3456789" />
+                <input value={form.ein} onChange={(e) => setForm((f) => ({ ...f, ein: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40" placeholder="12-3456789" />
               </div>
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Business Entity Type *</label>
-                <select value={form.businessEntityType} onChange={(e) => setForm((f) => ({ ...f, businessEntityType: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40">
+                <select value={form.businessEntityType} onChange={(e) => setForm((f) => ({ ...f, businessEntityType: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40">
                   <option value="" className="bg-[#0a0e1a]">Select...</option>
                   <option value="Sole Proprietorship" className="bg-[#0a0e1a]">Sole Proprietorship</option>
                   <option value="General Partnership" className="bg-[#0a0e1a]">General Partnership</option>
@@ -388,7 +388,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Import Goods into the US *</label>
-                <select value={form.importsGoods} onChange={(e) => setForm((f) => ({ ...f, importsGoods: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40">
+                <select value={form.importsGoods} onChange={(e) => setForm((f) => ({ ...f, importsGoods: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40">
                   <option value="" className="bg-[#0a0e1a]">Select...</option>
                   <option value="Yes - we import goods into the U.S." className="bg-[#0a0e1a]">Yes – we import goods into the U.S.</option>
                   <option value="No - goods are imported on our behalf" className="bg-[#0a0e1a]">No – goods are imported on our behalf</option>
@@ -396,7 +396,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
               </div>
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Countries You Import From *</label>
-                <select value={form.importCountries} onChange={(e) => setForm((f) => ({ ...f, importCountries: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40">
+                <select value={form.importCountries} onChange={(e) => setForm((f) => ({ ...f, importCountries: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40">
                   <option value="" className="bg-[#0a0e1a]">Select...</option>
                   <option value="China" className="bg-[#0a0e1a]">China</option>
                   <option value="Canada" className="bg-[#0a0e1a]">Canada</option>
@@ -411,7 +411,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Annual Import Value *</label>
-                <select value={form.annualImportValue} onChange={(e) => setForm((f) => ({ ...f, annualImportValue: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40">
+                <select value={form.annualImportValue} onChange={(e) => setForm((f) => ({ ...f, annualImportValue: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40">
                   <option value="" className="bg-[#0a0e1a]">Select...</option>
                   <option value="Under $1,500,000" className="bg-[#0a0e1a]">Under $1,500,000</option>
                   <option value="$1,500,000 - $3,000,000 per year" className="bg-[#0a0e1a]">$1,500,000 – $3,000,000 per year</option>
@@ -421,7 +421,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
               </div>
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Importer of Record *</label>
-                <select value={form.importerOfRecord} onChange={(e) => setForm((f) => ({ ...f, importerOfRecord: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#c4a050]/40">
+                <select value={form.importerOfRecord} onChange={(e) => setForm((f) => ({ ...f, importerOfRecord: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--brand-gold)]/40">
                   <option value="" className="bg-[#0a0e1a]">Select...</option>
                   <option value="We are the Importer of Record (we use a customs broker)" className="bg-[#0a0e1a]">We are the Importer of Record (we use a customs broker)</option>
                   <option value="A third party imports on our behalf (FedEx, UPS, DHL, supplier, etc.)" className="bg-[#0a0e1a]">A third party imports on our behalf (FedEx, UPS, DHL, supplier, etc.)</option>
@@ -431,7 +431,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
             </div>
           </div>
 
-          <button onClick={submit} disabled={saving} className="w-full mt-5 py-3.5 rounded-xl font-semibold text-sm text-black disabled:opacity-50" style={{ background: "#c4a050" }}>
+          <button onClick={submit} disabled={saving} className="w-full mt-5 py-3.5 rounded-xl font-semibold text-sm text-black disabled:opacity-50" style={{ background: "var(--brand-gold)" }}>
             {saving ? "Submitting..." : "Request Free Assessment"}
           </button>
           <button onClick={() => setStep("result")} className="w-full mt-2 py-2 text-xs text-white/40 hover:text-white/60">← Back to estimate</button>
@@ -442,14 +442,14 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
       {step === "not_qualified" && (
         <div className="text-center py-8">
           <div className="text-4xl mb-4">📋</div>
-          <h2 className="font-display text-xl mb-2" style={{ color: "#c4a050" }}>Thank You for Your Interest</h2>
+          <h2 className="font-display text-xl mb-2" style={{ color: "var(--brand-gold)" }}>Thank You for Your Interest</h2>
           <p className="text-sm text-white/60 mb-4">
             Based on your import profile, you may not meet the minimum threshold for the IEEPA tariff refund program at this time.
           </p>
           <p className="text-sm text-white/50 mb-6">
             We&apos;ve saved your information and will reach out if eligibility criteria change. You can also contact us directly for a manual review.
           </p>
-          <a href="mailto:support@fintella.partners" className="inline-block px-6 py-3 rounded-xl font-semibold text-sm text-black" style={{ background: "#c4a050" }}>
+          <a href="mailto:support@fintella.partners" className="inline-block px-6 py-3 rounded-xl font-semibold text-sm text-black" style={{ background: "var(--brand-gold)" }}>
             Contact Us for Manual Review
           </a>
         </div>
@@ -489,7 +489,7 @@ export default function RecoverForm({ partnerCode, utmParams }: Props) {
             </div>
 
             <div className="text-center mb-4">
-              <h2 className="font-display text-xl mb-1" style={{ color: "#c4a050" }}>Book Your Free Consultation</h2>
+              <h2 className="font-display text-xl mb-1" style={{ color: "var(--brand-gold)" }}>Book Your Free Consultation</h2>
               <p className="text-sm text-white/50">Pick a time that works for you. We&apos;ll review your eligibility and walk you through the filing process.</p>
             </div>
 
