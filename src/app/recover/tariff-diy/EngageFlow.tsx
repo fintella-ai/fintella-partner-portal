@@ -370,14 +370,14 @@ export default function EngageFlow({ tokenizationKey, demoMode, partnerCode, fee
                     Returns eligibility + deadlines (refund $ locked).{" "}
                     <a href={trial.docsUrl} target="_blank" rel="noreferrer" className="underline hover:text-white/70" style={{ color: GOLD }}>Integration guide →</a>
                   </p>
-                  <p className="text-[11px] text-white/30">Upgrade for the full calc + file — pick a plan above.</p>
+                  <p className="text-[11px] text-white/60">Upgrade for the full calc + file — pick a plan above.</p>
                 </div>
               )}
 
               <p className="text-[11px] text-white/60">Free trial returns a partial analysis; full calculation + file unlock when you choose a plan.</p>
             </div>
           )}
-          <p className="text-[11px] text-white/30 text-center">Estimate only, not a guarantee of approval. Fintella is not a law firm.</p>
+          <p className="text-[11px] text-white/60 text-center">Estimate only, not a guarantee of approval. Fintella is not a law firm.</p>
         </div>
       )}
 
