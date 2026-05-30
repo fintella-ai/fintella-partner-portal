@@ -192,7 +192,7 @@ export default function HeroCalculator() {
                 type="date"
                 value={entryDate}
                 onChange={(e) => { setEntryDate(e.target.value); setResult(null); }}
-                className="w-full px-4 py-2.5 rounded-lg text-sm"
+                className="w-full px-4 py-2.5 rounded-lg text-sm focus:ring-2 focus:ring-violet-500/50"
                 style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--app-border)", color: "var(--app-text)", outline: "none", colorScheme: "dark" }}
               />
             </div>

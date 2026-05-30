@@ -64,7 +64,7 @@ export default function PartnerInterestForm() {
         <p className="text-sm text-white/60 mb-4">
           Thank you for your interest in the Fintella Partner Program. A member of our team will review your application and reach out within 24 hours.
         </p>
-        <p className="text-xs text-white/30">
+        <p className="text-xs text-white/60">
           In the meantime, feel free to explore our <a href="/recover" className="text-[var(--brand-gold)]/70 hover:text-[var(--brand-gold)] transition underline">client refund calculator</a> to see how it works.
         </p>
       </div>
