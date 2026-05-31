@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { randomInt } from "crypto";
 import { authenticator } from "otplib";
 import QRCode from "qrcode";
-import { hash, compare } from "bcryptjs";
+import { hash } from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { backupCodesRemaining } from "@/lib/totp";
+import { verifyTotpCode, backupCodesRemaining } from "@/lib/totp";
+import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
 
 const ADMIN_ROLES = ["super_admin", "admin", "accounting", "partner_support"];
 
@@ -46,36 +47,29 @@ function makeBackupCodes(count: number): string[] {
   return codes;
 }
 
-/** True if `code` is a valid current TOTP or (un-consumed) backup code for this admin. */
-async function adminCodeAuthorized(
-  user: { totpSecret: string | null; totpBackupCodes: string | null },
-  code: string,
-): Promise<boolean> {
-  if (!code || !user.totpSecret) return false;
-  if (authenticator.verify({ token: code, secret: user.totpSecret })) return true;
-  if (user.totpBackupCodes) {
-    try {
-      const hashedCodes: string[] = JSON.parse(user.totpBackupCodes);
-      for (const hashed of hashedCodes) {
-        if (await compare(code, hashed)) return true;
-      }
-    } catch {
-      // Corrupt JSON → unauthorized.
-    }
-  }
-  return false;
-}
-
 export async function GET() {
   const user = await currentAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   return NextResponse.json({
     enabled: user.totpEnabled,
-    backupCodesRemaining: backupCodesRemaining(user.totpBackupCodes),
+    // Only meaningful once enrolled — null while disabled so the card never
+    // flashes a false "0 of 10 backup codes left" warning before enrollment.
+    backupCodesRemaining: user.totpEnabled ? backupCodesRemaining(user.totpBackupCodes) : null,
   });
 }
 
 export async function POST(req: Request) {
+  // Throttle code-verifying actions (enable/regenerate/disable) per IP so a
+  // hijacked session can't brute-force the 6-digit TOTP space (~1M, 90s window).
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const limit = checkAuthRateLimit(ip);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil((limit.retryAfterMs || 60000) / 1000)) } },
+    );
+  }
+
   const user = await currentAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -151,7 +145,8 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    if (!(await adminCodeAuthorized(user, code))) {
+    const res = await verifyTotpCode(user, code);
+    if (!res.ok) {
       return NextResponse.json({ error: "Invalid code." }, { status: 400 });
     }
     // A fresh set fully replaces the old one (any code used to authorize above is
@@ -176,7 +171,8 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    if (!(await adminCodeAuthorized(user, code))) {
+    const res = await verifyTotpCode(user, code);
+    if (!res.ok) {
       return NextResponse.json({ error: "Invalid code." }, { status: 400 });
     }
 

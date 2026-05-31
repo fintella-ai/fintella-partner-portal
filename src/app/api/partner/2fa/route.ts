@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode, backupCodesRemaining } from "@/lib/totp";
 import { makeBackupCodes } from "@/lib/totp-codes";
+import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
 
 /**
  * Partner-facing 2FA (TOTP) enrollment + management. Mirrors /api/admin/2fa's
@@ -90,11 +91,26 @@ export async function GET() {
   if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   return NextResponse.json({
     enabled: identity.totpEnabled,
-    backupCodesRemaining: backupCodesRemaining(identity.totpBackupCodes),
+    // Only meaningful once enrolled — null while disabled so the card never
+    // flashes a false "0 of 10 backup codes left" warning before enrollment.
+    backupCodesRemaining: identity.totpEnabled
+      ? backupCodesRemaining(identity.totpBackupCodes)
+      : null,
   });
 }
 
 export async function POST(req: Request) {
+  // Throttle code-verifying actions (enable/regenerate/disable) per IP so a
+  // hijacked session can't brute-force the 6-digit TOTP space (~1M, 90s window).
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const limit = checkAuthRateLimit(ip);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil((limit.retryAfterMs || 60000) / 1000)) } }
+    );
+  }
+
   const identity = await currentPartnerIdentity();
   if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

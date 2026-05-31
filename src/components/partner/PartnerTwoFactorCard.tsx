@@ -81,6 +81,7 @@ export default function PartnerTwoFactorCard() {
       const data = await post("enable", enrollCode.trim());
       setEnabled(true);
       setBackupCodes(data.backupCodes || []);
+      setBackupRemaining((data.backupCodes || []).length);
       setQrDataUrl("");
       setSecret("");
       setEnrollCode("");
