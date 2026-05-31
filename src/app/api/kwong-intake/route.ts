@@ -355,7 +355,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Single update — markdown + SignWell data together so nothing gets overwritten
-    await prisma.deal.update({
+    const updatedDeal = await prisma.deal.update({
       where: { id: deal.id },
       data: {
         serviceFields: {
@@ -370,6 +370,26 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+
+    // Fire the deal.created workflow trigger (fire-and-forget). Deals created via
+    // this intake path previously never emitted deal.created — only the Frost Law
+    // webhook (/api/webhook/referral) did — so workflows like "Post Kwong Ops
+    // Center" never ran for Kwong intakes. Mirror the referral webhook's enriched
+    // payload so {deal.referralPartnerName}, {deal.dealUrl}, {deal.entityType},
+    // {deal.businessAddress}, etc. resolve in workflow actions.
+    import("@/lib/workflow-engine").then(({ fireWorkflowTrigger, deriveDealWorkflowFields }) => {
+      const referralPartnerName = partner
+        ? `${partner.firstName ?? ""} ${partner.lastName ?? ""}`.trim()
+        : "";
+      const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
+      const enrichedDeal = {
+        ...updatedDeal,
+        ...deriveDealWorkflowFields(updatedDeal),
+        referralPartnerName,
+        dealUrl: `${PORTAL_URL}/admin/deals#${updatedDeal.id}`,
+      };
+      fireWorkflowTrigger("deal.created", { deal: enrichedDeal });
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,
