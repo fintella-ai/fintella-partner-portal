@@ -2,17 +2,19 @@ import { NextResponse } from "next/server";
 import { randomInt } from "crypto";
 import { authenticator } from "otplib";
 import QRCode from "qrcode";
-import { hash, compare } from "bcryptjs";
+import { hash } from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyTotpCode, backupCodesRemaining } from "@/lib/totp";
+import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
 
 const ADMIN_ROLES = ["super_admin", "admin", "accounting", "partner_support"];
 
 /**
  * Opt-in admin Two-Factor Authentication (TOTP).
  *
- * GET   → { enabled } for the current admin.
- * POST  → action-based: "setup" | "enable" | "disable".
+ * GET   → { enabled, backupCodesRemaining } for the current admin.
+ * POST  → action-based: "setup" | "enable" | "regenerate" | "disable".
  *
  * Strictly opt-in: an admin who never enrolls logs in exactly as before.
  * Nothing here enforces 2FA — see src/lib/auth.ts admin-login provider, which
@@ -48,10 +50,26 @@ function makeBackupCodes(count: number): string[] {
 export async function GET() {
   const user = await currentAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json({ enabled: user.totpEnabled });
+  return NextResponse.json({
+    enabled: user.totpEnabled,
+    // Only meaningful once enrolled — null while disabled so the card never
+    // flashes a false "0 of 10 backup codes left" warning before enrollment.
+    backupCodesRemaining: user.totpEnabled ? backupCodesRemaining(user.totpBackupCodes) : null,
+  });
 }
 
 export async function POST(req: Request) {
+  // Throttle code-verifying actions (enable/regenerate/disable) per IP so a
+  // hijacked session can't brute-force the 6-digit TOTP space (~1M, 90s window).
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const limit = checkAuthRateLimit(ip);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil((limit.retryAfterMs || 60000) / 1000)) } },
+    );
+  }
+
   const user = await currentAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -111,6 +129,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ enabled: true, backupCodes: plainCodes });
   }
 
+  // ── REGENERATE: replace ALL backup codes with a fresh set of 10. Requires a
+  // valid current code (same bar as disable) so a hijacked session can't
+  // silently rotate codes out from under the admin. ──
+  if (action === "regenerate") {
+    if (!user.totpEnabled || !user.totpSecret) {
+      return NextResponse.json(
+        { error: "Enable two-factor authentication first." },
+        { status: 400 },
+      );
+    }
+    if (!code) {
+      return NextResponse.json(
+        { error: "Enter a current 2FA or backup code to regenerate." },
+        { status: 400 },
+      );
+    }
+    const res = await verifyTotpCode(user, code);
+    if (!res.ok) {
+      return NextResponse.json({ error: "Invalid code." }, { status: 400 });
+    }
+    // A fresh set fully replaces the old one (any code used to authorize above is
+    // now invalid alongside the rest). Shown exactly once.
+    const plainCodes = makeBackupCodes(10);
+    const hashedCodes = await Promise.all(plainCodes.map((c) => hash(c, 10)));
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { totpBackupCodes: JSON.stringify(hashedCodes) },
+    });
+    return NextResponse.json({ backupCodes: plainCodes });
+  }
+
   // ── DISABLE: require a valid current TOTP or backup code first. ──
   if (action === "disable") {
     if (!user.totpEnabled || !user.totpSecret) {
@@ -122,22 +171,8 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-
-    let authorized = authenticator.verify({ token: code, secret: user.totpSecret });
-    if (!authorized && user.totpBackupCodes) {
-      try {
-        const hashedCodes: string[] = JSON.parse(user.totpBackupCodes);
-        for (const hashed of hashedCodes) {
-          if (await compare(code, hashed)) {
-            authorized = true;
-            break;
-          }
-        }
-      } catch {
-        // Corrupt JSON → fall through as unauthorized.
-      }
-    }
-    if (!authorized) {
+    const res = await verifyTotpCode(user, code);
+    if (!res.ok) {
       return NextResponse.json({ error: "Invalid code." }, { status: 400 });
     }
 

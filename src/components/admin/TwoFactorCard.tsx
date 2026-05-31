@@ -31,10 +31,18 @@ export default function TwoFactorCard() {
   const [showDisable, setShowDisable] = useState(false);
   const [disableCode, setDisableCode] = useState("");
 
+  // Backup-code health + regenerate flow state
+  const [backupRemaining, setBackupRemaining] = useState<number | null>(null);
+  const [showRegenerate, setShowRegenerate] = useState(false);
+  const [regenCode, setRegenCode] = useState("");
+
   useEffect(() => {
     fetch("/api/admin/2fa")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then(({ enabled }) => setEnabled(!!enabled))
+      .then(({ enabled, backupCodesRemaining }) => {
+        setEnabled(!!enabled);
+        if (typeof backupCodesRemaining === "number") setBackupRemaining(backupCodesRemaining);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -75,6 +83,7 @@ export default function TwoFactorCard() {
       const data = await post("enable", enrollCode.trim());
       setEnabled(true);
       setBackupCodes(data.backupCodes || []);
+      setBackupRemaining((data.backupCodes || []).length);
       setQrDataUrl("");
       setSecret("");
       setEnrollCode("");
@@ -102,6 +111,28 @@ export default function TwoFactorCard() {
       setMessage({ text: "Two-factor authentication disabled.", type: "success" });
     } catch (e: any) {
       setMessage({ text: e?.message || "Could not disable.", type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRegenerate() {
+    setMessage(null);
+    if (!regenCode.trim()) {
+      setMessage({ text: "Enter a current 2FA or backup code to regenerate.", type: "error" });
+      return;
+    }
+    setBusy(true);
+    try {
+      const data = await post("regenerate", regenCode.trim());
+      const fresh: string[] = data.backupCodes || [];
+      setBackupCodes(fresh);
+      setBackupRemaining(fresh.length);
+      setShowRegenerate(false);
+      setRegenCode("");
+      setMessage({ text: "New backup codes generated. Your old codes no longer work.", type: "success" });
+    } catch (e: any) {
+      setMessage({ text: e?.message || "Could not regenerate backup codes.", type: "error" });
     } finally {
       setBusy(false);
     }
@@ -211,16 +242,96 @@ export default function TwoFactorCard() {
         </button>
       )}
 
-      {!loading && enabled && !showDisable && backupCodes.length === 0 && (
-        <button
-          onClick={() => {
-            setShowDisable(true);
-            setMessage(null);
-          }}
-          className="font-body text-[12px] px-6 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/[0.08] transition-colors"
-        >
-          Disable 2FA
-        </button>
+      {/* Idle enabled state — backup-code health + management actions */}
+      {!loading && enabled && !showDisable && !showRegenerate && backupCodes.length === 0 && (
+        <div>
+          {backupRemaining !== null && (
+            <div
+              className={`mb-4 flex items-start gap-2.5 p-3 rounded-lg border ${
+                backupRemaining <= 2
+                  ? "bg-amber-500/[0.08] border-amber-500/25"
+                  : "bg-black/10 border-[var(--app-border)]"
+              }`}
+            >
+              <svg
+                className={`w-4 h-4 mt-0.5 shrink-0 ${backupRemaining <= 2 ? "text-amber-300" : "theme-text-muted"}`}
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
+                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+              >
+                <path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3Z" />
+              </svg>
+              <div className="min-w-0">
+                <p className={`font-body text-[12px] ${backupRemaining <= 2 ? "text-amber-200" : "theme-text-secondary"}`}>
+                  <span className="font-semibold">{backupRemaining}</span> of 10 backup codes left
+                </p>
+                {backupRemaining <= 2 && (
+                  <p className="font-body text-[11px] text-amber-300/80 mt-0.5">
+                    {backupRemaining === 0
+                      ? "You have no backup codes left — regenerate now so you're not locked out if you lose your authenticator."
+                      : "Running low — regenerate to get a fresh set of 10 before you run out."}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => {
+                setShowRegenerate(true);
+                setMessage(null);
+              }}
+              className="font-body text-[12px] px-6 py-2.5 rounded-lg border border-[var(--app-border)] theme-text-secondary hover:theme-text transition-colors"
+            >
+              Regenerate backup codes
+            </button>
+            <button
+              onClick={() => {
+                setShowDisable(true);
+                setMessage(null);
+              }}
+              className="font-body text-[12px] px-6 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/[0.08] transition-colors"
+            >
+              Disable 2FA
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Regenerate backup codes — requires a current code */}
+      {!loading && enabled && showRegenerate && (
+        <div>
+          <label className={labelClass}>Enter a current 2FA or backup code to regenerate</label>
+          <input
+            className={inputClass}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="123456 or backup code"
+            value={regenCode}
+            onChange={(e) => setRegenCode(e.target.value)}
+          />
+          <p className="font-body text-[11px] theme-text-muted mt-2">
+            This issues a fresh set of 10 codes and immediately invalidates your old ones.
+          </p>
+          <div className="mt-4 flex gap-3">
+            <button
+              onClick={handleRegenerate}
+              disabled={busy}
+              className="btn-gold text-[12px] px-6 py-2.5 disabled:opacity-50"
+            >
+              {busy ? "Generating…" : "Generate new codes"}
+            </button>
+            <button
+              onClick={() => {
+                setShowRegenerate(false);
+                setRegenCode("");
+              }}
+              disabled={busy}
+              className="font-body text-[12px] px-6 py-2.5 rounded-lg border border-[var(--app-border)] theme-text-muted hover:theme-text disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {!loading && enabled && showDisable && (
