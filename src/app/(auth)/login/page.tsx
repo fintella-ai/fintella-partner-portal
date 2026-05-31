@@ -40,6 +40,10 @@ function LoginPageInner() {
   const [error, setError] = useState("");
   const [archived, setArchived] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Break-glass: a partner who lost their authenticator + backup codes can have
+  // a one-time 2FA-removal link emailed (only after the password checks out).
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoverySent, setRecoverySent] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState("");
@@ -124,6 +128,27 @@ function LoginPageInner() {
       setError(`Connection error. Please try again or email ${SUPPORT_EMAIL}.`);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleRecoveryRequest() {
+    setError("");
+    if (!email.trim() || !password.trim()) {
+      setError("Enter your email and password above first, then request a recovery link.");
+      return;
+    }
+    setRecoveryLoading(true);
+    try {
+      await fetch("/api/auth/mfa-recovery/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+    } catch {
+      // Swallow — we always show the same generic confirmation (no enumeration).
+    } finally {
+      setRecoveryLoading(false);
+      setRecoverySent(true);
     }
   }
 
@@ -214,7 +239,7 @@ function LoginPageInner() {
           <div className="flex mb-6 rounded-lg overflow-hidden" style={{ border: "1px solid var(--app-border)" }}>
             <button
               type="button"
-              onClick={() => { setMode("partner"); setError(""); setArchived(false); setShowTotp(false); setTotp(""); }}
+              onClick={() => { setMode("partner"); setError(""); setArchived(false); setShowTotp(false); setTotp(""); setRecoverySent(false); }}
               className={`flex-1 py-3 font-body text-xs tracking-wider uppercase transition-all ${
                 mode === "partner"
                   ? "bg-brand-gold/10 text-brand-gold"
@@ -226,7 +251,7 @@ function LoginPageInner() {
             </button>
             <button
               type="button"
-              onClick={() => { setMode("admin"); setError(""); setArchived(false); setShowTotp(false); setTotp(""); }}
+              onClick={() => { setMode("admin"); setError(""); setArchived(false); setShowTotp(false); setTotp(""); setRecoverySent(false); }}
               className={`flex-1 py-3 font-body text-xs tracking-wider uppercase transition-all ${
                 mode === "admin"
                   ? "bg-brand-gold/10 text-brand-gold"
@@ -374,6 +399,28 @@ function LoginPageInner() {
                   autoCapitalize="characters"
                   autoCorrect="off"
                 />
+                {/* Break-glass: partner lost authenticator AND backup codes. A
+                    one-time removal link is emailed only after the password is
+                    verified server-side. Partner mode only. */}
+                {mode === "partner" && (
+                  <div className="mt-2.5">
+                    {recoverySent ? (
+                      <p className="font-body text-[11px] text-green-400/90 leading-relaxed">
+                        If that account exists and has 2FA enabled, we&apos;ve emailed a recovery link
+                        {email.trim() ? <> to <span className="text-green-300">{email.trim()}</span></> : null}. It expires in 15 minutes.
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void handleRecoveryRequest()}
+                        disabled={recoveryLoading}
+                        className="font-body text-[11px] text-brand-gold/70 hover:text-brand-gold transition-colors disabled:opacity-50"
+                      >
+                        {recoveryLoading ? "Sending recovery link…" : "Lost your authenticator? Email me a recovery link"}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
