@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
-import { classifyRecoveryToken } from "@/lib/mfa-recovery";
+import { classifyRecoveryToken, MFA_RECOVERY_ROLE } from "@/lib/mfa-recovery";
 
 /**
  * MFA break-glass recovery — token validation + consumption.
@@ -72,30 +72,49 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: messages[reason] || "This link is invalid." }, { status: STATUS[reason] || 400 });
   }
 
-  // Resolve the owning identity by email, same order as login (active
-  // PartnerUser first, then Partner), and clear all TOTP fields.
+  // Burn the token FIRST, atomically: only the request that flips usedAt from
+  // null wins. A concurrent duplicate (or replay) gets count 0 → already-used.
+  // Doing this before any TOTP write makes single-use race-safe and means a
+  // failed burn never returns success with a still-live token.
+  let burned;
+  try {
+    burned = await prisma.passwordResetToken.updateMany({
+      where: { token, role: MFA_RECOVERY_ROLE, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+  } catch (err) {
+    console.error("[mfa-recovery] token consume failed:", err);
+    return NextResponse.json({ error: "Recovery failed. Please try again." }, { status: 500 });
+  }
+  if (burned.count === 0) {
+    return NextResponse.json({ error: "This link has already been used." }, { status: 410 });
+  }
+
+  // Token is now spent. Resolve the owning identity by email, same order as
+  // login (active PartnerUser first, then Partner), re-check it isn't
+  // blocked/archived, and clear all TOTP fields.
   let disabled = false;
   const partnerUser = await prisma.partnerUser
     .findFirst({ where: { email: { equals: row.email, mode: "insensitive" }, active: true } })
     .catch(() => null);
   if (partnerUser) {
-    await prisma.partnerUser.update({ where: { id: partnerUser.id }, data: CLEAR_TOTP });
-    disabled = true;
+    const owner = await prisma.partner
+      .findFirst({ where: { partnerCode: partnerUser.partnerCode }, select: { status: true } })
+      .catch(() => null);
+    if (owner && owner.status !== "blocked" && owner.status !== "archived") {
+      await prisma.partnerUser.update({ where: { id: partnerUser.id }, data: CLEAR_TOTP });
+      disabled = true;
+    }
   } else {
     const partner = await prisma.partner
       .findFirst({ where: { email: { equals: row.email, mode: "insensitive" } } })
       .catch(() => null);
-    if (partner) {
+    if (partner && partner.status !== "blocked" && partner.status !== "archived") {
       await prisma.partner.update({ where: { id: partner.id }, data: CLEAR_TOTP });
       disabled = true;
     }
   }
   if (!disabled) return NextResponse.json({ error: "Account no longer exists." }, { status: 404 });
-
-  // Single-use: burn the token even if the account lookup raced.
-  await prisma.passwordResetToken
-    .update({ where: { token }, data: { usedAt: new Date() } })
-    .catch((err) => console.error("[mfa-recovery] token consume failed:", err));
 
   return NextResponse.json({ ok: true });
 }
