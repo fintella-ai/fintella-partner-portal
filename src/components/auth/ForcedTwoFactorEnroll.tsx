@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackupCodesPanel from "@/components/auth/BackupCodesPanel";
 
 /**
  * Mandatory full-screen TOTP enrollment. Rendered by MfaEnforcementGate when MFA
@@ -113,22 +114,7 @@ export default function ForcedTwoFactorEnroll({
         {/* Backup codes — shown exactly once after enabling */}
         {backupCodes.length > 0 ? (
           <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-amber-500/[0.08] border border-amber-500/25">
-              <p className="font-body text-[13px] text-amber-300 font-semibold mb-1">
-                Save your backup codes
-              </p>
-              <p className="font-body text-[12px] text-amber-300/80 mb-3 leading-relaxed">
-                Each code works once if you lose access to your authenticator. Store them somewhere
-                safe — they will not be shown again.
-              </p>
-              <div className="grid grid-cols-2 gap-2 font-mono text-[13px] text-amber-200">
-                {backupCodes.map((c) => (
-                  <div key={c} className="px-2 py-1.5 rounded bg-black/30 text-center tracking-[0.15em]">
-                    {c}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <BackupCodesPanel codes={backupCodes} portalLabel={portalLabel === "admin dashboard" ? "Fintella Admin" : "Fintella Partner Portal"} />
             <button onClick={finish} className="btn-gold w-full rounded-md min-h-[52px]">
               I&apos;ve saved them — continue →
             </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import BackupCodesPanel from "@/components/auth/BackupCodesPanel";
 
 /**
  * Opt-in admin Two-Factor Authentication (TOTP) enrollment card.
@@ -144,21 +145,7 @@ export default function TwoFactorCard() {
 
       {/* Backup codes — shown exactly once after enabling */}
       {backupCodes.length > 0 && (
-        <div className="mb-4 p-4 rounded-lg bg-amber-500/[0.08] border border-amber-500/25">
-          <p className="font-body text-[13px] text-amber-300 font-semibold mb-2">
-            Save your backup codes
-          </p>
-          <p className="font-body text-[12px] text-amber-300/80 mb-3 leading-relaxed">
-            Each code works once if you lose your authenticator. They will not be shown again.
-          </p>
-          <div className="grid grid-cols-2 gap-2 font-mono text-[13px] text-amber-200">
-            {backupCodes.map((c) => (
-              <div key={c} className="px-2 py-1.5 rounded bg-black/30 text-center tracking-[0.15em]">
-                {c}
-              </div>
-            ))}
-          </div>
-        </div>
+        <BackupCodesPanel codes={backupCodes} portalLabel="Fintella Admin" />
       )}
 
       {/* Enrollment QR flow */}
