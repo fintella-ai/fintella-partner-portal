@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { fireWorkflowTrigger } from "@/lib/workflow-engine";
+import { fireWorkflowTrigger, deriveDealWorkflowFields } from "@/lib/workflow-engine";
 
 export async function POST(req: NextRequest) {
   // Accept either super_admin session OR CRON_SECRET bearer token
@@ -32,7 +32,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Deal not found" }, { status: 404 });
   }
 
-  await fireWorkflowTrigger(triggerKey, { deal });
+  // Enrich the payload the same way the live deal.created call sites do
+  // (/api/webhook/referral + /api/kwong-intake) so tokens like
+  // {deal.referralPartnerName}, {deal.dealUrl}, {deal.entityType} and
+  // {deal.businessAddress} resolve in workflow actions on a manual refire.
+  let referralPartnerName = "";
+  if (deal.partnerCode && deal.partnerCode !== "UNATTRIBUTED" && deal.partnerCode !== "DIRECT") {
+    const p = await prisma.partner
+      .findUnique({
+        where: { partnerCode: deal.partnerCode },
+        select: { firstName: true, lastName: true },
+      })
+      .catch(() => null);
+    if (p) referralPartnerName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
+  }
+  const PORTAL_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fintella.partners";
+  const enrichedDeal = {
+    ...deal,
+    ...deriveDealWorkflowFields(deal),
+    referralPartnerName,
+    dealUrl: `${PORTAL_URL}/admin/deals#${deal.id}`,
+  };
+
+  await fireWorkflowTrigger(triggerKey, { deal: enrichedDeal });
 
   return NextResponse.json({
     fired: true,
