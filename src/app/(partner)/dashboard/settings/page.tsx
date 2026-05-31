@@ -5,6 +5,7 @@ import { useDevice } from "@/lib/useDevice";
 import { useRouter } from "next/navigation";
 import CountryCodeSelect, { parseMobilePhone, buildMobilePhone } from "@/components/ui/CountryCodeSelect";
 import PasskeysCard from "@/components/partner/PasskeysCard";
+import PartnerTwoFactorCard from "@/components/partner/PartnerTwoFactorCard";
 import PersonaAvatar from "@/components/ai/PersonaAvatar";
 import { PERSONAS } from "@/lib/ai-personas";
 import { US_STATES } from "@/lib/constants";
@@ -73,7 +74,7 @@ export default function AccountSettingsPage() {
   // bottom commits everything regardless of which tab the edit was made
   // on). Passkeys tab is special: it manages its own state + has its
   // own add/remove flow, so the Save button hides there.
-  type TabId = "personal" | "communication" | "address" | "payout" | "passkeys";
+  type TabId = "personal" | "communication" | "address" | "payout" | "passkeys" | "security";
   const [activeTab, setActiveTab] = useState<TabId>("personal");
   const TABS: { id: TabId; label: string }[] = [
     { id: "personal", label: "Personal Information" },
@@ -81,6 +82,7 @@ export default function AccountSettingsPage() {
     { id: "address", label: "Address" },
     { id: "payout", label: "Payout Information" },
     { id: "passkeys", label: "Passkeys (Login)" },
+    { id: "security", label: "Two-Factor (2FA)" },
   ];
 
   useEffect(() => {
@@ -209,7 +211,7 @@ export default function AccountSettingsPage() {
         </div>
       </div>
 
-      {activeTab !== "passkeys" && (
+      {activeTab !== "passkeys" && activeTab !== "security" && (
       <div className={`card ${device.cardPadding} ${device.borderRadius}`}>
 
         {/* ── Personal Information (includes Contact Information per spec) ── */}
@@ -602,7 +604,10 @@ export default function AccountSettingsPage() {
            Save button below. */}
       {activeTab === "passkeys" && <PasskeysCard />}
 
-      {activeTab !== "passkeys" && (
+      {/* ── Two-Factor (TOTP) ── self-managed like Passkeys; no Save button. */}
+      {activeTab === "security" && <PartnerTwoFactorCard />}
+
+      {activeTab !== "passkeys" && activeTab !== "security" && (
       <div>
 
         {/* ── Message banner ── */}

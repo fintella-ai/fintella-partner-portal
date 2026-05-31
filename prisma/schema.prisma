@@ -180,6 +180,13 @@ model Partner {
   corporatePartner      Boolean  @default(false) // DEPRECATED — use partnerType instead. Retained for rollback safety.
   partnerType           String   @default("referral") // "referral" | "corporate" | "customs_broker" | "licensed"
   passwordHash          String?  // bcrypt hash, null = legacy (uses partnerCode to log in)
+  // ── Partner MFA (TOTP) — mirrors the admin User pattern. Used by a DIRECT
+  // partner login. Corporate team-member logins use the matching fields on
+  // PartnerUser. Google / passkey sign-ins are never challenged. ──
+  totpSecret            String?   // base32 TOTP secret (set once enrolled)
+  totpEnabled           Boolean   @default(false)
+  totpPendingSecret     String?   // secret during enrollment, before first verify
+  totpBackupCodes       String?   // JSON array of bcrypt-hashed one-time backup codes
   firstName             String
   lastName              String
   companyName           String?
@@ -246,6 +253,11 @@ model PartnerUser {
   firstName    String
   lastName     String
   active       Boolean  @default(true)
+  // ── Per-user MFA (TOTP) for corporate team logins — same model as Partner ──
+  totpSecret        String?
+  totpEnabled       Boolean  @default(false)
+  totpPendingSecret String?
+  totpBackupCodes   String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -827,6 +839,12 @@ model PortalSettings {
   homeModuleLayout       String @default("{}")
   liveChatEnabled        Boolean @default(false) // live support chat on/off
   callRecordingEnabled   Boolean @default(false) // record outbound voice calls (requires Twilio)
+  // ── Per-portal MFA enforcement (the "Google-OR-TOTP" model). When ON, the
+  // matching portal's EMAIL/PASSWORD logins must enroll TOTP before using the
+  // portal. Google / passkey logins are never affected. Default OFF so the
+  // feature is dark until a super-admin flips it in Settings → Security. ──
+  mfaRequiredPartners    Boolean @default(false)
+  mfaRequiredAdmins      Boolean @default(false)
   // Optional banner image shown centered at the top of the partner
   // Live Weekly Call page. base64 data URL (same storage as logoUrl).
   // Empty string = no banner, page renders without it.

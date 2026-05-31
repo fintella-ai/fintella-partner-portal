@@ -32,6 +32,11 @@ function LoginPageInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [totp, setTotp] = useState("");
+  // Reveal the 2FA code field. Admins always see it (opt-in, may have enrolled);
+  // partners only see it after a first failed attempt — at which point their
+  // account may have 2FA enabled or be required to enroll. Keeps the partner
+  // login clean for the majority who don't use 2FA.
+  const [showTotp, setShowTotp] = useState(false);
   const [error, setError] = useState("");
   const [archived, setArchived] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -81,9 +86,9 @@ function LoginPageInner() {
       const result = await signIn(providerId, {
         email: email.trim(),
         password,
-        // 2FA is opt-in: only enrolled admins are challenged. Sending an empty
-        // string for admins who never enrolled is a no-op (provider ignores it).
-        ...(mode === "admin" ? { totp: totp.trim() } : {}),
+        // Both providers accept an optional TOTP code now. Only enrolled
+        // accounts are challenged; an empty string is a no-op for the rest.
+        totp: totp.trim(),
         redirect: false,
       });
 
@@ -104,7 +109,14 @@ function LoginPageInner() {
             }
           } catch {}
         }
-        setError("Invalid email or password.");
+        // First failure may simply mean 2FA is enabled/required but no code was
+        // entered — reveal the code field (for both portals) and prompt for it.
+        if (!showTotp && !totp.trim()) {
+          setShowTotp(true);
+          setError("If you have two-factor enabled, enter your code below. Otherwise check your email and password.");
+        } else {
+          setError("Invalid email, password, or 2FA code.");
+        }
       } else {
         router.push(mode === "partner" ? "/dashboard/home" : "/admin");
       }
@@ -202,7 +214,7 @@ function LoginPageInner() {
           <div className="flex mb-6 rounded-lg overflow-hidden" style={{ border: "1px solid var(--app-border)" }}>
             <button
               type="button"
-              onClick={() => { setMode("partner"); setError(""); setArchived(false); }}
+              onClick={() => { setMode("partner"); setError(""); setArchived(false); setShowTotp(false); setTotp(""); }}
               className={`flex-1 py-3 font-body text-xs tracking-wider uppercase transition-all ${
                 mode === "partner"
                   ? "bg-brand-gold/10 text-brand-gold"
@@ -214,7 +226,7 @@ function LoginPageInner() {
             </button>
             <button
               type="button"
-              onClick={() => { setMode("admin"); setError(""); setArchived(false); }}
+              onClick={() => { setMode("admin"); setError(""); setArchived(false); setShowTotp(false); setTotp(""); }}
               className={`flex-1 py-3 font-body text-xs tracking-wider uppercase transition-all ${
                 mode === "admin"
                   ? "bg-brand-gold/10 text-brand-gold"
@@ -342,10 +354,11 @@ function LoginPageInner() {
               </div>
             </div>
 
-            {/* Optional 2FA code — admins only. Leave blank unless you've
-                enrolled in two-factor auth (Settings → Security). Opt-in:
-                admins without 2FA sign in exactly as before. */}
-            {mode === "admin" && (
+            {/* Optional 2FA code. Admins always see it (opt-in — leave blank if
+                not enrolled). Partners see it after a first failed attempt, when
+                2FA may be enabled or required. Opt-in accounts without 2FA sign
+                in exactly as before. */}
+            {(mode === "admin" || showTotp) && (
               <div className="mb-7">
                 <label className="font-body text-[11px] tracking-[1px] uppercase theme-text-muted mb-2 block">
                   2FA Code <span className="theme-text-faint normal-case tracking-normal">(if enabled)</span>

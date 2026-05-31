@@ -2,8 +2,8 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { compare } from "bcryptjs";
-import { authenticator } from "otplib";
 import { prisma } from "./prisma";
+import { verifyTotpCode } from "./totp";
 
 /**
  * Google sign-in is **partner-only** and strictly a convenience shortcut for
@@ -32,10 +32,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        totp: { label: "2FA Code", type: "text" },
       },
       async authorize(credentials) {
         const email = credentials?.email as string;
         const password = credentials?.password as string;
+        const totp = ((credentials?.totp as string) || "").trim();
 
         if (!email || !password) return null;
 
@@ -53,6 +55,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const valid = await compare(password, partnerUser.passwordHash);
           if (!valid) return null;
 
+          // MFA gate — only challenges identities that have enrolled. Google
+          // sign-ins never reach this provider, so they're inherently exempt.
+          if (partnerUser.totpEnabled && partnerUser.totpSecret) {
+            const res = await verifyTotpCode(partnerUser, totp);
+            if (!res.ok) return null;
+            if (res.consumedBackupCodes !== null) {
+              await prisma.partnerUser.update({
+                where: { id: partnerUser.id },
+                data: { totpBackupCodes: res.consumedBackupCodes },
+              });
+            }
+          }
+
           return {
             id: partner.id,
             email: partnerUser.email,
@@ -60,6 +75,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             role: "partner",
             partnerCode: partner.partnerCode,
             partnerType: partner.partnerType || "referral",
+            authProvider: "credentials-partner",
           };
         }
 
@@ -76,6 +92,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const valid = await compare(password, partner.passwordHash);
         if (!valid) return null;
 
+        // MFA gate — only enrolled partners are challenged. Google is exempt.
+        if (partner.totpEnabled && partner.totpSecret) {
+          const res = await verifyTotpCode(partner, totp);
+          if (!res.ok) return null;
+          if (res.consumedBackupCodes !== null) {
+            await prisma.partner.update({
+              where: { id: partner.id },
+              data: { totpBackupCodes: res.consumedBackupCodes },
+            });
+          }
+        }
+
         return {
           id: partner.id,
           email: partner.email,
@@ -83,6 +111,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           role: "partner",
           partnerCode: partner.partnerCode,
           partnerType: partner.partnerType || "referral",
+          authProvider: "credentials-partner",
         };
       },
     }),
@@ -120,6 +149,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           role: "partner",
           partnerCode: partner.partnerCode,
           partnerType: partner.partnerType || "referral",
+          authProvider: "impersonate",
         };
       },
     }),
@@ -150,36 +180,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Opt-in 2FA gate. Admins without totpEnabled log in exactly as before
         // (no code required, no lockout). Only enrolled admins are challenged.
         if (user.totpEnabled && user.totpSecret) {
-          if (!totp) return null;
-
-          let twoFactorOk = authenticator.verify({ token: totp, secret: user.totpSecret });
-
-          // Fall back to a single-use backup code. On match, consume it by
-          // removing it from the stored hashed array.
-          if (!twoFactorOk && user.totpBackupCodes) {
-            try {
-              const hashedCodes: string[] = JSON.parse(user.totpBackupCodes);
-              let matchedIndex = -1;
-              for (let i = 0; i < hashedCodes.length; i++) {
-                if (await compare(totp, hashedCodes[i])) {
-                  matchedIndex = i;
-                  break;
-                }
-              }
-              if (matchedIndex >= 0) {
-                twoFactorOk = true;
-                hashedCodes.splice(matchedIndex, 1);
-                await prisma.user.update({
-                  where: { id: user.id },
-                  data: { totpBackupCodes: JSON.stringify(hashedCodes) },
-                });
-              }
-            } catch {
-              // Corrupt JSON → treat as no valid backup code.
-            }
+          const res = await verifyTotpCode(user, totp);
+          if (!res.ok) return null;
+          if (res.consumedBackupCodes !== null) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { totpBackupCodes: res.consumedBackupCodes },
+            });
           }
-
-          if (!twoFactorOk) return null;
         }
 
         return {
@@ -187,6 +195,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name || user.email,
           role: user.role,
+          authProvider: "credentials-admin",
         };
       },
     }),
@@ -233,6 +242,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = (user as any).role ?? token.role;
         token.partnerCode = (user as any).partnerCode ?? token.partnerCode;
         token.partnerType = (user as any).partnerType ?? token.partnerType;
+        token.authProvider = (user as any).authProvider ?? token.authProvider;
         // Audit log: sign-in event (fire-and-forget)
         import("@/lib/audit-log").then(({ logAudit }) =>
           logAudit({
@@ -250,6 +260,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           ).catch(() => {});
         }
       }
+      // Google is the strong second factor — flag it so the MFA enrollment gate
+      // never challenges a Google-authenticated user (the intended exemption).
+      if (account?.provider === "google") token.authProvider = "google";
       // Google sign-ins don't populate those fields — hydrate from the
       // Partner row (or PartnerUser) keyed by email on the first JWT pass.
       if (account?.provider === "google" && token.email && !token.partnerCode) {
@@ -294,6 +307,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         (session.user as any).role = token.role;
         (session.user as any).partnerCode = token.partnerCode;
         (session.user as any).partnerType = token.partnerType;
+        (session.user as any).authProvider = token.authProvider;
       }
       return session;
     },

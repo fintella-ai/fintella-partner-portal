@@ -142,6 +142,9 @@ export async function PUT(req: NextRequest) {
     if (body.leaderboardEnabled !== undefined) data.leaderboardEnabled = body.leaderboardEnabled;
     if (body.liveChatEnabled !== undefined) data.liveChatEnabled = body.liveChatEnabled;
     if (body.callRecordingEnabled !== undefined) data.callRecordingEnabled = body.callRecordingEnabled;
+    // Per-portal MFA enforcement (super_admin-gated by the role check above)
+    if (body.mfaRequiredPartners !== undefined) data.mfaRequiredPartners = !!body.mfaRequiredPartners;
+    if (body.mfaRequiredAdmins !== undefined) data.mfaRequiredAdmins = !!body.mfaRequiredAdmins;
     if (body.homeEmbedVideoUrl !== undefined) data.homeEmbedVideoUrl = body.homeEmbedVideoUrl;
     if (body.webinarVideoUrl !== undefined) data.webinarVideoUrl = body.webinarVideoUrl;
     if (body.homeHiddenModules !== undefined) data.homeHiddenModules = body.homeHiddenModules;
