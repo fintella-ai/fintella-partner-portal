@@ -1571,6 +1571,51 @@ If you didn't request this, you can safely ignore this email — your password w
   });
 }
 
+/**
+ * MFA break-glass recovery email — a single-use, 15-minute link that lets a
+ * partner who's lost their authenticator (and run out of backup codes) remove
+ * 2FA so they can sign in again with just their password. Only ever sent AFTER
+ * the correct password was supplied, so possession of the inbox alone is not
+ * enough. Branding mirrors sendPasswordResetEmail.
+ */
+export async function sendMfaRecoveryEmail(opts: {
+  email: string;
+  name: string | null;
+  recoveryUrl: string;
+}): Promise<SendEmailResult> {
+  const displayName = opts.name?.trim() || "there";
+  const heading = "Remove two-factor authentication";
+  const bodyHtml = `
+    <p>Hi ${escapeHtml(displayName)},</p>
+    <p>We received a request to remove two-factor authentication from your ${escapeHtml(FIRM_SHORT)} partner account. This is the break-glass path for when you've lost access to your authenticator app and your backup codes.</p>
+    <p>Click the button below to turn off 2FA and sign in with just your password. This link expires in <strong>15 minutes</strong> and can only be used once.</p>
+    <p style="color:#6b7280;font-size:13px;">If you didn't request this, you can safely ignore this email — 2FA stays on and nothing changes. Your password was already verified to create this link.</p>`;
+  const bodyText = `Hi ${displayName},
+
+We received a request to remove two-factor authentication from your ${FIRM_SHORT} partner account.
+
+Open this link to turn off 2FA and sign in with just your password (expires in 15 minutes, single-use):
+${opts.recoveryUrl}
+
+If you didn't request this, you can safely ignore this email — 2FA stays on and nothing changes.`;
+  const { html, text } = emailShell({
+    preheader: `Remove 2FA from your ${FIRM_SHORT} account — link expires in 15 minutes.`,
+    heading,
+    bodyHtml,
+    bodyText,
+    ctaLabel: "Remove 2FA & sign in",
+    ctaUrl: opts.recoveryUrl,
+  });
+  return sendEmail({
+    to: opts.email,
+    toName: opts.name || undefined,
+    subject: `Remove 2FA from your ${FIRM_SHORT} account`,
+    html,
+    text,
+    template: "mfa_recovery",
+  });
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // No-show rebooking — sent when an application is marked as no_show.
 // Template key: no_show_rebooking. Falls back to hardcoded copy below.
