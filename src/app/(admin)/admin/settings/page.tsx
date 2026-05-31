@@ -157,7 +157,7 @@ interface ReferralOpp {
   highlighted: boolean;
 }
 
-type TabId = "branding" | "themes" | "navigation" | "homepage" | "commissions" | "agreements" | "documents" | "integrations";
+type TabId = "branding" | "themes" | "navigation" | "homepage" | "commissions" | "agreements" | "documents" | "integrations" | "security";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "branding", label: "Branding" },
@@ -168,6 +168,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "agreements", label: "Agreements" },
   { id: "documents", label: "Documents" },
   { id: "integrations", label: "Integrations" },
+  { id: "security", label: "Security" },
 ];
 
 // ─── DEFAULT HOME CONTENT ───────────────────────────────────────────────────
@@ -268,6 +269,9 @@ export default function SettingsPage() {
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(true);
   const [liveChatEnabled, setLiveChatEnabled] = useState(false);
   const [callRecordingEnabled, setCallRecordingEnabled] = useState(false);
+  // Per-portal MFA enforcement ("Google-OR-TOTP" model)
+  const [mfaRequiredPartners, setMfaRequiredPartners] = useState(false);
+  const [mfaRequiredAdmins, setMfaRequiredAdmins] = useState(false);
   const [homeEmbedVideoUrl, setHomeEmbedVideoUrl] = useState("");
   const [webinarVideoUrl, setWebinarVideoUrl] = useState("");
   // Partner home modules that are hidden. Admin can toggle on/off
@@ -406,6 +410,8 @@ export default function SettingsPage() {
       setLeaderboardEnabled(settings.leaderboardEnabled);
       if (settings.liveChatEnabled !== undefined) setLiveChatEnabled(settings.liveChatEnabled);
       if (settings.callRecordingEnabled !== undefined) setCallRecordingEnabled(settings.callRecordingEnabled);
+      if (settings.mfaRequiredPartners !== undefined) setMfaRequiredPartners(settings.mfaRequiredPartners);
+      if (settings.mfaRequiredAdmins !== undefined) setMfaRequiredAdmins(settings.mfaRequiredAdmins);
       setHomeEmbedVideoUrl(settings.homeEmbedVideoUrl || "");
       setWebinarVideoUrl(settings.webinarVideoUrl || "");
       try {
@@ -514,6 +520,8 @@ export default function SettingsPage() {
         leaderboardEnabled,
         liveChatEnabled,
         callRecordingEnabled,
+        mfaRequiredPartners,
+        mfaRequiredAdmins,
         homeEmbedVideoUrl: homeEmbedVideoUrl.trim() || null,
         webinarVideoUrl: webinarVideoUrl.trim() || null,
         homeHiddenModules: JSON.stringify(Array.from(hiddenModules)),
@@ -1656,6 +1664,68 @@ export default function SettingsPage() {
           <GoogleCalendarCard />
           <MyAvailabilityCard />
           <AdminInboxesCard />
+        </div>
+      )}
+
+      {/* ═══ SECURITY TAB ═══ (super_admin only — see permissions.settingsTabs) */}
+      {tab === "security" && (
+        <div className="space-y-5">
+          <div className="card p-5 sm:p-6">
+            <div className="font-body font-semibold text-sm mb-1">Two-Factor Authentication (MFA)</div>
+            <p className="font-body text-[12px] text-[var(--app-text-muted)] mb-4 leading-relaxed">
+              Require an authenticator-app code (TOTP) at login. This applies to{" "}
+              <strong>email/password</strong> logins only — anyone who signs in with{" "}
+              <strong>Google</strong> is never affected, because Google already provides a strong
+              second factor. When a requirement is turned on, affected users who haven&apos;t set up
+              2FA are walked through a one-time enrollment on their next login; everyone already
+              signed in keeps their current session.
+            </p>
+
+            {/* Require MFA — Partners */}
+            <div className="flex items-center justify-between py-3 border-t border-[var(--app-border)]">
+              <div className="pr-4">
+                <div className="font-body font-semibold text-sm">Require 2FA for Partners</div>
+                <p className="font-body text-[12px] text-[var(--app-text-muted)] mt-0.5">
+                  Email/password partner &amp; team-member logins must enroll in 2FA. Google logins exempt.
+                </p>
+              </div>
+              <button
+                onClick={() => setMfaRequiredPartners(!mfaRequiredPartners)}
+                aria-label="Toggle require 2FA for partners"
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${mfaRequiredPartners ? "bg-green-500" : "bg-[var(--app-input-bg)]"}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${mfaRequiredPartners ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
+
+            {/* Require MFA — Admins */}
+            <div className="flex items-center justify-between py-3 border-t border-[var(--app-border)]">
+              <div className="pr-4">
+                <div className="font-body font-semibold text-sm">Require 2FA for Admins</div>
+                <p className="font-body text-[12px] text-[var(--app-text-muted)] mt-0.5">
+                  Email/password admin/staff logins must enroll in 2FA. Google admin logins exempt.
+                </p>
+              </div>
+              <button
+                onClick={() => setMfaRequiredAdmins(!mfaRequiredAdmins)}
+                aria-label="Toggle require 2FA for admins"
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${mfaRequiredAdmins ? "bg-green-500" : "bg-[var(--app-input-bg)]"}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${mfaRequiredAdmins ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
+
+            {(mfaRequiredPartners || mfaRequiredAdmins) && (
+              <div className="mt-3 p-2.5 rounded-lg bg-amber-500/[0.06] border border-amber-500/15">
+                <div className="font-body text-[11px] text-amber-400 leading-relaxed">
+                  ⚠️ Before enabling, make sure you (and any Google-less admins) can receive
+                  authenticator codes. Tip: keep at least one admin signing in with Google as a
+                  fallback — Google logins are never locked out by this setting. Don&apos;t forget to
+                  press <strong>Save All Settings</strong> below.
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

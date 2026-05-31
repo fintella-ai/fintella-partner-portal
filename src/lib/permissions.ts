@@ -93,7 +93,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, {
     canEditPayouts: true,
     canManageAdmins: true,
     canManageEnterprise: true,
-    settingsTabs: ["branding", "themes", "navigation", "homepage", "commissions", "agreements", "integrations"],
+    settingsTabs: ["branding", "themes", "navigation", "homepage", "commissions", "agreements", "integrations", "security"],
     payoutsReadOnly: false,
     dealsReadOnly: false,
     canUploadDocuments: true,
