@@ -5,14 +5,15 @@ import QRCode from "qrcode";
 import { hash, compare } from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { backupCodesRemaining } from "@/lib/totp";
 
 const ADMIN_ROLES = ["super_admin", "admin", "accounting", "partner_support"];
 
 /**
  * Opt-in admin Two-Factor Authentication (TOTP).
  *
- * GET   → { enabled } for the current admin.
- * POST  → action-based: "setup" | "enable" | "disable".
+ * GET   → { enabled, backupCodesRemaining } for the current admin.
+ * POST  → action-based: "setup" | "enable" | "regenerate" | "disable".
  *
  * Strictly opt-in: an admin who never enrolls logs in exactly as before.
  * Nothing here enforces 2FA — see src/lib/auth.ts admin-login provider, which
@@ -45,10 +46,33 @@ function makeBackupCodes(count: number): string[] {
   return codes;
 }
 
+/** True if `code` is a valid current TOTP or (un-consumed) backup code for this admin. */
+async function adminCodeAuthorized(
+  user: { totpSecret: string | null; totpBackupCodes: string | null },
+  code: string,
+): Promise<boolean> {
+  if (!code || !user.totpSecret) return false;
+  if (authenticator.verify({ token: code, secret: user.totpSecret })) return true;
+  if (user.totpBackupCodes) {
+    try {
+      const hashedCodes: string[] = JSON.parse(user.totpBackupCodes);
+      for (const hashed of hashedCodes) {
+        if (await compare(code, hashed)) return true;
+      }
+    } catch {
+      // Corrupt JSON → unauthorized.
+    }
+  }
+  return false;
+}
+
 export async function GET() {
   const user = await currentAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json({ enabled: user.totpEnabled });
+  return NextResponse.json({
+    enabled: user.totpEnabled,
+    backupCodesRemaining: backupCodesRemaining(user.totpBackupCodes),
+  });
 }
 
 export async function POST(req: Request) {
@@ -111,6 +135,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ enabled: true, backupCodes: plainCodes });
   }
 
+  // ── REGENERATE: replace ALL backup codes with a fresh set of 10. Requires a
+  // valid current code (same bar as disable) so a hijacked session can't
+  // silently rotate codes out from under the admin. ──
+  if (action === "regenerate") {
+    if (!user.totpEnabled || !user.totpSecret) {
+      return NextResponse.json(
+        { error: "Enable two-factor authentication first." },
+        { status: 400 },
+      );
+    }
+    if (!code) {
+      return NextResponse.json(
+        { error: "Enter a current 2FA or backup code to regenerate." },
+        { status: 400 },
+      );
+    }
+    if (!(await adminCodeAuthorized(user, code))) {
+      return NextResponse.json({ error: "Invalid code." }, { status: 400 });
+    }
+    // A fresh set fully replaces the old one (any code used to authorize above is
+    // now invalid alongside the rest). Shown exactly once.
+    const plainCodes = makeBackupCodes(10);
+    const hashedCodes = await Promise.all(plainCodes.map((c) => hash(c, 10)));
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { totpBackupCodes: JSON.stringify(hashedCodes) },
+    });
+    return NextResponse.json({ backupCodes: plainCodes });
+  }
+
   // ── DISABLE: require a valid current TOTP or backup code first. ──
   if (action === "disable") {
     if (!user.totpEnabled || !user.totpSecret) {
@@ -122,22 +176,7 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-
-    let authorized = authenticator.verify({ token: code, secret: user.totpSecret });
-    if (!authorized && user.totpBackupCodes) {
-      try {
-        const hashedCodes: string[] = JSON.parse(user.totpBackupCodes);
-        for (const hashed of hashedCodes) {
-          if (await compare(code, hashed)) {
-            authorized = true;
-            break;
-          }
-        }
-      } catch {
-        // Corrupt JSON → fall through as unauthorized.
-      }
-    }
-    if (!authorized) {
+    if (!(await adminCodeAuthorized(user, code))) {
       return NextResponse.json({ error: "Invalid code." }, { status: 400 });
     }
 

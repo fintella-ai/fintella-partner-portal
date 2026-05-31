@@ -65,3 +65,20 @@ export async function verifyTotpCode(
 
   return { ok: false, consumedBackupCodes: null };
 }
+
+/**
+ * Count how many single-use backup codes are still available, given the stored
+ * JSON array of bcrypt hashes (`totpBackupCodes`). Pure and defensive: null,
+ * empty, corrupt, or non-array input all yield 0 — never throws. Used to surface
+ * a "X of 10 codes left" indicator and a low-codes warning in the 2FA settings
+ * card (the hashes themselves are never exposed — only the count).
+ */
+export function backupCodesRemaining(totpBackupCodes: string | null): number {
+  if (!totpBackupCodes) return 0;
+  try {
+    const parsed = JSON.parse(totpBackupCodes);
+    return Array.isArray(parsed) ? parsed.length : 0;
+  } catch {
+    return 0;
+  }
+}

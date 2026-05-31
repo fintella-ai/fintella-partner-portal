@@ -3,7 +3,7 @@ import { authenticator } from "otplib";
 import QRCode from "qrcode";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { verifyTotpCode } from "@/lib/totp";
+import { verifyTotpCode, backupCodesRemaining } from "@/lib/totp";
 import { makeBackupCodes } from "@/lib/totp-codes";
 
 /**
@@ -15,10 +15,11 @@ import { makeBackupCodes } from "@/lib/totp-codes";
  *   - direct partner login   → Partner row    (matched by email)
  * Same resolution order as the partner-login provider in src/lib/auth.ts.
  *
- * GET                 → { enabled }
- * POST {setup}        → { qrDataUrl, secret }  (pending secret stored, NOT enabled)
- * POST {enable,code}  → { enabled, backupCodes } (codes shown ONCE)
- * POST {disable,code} → { enabled:false } (blocked while enforcement is ON)
+ * GET                    → { enabled, backupCodesRemaining }
+ * POST {setup}           → { qrDataUrl, secret }  (pending secret stored, NOT enabled)
+ * POST {enable,code}     → { enabled, backupCodes } (codes shown ONCE)
+ * POST {regenerate,code} → { backupCodes } (new set, old codes invalidated; shown ONCE)
+ * POST {disable,code}    → { enabled:false } (blocked while enforcement is ON)
  */
 
 type Identity = {
@@ -87,7 +88,10 @@ function persist(kind: Identity["kind"], id: string, data: TotpUpdate) {
 export async function GET() {
   const identity = await currentPartnerIdentity();
   if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json({ enabled: identity.totpEnabled });
+  return NextResponse.json({
+    enabled: identity.totpEnabled,
+    backupCodesRemaining: backupCodesRemaining(identity.totpBackupCodes),
+  });
 }
 
 export async function POST(req: Request) {
@@ -137,6 +141,33 @@ export async function POST(req: Request) {
     });
     // Plaintext backup codes are shown exactly once and never stored.
     return NextResponse.json({ enabled: true, backupCodes: plain });
+  }
+
+  // ── REGENERATE: replace ALL backup codes with a fresh set of 10. Requires a
+  // valid current code (same bar as disable) so a hijacked session can't
+  // silently rotate codes out from under the partner. ──
+  if (action === "regenerate") {
+    if (!identity.totpEnabled || !identity.totpSecret) {
+      return NextResponse.json(
+        { error: "Enable two-factor authentication first." },
+        { status: 400 }
+      );
+    }
+    if (!code) {
+      return NextResponse.json(
+        { error: "Enter a current 2FA or backup code to regenerate." },
+        { status: 400 }
+      );
+    }
+    const res = await verifyTotpCode(identity, code);
+    if (!res.ok) {
+      return NextResponse.json({ error: "Invalid code." }, { status: 400 });
+    }
+    // A fresh set fully replaces the old one (any code consumed by the verify
+    // above is moot — every prior code is now invalid). Shown exactly once.
+    const { plain, hashedJson } = await makeBackupCodes(10);
+    await persist(identity.kind, identity.id, { totpBackupCodes: hashedJson });
+    return NextResponse.json({ backupCodes: plain });
   }
 
   // ── DISABLE: require a valid current code, AND block while enforced. ──
