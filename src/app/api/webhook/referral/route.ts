@@ -1100,15 +1100,24 @@ async function patchHandler(req: NextRequest): Promise<Response> {
     // StageBadge in the /admin/deals + /dashboard/deals tables, the
     // filter pills, and the dashboard stats. Before this change, PATCH
     // only updated externalStage so the UI always showed the old stage.
+    // Cover the same key variants the POST/create path accepts (see the
+    // get() list above). Frost Law's HubSpot sends the numeric stage as
+    // `hs_pipeline_stage` on PATCH updates — omitting it here meant stage
+    // changes never reached deal.stage, so the UI kept showing the old badge.
     const stage =
       body.dealstage ||
       body.deal_stage ||
       body.dealStage ||
       body.stage ||
+      body.Stage ||
       body.pipeline_stage ||
-      body.status;
-    if (stage) {
-      data.externalStage = stage;
+      body.pipelineStage ||
+      body.hs_pipeline_stage ||
+      body.hsPipelineStage ||
+      body.status ||
+      body.Status;
+    if (stage !== undefined && stage !== null && String(stage).trim() !== "") {
+      data.externalStage = String(stage);
       const internalStage = resolveInternalStage(String(stage));
       if (internalStage) {
         data.stage = internalStage;
