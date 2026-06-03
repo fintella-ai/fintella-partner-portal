@@ -30,7 +30,7 @@ export function resolveCommissionStatus(
   if (!stage) return null;
   if (stage === "disqualified" || stage === "closedlost") return "lost";
   if (stage === "closedwon") return paymentReceivedAt ? "due" : "pending_payment";
-  if (stage === "gathering_info" || stage === "agreement_sent" || stage === "client_engaged" || stage === "in_process") return "projected";
+  if (stage === "gathering_info" || stage === "agreement_sent" || stage === "onboarding" || stage === "client_engaged" || stage === "in_process") return "projected";
   if (stage === "unresponsive") return null;
   return null;
 }

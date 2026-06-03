@@ -24,9 +24,10 @@ const STAGES = [
   { value: "disqualified", label: "Disqualified" },
   { value: "gathering_info", label: "Gathering Information" },
   { value: "agreement_sent", label: "Agreement Sent" },
+  { value: "onboarding", label: "Onboarding" },
   { value: "client_engaged", label: "Agreement Signed" },
-  { value: "unresponsive", label: "Unresponsive" },
   { value: "closedwon", label: "Closed Won" },
+  { value: "closedlost", label: "Closed Lost" },
   // Kwong Penalty Abatement (ERC) stages
   { value: "engaged", label: "Engaged" },
   { value: "awaiting_poa", label: "Awaiting POA" },
