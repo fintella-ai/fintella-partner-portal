@@ -1,15 +1,18 @@
 # HANDOFF — next session (start here)
 
-🕒 Updated: 2026-05-31 — 2FA polish + Dependabot triage (wrap)
-🌿 main @ `412977c` (LIVE at fintella.partners; prod deploy verified success)
+🕒 Updated: 2026-06-03 — Deal stages: tier filter + hs_pipeline_stage + Onboarding/Closed Lost + triggers (wrap)
+🌿 main @ `76fb870` (LIVE at fintella.partners; prod deploy verified success + browser-verified)
 
 ## Step 0 — on restart
 1. `git pull` your clone of `~/tariff-partner-portal`.
-2. Read this file + `terminal-logs/2026-05-31-2fa-polish-dependabot.md`.
-3. No migration / db-push required this session (recovery reuses `PasswordResetToken`; no schema change).
+2. Read this file + `terminal-logs/2026-06-03-deal-stages-onboarding-closedlost.md` + `docs/knowledge/deal-stage-mapping-and-triggers.md`.
+3. No migration / db-push required (additive enum/string + workflow registry; no schema change).
 4. **NEVER `npm run build`** on this repo — it runs `prisma db push` against the LIVE prod DB. Use `./node_modules/.bin/next build` (compile-only, safe) or `next dev`. **Confirm before EVERY merge to main** (per-merge gate — hard rule even in beast mode). Never `git add -A`.
 
 ## ▶️ Pick up here (priority order)
+0. **(Just-unblocked) Build an onboarding workflow** now that `deal.onboarding` exists: Admin → Automations → + New Automation → trigger **Deal Onboarding** → e.g. client welcome email / notify team / POST to OpCenter. Tokens: `{deal.dealName}`, `{deal.legalEntityName}`, `{deal.clientEmail}`, `{deal.dealUrl}`, etc.
+
+### Carried over (2026-05-31, still open)
 1. **Flip "Require 2FA for Partners"** (Admin → Settings → Security) + do a **real enrollment** to browser-verify end-to-end (NOT yet browser-verified — needs John's authed enrollment):
    - regenerate backup codes → Copy/Download work,
    - "X of 10 left" counter + ≤2 warning render,
