@@ -128,7 +128,12 @@ export async function PUT(
     if (body.clientPhone !== undefined) data.clientPhone = strOrNull(body.clientPhone);
     if (body.clientTitle !== undefined) data.clientTitle = strOrNull(body.clientTitle);
     if (body.serviceOfInterest !== undefined) data.serviceOfInterest = strOrNull(body.serviceOfInterest);
-    if (body.legalEntityName !== undefined) data.legalEntityName = strOrNull(body.legalEntityName);
+    if (body.legalEntityName !== undefined) {
+      data.legalEntityName = strOrNull(body.legalEntityName);
+      // Deal name always follows the legal entity name so editing the entity
+      // in the expanded view renames the deal shown in the tables too.
+      if (data.legalEntityName) data.dealName = data.legalEntityName;
+    }
     if (body.businessCity !== undefined) data.businessCity = strOrNull(body.businessCity);
     if (body.businessState !== undefined) data.businessState = strOrNull(body.businessState);
     if (body.importsGoods !== undefined) data.importsGoods = strOrNull(body.importsGoods);
@@ -235,7 +240,7 @@ export async function PUT(
         const enrichedDeal = { ...deal, ...deriveDealWorkflowFields(deal) };
         fireWorkflowTrigger("deal.stage_changed", { deal: enrichedDeal, previousStage, newStage }).catch(() => {});
         if (newStage === "closedwon" || newStage === "completed") fireWorkflowTrigger("deal.closed_won", { deal: enrichedDeal }).catch(() => {});
-        if (newStage === "disqualified" || newStage === "denied") fireWorkflowTrigger("deal.closed_lost", { deal: enrichedDeal }).catch(() => {});
+        if (newStage === "disqualified" || newStage === "denied" || newStage === "closedlost") fireWorkflowTrigger("deal.closed_lost", { deal: enrichedDeal }).catch(() => {});
       }).catch(() => {});
     }
 

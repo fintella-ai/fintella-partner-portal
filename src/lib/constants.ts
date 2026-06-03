@@ -92,6 +92,7 @@ export const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   disqualified: { label: "Disqualified", color: "#ef4444" },
   gathering_info: { label: "Gathering Information", color: "#8b5cf6" },
   agreement_sent: { label: "Agreement Sent", color: "#a855f7" },
+  onboarding: { label: "Onboarding", color: "#0ea5e9" },
   client_engaged: { label: "Agreement Signed", color: "#3b82f6" },
   unresponsive: { label: "Unresponsive", color: "#f97316" },
   closedwon: { label: "Closed Won", color: "#22c55e" },
@@ -103,7 +104,7 @@ export const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   consultation_booked: { label: "Meeting Booked", color: "#f59e0b" },
   client_no_show: { label: "Meeting Missed", color: "#ef4444" },
   client_qualified: { label: "Qualified", color: "#06b6d4" },
-  closedlost: { label: "Disqualified", color: "#ef4444" },
+  closedlost: { label: "Closed Lost", color: "#b91c1c" },
   // Kwong Penalty Abatement (ERC) pipeline stages
   engaged: { label: "Engaged", color: "#3b82f6" },
   awaiting_poa: { label: "Awaiting POA", color: "#8b5cf6" },

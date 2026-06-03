@@ -363,7 +363,7 @@ export default function DealsPage() {
 const PIPELINE_STAGES = [
   "lead_submitted", "meeting_booked", "meeting_missed", "meeting_completed",
   "qualified", "disqualified", "gathering_info", "agreement_sent",
-  "client_engaged", "unresponsive", "closedwon",
+  "onboarding", "client_engaged", "closedwon", "closedlost",
 ];
 
 const KWONG_PIPELINE = [
@@ -397,7 +397,11 @@ function DealDetail({ deal, onSupport }: { deal: any; onSupport: () => void }) {
               if (s === "poa_declined" && deal.stage !== "poa_declined") return false;
               return true;
             }
-            return s !== "disqualified" || deal.stage === "disqualified" || deal.stage === "closedlost";
+            // Terminal "lost" pills only appear when the deal is actually lost.
+            if (s === "disqualified" || s === "closedlost") {
+              return deal.stage === "disqualified" || deal.stage === "closedlost";
+            }
+            return true;
           }).map((stage, i) => {
             const label = STAGE_LABELS[stage]?.label || stage;
             const isActive = stage === deal.stage;

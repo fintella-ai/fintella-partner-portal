@@ -75,9 +75,11 @@ const INTERNAL_STAGES = [
   "disqualified",
   "gathering_info",
   "agreement_sent",
+  "onboarding",
   "client_engaged",
   "unresponsive",
   "closedwon",
+  "closedlost",
 ] as const;
 
 // HubSpot pipeline stage IDs (numeric). Map each to an internal stage.
@@ -92,9 +94,9 @@ const HUBSPOT_STAGE_MAP: Record<string, string> = {
   "3381784253": "meeting_completed", // Meeting Completed
   "3381784254": "gathering_info",   // Gathering Information
   "3381784255": "agreement_sent",   // Contract Sent
-  "3381784256": "client_engaged",   // Onboarding (= Agreement Signed)
-  "3381784257": "client_engaged",   // Closed Won (Frost's = Agreement Signed, not refund received)
-  "3381784258": "disqualified",     // Closed Lost
+  "3381784256": "onboarding",       // Onboarding
+  "3381784257": "client_engaged",   // Closed Won (Frost's = Agreement Signed, not our refund-received closedwon)
+  "3381784258": "closedlost",       // Closed Lost
 };
 
 /**
@@ -121,8 +123,9 @@ const STAGE_MAP: Record<string, string> = (() => {
   m["closedwon"] = "client_engaged";
   m["won"] = "client_engaged";
   m["closed"] = "client_engaged";
-  m["lost"] = "disqualified";
-  m["closedlost"] = "disqualified";
+  m["lost"] = "closedlost";
+  m["closedlost"] = "closedlost";
+  m["closed_lost"] = "closedlost";
   m["newlead"] = "lead_submitted";
   m["new_lead"] = "lead_submitted";
   m["consultationbooked"] = "meeting_booked";
@@ -144,7 +147,7 @@ const STAGE_MAP: Record<string, string> = (() => {
   m["gatheringinfo"] = "gathering_info";
   m["inprogress"] = "gathering_info";
   m["inprocess"] = "gathering_info";
-  m["onboarding"] = "client_engaged";
+  m["onboarding"] = "onboarding";
   m["unresponsive"] = "unresponsive";
   m["noresponse"] = "unresponsive";
   return m;
@@ -1234,7 +1237,13 @@ async function patchHandler(req: NextRequest): Promise<Response> {
       "company", "Company", "company_name", "companyName",
       "business_name", "businessName"
     );
-    if (legalEntityName) data.legalEntityName = legalEntityName;
+    if (legalEntityName) {
+      data.legalEntityName = legalEntityName;
+      // Deal name always follows the legal entity name (the table label) so
+      // renaming the entity renames the deal everywhere. Overrides any
+      // explicit deal_name in the same payload.
+      data.dealName = legalEntityName;
+    }
     const companyEin = pickStr("company_ein", "companyEin", "ein", "EIN", "tax_id", "taxId");
     if (companyEin) data.companyEin = companyEin;
     const businessStreetAddress = pickStr(
@@ -1327,7 +1336,7 @@ async function patchHandler(req: NextRequest): Promise<Response> {
     // Close date (if stage is closedwon or disqualified). Uses the internal
     // stage value we just resolved via STAGE_MAP, so "Closed Won" /
     // "closed-won" / "won" all stamp the close date correctly.
-    if (data.stage === "closedwon" || data.stage === "disqualified") {
+    if (data.stage === "closedwon" || data.stage === "disqualified" || data.stage === "closedlost") {
       if (!deal.closeDate) data.closeDate = new Date();
     }
 
@@ -1746,7 +1755,7 @@ async function patchHandler(req: NextRequest): Promise<Response> {
         };
         fireWorkflowTrigger("deal.stage_changed", { deal: enrichedDeal, previousStage, newStage }).catch(() => {});
         if (newStage === "closedwon") fireWorkflowTrigger("deal.closed_won", { deal: enrichedDeal }).catch(() => {});
-        if (newStage === "disqualified") fireWorkflowTrigger("deal.closed_lost", { deal: enrichedDeal }).catch(() => {});
+        if (newStage === "disqualified" || newStage === "closedlost") fireWorkflowTrigger("deal.closed_lost", { deal: enrichedDeal }).catch(() => {});
       }).catch(() => {});
     }
 
