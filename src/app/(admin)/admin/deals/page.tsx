@@ -12,6 +12,7 @@ import PartnerLink from "@/components/ui/PartnerLink";
 import { isStarSuperAdminEmail } from "@/lib/starSuperAdmin";
 import TablePagination from "@/components/ui/TablePagination";
 import ScrollableRow from "@/components/ui/ScrollableRow";
+import { serviceBucket } from "@/lib/serviceBucket";
 
 const STAGES = [
   { value: "all", label: "All Stages" },
@@ -301,7 +302,7 @@ export default function AdminDealsPage() {
   const isUnknownPartner = (d: Deal) => !d.partnerCode || d.partnerCode === "Unknown" || d.partnerCode === "" || !d.partnerId;
 
   // Filter deals
-  const serviceFiltered = serviceFilter === "all" ? deals : deals.filter((d) => d.serviceOfInterest === serviceFilter);
+  const serviceFiltered = serviceFilter === "all" ? deals : deals.filter((d) => serviceBucket(d.serviceOfInterest) === serviceFilter);
   const partnerFiltered = partnerFilter === "__unknown__" ? serviceFiltered.filter(isUnknownPartner) : serviceFiltered;
   const sorted = [...partnerFiltered].sort((a, b) => {
     let aVal: any = a[sortField];
@@ -658,7 +659,7 @@ export default function AdminDealsPage() {
           { value: "Tariff Refund Support", label: "Tariff Refund", color: "#d4a017", icon: "💰" },
           { value: "Kwong Penalty Abatement (ERC)", label: "Penalty Abatement (ERC)", color: "#14b8a6", icon: "📋" },
         ].map((svc) => {
-          const count = svc.value === "all" ? deals.length : deals.filter((d) => (d.serviceOfInterest || "Tariff Refund Support") === svc.value).length;
+          const count = svc.value === "all" ? deals.length : deals.filter((d) => serviceBucket(d.serviceOfInterest) === svc.value).length;
           const active = serviceFilter === svc.value;
           return (
             <button
