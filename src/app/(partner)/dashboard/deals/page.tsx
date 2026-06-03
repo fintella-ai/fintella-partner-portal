@@ -13,6 +13,7 @@ import { resolveDealFinancials, formatRate } from "@/lib/dealCalc";
 import { STAGE_LABELS } from "@/lib/constants";
 import TablePagination from "@/components/ui/TablePagination";
 import ScrollableRow from "@/components/ui/ScrollableRow";
+import { serviceBucket } from "@/lib/serviceBucket";
 
 export default function DealsPage() {
   const device = useDevice();
@@ -58,8 +59,8 @@ export default function DealsPage() {
   useEffect(() => { setDownlinePage(1); }, [downlineStageFilter]);
 
   // Service + stage filtered
-  const svcDirectDeals = serviceFilter === "all" ? deals : deals.filter((d: any) => (d.serviceOfInterest || "Tariff Refund Support") === serviceFilter);
-  const svcDownlineDeals = serviceFilter === "all" ? downlineDeals : downlineDeals.filter((d: any) => (d.serviceOfInterest || "Tariff Refund Support") === serviceFilter);
+  const svcDirectDeals = serviceFilter === "all" ? deals : deals.filter((d: any) => serviceBucket(d.serviceOfInterest) === serviceFilter);
+  const svcDownlineDeals = serviceFilter === "all" ? downlineDeals : downlineDeals.filter((d: any) => serviceBucket(d.serviceOfInterest) === serviceFilter);
   const filteredDirectDeals = directStageFilter === "all" ? svcDirectDeals : svcDirectDeals.filter((d) => d.stage === directStageFilter);
   const filteredDownlineDeals = downlineStageFilter === "all" ? svcDownlineDeals : svcDownlineDeals.filter((d) => d.stage === downlineStageFilter);
   const paginatedDirectDeals = filteredDirectDeals.slice((directPage - 1) * directPageSize, directPage * directPageSize);
@@ -123,7 +124,7 @@ export default function DealsPage() {
           { value: "Tariff Refund Support", label: "Tariff Refund", color: "#d4a017", icon: "💰" },
           { value: "Kwong Penalty Abatement (ERC)", label: "Penalty Abatement (ERC)", color: "#14b8a6", icon: "📋" },
         ].map((svc) => {
-          const count = svc.value === "all" ? deals.length : deals.filter((d: any) => (d.serviceOfInterest || "Tariff Refund Support") === svc.value).length;
+          const count = svc.value === "all" ? deals.length : deals.filter((d: any) => serviceBucket(d.serviceOfInterest) === svc.value).length;
           const active = serviceFilter === svc.value;
           return (
             <button
