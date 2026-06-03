@@ -13,7 +13,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { FIRM_NAME, FIRM_SHORT } from "@/lib/constants";
+import { FIRM_NAME, FIRM_SHORT, STAGE_LABELS } from "@/lib/constants";
 import { resolveAbVariant } from "@/lib/ab-test";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
@@ -927,12 +927,15 @@ export async function sendDealStatusUpdateEmail(opts: {
 }): Promise<SendEmailResult> {
   const cc = await getPartnerCcEmails(opts.partnerCode);
   const firstName = opts.partnerName.split(" ")[0] || opts.partnerName;
+  // Render the friendly stage label (e.g. "Onboarding", "Closed Lost")
+  // rather than the raw internal key (e.g. "onboarding", "closedlost").
+  const stageLabel = STAGE_LABELS[opts.newStage]?.label || opts.newStage;
   const vars: Record<string, string> = {
     firstName,
     lastName: opts.partnerName.split(" ").slice(1).join(" "),
     partnerCode: opts.partnerCode,
     dealName: opts.dealName,
-    newStage: opts.newStage,
+    newStage: stageLabel,
     portalUrl: PORTAL_URL,
     firmShort: FIRM_SHORT,
     firmName: FIRM_NAME,
@@ -968,15 +971,15 @@ export async function sendDealStatusUpdateEmail(opts: {
   const bodyHtml = `
     <p>Hi ${escapeHtml(firstName)},</p>
     <p>Your referral for <strong>${escapeHtml(opts.dealName)}</strong> has moved to a new stage:
-       <strong style="color:${BRAND_GOLD};">${escapeHtml(opts.newStage)}</strong>.</p>
+       <strong style="color:${BRAND_GOLD};">${escapeHtml(stageLabel)}</strong>.</p>
     <p>Log in to your dashboard to see the details.</p>`;
   const bodyText = `Hi ${firstName},
 
-Your referral for ${opts.dealName} has moved to a new stage: ${opts.newStage}.
+Your referral for ${opts.dealName} has moved to a new stage: ${stageLabel}.
 
 Log in to your dashboard to see the details.`;
   const { html, text } = emailShell({
-    preheader: `${opts.dealName} moved to ${opts.newStage}.`,
+    preheader: `${opts.dealName} moved to ${stageLabel}.`,
     heading,
     bodyHtml,
     bodyText,
@@ -986,7 +989,7 @@ Log in to your dashboard to see the details.`;
   return sendEmail({
     to: opts.partnerEmail,
     toName: opts.partnerName,
-    subject: `Deal update: ${opts.dealName} → ${opts.newStage}`,
+    subject: `Deal update: ${opts.dealName} → ${stageLabel}`,
     html,
     text,
     template: "deal_status_update",

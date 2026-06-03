@@ -35,6 +35,7 @@ import { resolveAbVariant } from "@/lib/ab-test";
 export const TRIGGER_KEYS = [
   "deal.created",
   "deal.stage_changed",
+  "deal.onboarding",
   "deal.closed_won",
   "deal.closed_lost",
   "deal.payment_received",
@@ -65,6 +66,7 @@ export type TriggerKey = (typeof TRIGGER_KEYS)[number];
 export const TRIGGER_LABELS: Record<TriggerKey, string> = {
   "deal.created":               "Deal Created",
   "deal.stage_changed":         "Deal Stage Changed",
+  "deal.onboarding":            "Deal Onboarding",
   "deal.closed_won":            "Deal Closed Won",
   "deal.closed_lost":           "Deal Closed Lost",
   "deal.payment_received":      "Deal Payment Received",
@@ -114,6 +116,7 @@ export const ACTION_LABELS: Record<ActionType, string> = {
 export const TRIGGER_DESCRIPTIONS: Record<TriggerKey, string> = {
   "deal.created":               "Fires when a new deal is created — typically from Frost Law's POST to /api/webhook/referral.",
   "deal.stage_changed":         "Fires whenever a deal's internal stage moves (e.g. new_lead → consultation_booked).",
+  "deal.onboarding":            "Fires the moment a deal's stage flips to onboarding (HubSpot Onboarding) — e.g. to kick off a client onboarding sequence.",
   "deal.closed_won":            "Fires the moment a deal's stage flips to closedwon.",
   "deal.closed_lost":           "Fires the moment a deal's stage flips to closedlost.",
   "deal.payment_received":      "Fires when an admin marks a deal's payment as received, flipping commission ledger entries to 'due'.",
@@ -227,6 +230,17 @@ export const TRIGGER_VARIABLES: Record<TriggerKey, TriggerVariable[]> = {
     { token: "{deal.signwellDocumentId}",    description: "SignWell document ID for the signed agreement", example: "f3a9c1e2-..." },
     { token: "{deal.createdAt}",             description: "Timestamp the deal was created (ISO 8601)", example: "2026-05-29T14:03:22.000Z" },
     { token: "{deal.updatedAt}",             description: "Timestamp the deal was last updated (ISO 8601)", example: "2026-05-29T14:05:10.000Z" },
+  ],
+  "deal.onboarding": [
+    { token: "{deal.dealName}",              description: "Deal name",                 example: "ACME Corp — Tariff Refund" },
+    { token: "{deal.partnerCode}",           description: "Submitting partner's code", example: "PTNJD8K3F" },
+    { token: "{deal.referralPartnerName}",   description: "Submitting partner's display name", example: "Jane Doe" },
+    { token: "{deal.dealUrl}",               description: "Direct admin portal link to this deal", example: "https://fintella.partners/admin/deals#cmoabkqqi000e14ab8ybk8bv4" },
+    { token: "{deal.externalDealId}",        description: "Upstream source's deal ID (e.g. HubSpot ID)", example: "462693304018" },
+    { token: "{deal.clientName}",            description: "Client display name",       example: "Jane Doe" },
+    { token: "{deal.clientEmail}",           description: "Client email",              example: "jane@acmeimports.com" },
+    { token: "{deal.legalEntityName}",       description: "Client's legal entity name", example: "Acme Imports LLC" },
+    { token: "{deal.serviceOfInterest}",     description: "Service the client is interested in", example: "Tariff Refund Support" },
   ],
   "deal.closed_won": [
     { token: "{deal.dealName}",              description: "Deal name",                 example: "ACME Corp — Tariff Refund" },
