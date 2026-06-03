@@ -239,6 +239,7 @@ export async function PUT(
         // {deal.signedPdfUrl}, {deal.businessAddress}) on the payload.
         const enrichedDeal = { ...deal, ...deriveDealWorkflowFields(deal) };
         fireWorkflowTrigger("deal.stage_changed", { deal: enrichedDeal, previousStage, newStage }).catch(() => {});
+        if (newStage === "onboarding") fireWorkflowTrigger("deal.onboarding", { deal: enrichedDeal }).catch(() => {});
         if (newStage === "closedwon" || newStage === "completed") fireWorkflowTrigger("deal.closed_won", { deal: enrichedDeal }).catch(() => {});
         if (newStage === "disqualified" || newStage === "denied" || newStage === "closedlost") fireWorkflowTrigger("deal.closed_lost", { deal: enrichedDeal }).catch(() => {});
       }).catch(() => {});

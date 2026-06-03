@@ -1754,6 +1754,7 @@ async function patchHandler(req: NextRequest): Promise<Response> {
           dealUrl: `${PORTAL_URL}/admin/deals#${updated.id}`,
         };
         fireWorkflowTrigger("deal.stage_changed", { deal: enrichedDeal, previousStage, newStage }).catch(() => {});
+        if (newStage === "onboarding") fireWorkflowTrigger("deal.onboarding", { deal: enrichedDeal }).catch(() => {});
         if (newStage === "closedwon") fireWorkflowTrigger("deal.closed_won", { deal: enrichedDeal }).catch(() => {});
         if (newStage === "disqualified" || newStage === "closedlost") fireWorkflowTrigger("deal.closed_lost", { deal: enrichedDeal }).catch(() => {});
       }).catch(() => {});
