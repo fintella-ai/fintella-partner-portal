@@ -7,6 +7,8 @@ import { put } from "@vercel/blob";
 import { uploadFileToDrive } from "@/lib/google-drive";
 import crypto from "crypto";
 
+export const maxDuration = 60;
+
 // SignWell sends webhooks when documents are signed, viewed, etc.
 // Webhook events: document_completed, document_viewed, document_expired
 export async function POST(req: NextRequest) {
@@ -305,29 +307,41 @@ export async function POST(req: NextRequest) {
 
           // Additive: mirror the same intake .md + signed DSA .pdf into the
           // shared Google Drive "NEW" folder for the downstream Kwong
-          // workflow. Demo-gated, fully wrapped — never affects the email,
-          // Blob mirror, or webhook response. Runs once (stage guard above).
+          // workflow. Awaited so it reliably completes before the serverless
+          // function freezes, but fully wrapped + non-fatal — a Drive failure
+          // never affects the email, Blob mirror, or webhook response. Runs
+          // once (stage guard above); maxDuration is raised to give the extra
+          // uploads headroom. Each upload is independently guarded so a PDF
+          // failure still records the .md that succeeded.
           try {
             const drvSettings = await prisma.portalSettings.findUnique({ where: { id: "global" } });
             const folderId = drvSettings?.googleDriveIntakeFolderId || "";
             const driveConnected = !!drvSettings?.googleDriveRefreshToken;
             if (intakeMarkdown && driveConnected && folderId) {
-              const uploaded: Record<string, string> = {};
-              const mdRes = await uploadFileToDrive({
-                name: `${intakeId}.md`,
-                mimeType: "text/markdown",
-                content: intakeMarkdown,
-                folderId,
-              });
-              if (mdRes.id) uploaded.mdFileId = mdRes.id;
-              if (pdfBuf) {
-                const pdfRes = await uploadFileToDrive({
-                  name: `${intakeId}-signed-agreement.pdf`,
-                  mimeType: "application/pdf",
-                  content: pdfBuf,
+              const uploaded: { mdFileId?: string; pdfFileId?: string } = {};
+              try {
+                const mdRes = await uploadFileToDrive({
+                  name: `${intakeId}.md`,
+                  mimeType: "text/markdown",
+                  content: intakeMarkdown,
                   folderId,
                 });
-                if (pdfRes.id) uploaded.pdfFileId = pdfRes.id;
+                if (mdRes.id) uploaded.mdFileId = mdRes.id;
+              } catch (mdErr) {
+                console.error("[SignWellWebhook] Drive .md upload failed:", mdErr);
+              }
+              if (pdfBuf) {
+                try {
+                  const pdfRes = await uploadFileToDrive({
+                    name: `${intakeId}-signed-agreement.pdf`,
+                    mimeType: "application/pdf",
+                    content: pdfBuf,
+                    folderId,
+                  });
+                  if (pdfRes.id) uploaded.pdfFileId = pdfRes.id;
+                } catch (pdfErr) {
+                  console.error("[SignWellWebhook] Drive PDF upload failed:", pdfErr);
+                }
               }
               if (uploaded.mdFileId || uploaded.pdfFileId) {
                 const fresh = await prisma.deal.findUnique({ where: { id: kwongDeal.id } });
@@ -340,13 +354,13 @@ export async function POST(req: NextRequest) {
                     },
                   },
                 });
-                console.log(`[SignWellWebhook] Uploaded intake .md + signed PDF to Drive folder ${folderId} for deal ${kwongDeal.id}`);
+                console.log(`[SignWellWebhook] Uploaded intake to Drive folder ${folderId} for deal ${kwongDeal.id}: ${JSON.stringify(uploaded)}`);
               }
-            } else {
-              console.log("[SignWellWebhook] Drive upload skipped (not connected or no folder ID)");
+            } else if (intakeMarkdown && driveConnected && !folderId) {
+              console.warn("[SignWellWebhook] Drive connected but no destination folder ID configured — skipped");
             }
           } catch (driveErr) {
-            console.error("[SignWellWebhook] Drive upload failed (non-fatal):", driveErr);
+            console.error("[SignWellWebhook] Drive upload block failed (non-fatal):", driveErr);
           }
 
           // Fire deal.stage_changed so workflows can forward the signed
