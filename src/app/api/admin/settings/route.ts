@@ -154,6 +154,13 @@ export async function PUT(req: NextRequest) {
     if (body.activeThemeId !== undefined) data.activeThemeId = body.activeThemeId;
     if (body.themeCustomizations !== undefined) data.themeCustomizations = body.themeCustomizations;
 
+    // Google Drive (Kwong intake) destination folder ID
+    if (body.googleDriveIntakeFolderId !== undefined) {
+      data.googleDriveIntakeFolderId = body.googleDriveIntakeFolderId === ""
+        ? null
+        : String(body.googleDriveIntakeFolderId).trim();
+    }
+
     // Upsert — create if not exists
     const settings = await prisma.portalSettings.upsert({
       where: { id: "global" },

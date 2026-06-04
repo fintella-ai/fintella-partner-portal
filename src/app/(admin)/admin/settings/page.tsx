@@ -272,6 +272,8 @@ export default function SettingsPage() {
   // Per-portal MFA enforcement ("Google-OR-TOTP" model)
   const [mfaRequiredPartners, setMfaRequiredPartners] = useState(false);
   const [mfaRequiredAdmins, setMfaRequiredAdmins] = useState(false);
+  const [googleDriveConnectedEmail, setGoogleDriveConnectedEmail] = useState<string>("");
+  const [googleDriveIntakeFolderId, setGoogleDriveIntakeFolderId] = useState<string>("");
   const [homeEmbedVideoUrl, setHomeEmbedVideoUrl] = useState("");
   const [webinarVideoUrl, setWebinarVideoUrl] = useState("");
   // Partner home modules that are hidden. Admin can toggle on/off
@@ -412,6 +414,8 @@ export default function SettingsPage() {
       if (settings.callRecordingEnabled !== undefined) setCallRecordingEnabled(settings.callRecordingEnabled);
       if (settings.mfaRequiredPartners !== undefined) setMfaRequiredPartners(settings.mfaRequiredPartners);
       if (settings.mfaRequiredAdmins !== undefined) setMfaRequiredAdmins(settings.mfaRequiredAdmins);
+      setGoogleDriveConnectedEmail(settings.googleDriveConnectedEmail || "");
+      setGoogleDriveIntakeFolderId(settings.googleDriveIntakeFolderId || "");
       setHomeEmbedVideoUrl(settings.homeEmbedVideoUrl || "");
       setWebinarVideoUrl(settings.webinarVideoUrl || "");
       try {
@@ -529,6 +533,7 @@ export default function SettingsPage() {
         homeModuleLayout: JSON.stringify(moduleLayout),
         activeThemeId,
         themeCustomizations: JSON.stringify(themeCustomizations),
+        googleDriveIntakeFolderId: googleDriveIntakeFolderId.trim() || null,
       };
 
       console.log("[settings] Saving — liveChatEnabled:", body.liveChatEnabled, "callRecordingEnabled:", body.callRecordingEnabled);
@@ -1664,6 +1669,75 @@ export default function SettingsPage() {
           <GoogleCalendarCard />
           <MyAvailabilityCard />
           <AdminInboxesCard />
+
+          {/* Google Drive — Kwong intake mirror */}
+          <div className="card p-5 sm:p-6 space-y-4">
+            <div>
+              <div className="font-body font-semibold text-sm mb-1">Google Drive — Kwong Intake</div>
+              <p className="font-body text-[12px] text-[var(--app-text-muted)]">
+                On signing completion, the intake markdown and signed DSA are uploaded
+                into the shared <code className="text-brand-gold/80">NEW</code> folder for the Kwong workflow.
+              </p>
+            </div>
+
+            {typeof window !== "undefined" && new URLSearchParams(window.location.search).get("google_drive") === "connected" && (
+              <div className="rounded-md bg-green-500/10 text-green-600 text-sm px-3 py-2">
+                Google Drive connected.
+              </div>
+            )}
+            {typeof window !== "undefined" && new URLSearchParams(window.location.search).get("google_drive") === "error" && (
+              <div className="rounded-md bg-red-500/10 text-red-600 text-sm px-3 py-2">
+                Google Drive connection failed: {new URLSearchParams(window.location.search).get("reason")}
+              </div>
+            )}
+
+            {googleDriveConnectedEmail ? (
+              <div className="flex items-center justify-between gap-4">
+                <span className="font-body text-sm text-[var(--app-text)]">
+                  Connected as <strong>{googleDriveConnectedEmail}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const res = await fetch("/api/admin/google-drive/disconnect", { method: "POST" });
+                    if (res.ok) {
+                      setGoogleDriveConnectedEmail("");
+                    } else {
+                      const data = await res.json().catch(() => ({}));
+                      alert(data.error || "Disconnect failed. Please try again.");
+                    }
+                  }}
+                  className="font-body text-sm px-3 py-2 rounded-lg border border-[var(--app-border)] text-[var(--app-text)] hover:bg-red-500/10 transition-colors"
+                >
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <a
+                href="/api/admin/google-drive/oauth-start"
+                className="inline-block font-body text-sm px-4 py-2 rounded-lg bg-brand-gold/10 text-brand-gold hover:bg-brand-gold/20 transition-colors"
+              >
+                Connect Google Drive
+              </a>
+            )}
+
+            <div>
+              <label htmlFor="drive-folder-id" className={labelClass}>
+                Destination folder ID (the <code className="text-brand-gold/80">NEW</code> folder)
+              </label>
+              <input
+                id="drive-folder-id"
+                type="text"
+                value={googleDriveIntakeFolderId}
+                onChange={(e) => setGoogleDriveIntakeFolderId(e.target.value)}
+                placeholder="1IdDPP9e3cjUo9K-ecsNiLlnXW9oKwPUG"
+                className={inputClass}
+              />
+              <p className="font-body text-[11px] text-[var(--app-text-faint)] mt-2">
+                Saved with the rest of settings. Matched by ID, never by folder title.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
