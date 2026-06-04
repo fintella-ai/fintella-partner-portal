@@ -318,43 +318,52 @@ export async function POST(req: NextRequest) {
             const folderId = drvSettings?.googleDriveIntakeFolderId || "";
             const driveConnected = !!drvSettings?.googleDriveRefreshToken;
             if (intakeMarkdown && driveConnected && folderId) {
-              const uploaded: { mdFileId?: string; pdfFileId?: string } = {};
-              try {
-                const mdRes = await uploadFileToDrive({
-                  name: `${intakeId}.md`,
-                  mimeType: "text/markdown",
-                  content: intakeMarkdown,
-                  folderId,
-                });
-                if (mdRes.id) uploaded.mdFileId = mdRes.id;
-              } catch (mdErr) {
-                console.error("[SignWellWebhook] Drive .md upload failed:", mdErr);
-              }
-              if (pdfBuf) {
+              // Read the deal's freshest serviceFields once — used for both
+              // the dedup check and the persist merge. The stage guard above
+              // already makes this run-once; this is belt-and-suspenders
+              // against a rare double-delivery race before the stage commits.
+              const fresh = await prisma.deal.findUnique({ where: { id: kwongDeal.id } });
+              const freshFields = (fresh?.serviceFields as any) || {};
+              if (freshFields.driveUpload?.mdFileId || freshFields.driveUpload?.pdfFileId) {
+                console.log(`[SignWellWebhook] Drive upload already recorded for deal ${kwongDeal.id} — skipping`);
+              } else {
+                const uploaded: { mdFileId?: string; pdfFileId?: string } = {};
                 try {
-                  const pdfRes = await uploadFileToDrive({
-                    name: `${intakeId}-signed-agreement.pdf`,
-                    mimeType: "application/pdf",
-                    content: pdfBuf,
+                  const mdRes = await uploadFileToDrive({
+                    name: `${intakeId}.md`,
+                    mimeType: "text/markdown",
+                    content: intakeMarkdown,
                     folderId,
                   });
-                  if (pdfRes.id) uploaded.pdfFileId = pdfRes.id;
-                } catch (pdfErr) {
-                  console.error("[SignWellWebhook] Drive PDF upload failed:", pdfErr);
+                  if (mdRes.id) uploaded.mdFileId = mdRes.id;
+                } catch (mdErr) {
+                  console.error("[SignWellWebhook] Drive .md upload failed:", mdErr);
                 }
-              }
-              if (uploaded.mdFileId || uploaded.pdfFileId) {
-                const fresh = await prisma.deal.findUnique({ where: { id: kwongDeal.id } });
-                await prisma.deal.update({
-                  where: { id: kwongDeal.id },
-                  data: {
-                    serviceFields: {
-                      ...((fresh?.serviceFields as any) || {}),
-                      driveUpload: { ...uploaded, uploadedAt: new Date().toISOString() },
+                if (pdfBuf) {
+                  try {
+                    const pdfRes = await uploadFileToDrive({
+                      name: `${intakeId}-signed-agreement.pdf`,
+                      mimeType: "application/pdf",
+                      content: pdfBuf,
+                      folderId,
+                    });
+                    if (pdfRes.id) uploaded.pdfFileId = pdfRes.id;
+                  } catch (pdfErr) {
+                    console.error("[SignWellWebhook] Drive PDF upload failed:", pdfErr);
+                  }
+                }
+                if (uploaded.mdFileId || uploaded.pdfFileId) {
+                  await prisma.deal.update({
+                    where: { id: kwongDeal.id },
+                    data: {
+                      serviceFields: {
+                        ...freshFields,
+                        driveUpload: { ...uploaded, uploadedAt: new Date().toISOString() },
+                      },
                     },
-                  },
-                });
-                console.log(`[SignWellWebhook] Uploaded intake to Drive folder ${folderId} for deal ${kwongDeal.id}: ${JSON.stringify(uploaded)}`);
+                  });
+                  console.log(`[SignWellWebhook] Uploaded intake to Drive folder ${folderId} for deal ${kwongDeal.id}: ${JSON.stringify(uploaded)}`);
+                }
               }
             } else if (intakeMarkdown && driveConnected && !folderId) {
               console.warn("[SignWellWebhook] Drive connected but no destination folder ID configured — skipped");
