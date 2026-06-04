@@ -1699,8 +1699,13 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={async () => {
-                    await fetch("/api/admin/google-drive/disconnect", { method: "POST" });
-                    setGoogleDriveConnectedEmail("");
+                    const res = await fetch("/api/admin/google-drive/disconnect", { method: "POST" });
+                    if (res.ok) {
+                      setGoogleDriveConnectedEmail("");
+                    } else {
+                      const data = await res.json().catch(() => ({}));
+                      alert(data.error || "Disconnect failed. Please try again.");
+                    }
                   }}
                   className="font-body text-sm px-3 py-2 rounded-lg border border-[var(--app-border)] text-[var(--app-text)] hover:bg-red-500/10 transition-colors"
                 >
@@ -1717,10 +1722,11 @@ export default function SettingsPage() {
             )}
 
             <div>
-              <label className={labelClass}>
+              <label htmlFor="drive-folder-id" className={labelClass}>
                 Destination folder ID (the <code className="text-brand-gold/80">NEW</code> folder)
               </label>
               <input
+                id="drive-folder-id"
                 type="text"
                 value={googleDriveIntakeFolderId}
                 onChange={(e) => setGoogleDriveIntakeFolderId(e.target.value)}
