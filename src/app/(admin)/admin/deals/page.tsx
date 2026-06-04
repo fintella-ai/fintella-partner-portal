@@ -1274,6 +1274,45 @@ export default function AdminDealsPage() {
                                 ) : null}
                               </div>
                             )}
+
+                            {/* Client Intake document — admin only. The full
+                                intake markdown is stored on the deal at
+                                submission (serviceFields.intakeMarkdown).
+                                Surface it here, under the signed PDF, so both
+                                documents live together in the deal record. */}
+                            {sf?.intakeMarkdown && (
+                              <div className="mt-3 p-3 rounded-lg" style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)" }}>
+                                <div className="font-body text-[10px] uppercase tracking-wider mb-2" style={{ color: "#3b82f6" }}>
+                                  Client Intake — Submitted Data
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const blob = new Blob([sf.intakeMarkdown as string], { type: "text/markdown" });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement("a");
+                                    a.href = url;
+                                    a.download = `${sf?.intakeMarkdownId || deal.id}.md`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    a.remove();
+                                    URL.revokeObjectURL(url);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/25 hover:bg-blue-500/20 transition-colors"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                  Download Intake (.md)
+                                </button>
+                                <details className="mt-2">
+                                  <summary className="cursor-pointer font-body text-[11px] text-[var(--app-text-secondary)] hover:text-[var(--app-text)] select-none">
+                                    View intake content
+                                  </summary>
+                                  <pre className="mt-2 p-3 rounded text-[11px] font-mono whitespace-pre-wrap break-words max-h-80 overflow-auto" style={{ background: "var(--app-bg-primary)", border: "1px solid var(--app-border)", color: "var(--app-text-secondary)" }}>
+                                    {sf.intakeMarkdown as string}
+                                  </pre>
+                                </details>
+                              </div>
+                            )}
                           </div>
                         );
                       })()}
