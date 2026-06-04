@@ -4,6 +4,7 @@ import { sendAgreementSignedEmail } from "@/lib/sendgrid";
 import { sendAgreementSignedSms } from "@/lib/twilio";
 import { getCompletedPdfUrl, getCompletedDocumentFields, mapSignWellFieldsToPayoutData, downloadCompletedPdf } from "@/lib/signwell";
 import { put } from "@vercel/blob";
+import { uploadFileToDrive } from "@/lib/google-drive";
 import crypto from "crypto";
 
 // SignWell sends webhooks when documents are signed, viewed, etc.
@@ -300,6 +301,52 @@ export async function POST(req: NextRequest) {
                 else console.log("[SignWellWebhook] Intake .md + PDF emailed to mvfoglia@fflawfirm.com");
               }).catch((e) => console.error("[SignWellWebhook] Intake email failed:", e));
             }
+          }
+
+          // Additive: mirror the same intake .md + signed DSA .pdf into the
+          // shared Google Drive "NEW" folder for the downstream Kwong
+          // workflow. Demo-gated, fully wrapped — never affects the email,
+          // Blob mirror, or webhook response. Runs once (stage guard above).
+          try {
+            const drvSettings = await prisma.portalSettings.findUnique({ where: { id: "global" } });
+            const folderId = drvSettings?.googleDriveIntakeFolderId || "";
+            const driveConnected = !!drvSettings?.googleDriveRefreshToken;
+            if (intakeMarkdown && driveConnected && folderId) {
+              const uploaded: Record<string, string> = {};
+              const mdRes = await uploadFileToDrive({
+                name: `${intakeId}.md`,
+                mimeType: "text/markdown",
+                content: intakeMarkdown,
+                folderId,
+              });
+              if (mdRes.id) uploaded.mdFileId = mdRes.id;
+              if (pdfBuf) {
+                const pdfRes = await uploadFileToDrive({
+                  name: `${intakeId}-signed-agreement.pdf`,
+                  mimeType: "application/pdf",
+                  content: pdfBuf,
+                  folderId,
+                });
+                if (pdfRes.id) uploaded.pdfFileId = pdfRes.id;
+              }
+              if (uploaded.mdFileId || uploaded.pdfFileId) {
+                const fresh = await prisma.deal.findUnique({ where: { id: kwongDeal.id } });
+                await prisma.deal.update({
+                  where: { id: kwongDeal.id },
+                  data: {
+                    serviceFields: {
+                      ...((fresh?.serviceFields as any) || {}),
+                      driveUpload: { ...uploaded, uploadedAt: new Date().toISOString() },
+                    },
+                  },
+                });
+                console.log(`[SignWellWebhook] Uploaded intake .md + signed PDF to Drive folder ${folderId} for deal ${kwongDeal.id}`);
+              }
+            } else {
+              console.log("[SignWellWebhook] Drive upload skipped (not connected or no folder ID)");
+            }
+          } catch (driveErr) {
+            console.error("[SignWellWebhook] Drive upload failed (non-fatal):", driveErr);
           }
 
           // Fire deal.stage_changed so workflows can forward the signed
