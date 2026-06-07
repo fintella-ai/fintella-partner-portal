@@ -1,7 +1,7 @@
 {
   "_metadata": {
     "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "generatedDate": "2026-06-07",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +9,11 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "IRS Rev. Rul. 2026-5 (IRB 2026-08) — Q2 2026 overpayment rate 6% for individuals",
+      "IRS IRB 2026-22 — Q3 2026 overpayment rate 7% for individuals (effective Jul 1, 2026)",
+      "Burlap & Barrel, Inc. et al. v. United States (CIT, May 7, 2026) — Section 122 held unlawful; CAFC administrative stay May 12, 2026",
+      "Euro-Notions Florida, Inc. v. CBP (CIT, May 27-29, 2026) — scope of IEEPA refund mandate for finally-liquidated entries in litigation"
     ]
   },
   "rates": [
@@ -332,7 +336,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. Rate remains 10% — no formal proclamation to raise to 15% issued as of Jun 7, 2026. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL STATUS: On May 7, 2026 CIT ruled Section 122 tariffs unlawful in Burlap & Barrel, Inc. et al. v. United States (2-1 decision). Injunction limited to 3 plaintiffs only. Government appealed to CAFC on May 8, 2026; CAFC entered administrative stay May 12, 2026 suspending the CIT order — Section 122 continues to be collected from all importers except the 3 plaintiffs while appeal proceeds. Section 122 is NOT a refundable IEEPA tariff and is outside CAPE scope.",
       "supersededBy": null
     },
     {
@@ -4878,6 +4882,18 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily"
       }
     ]
   },
@@ -4885,7 +4901,7 @@
     "description": "Consolidated Administration and Processing of Entries (CAPE) Phase 1 - IEEPA Duty Refund Program",
     "launchDate": "2026-04-20",
     "systemName": "CAPE (within ACE)",
-    "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT order Mar 4, 2026",
+    "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT order Mar 4, 2026; Euro-Notions Florida, Inc. v. CBP designated lead case Apr 7, 2026. NOTE (Jun 7, 2026): CBP reversed position on refunds for 'finally liquidated' entries (liquidated 90+ days ago, beyond statutory reliquidation window) — CBP asserts it lacks authority without importer-specific court judgment. DOJ appeal of CIT injunction scope expected Jun 7, 2026. Entries >180 days post-liquidation remain classified as 'litigation' filing method pending resolution.",
     "refundScope": "IEEPA duties ONLY. Section 232, Section 301, and other duties on same entry are NOT refundable.",
     "refundPeriod": {
       "startDate": "2025-02-04",
