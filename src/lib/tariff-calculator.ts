@@ -318,11 +318,15 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → litigation only.
+    // CAPE monitor 2026-06-08: DOJ appealed to the Federal Circuit (June 2, 2026)
+    // disputing CBP's obligation to refund finally-liquidated entries without
+    // importer-specific court judgments. CIT litigation remains the only filing
+    // path but the outcome is contested. Brokers should flag these to counsel.
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason: "Protest window expired (>180 days post-liquidation) — CIT litigation only; DOJ appealing CBP refund obligation for finally-liquidated entries (Jun 2026, outcome pending)",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
