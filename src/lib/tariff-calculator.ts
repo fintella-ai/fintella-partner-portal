@@ -31,11 +31,12 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: Type 09 Reconciliation entry within protest window → CAPE Phase 2 (launched June 29, 2026)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -205,8 +206,11 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE (all phases to date).
+ * Type 09 Reconciliation is handled separately below — eligible via Phase 2 (June 29, 2026).
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -292,11 +296,43 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
+  // 4a. Type 09 Reconciliation: CAPE Phase 2 (launched June 29, 2026)
+  // Scope: unliquidated or liquidated within 80 days of the Phase 2 filing date,
+  // AND the reconciliation entry has not yet been filed at CAPE acceptance time.
+  if (entry.entryType === "09") {
+    if (entry.liquidationDate) {
+      const now = new Date();
+      const deadlineDate = new Date(entry.liquidationDate);
+      deadlineDate.setDate(deadlineDate.getDate() + PROTEST_WINDOW_DAYS);
+      const daysRemaining = daysBetween(now, deadlineDate);
+
+      if (daysRemaining < 0) {
+        // 180-day protest window closed — Phase 3 covers finally liquidated entries (end of July 2026)
+        // but only for importers with active 1581(i) court actions; government has appealed to Federal Circuit.
+        return {
+          status: "excluded_expired",
+          reason: "Type 09 Reconciliation — protest window expired (liquidated > 180 days ago). CAPE Phase 3 (est. late July 2026) may cover this entry, but only for importers with active 1581(i) CIT court actions.",
+          deadlineDays: daysRemaining,
+          deadlineDate,
+          filingMethod: "litigation",
+        };
+      }
+    }
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: "Type 09 Reconciliation — eligible via CAPE Phase 2 (launched June 29, 2026)",
+      filingMethod: "cape_phase2",
+      needsReview: true,
+      reviewNote: "Phase 2 condition: the reconciliation entry must NOT be filed at the time of CAPE acceptance. Entries from before ~May 31, 2025 on a standard 314-day liquidation cycle may fall outside the Phase 2 80-day window.",
+    };
+    return applySectionReviewFlag(base, entry);
+  }
+
+  // 4b. Entry type exclusion (Types 08, 23, 47 remain excluded from all current CAPE phases)
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (all current phases)`,
       filingMethod: "none",
     };
   }
