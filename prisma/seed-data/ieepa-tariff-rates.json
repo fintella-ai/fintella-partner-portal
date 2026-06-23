@@ -332,7 +332,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026 by statute — Congress cannot extend unilaterally; President cannot extend at all. Max statutory rate is 15%; rate remains 10% throughout (Trump announced intent to raise to 15% on Feb 22 via social media, no formal proclamation issued). Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL STATUS: CIT ruled 2-1 on May 7, 2026 (Oregon v. United States + Burlap and Barrel v. United States) that Section 122 tariffs are unlawful — held the Administration's interpretation was overly expansive; Section 122 requires specific balance-of-payments measures, not modern trade deficit metrics. Injunction limited to three plaintiffs only (State of Washington, Burlap and Barrel Inc., Basic Fun Inc.). CAFC granted government's motion for stay pending appeal on June 11, 2026 — tariffs continue to be collected from all importers (including the three plaintiffs) while appeal proceeds. CAFC signaled skepticism of CIT's narrow statutory reading. Rate and expiry unchanged pending appeal outcome.",
       "supersededBy": null
     },
     {
@@ -4877,6 +4877,18 @@
         "underpaymentRate": 0.06,
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
+        "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
         "compounding": "daily"
       }
     ]
