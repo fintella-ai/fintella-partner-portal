@@ -182,8 +182,24 @@ test("entry type 08 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "08" }).status, "excluded_type");
 });
 
-test("entry type 09 → excluded_type", () => {
-  assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09" }).status, "excluded_type");
+// Type 09 (reconciliation) — CAPE Phase 2 behavior (launches June 29, 2026)
+test("entry type 09 with recon already filed → excluded_recon_filed", () => {
+  assert.equal(
+    checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09", reconciliationFiled: true }).status,
+    "excluded_recon_filed",
+  );
+});
+
+test("entry type 09 with recon not filed, unliquidated → eligible via cape_phase2", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09", reconciliationFiled: false });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("entry type 09 with unknown recon status → eligible with needsReview flag", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09" });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.needsReview, true);
 });
 
 test("entry type 23 → excluded_type", () => {
