@@ -31,11 +31,12 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: reconciliation-flagged entry (type 01/02/06) without a Type 09 on file → CAPE Phase 2 (eff. June 29, 2026)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +77,9 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  // CAPE Phase 2 (eff. June 29, 2026) — reconciliation-flagged entries (01/02/06)
+  isFlaggedForReconciliation?: boolean; // entry has an open reconciliation flag in ACE
+  hasExistingType09?: boolean;           // a Type 09 reconciliation entry is already on file → pending future CAPE phase
 }
 
 export interface EntryForCape {
@@ -292,11 +296,20 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
+  // 3b. Reconciliation-flagged with Type 09 already on file → not eligible for Phase 2; awaiting future CAPE phase
+  if (entry.isFlaggedForReconciliation && entry.hasExistingType09) {
+    return {
+      status: "excluded_type",
+      reason: "Type 09 reconciliation entry already on file — not eligible for CAPE Phase 2; will be covered in a future CAPE phase (CSMS #69035485)",
+      filingMethod: "none",
+    };
+  }
+
+  // 4. Entry type exclusion (Type 08: informal, Type 09: reconciliation entry, Type 23: temp import, Type 47: drawback)
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE`,
       filingMethod: "none",
     };
   }
@@ -329,14 +342,19 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
       };
     }
 
-    // Within 80 days of liquidation → CAPE Phase-1 automated; 80–180 days → formal protest
+    // Within 80 days → CAPE automated (Phase 2 for reconciliation-flagged without Type 09, Phase 1 otherwise); 80–180 → formal protest
+    const isPhase2 = !!(entry.isFlaggedForReconciliation && !entry.hasExistingType09);
     const filingMethod: FilingMethod =
-      daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase1" : "protest";
+      daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS
+        ? (isPhase2 ? "cape_phase2" : "cape_phase1")
+        : "protest";
 
     const base: EligibilityResult = {
       status: "eligible",
       reason:
-        filingMethod === "cape_phase1"
+        filingMethod === "cape_phase2"
+          ? "Liquidated within 80 days, reconciliation-flagged (no Type 09 on file) — eligible via CAPE Phase 2 (eff. June 29, 2026)"
+          : filingMethod === "cape_phase1"
           ? "Liquidated within 80 days — eligible via CAPE Phase 1"
           : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
       deadlineDays: daysRemaining,
@@ -347,11 +365,14 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     return applySectionReviewFlag(base, entry);
   }
 
-  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE Phase 1, no deadline yet
+  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE (Phase 2 if reconciliation-flagged without Type 09, Phase 1 otherwise)
+  const isPhase2 = !!(entry.isFlaggedForReconciliation && !entry.hasExistingType09);
   const base: EligibilityResult = {
     status: "eligible",
-    reason: "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
-    filingMethod: "cape_phase1",
+    reason: isPhase2
+      ? "Unliquidated entry flagged for reconciliation (no Type 09 on file) — eligible via CAPE Phase 2 (eff. June 29, 2026)"
+      : "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
+    filingMethod: isPhase2 ? "cape_phase2" : "cape_phase1",
   };
   return applySectionReviewFlag(base, entry);
 }

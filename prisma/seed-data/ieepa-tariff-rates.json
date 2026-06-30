@@ -1,7 +1,7 @@
 {
   "_metadata": {
-    "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "version": "1.1.0",
+    "generatedDate": "2026-06-30",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +9,10 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "CSMS #69035485 (June 23, 2026) — CAPE Phase 2 launch eff. June 29, 2026: reconciliation-flagged entries (types 01/02/06) without existing Type 09 on file, unliquidated or within 80 days of liquidation",
+      "Oregon v. United States / Burlap and Barrel v. United States (CIT Slip Op. 26-47, May 7, 2026) — Section 122 tariffs invalidated; injunction stayed by Federal Circuit June 11, 2026 (Nos. 2026-1804/1805); tariffs remain in effect pending appeal",
+      "Euro-Notions Florida v. United States (Fed. Cir. No. 26-1898, filed June 2, 2026) — government appeal of CIT IEEPA universal refund order; CBP position (May 29, 2026): no authority to refund finally-liquidated entries without importer-specific court judgment"
     ]
   },
   "rates": [
@@ -332,7 +335,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge per Proclamation 11012. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, EXPIRES JULY 24, 2026 (24 days from database update). Max statutory rate is 15%; rate remains 10% (no formal proclamation to raise it issued as of June 30, 2026). Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL STATUS: CIT invalidated Section 122 tariffs in Oregon v. United States / Burlap and Barrel (Slip Op. 26-47, May 7, 2026), but the Federal Circuit stayed the injunction June 11, 2026 (Nos. 2026-1804/1805) — tariffs remain collectible from virtually all importers pending appeal. Section 301 investigations ongoing as likely post-expiration replacement authority (hearings July 2026). The president cannot extend Section 122 unilaterally beyond 150 days; Congressional action would be required.",
       "supersededBy": null
     },
     {
