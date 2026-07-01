@@ -205,7 +205,13 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE (all phases).
+ * Note: Type 09 is the reconciliation *summary* entry itself — excluded from
+ * CAPE declarations. Underlying entries (Types 01/02/06) that are merely
+ * *flagged for reconciliation* (Type 09 not yet filed) became eligible under
+ * CAPE Phase 2, launched June 29, 2026 (CSMS 69035485).
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -216,10 +222,12 @@ const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 const PROTEST_WINDOW_DAYS = 180;
 
 /**
- * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
- * entries liquidated within the last 80 days. Entries liquidated 80–180 days
- * ago are still recoverable, but require a formal protest rather than the
- * automated CAPE channel.
+ * CAPE Phase 1 + Phase 2 scope: CBP automatically processes unliquidated
+ * entries and entries liquidated within the last 80 days. Phase 2 (launched
+ * June 29, 2026) extends this to entries flagged for reconciliation using the
+ * same 80-day window. Entries liquidated 80–180 days ago require a formal
+ * protest. Phase 3 (expected end of July 2026) will cover finally liquidated
+ * entries, but is subject to a Federal Circuit appeal on government authority.
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
@@ -296,7 +304,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (all phases)`,
       filingMethod: "none",
     };
   }

@@ -1,7 +1,7 @@
 {
   "_metadata": {
     "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "generatedDate": "2026-07-01",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -332,7 +332,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, hard statutory expiration Jul 24, 2026 — the President CANNOT extend unilaterally; Congressional extension considered unlikely. Max statutory rate is 15%. Rate remains 10% (Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued). Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL CHALLENGE: CIT struck down Section 122 tariffs 2-1 on May 7, 2026 (State of Oregon v. Trump, No. 26-cv-01472 / Burlap and Barrel, Inc. v. Trump, No. 26-cv-01606), holding they exceed President's statutory authority. Federal Circuit GRANTED stay pending appeal on June 11, 2026 — tariffs are still being collected during appeal. REPLACEMENT: USTR is fast-tracking Section 301 investigations (initiated Mar 11, 2026) targeting 60+ economies for forced-labor enforcement and excess manufacturing capacity. Public comment closed Jul 6, 2026; hearing Jul 7, 2026. Proposed rates: 10% for 15 trading partners, 12.5% for 45 trading partners. Administration aims to finalize Section 301 duties before Section 122 lapses Jul 24, 2026. Section 301 has no statutory rate cap and no time limit.",
       "supersededBy": null
     },
     {
@@ -4878,11 +4878,23 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily"
       }
     ]
   },
   "capePhase1": {
-    "description": "Consolidated Administration and Processing of Entries (CAPE) Phase 1 - IEEPA Duty Refund Program",
+    "description": "Consolidated Administration and Processing of Entries (CAPE) - IEEPA Duty Refund Program. Phase 1 launched Apr 20, 2026. Phase 2 launched Jun 29, 2026 (adds entries flagged for reconciliation). Phase 3 expected end of Jul 2026 (finally liquidated entries, subject to Federal Circuit appeal on government authority to refund without individual CIT lawsuits).",
     "launchDate": "2026-04-20",
     "systemName": "CAPE (within ACE)",
     "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT order Mar 4, 2026",
@@ -4934,7 +4946,7 @@
         {
           "code": "09",
           "name": "Reconciliation Summary",
-          "notes": "Flagged for reconciliation - excluded"
+          "notes": "The Type 09 reconciliation summary entry itself is excluded from CAPE declarations. However, underlying entries (Types 01/02/06) that are flagged for reconciliation where the Type 09 has NOT yet been filed are now eligible under CAPE Phase 2 (launched Jun 29, 2026). CAPE removes IEEPA duties from flagged entries prior to Type 09 filing."
         },
         {
           "code": "23",
@@ -4958,7 +4970,7 @@
         "Entry must be filed in ACE with a liquidation status visible in ACE",
         "Entry must have declared IEEPA Chapter 99 HTS codes",
         "Entry must NOT be covered by an open or suspended protest",
-        "Entry must NOT be flagged for reconciliation",
+        "Entry must NOT be flagged for reconciliation (Phase 1 only) — Phase 2 (launched Jun 29, 2026) explicitly allows Types 01/02/06 entries flagged for reconciliation where Type 09 has not yet been filed (covers ~2.8M entries, ~$28.7B additional refunds per CSMS 69035485)",
         "Entry must NOT be on an active drawback claim"
       ]
     },
