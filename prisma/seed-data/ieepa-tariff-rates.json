@@ -323,7 +323,7 @@
     },
     {
       "id": "S122-01",
-      "executiveOrder": "Proclamation (Feb 23, 2026)",
+      "executiveOrder": "Proclamation 11012 (Feb 23, 2026)",
       "name": "Section 122 Global Surcharge (10%)",
       "rateType": "section122",
       "countryCode": "ALL",
@@ -332,7 +332,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026 (statutory hard cap — President cannot extend unilaterally; Congress must act, which is considered unlikely). Max statutory rate is 15%; rate remained at 10% throughout. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL STATUS AS OF JUL 2026: On May 7, 2026, a divided CIT panel (2-1) invalidated Proclamation 11012 in Oregon v. United States and Burlap and Barrel, Inc. v. United States (Slip Op. 26-47), holding the proclamation did not satisfy Section 122 balance-of-payments prerequisites. Permanent injunction limited to 3 named plaintiff importers only. Government appealed May 8 to the Federal Circuit (CAFC); CAFC issued administrative stay May 12, 2026 — tariffs continue to be collected for all other importers while appeal proceeds. REPLACEMENT OUTLOOK: USTR announced findings and proposed action in 60+ Section 301 investigations (forced labor practices, 59 countries + EU) on June 2, 2026. Proposed rates 10% for 15 trading partners, 12.5% for 45 others. Public comment period closed July 6, 2026; public hearing held July 7, 2026. Section 301 tariffs widely expected to take effect on or around July 24, 2026 to replace expiring Section 122. If no replacement is finalized, MFN, existing Section 301 (China), and Section 232 (steel/aluminum/copper) duties continue; the 10% global surcharge disappears.",
       "supersededBy": null
     },
     {
