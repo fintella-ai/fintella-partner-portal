@@ -1,7 +1,7 @@
 {
   "_metadata": {
-    "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "version": "1.1.0",
+    "generatedDate": "2026-07-05",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +9,11 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "CBP CSMS #68340863 — CAPE Phase 2 deployment June 29, 2026",
+      "Euro-Notions Florida, Inc. v. United States (CIT No. 25-00595) — government appeal of universal refund order",
+      "CIT May 7, 2026 2-1 ruling invalidating Section 122 tariffs (Section 122 Litigation)",
+      "Federal Circuit stay order June 11, 2026 (Section 122 collection continues pending appeal)"
     ]
   },
   "rates": [
@@ -332,7 +336,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% — Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL STATUS (as of Jul 5, 2026): CIT ruled tariffs invalid May 7, 2026 (2-1; proclamation failed to identify the required balance-of-payments trigger under 19 USC 2132(a)). Federal Circuit granted stay June 11, 2026 — collection continues while government appeals. EXPIRATION: Tariffs expire July 24, 2026 by statute regardless of appeal outcome; Congress has not extended (60-vote Senate threshold makes extension unlikely). SUCCESSOR: USTR Section 301 investigations covering 60+ economies (forced labor grounds) with proposed rates of 10-12.5%; public hearing July 7, 2026 — most likely replacement mechanism but not yet final.",
       "supersededBy": null
     },
     {
