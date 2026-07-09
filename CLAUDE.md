@@ -164,6 +164,7 @@ Build currently produces **97/97 static pages** with only a pre-existing `global
 - Squash merge to `main` → Vercel auto-deploys production
 - Remote feature branches auto-deleted by `.github/workflows/delete-merged-branches.yml` after merge
 - **Never merge major-version dependabot PRs without a dedicated migration session** (the ignore rule in `.github/dependabot.yml` blocks new ones)
+- **HARD RULE — PR number goes at the FRONT of the squash-merge commit title, not the back.** GitHub's default squash-merge title appends `(#1234)` at the end (e.g. `feat(recover): standalone 2025-first estimate form at /recover/estimate (#1149)`), which gets truncated out of view in the Vercel deployments list. When squash-merging (via `gh pr merge --squash` or the GitHub UI), manually set the merge commit title to `(#1234) feat(recover): standalone 2025-first estimate form at /recover/estimate` instead — number first, far left, so it's visible at a glance in Vercel's deployment history without expanding the title.
 
 ## Mandatory pre-commit checks
 
