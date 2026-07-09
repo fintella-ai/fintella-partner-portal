@@ -164,6 +164,7 @@ Build currently produces **97/97 static pages** with only a pre-existing `global
 - Squash merge to `main` → Vercel auto-deploys production
 - Remote feature branches auto-deleted by `.github/workflows/delete-merged-branches.yml` after merge
 - **Never merge major-version dependabot PRs without a dedicated migration session** (the ignore rule in `.github/dependabot.yml` blocks new ones)
+- **HARD RULE — PR number goes at the FRONT of the squash-merge commit title, not the back.** GitHub's default squash-merge title appends `(#1234)` at the end (e.g. `feat(recover): standalone 2025-first estimate form at /recover/estimate (#1149)`), which gets truncated out of view in the Vercel deployments list. When squash-merging (via `gh pr merge --squash` or the GitHub UI), manually set the merge commit title to `(#1234) feat(recover): standalone 2025-first estimate form at /recover/estimate` instead — number first, far left, so it's visible at a glance in Vercel's deployment history without expanding the title.
 
 ## Mandatory pre-commit checks
 
@@ -180,6 +181,8 @@ Build currently produces **97/97 static pages** with only a pre-existing `global
 **Single source of truth**: `.claude/session-state.md`. File is mechanically maintained by the active Claude Code session (not hand-edited) and committed to the repo so it survives across machines.
 
 **MANDATORY — read on startup**: at the start of every session, before responding to the first user message, read `.claude/session-state.md`. If the `🕒 Last updated` timestamp is within ~48 hours, treat it as authoritative context and summarize "where we left off" in your first response.
+
+**HARD RULE — timestamp, not just date.** John runs many sessions per day on this repo — a bare date (`2026-07-09`) doesn't tell you which of several same-day updates is newest. `🕒 Last updated` (here and in `docs/HANDOFF-NEXT-SESSION.md`'s `🕒 Updated:` line and any `terminal-logs/*.md` entry) must include a time component, not just a date — e.g. `2026-07-09 14:32` or, if exact clock time isn't available, at least a rough qualifier like `2026-07-09 (afternoon, 2nd session)`. Never write just `2026-07-09` with no time indicator on these files.
 
 **MANDATORY — update at checkpoints**:
 1. After every PR merge — bump the merge log, shift "what's next"
