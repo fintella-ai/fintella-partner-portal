@@ -1,8 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
 import { useSession } from "next-auth/react";
-import { useResizableColumns } from "@/components/ui/ResizableTable";
+import { useColumnPrefs, useResizableColumnsByKey } from "@/components/ui/ResizableTable";
+import {
+  DEAL_COLUMNS,
+  DEAL_COLUMNS_BY_KEY,
+  DEFAULT_VISIBLE_DEAL_COLUMNS,
+  type DealColumnKey,
+  type DealColumnMeta,
+} from "@/lib/dealColumns";
+import { deriveDealWorkflowFields } from "@/lib/workflow-engine";
+import { DEAL_COLUMN_RENDERERS } from "./dealColumnsUi";
+import ColumnCustomizeModal from "./ColumnCustomizeModal";
+import CsvExportModal from "./CsvExportModal";
 import { fmt$, fmtDate, fmtDateTime, fmtTime } from "@/lib/format";
 import { resolveDealFinancials, formatRate } from "@/lib/dealCalc";
 import { parseDealPayloadLog } from "@/lib/appendDealPayload";
@@ -97,17 +108,62 @@ type Deal = {
 
 type SortField = "dealName" | "estimatedRefundAmount" | "firmFeeAmount" | "l1CommissionAmount" | "createdAt" | "stage";
 
+// Column keys that have server-independent client-side sort wired up. Any other
+// visible column renders as a plain (non-clickable) header.
+const SORTABLE_DEAL_COLUMNS = new Set<SortField>([
+  "dealName",
+  "stage",
+  "estimatedRefundAmount",
+  "firmFeeAmount",
+  "l1CommissionAmount",
+  "createdAt",
+]);
+
+// Header alignment. The 10 default-visible columns keep their exact original
+// hardcoded header alignment (Deal left, everything else centered) so the
+// default table stays pixel-identical to before customization. Newly-addable
+// columns follow their registry `align` (money/percent → right, text → left),
+// matching the plain-cell renderers in dealColumnsUi.
+function dealHeaderAlignClass(meta: DealColumnMeta): string {
+  if (meta.defaultVisible) {
+    return meta.key === "dealName" ? "text-left" : "text-center";
+  }
+  if (meta.align === "right") return "text-right";
+  if (meta.align === "center") return "text-center";
+  return "text-left";
+}
+
 export default function AdminDealsPage() {
   const { data: session } = useSession();
   const isSuperAdmin = (session?.user as any)?.role === "super_admin";
   const isStarSuperAdmin = isStarSuperAdminEmail((session?.user as any)?.email);
 
-  // 10 columns: Deal, Partner, Service, Stage, Refund, Fee%, Firm Fee, Comm%, Commission, Date
-  const { columnWidths: dealCols, getResizeHandler: dealResize } = useResizableColumns(
-    [200, 140, 130, 120, 120, 70, 110, 70, 110, 100],
+  // Column customization: which columns show, their order, and their widths —
+  // all persisted to localStorage under the "deals-v2" storage key. Replaces the
+  // old fixed-10-column setup with a registry-driven, user-customizable set.
+  const {
+    visibleColumns: visibleColumnsRaw,
+    toggleColumn,
+    reorderColumn,
+    resetColumns,
+  } = useColumnPrefs(
+    DEAL_COLUMNS.map((c) => c.key),
+    DEFAULT_VISIBLE_DEAL_COLUMNS,
     { storageKey: "deals-v2" }
   );
-  const dealGridCols = dealCols.map((w) => `${w}px`).join(" ");
+  const visibleColumns = visibleColumnsRaw as DealColumnKey[];
+  const defaultWidths = useMemo(
+    () => Object.fromEntries(DEAL_COLUMNS.map((c) => [c.key, c.width ?? 130])),
+    []
+  );
+  const { widthFor, getResizeHandlerFor } = useResizableColumnsByKey(
+    visibleColumns,
+    defaultWidths,
+    { storageKey: "deals-v2" }
+  );
+  const dealGridCols = visibleColumns.map((k) => `${widthFor(k)}px`).join(" ");
+  const [showColumnModal, setShowColumnModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const [deals, setDeals] = useState<Deal[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -574,13 +630,13 @@ export default function AdminDealsPage() {
         {isSuperAdmin && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                const params = new URLSearchParams();
-                if (stageFilter !== "all") params.set("stage", stageFilter);
-                if (partnerFilter && partnerFilter !== "__unknown__") params.set("partner", partnerFilter);
-                if (search) params.set("search", search);
-                window.open(`/api/admin/deals/export?${params.toString()}`);
-              }}
+              onClick={() => setShowColumnModal(true)}
+              className="font-body text-[11px] border rounded-lg px-3 py-1.5 min-h-[36px] transition-colors border-[var(--app-border)] theme-text-muted hover:border-brand-gold/20"
+            >
+              🧩 Columns
+            </button>
+            <button
+              onClick={() => setShowExportModal(true)}
               className="font-body text-[11px] border rounded-lg px-3 py-1.5 min-h-[36px] transition-colors border-[var(--app-border)] theme-text-muted hover:border-brand-gold/20"
             >
               📥 Export CSV
@@ -793,40 +849,35 @@ export default function AdminDealsPage() {
       {/* ═══ DESKTOP TABLE ═══ */}
       <div className="card hidden md:block overflow-x-auto">
         <div className="min-w-[1450px]">
-        {/* Header — 9 columns: Deal / Partner / Stage / Refund / Firm Fee % /
-            Firm Fee / Commission % / Commission / Date. The two rate columns
-            (Firm Fee % + Commission %) sit immediately before their dollar-
-            amount counterparts so the eye reads "20% × $X = $Y" left to right.
-            All center-aligned except Deal (left, long name) and Date (right,
-            terse trailing metadata). gap-6 + min-w-[1320px] (was 1040) to
-            absorb the two new columns. */}
+        {/* Header — driven off the user's visible/ordered column set. Sortable
+            columns (see SORTABLE_DEAL_COLUMNS) render as clickable buttons that
+            drive toggleSort; every other column is a plain labeled header. Each
+            header carries a keyed resize handle. Alignment mirrors the original
+            hardcoded layout for the default columns (see dealHeaderAlignClass). */}
         <div className="grid gap-6 px-5 py-3 border-b border-[var(--app-border)]" style={{ gridTemplateColumns: dealGridCols }}>
-          <button onClick={() => toggleSort("dealName")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-left hover:text-[var(--app-text-secondary)]">
-            Deal{sortIcon("dealName")}<span {...dealResize(0)} />
-          </button>
-          <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center">Partner<span {...dealResize(1)} /></div>
-          <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center">Service<span {...dealResize(2)} /></div>
-          <button onClick={() => toggleSort("stage")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Stage{sortIcon("stage")}<span {...dealResize(3)} />
-          </button>
-          <button onClick={() => toggleSort("estimatedRefundAmount")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Refund{sortIcon("estimatedRefundAmount")}<span {...dealResize(4)} />
-          </button>
-          <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center" title="Firm fee rate as a percentage of the deal refund">
-            Fee %<span {...dealResize(5)} />
-          </div>
-          <button onClick={() => toggleSort("firmFeeAmount")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Firm Fee{sortIcon("firmFeeAmount")}<span {...dealResize(6)} />
-          </button>
-          <div className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center" title="Commission rate as a percentage of the firm fee (per the partner's tier)">
-            Comm %<span {...dealResize(7)} />
-          </div>
-          <button onClick={() => toggleSort("l1CommissionAmount")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)] w-full">
-            Commission{sortIcon("l1CommissionAmount")}<span {...dealResize(8)} />
-          </button>
-          <button onClick={() => toggleSort("createdAt")} className="relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider text-center hover:text-[var(--app-text-secondary)]">
-            Date{sortIcon("createdAt")}<span {...dealResize(9)} />
-          </button>
+          {visibleColumns.map((key) => {
+            const meta = DEAL_COLUMNS_BY_KEY[key];
+            const alignClass = dealHeaderAlignClass(meta);
+            if (SORTABLE_DEAL_COLUMNS.has(key as SortField)) {
+              return (
+                <button
+                  key={key}
+                  onClick={() => toggleSort(key as SortField)}
+                  className={`relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider ${alignClass} hover:text-[var(--app-text-secondary)] w-full`}
+                >
+                  {meta.label}{sortIcon(key as SortField)}<span {...getResizeHandlerFor(key)} />
+                </button>
+              );
+            }
+            return (
+              <div
+                key={key}
+                className={`relative font-body text-[11px] text-[var(--app-text-muted)] uppercase tracking-wider ${alignClass}`}
+              >
+                {meta.label}<span {...getResizeHandlerFor(key)} />
+              </div>
+            );
+          })}
         </div>
 
         {paginatedDeals.map((deal, idx) => {
@@ -836,6 +887,9 @@ export default function AdminDealsPage() {
           // it in the % column. Same pattern for commission. Pure helper,
           // see src/lib/dealCalc.ts for precedence rules.
           const fin = resolveDealFinancials(deal);
+          // Derived serviceFields-backed workflow values — computed once per
+          // row (NOT per column) and shared across every column renderer.
+          const workflowFields = deriveDealWorkflowFields(deal);
           return (
           <div key={deal.id} id={`deal-${deal.id}`}>
             <div
@@ -854,42 +908,9 @@ export default function AdminDealsPage() {
                   className="w-4 h-4 accent-brand-gold cursor-pointer"
                 />
               )}
-              <div>
-                <div className="font-body text-[13px] text-[var(--app-text)] font-medium truncate">{deal.dealName}</div>
-                <div className="font-body text-[11px] text-[var(--app-text-muted)] truncate">{deal.clientName || deal.clientEmail || "—"}</div>
-              </div>
-              <div className="text-center">
-                {deal.partnerId ? (
-                  <>
-                    <PartnerLink partnerId={deal.partnerId} className="font-body text-[12px] text-[var(--app-text-secondary)] truncate inline-block max-w-full">{deal.partnerName}</PartnerLink>
-                    {deal.partnerName !== deal.partnerCode && (
-                      <div className="font-mono text-[10px] text-[var(--app-text-muted)] mt-0.5 truncate">{deal.partnerCode}</div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <span className="font-body text-[12px] text-[var(--app-text-muted)] italic truncate inline-block max-w-full">Unknown</span>
-                    <div className="font-mono text-[10px] text-[var(--app-text-muted)] mt-0.5 truncate">{deal.partnerCode}</div>
-                  </>
-                )}
-              </div>
-              <div className="font-body text-[11px] text-[var(--app-text-secondary)] text-center truncate" title={deal.serviceOfInterest || ""}>
-                {(deal.serviceOfInterest || "Tariff Refund Support").replace(/\s*\(Tier [12]\)/, "")}{deal.serviceOfInterest !== "Kwong Penalty Abatement (ERC)" && <span className={`font-medium ${deal.isImporterOfRecord ? "text-emerald-400" : "text-amber-400"}`}> ({deal.isImporterOfRecord ? "Tier 1" : "Tier 2"})</span>}
-              </div>
-              <div className="text-center"><StageBadge stage={deal.stage} /></div>
-              <div className="font-body text-[13px] text-[var(--app-text)] text-center">{fmt$(fin.refund)}</div>
-              <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">
-                {formatRate(fin.firmFeeRate)}
-              </div>
-              <div className="font-body text-[13px] text-[var(--app-text-secondary)] text-center">{fmt$(fin.firmFeeAmount)}</div>
-              <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">
-                {formatRate(fin.commissionRate)}
-              </div>
-              <div className="font-display text-[14px] font-semibold text-brand-gold text-center">{fmt$(fin.commissionAmount)}</div>
-              <div className="font-body text-[12px] text-[var(--app-text-muted)] text-center">
-                <div>{fmtDate(deal.createdAt)}</div>
-                <div className="text-[11px] text-[var(--app-text-faint)] mt-0.5">{fmtTime(deal.createdAt)}</div>
-              </div>
+              {visibleColumns.map((key) => (
+                <Fragment key={key}>{DEAL_COLUMN_RENDERERS[key](deal, { fin, workflowFields })}</Fragment>
+              ))}
             </div>
 
             {/* Expanded detail + edit panel */}
@@ -1987,6 +2008,21 @@ export default function AdminDealsPage() {
           <TablePagination page={dealsPage} pageSize={dealsPageSize} totalItems={sorted.length} onPageChange={setDealsPage} onPageSizeChange={setDealsPageSize} />
         </div>
       </div>
+
+      <ColumnCustomizeModal
+        open={showColumnModal}
+        onClose={() => setShowColumnModal(false)}
+        visibleColumns={visibleColumns}
+        onToggle={toggleColumn}
+        onReorder={reorderColumn}
+        onReset={resetColumns}
+      />
+      <CsvExportModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        visibleColumns={visibleColumns}
+        filters={{ stage: stageFilter, partner: partnerFilter, search }}
+      />
     </div>
   );
 }

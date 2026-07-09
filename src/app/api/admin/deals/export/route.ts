@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-/**
- * RFC 4180 CSV field escaping: wrap in double-quotes if the value contains
- * a comma, double-quote, or newline. Interior double-quotes are doubled.
- */
-function csvField(value: string | number | null | undefined): string {
-  if (value == null) return "";
-  const s = String(value);
-  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
+import { csvField } from "@/lib/csv";
+import {
+  DEAL_COLUMNS_BY_KEY,
+  DEFAULT_VISIBLE_DEAL_COLUMNS,
+  csvValue,
+  type DealColumnKey,
+  type DealColumnCtx,
+  type DealLike,
+} from "@/lib/dealColumns";
+import { deriveDealWorkflowFields } from "@/lib/workflow-engine";
 
 /**
  * GET /api/admin/deals/export
@@ -68,61 +65,44 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // CSV header
-    const headers = [
-      "Deal Name",
-      "Client First Name",
-      "Client Last Name",
-      "Client Email",
-      "Client Phone",
-      "Company",
-      "Partner Code",
-      "Partner Name",
-      "Stage",
-      "Estimated Refund",
-      "Actual Refund",
-      "Firm Fee Rate",
-      "Firm Fee Amount",
-      "L1 Commission Rate",
-      "L1 Commission Amount",
-      "L1 Commission Status",
-      "Created Date",
-    ];
+    // Resolve the requested columns from the registry. Unknown/stale keys are
+    // silently dropped; an absent or empty-after-validation param falls back to
+    // the registry defaults (preserves back-compat with bookmarked links that
+    // pass no `columns` param).
+    const columnsParam = req.nextUrl.searchParams.get("columns");
+    const requestedColumns: DealColumnKey[] = columnsParam
+      ? (columnsParam
+          .split(",")
+          .map((k) => k.trim())
+          .filter((k): k is DealColumnKey => k in DEAL_COLUMNS_BY_KEY))
+      : [];
+    const columns: DealColumnKey[] =
+      requestedColumns.length > 0 ? requestedColumns : DEFAULT_VISIBLE_DEAL_COLUMNS;
+
+    // CSV header from the registry labels
+    const headerRow = columns.map((key) => csvField(DEAL_COLUMNS_BY_KEY[key].label)).join(",");
 
     const rows = deals.map((d) => {
-      const partnerName = partnerMap[d.partnerCode]?.name || d.partnerCode;
-      const effectiveRate =
-        d.l1CommissionRate ?? partnerMap[d.partnerCode]?.commissionRate ?? null;
-      const feeRatePct =
-        d.firmFeeRate != null ? `${Math.round(d.firmFeeRate * 10000) / 100}%` : "";
-      const commRatePct =
-        effectiveRate != null ? `${Math.round(effectiveRate * 10000) / 100}%` : "";
-      const createdDate = d.createdAt
-        ? new Date(d.createdAt).toISOString().split("T")[0]
-        : "";
-
-      return [
-        csvField(d.dealName),
-        csvField(d.clientFirstName),
-        csvField(d.clientLastName),
-        csvField(d.clientEmail),
-        csvField(d.clientPhone),
-        csvField(d.legalEntityName),
-        csvField(d.partnerCode),
-        csvField(partnerName),
-        csvField(d.stage),
-        csvField(d.estimatedRefundAmount),
-        csvField(d.actualRefundAmount),
-        csvField(feeRatePct),
-        csvField(d.firmFeeAmount),
-        csvField(commRatePct),
-        csvField(d.l1CommissionAmount),
-        csvField(d.l1CommissionStatus),
-        csvField(createdDate),
-      ].join(",");
+      // Prisma types `serviceFields` as the wider `JsonValue`; the registry's
+      // `DealLike` expects an object-or-null. Coerce non-object JSON to null so
+      // the shapes line up without an unsafe blanket cast.
+      const deal: DealLike = {
+        ...d,
+        serviceFields:
+          d.serviceFields && typeof d.serviceFields === "object" && !Array.isArray(d.serviceFields)
+            ? (d.serviceFields as Record<string, unknown>)
+            : null,
+      };
+      const ctx: DealColumnCtx = {
+        partnerName: partnerMap[d.partnerCode]?.name || d.partnerCode,
+        effectiveCommissionRate:
+          d.l1CommissionRate ?? partnerMap[d.partnerCode]?.commissionRate ?? null,
+        workflowFields: deriveDealWorkflowFields(d as Record<string, unknown>),
+      };
+      return columns.map((key) => csvField(csvValue(key, deal, ctx))).join(",");
     });
 
-    const csv = [headers.join(","), ...rows].join("\r\n");
+    const csv = [headerRow, ...rows].join("\r\n");
     const today = new Date().toISOString().split("T")[0];
 
     return new NextResponse(csv, {
