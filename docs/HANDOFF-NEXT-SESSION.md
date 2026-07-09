@@ -1,7 +1,7 @@
 # HANDOFF — next session (start here)
 
-🕒 Updated: 2026-07-09 — Committing orphaned 2026-06-22 outage-recovery docs (fixed live, never committed until now); stale forward-looking priority list removed as noise (see git history for prior content).
-🌿 main @ `07b60b42` (#1149 "feat(recover): standalone 2025-first estimate form at /recover/estimate"; LIVE at fintella.partners)
+🕒 Updated: 2026-07-09 04:17 EDT — Admin Deals column customization shipped; two new repo hard rules added; 197 local + 142 remote stale `claude/*` branches pruned (cross-referenced against actual merged PR records, zero data loss); Kwong untracked HTML deleted.
+🌿 main @ `96bdc895` (#1168 "feat(admin): deals column customization + drag reorder + CSV export"; LIVE at fintella.partners)
 
 ## ⚠️ 2026-06-22 outage (RESOLVED — read if it recurs)
 - Whole portal went down: admin login "not authorized" + zero partners/deals + crons 500 = `PrismaClientInitializationError` everywhere = **DB unreachable, NOT data loss**.
@@ -11,24 +11,25 @@
 
 ## Step 0 — on restart
 1. `git pull` your clone of `~/tariff-partner-portal`.
-2. Read this file + `terminal-logs/2026-06-03-deal-stages-onboarding-closedlost.md` + `docs/knowledge/deal-stage-mapping-and-triggers.md`.
-3. No migration / db-push required (additive enum/string + workflow registry; no schema change).
+2. Read this file. For the new column-customization pattern, also read `docs/knowledge/admin-column-customization-pattern.md`.
+3. No migration / db-push required this session (all additive, no schema changes).
 4. **NEVER `npm run build`** on this repo — it runs `prisma db push` against the LIVE prod DB. Use `./node_modules/.bin/next build` (compile-only, safe) or `next dev`. **Confirm before EVERY merge to main** (per-merge gate — hard rule even in beast mode). Never `git add -A`.
+5. **NEW hard rules (added this session, in CLAUDE.md's Git workflow / Session continuity sections):** squash-merge titles put the PR number at the FRONT (`(#1234) feat: ...`), and session-state/handoff/terminal-log updates need a **timestamp**, not just a date.
 
-## Flagged — need John's explicit OK (NOT auto-done)
-- Delete untracked `Kwong Client intake form/client-intake-dashboard.html` — superseded by tracked `src/app/(partner)/dashboard/submit-client/kwong/page.tsx` + `src/app/api/kwong-intake/route.ts` + `src/app/intake/kwong/page.tsx`. **Unrecoverable** (never committed) — confirm before `rm`.
-- Prune **~202 stale local `claude/*` branches** (mostly merged). Offer: `git branch --merged main | grep claude/ | xargs git branch -d`.
-- Bulk-delete merged **remote** branches (auto-classifier blocked the remote delete this session).
+## ▶️ Pick up here
+1. **Admin → Deals**: try the new "🧩 Columns" button (toggle/drag-reorder any of 61 fields as table columns) and "📥 Export CSV" (now opens a popup pre-checked to your visible columns, still `super_admin`-gated server-side). Browser-verify visually — this was built and CI-verified but not yet manually clicked through in a live browser session.
+2. Same column-customization hooks (`useColumnPrefs`, `useResizableColumnsByKey` in `src/components/ui/ResizableTable.tsx`) are reusable — Partners and Payouts admin tables are natural next candidates if John wants the same treatment there.
+3. 82 remote branches remain (59 with open PRs, 23 with no PR record at all) — left untouched pending individual review; not urgent.
 
-## What merged this session
-- #1108 regenerate backup codes + "X of 10" counter (partner + admin) — MERGED+LIVE
-- #1109 MFA break-glass recovery (password-gated, single-use, 15-min) — MERGED+LIVE
-- #1110 Dependabot safe overrides — MERGED+LIVE (`3c6c733`); **open alerts 33 → 14**
-- #1113 session handoff + knowledge + terminal-log docs — MERGED (`412977c`)
+## What merged this session (2026-07-09, evening/late-night)
+- #1166 docs: committed orphaned 2026-06-22 Neon outage-recovery docs + refreshed stale handoff
+- #1167 docs: two new hard rules (PR# at front of squash-merge titles; timestamp session docs)
+- #1168 feat(admin): Deals column customization + drag reorder + server-gated CSV export (`src/lib/dealColumns.ts`, `dealColumnsUi.tsx`, `ColumnCustomizeModal.tsx`, `CsvExportModal.tsx`, extended `/api/admin/deals/export`, two new hooks in `ResizableTable.tsx`)
 
 ## Reference
+- New pattern: `docs/knowledge/admin-column-customization-pattern.md`
 - Architecture/patterns: `docs/knowledge/2fa-backup-codes-and-recovery.md`
 - Tests: `npx tsx src/lib/__tests__/{totp,mfa-recovery}.test.ts` · Build: `./node_modules/.bin/next build`
 
 ---
-_(Prior handoff — OpCenter OLED marketing rollout, 2026-05-29 — is in git history at the previous revision of this file.)_
+_(Prior handoff — 2026-06-22 Neon outage — is in git history at the previous revision of this file.)_
