@@ -182,6 +182,8 @@ Build currently produces **97/97 static pages** with only a pre-existing `global
 
 **MANDATORY — read on startup**: at the start of every session, before responding to the first user message, read `.claude/session-state.md`. If the `🕒 Last updated` timestamp is within ~48 hours, treat it as authoritative context and summarize "where we left off" in your first response.
 
+**HARD RULE — timestamp, not just date.** John runs many sessions per day on this repo — a bare date (`2026-07-09`) doesn't tell you which of several same-day updates is newest. `🕒 Last updated` (here and in `docs/HANDOFF-NEXT-SESSION.md`'s `🕒 Updated:` line and any `terminal-logs/*.md` entry) must include a time component, not just a date — e.g. `2026-07-09 14:32` or, if exact clock time isn't available, at least a rough qualifier like `2026-07-09 (afternoon, 2nd session)`. Never write just `2026-07-09` with no time indicator on these files.
+
 **MANDATORY — update at checkpoints**:
 1. After every PR merge — bump the merge log, shift "what's next"
 2. At the end of every completed task
