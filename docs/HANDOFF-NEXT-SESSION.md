@@ -1,25 +1,19 @@
 # HANDOFF — next session (start here)
 
-🕒 Updated: 2026-06-03 — Deal stages: tier filter + hs_pipeline_stage + Onboarding/Closed Lost + triggers (wrap)
-🌿 main @ `76fb870` (LIVE at fintella.partners; prod deploy verified success + browser-verified)
+🕒 Updated: 2026-07-09 — Committing orphaned 2026-06-22 outage-recovery docs (fixed live, never committed until now); stale forward-looking priority list removed as noise (see git history for prior content).
+🌿 main @ `07b60b42` (#1149 "feat(recover): standalone 2025-first estimate form at /recover/estimate"; LIVE at fintella.partners)
+
+## ⚠️ 2026-06-22 outage (RESOLVED — read if it recurs)
+- Whole portal went down: admin login "not authorized" + zero partners/deals + crons 500 = `PrismaClientInitializationError` everywhere = **DB unreachable, NOT data loss**.
+- Cause: **Neon `trln-db` Free-plan compute quota exhausted.** Fix: upgraded Neon off Free (managed in **Vercel → Storage → trln-db → Installation**) + redeployed prod.
+- The Vercel "Overdue" bill was a RED HERRING (paid it anyway). Full playbook: `docs/knowledge/neon-vercel-db-outage-playbook.md`. Log: `terminal-logs/2026-06-22-neon-compute-quota-outage-recovery.md`.
+- **NOT done (John said "good for now"):** Vercel auto-pay + backup card; Sentry alert on `PrismaClientInitializationError` (DSN already set); keep Neon paid.
 
 ## Step 0 — on restart
 1. `git pull` your clone of `~/tariff-partner-portal`.
 2. Read this file + `terminal-logs/2026-06-03-deal-stages-onboarding-closedlost.md` + `docs/knowledge/deal-stage-mapping-and-triggers.md`.
 3. No migration / db-push required (additive enum/string + workflow registry; no schema change).
 4. **NEVER `npm run build`** on this repo — it runs `prisma db push` against the LIVE prod DB. Use `./node_modules/.bin/next build` (compile-only, safe) or `next dev`. **Confirm before EVERY merge to main** (per-merge gate — hard rule even in beast mode). Never `git add -A`.
-
-## ▶️ Pick up here (priority order)
-0. **(Just-unblocked) Build an onboarding workflow** now that `deal.onboarding` exists: Admin → Automations → + New Automation → trigger **Deal Onboarding** → e.g. client welcome email / notify team / POST to OpCenter. Tokens: `{deal.dealName}`, `{deal.legalEntityName}`, `{deal.clientEmail}`, `{deal.dealUrl}`, etc.
-
-### Carried over (2026-05-31, still open)
-1. **Flip "Require 2FA for Partners"** (Admin → Settings → Security) + do a **real enrollment** to browser-verify end-to-end (NOT yet browser-verified — needs John's authed enrollment):
-   - regenerate backup codes → Copy/Download work,
-   - "X of 10 left" counter + ≤2 warning render,
-   - **recovery email**: from login (partner) after a failed attempt, "Lost your authenticator?" → confirm the email lands (Resend) → `/mfa-recovery` removes 2FA → forced re-enroll.
-2. **Next 14→16 migration (DEFERRED, dedicated session only):** the remaining **14** Dependabot alerts (5 high / 7 med / 2 low) are ALL `next` (14.2.35, patched only in 15.x). Dependabot PR **#1111** (bump next → 16.2.6) is OPEN — do NOT merge without a planned migration session (CLAUDE.md hard rule). 
-3. **Cleanup (need John's OK):** delete untracked Kwong HTML, prune ~201 stale local `claude/*` branches, bulk-delete merged remotes (see below).
-4. **Other open PRs:** ~18 automated regulatory / CAPE / competitive-intel / docs bot PRs are open (e.g. #1112 Q3 IRS rate 7%, #1104/#1080 S122 CIT). Triage/merge in a docs-review pass — not blocking.
 
 ## Flagged — need John's explicit OK (NOT auto-done)
 - Delete untracked `Kwong Client intake form/client-intake-dashboard.html` — superseded by tracked `src/app/(partner)/dashboard/submit-client/kwong/page.tsx` + `src/app/api/kwong-intake/route.ts` + `src/app/intake/kwong/page.tsx`. **Unrecoverable** (never committed) — confirm before `rm`.
