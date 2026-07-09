@@ -1,7 +1,7 @@
 # HANDOFF — next session (start here)
 
-🕒 Updated: 2026-07-09 04:17 EDT — Admin Deals column customization shipped; two new repo hard rules added; 197 local + 142 remote stale `claude/*` branches pruned (cross-referenced against actual merged PR records, zero data loss); Kwong untracked HTML deleted.
-🌿 main @ `96bdc895` (#1168 "feat(admin): deals column customization + drag reorder + CSV export"; LIVE at fintella.partners)
+🕒 Updated: 2026-07-09 04:52 EDT — All 4 PRs from this session landed on main (#1166, #1167, #1168, #1169). Nothing outstanding — clean state to resume from.
+🌿 main @ `480ab708` (#1169 "docs: session wrap — deals columns + branch cleanup handoff"; LIVE at fintella.partners)
 
 ## ⚠️ 2026-06-22 outage (RESOLVED — read if it recurs)
 - Whole portal went down: admin login "not authorized" + zero partners/deals + crons 500 = `PrismaClientInitializationError` everywhere = **DB unreachable, NOT data loss**.
@@ -21,10 +21,13 @@
 2. Same column-customization hooks (`useColumnPrefs`, `useResizableColumnsByKey` in `src/components/ui/ResizableTable.tsx`) are reusable — Partners and Payouts admin tables are natural next candidates if John wants the same treatment there.
 3. 82 remote branches remain (59 with open PRs, 23 with no PR record at all) — left untouched pending individual review; not urgent.
 
-## What merged this session (2026-07-09, evening/late-night)
+## What merged this session (2026-07-09, evening/late-night) — ALL LANDED ✅
 - #1166 docs: committed orphaned 2026-06-22 Neon outage-recovery docs + refreshed stale handoff
 - #1167 docs: two new hard rules (PR# at front of squash-merge titles; timestamp session docs)
 - #1168 feat(admin): Deals column customization + drag reorder + server-gated CSV export (`src/lib/dealColumns.ts`, `dealColumnsUi.tsx`, `ColumnCustomizeModal.tsx`, `CsvExportModal.tsx`, extended `/api/admin/deals/export`, two new hooks in `ResizableTable.tsx`)
+- #1169 docs: session-wrap handoff + knowledge doc + terminal log for the above
+
+No open PRs from this session remain — `main` is fully caught up, working tree clean.
 
 ## Reference
 - New pattern: `docs/knowledge/admin-column-customization-pattern.md`
