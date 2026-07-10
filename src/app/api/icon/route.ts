@@ -3,8 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/icon?size=192
- * Serves the portal logo as a proper image file for PWA manifest icons.
- * Falls back to an SVG icon if no logo is uploaded.
+ * Serves the compact brand mark (the "F") as a proper image file for PWA
+ * manifest icons. Uses the square favicon mark — NOT the full horizontal
+ * logo-with-text (`logoUrl`), which reads poorly as a cropped app icon.
+ * Falls back to a gold "F" SVG when no favicon is uploaded.
  */
 export async function GET(req: NextRequest) {
   const size = req.nextUrl.searchParams.get("size") || "192";
@@ -12,11 +14,12 @@ export async function GET(req: NextRequest) {
   try {
     const settings = await prisma.portalSettings.findUnique({
       where: { id: "global" },
-      select: { logoUrl: true, faviconUrl: true, firmShort: true },
+      select: { faviconUrl: true, firmShort: true },
     });
 
-    // Try logo first, then favicon
-    const dataUrl = settings?.logoUrl || settings?.faviconUrl;
+    // Use the compact favicon mark (the "F") for the installed-app icon.
+    // The full `logoUrl` (logo with text) is intentionally NOT used here.
+    const dataUrl = settings?.faviconUrl;
 
     if (dataUrl && dataUrl.startsWith("data:")) {
       const match = dataUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
