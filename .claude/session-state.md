@@ -1,16 +1,20 @@
 # Session State
 
 ## ▶️ RESUME HERE — NEXT STEPS
-1. Nothing blocking — #1172 is merged and confirmed working live. Optional: decide whether to re-enroll 2FA on `admin@fintella.partners` (John disabled it himself 2026-07-10 to test the embed after losing his codes; found them shortly after but has not re-enabled).
-2. If Google sign-in inside the OpCenter embed becomes a real need, build the popup-window OAuth workaround (see `docs/knowledge/opcenter-iframe-embed-auth.md`) — deferred by John since email/password already covers the embed use case.
-3. 82 remote branches remain from prior sessions (59 with open PRs, 23 with no PR record) — still untouched pending individual review; not urgent. 10 open DRAFT PRs are daily `claude/tie-*` regulatory/competitive-intel automation reports (#1157–#1165, #1171) — routine, not action items.
+1. Nothing blocking — #1174 (PWA app-icon = F mark) merged + shipped; Vercel auto-deploying prod. Already-installed PWAs may keep the old icon until the OS icon cache refreshes (or reinstall the PWA) — the served bytes are correct as of merge.
+2. Optional: decide whether to re-enroll 2FA on `admin@fintella.partners` (John disabled it himself 2026-07-10 to test the embed after losing his codes; found them shortly after but has not re-enabled).
+3. If Google sign-in inside the OpCenter embed becomes a real need, build the popup-window OAuth workaround (see `docs/knowledge/opcenter-iframe-embed-auth.md`) — deferred by John since email/password already covers the embed use case.
+4. 82 remote branches remain from prior sessions (59 with open PRs, 23 with no PR record) — still untouched pending individual review; not urgent. 10 open DRAFT PRs are daily `claude/tie-*` regulatory/competitive-intel automation reports (#1157–#1165, #1171) — routine, not action items.
 
-🕒 Last updated: 2026-07-10 (evening) — OpCenter iframe-embed login fix shipped + verified live
+🕒 Last updated: 2026-07-10 (evening, later) — PWA app-icon reverted to the F brand mark (#1174) shipped
 
 ## 🌿 Git state
-- **Branch**: `main` @ `353d343d` (#1172 "fix(auth): allow login to persist when embedded cross-site in OpCenter's iframe" — LIVE at fintella.partners)
+- **Branch**: `main` @ `d46f8758` (#1174 "fix(pwa): use the F brand mark for the installed-app icon, not the full text logo" — auto-deploying to fintella.partners)
 - **Working tree**: clean
-- Pruned 7 stale merged local branches this session (no worktrees referenced them)
+- Pruned 7 stale merged local branches in the prior session (no worktrees referenced them)
+
+## ✅ What's done (this session, 2026-07-10 evening — later)
+- **#1174** — PWA installed-app icon reverted to the compact **F** brand mark. `/api/icon` (used by the manifest icons + `apple-touch-icon`) was preferring `logoUrl` (the full horizontal logo WITH text), which looks wrong cropped square on a home screen. Now it uses `faviconUrl` (the square F mark), falling back to the gold **F** SVG; `logoUrl` is no longer used for the app icon. Browser-tab favicon (`/api/favicon`) was already the F and is unchanged. One file: `src/app/api/icon/route.ts`. `./node_modules/.bin/next build` clean.
 
 ## ✅ What's done (this session, 2026-07-10 evening)
 - **#1172** — OpCenter (`opcenter.app`) embeds this portal's `/login` in a cross-site iframe. Login was reloading the login page instead of authenticating.
