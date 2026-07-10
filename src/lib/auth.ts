@@ -22,8 +22,37 @@ import { verifyTotpCode } from "./totp";
  *   https://fintella.partners/api/auth/callback/google
  */
 
+// OpCenter (opcenter.app) embeds this portal's /login in a cross-site
+// iframe. The default SameSite=Lax session/csrf/callback cookies never reach
+// the browser on requests made from inside that iframe (SameSite is
+// evaluated against the top-level site, i.e. opcenter.app, not the immediate
+// frame) — login appeared to just reload the login page because the POST
+// succeeded but the follow-up request had no session cookie attached.
+// SameSite=None (+ Secure, required, and Partitioned/CHIPS so the cookie
+// isn't treated as third-party tracking) fixes cross-site delivery. Only
+// applied when secure cookies are in play (prod/preview HTTPS) — local
+// `next dev` over http can't set Secure cookies at all, so leave dev on the
+// unmodified Lax defaults.
+const useSecureCookies = process.env.NODE_ENV === "production";
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
+  ...(useSecureCookies && {
+    cookies: {
+      sessionToken: {
+        name: "__Secure-authjs.session-token",
+        options: { httpOnly: true, sameSite: "none", path: "/", secure: true, partitioned: true },
+      },
+      callbackUrl: {
+        name: "__Secure-authjs.callback-url",
+        options: { sameSite: "none", path: "/", secure: true, partitioned: true },
+      },
+      csrfToken: {
+        name: "__Host-authjs.csrf-token",
+        options: { httpOnly: true, sameSite: "none", path: "/", secure: true, partitioned: true },
+      },
+    },
+  }),
   providers: [
     Google,
     Credentials({
