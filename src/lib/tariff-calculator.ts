@@ -205,8 +205,14 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE refund processing.
+ * 09: reconciliation entry itself (flagged Type 01/02/06 entries accepted since Phase 2, Jun 29 2026)
+ * 21/22: warehouse entry / re-warehousing — excluded eff. Jul 7, 2026 per CSMS 69127837;
+ *        IEEPA duties are not paid at warehousing, only at withdrawal (Types 31/32/34/38)
+ * 47: drawback — duties already recovered; CAPE rejects as "ENTRY ON DRAWBACK"
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -296,7 +302,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} not eligible for CAPE refund`,
       filingMethod: "none",
     };
   }
