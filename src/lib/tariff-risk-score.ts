@@ -15,7 +15,7 @@ import { TARIFF_BUYOUT_LOW_BPS, TARIFF_BUYOUT_HIGH_BPS } from "./tariff-engageme
 export interface RiskInput {
   /** Eligibility status from checkEligibility (e.g. "eligible" | "excluded_*" ). */
   eligibilityStatus: string;
-  /** How the claim would be filed — cape_phase1 is cleanest, litigation riskiest. */
+  /** How the claim would be filed — cape_phase1/cape_phase2 are cleanest, litigation riskiest. */
   filingMethod?: FilingMethod;
   isAdCvd?: boolean;       // antidumping/countervailing complications
   isDrawback?: boolean;    // CAPE rejects drawback entries
@@ -99,6 +99,7 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 
 const FILING_RISK: Record<FilingMethod, number> = {
   cape_phase1: 0,
+  cape_phase2: 5,  // reconciliation-flagged — automated but requires correct filing sequence
   protest: 15,
   litigation: 35,
   none: 60,
