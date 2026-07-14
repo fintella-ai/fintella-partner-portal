@@ -190,6 +190,28 @@ test("entry type 23 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "23" }).status, "excluded_type");
 });
 
+test("flagged for reconciliation with Type 09 filed → excluded_recon_filed (CAPE Phase 2)", () => {
+  const result = checkEligibility({
+    entryDate: new Date("2025-06-15"),
+    entryType: "01",
+    isFlaggedForReconciliation: true,
+    hasFiledReconciliationEntry: true,
+  });
+  assert.equal(result.status, "excluded_recon_filed");
+  assert.equal(result.filingMethod, "none");
+});
+
+test("flagged for reconciliation WITHOUT Type 09 filed → eligible (CAPE Phase 2)", () => {
+  const result = checkEligibility({
+    entryDate: new Date("2025-06-15"),
+    entryType: "01",
+    isFlaggedForReconciliation: true,
+    hasFiledReconciliationEntry: false,
+  });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase1");
+});
+
 test("unliquidated AD/CVD → excluded_adcvd", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isAdCvd: true }).status, "excluded_adcvd");
 });

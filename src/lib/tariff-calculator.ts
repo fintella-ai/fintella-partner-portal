@@ -76,6 +76,10 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  // CAPE Phase 2 (eff. June 29, 2026 — CSMS #69035485): entries of type 01/02/06 flagged for
+  // reconciliation are accepted IF the reconciliation entry (type 09) has not yet been filed.
+  isFlaggedForReconciliation?: boolean; // ACE reconciliation flag set on this entry
+  hasFiledReconciliationEntry?: boolean; // Type 09 reconciliation entry already on file
 }
 
 export interface EntryForCape {
@@ -296,7 +300,19 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE`,
+      filingMethod: "none",
+    };
+  }
+
+  // 4a. Reconciliation flag check (CAPE Phase 2, eff. June 29, 2026 — CSMS #69035485)
+  // Entries of type 01/02/06 flagged for reconciliation are eligible for CAPE Phase 2
+  // only if the Type 09 reconciliation entry has NOT yet been filed.
+  // If the Type 09 is already on file, CBP requires a future CAPE phase.
+  if (entry.isFlaggedForReconciliation && entry.hasFiledReconciliationEntry) {
+    return {
+      status: "excluded_recon_filed",
+      reason: "Reconciliation entry (Type 09) already on file — not eligible for current CAPE phases; awaiting future CAPE phase (CSMS #69035485)",
       filingMethod: "none",
     };
   }
@@ -512,7 +528,7 @@ export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
   ) {
     return "not_applicable";
   }
-  // excluded_type / excluded_adcvd / excluded_expired → needs counsel / litigation
+  // excluded_type / excluded_adcvd / excluded_expired / excluded_recon_filed → needs counsel
   return "legal_required";
 }
 
