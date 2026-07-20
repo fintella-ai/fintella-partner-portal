@@ -332,7 +332,21 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL CHALLENGES: CIT (Oregon v. United States / Burlap and Barrel v. United States, May 7, 2026) struck down the tariff 3-0; Federal Circuit stayed the CIT injunction June 11, 2026 (found gov't likely to succeed on merits), so CBP continues collecting. Expires by statute July 24, 2026 regardless of appeal outcome. REPLACEMENT: USTR proposed 10%/12.5% forced labor Section 301 tariffs on 60 countries June 2, 2026 (public hearing July 7); final action expected ~July 24. SEPARATELY: Brazil subject to 25% Section 301 starting July 22, 2026 (see BR-S301-01).",
+      "supersededBy": "S301-FORCED-LABOR-PENDING"
+    },
+    {
+      "id": "BR-S301-01",
+      "executiveOrder": "USTR Section 301 Final Action (Jul 15, 2026)",
+      "name": "Section 301 - Brazil (25%)",
+      "rateType": "section301",
+      "countryCode": "BR",
+      "countryName": "Brazil",
+      "rate": 0.25,
+      "effectiveDate": "2026-07-22",
+      "endDate": null,
+      "htsChapter99": "9903.05.01",
+      "notes": "USTR took final action under Section 301 of the Trade Act of 1974 imposing 25% ad valorem duty on most imports from Brazil, citing Brazil's unreasonable acts, policies, and practices. Notice of Action published in Federal Register ~Jul 15, 2026 (FRN 7-15-2026). Effective 12:01 AM ET July 22, 2026. Filed under HTSUS 9903.05.01. In-transit exemption: shipments loaded onto vessel before 12:01 AM ET Jul 22 and entered before 12:01 AM ET Jul 29 file under 9903.05.02 at 0%. Key exemptions include: antiques/collectibles/art; certain pharmaceuticals and pharmaceutical ingredients; certain seafood; certain wood products; iron and steel waste and scrap; organic honey; pig iron; high-purity dissolving pulp; unflavored instant coffee; used clothing; aluminum hydroxide; ash containing precious metals; animal hides/furskins/leather. This is a FORWARD Section 301 tariff, NOT an IEEPA refund-eligible period. SEPARATE from the broader 60-country forced labor Section 301 action (proposed June 2, 2026; not yet finalized as of Jul 20, 2026).",
       "supersededBy": null
     },
     {

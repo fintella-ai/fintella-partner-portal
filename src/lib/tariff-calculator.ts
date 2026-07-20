@@ -205,7 +205,12 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE (all phases, including Phase 2 launched June 29, 2026).
+ * Phase 2 added coverage for reconciliation-flagged entries (types 01, 02, 06 with pending Type 09),
+ * but the four types below remain excluded across all phases:
+ *   08 = Duty Deferral, 09 = Reconciliation entry itself, 23 = TIB, 47 = Drawback (deferred to future phase).
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -296,7 +301,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (all phases)`,
       filingMethod: "none",
     };
   }
@@ -337,7 +342,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
       status: "eligible",
       reason:
         filingMethod === "cape_phase1"
-          ? "Liquidated within 80 days — eligible via CAPE Phase 1"
+          ? "Liquidated within 80 days — eligible via CAPE (Phase 1/2 automated)"
           : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
       deadlineDays: daysRemaining,
       isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
