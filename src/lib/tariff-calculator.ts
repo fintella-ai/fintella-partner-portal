@@ -205,8 +205,16 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE.
+ * 08: Informal entry (express courier)
+ * 09: Reconciliation entry (excluded from Phase 1; covered by Phase 3 for CIT litigants only)
+ * 21/22: Warehouse entries — excluded per CBP CSMS #69127837 (eff. July 7, 2026).
+ *         Warehouse WITHDRAWALS (types 31/32/34/38) remain eligible.
+ * 23: TIB (Temporary Import under Bond)
+ * 47: Drawback — CAPE rejects ("ENTRY ON DRAWBACK")
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -294,9 +302,13 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
 
   // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    const warehouseEntryTypes = new Set(["21", "22"]);
+    const reason = warehouseEntryTypes.has(entry.entryType)
+      ? `Entry type ${entry.entryType} (warehouse entry) excluded from CAPE — IEEPA duty collected at withdrawal, not at warehouse entry. File CAPE on the associated withdrawal entry (type 31/32/34/38) instead.`
+      : `Entry type ${entry.entryType} excluded from CAPE Phase 1`;
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason,
       filingMethod: "none",
     };
   }
