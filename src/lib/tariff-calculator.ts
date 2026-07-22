@@ -30,12 +30,16 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
- *  - none:        not eligible for any refund path
+ *  - cape_phase1:  unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - protest:      liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - cape_phase3:  liquidated > 180 days ago (finally liquidated) → requires a prior CIT lawsuit filing;
+ *                  CBP confirmed CAPE Phase 3 launching end of July 2026 per June 9 CIT hearing.
+ *                  Per CIT July 17, 2026 order in Euro-Notions Florida v. United States, CBP directed
+ *                  to reliquidate finally liquidated entries for plaintiffs. Government appeal pending at
+ *                  Federal Circuit. Importers must file a CIT case first — legal counsel required.
+ *  - none:         not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "protest" | "cape_phase3" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -318,14 +322,25 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → CAPE Phase 3 (requires prior CIT lawsuit)
+    // CBP confirmed Phase 3 launches end of July 2026 for finally liquidated entries.
+    // Per CIT July 17, 2026 order (Euro-Notions Florida v. United States), CBP is directed
+    // to reliquidate entries for companies that have filed CIT cases. Government appeal pending.
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago) — CAPE Phase 3 requires filing a CIT lawsuit first; " +
+          "CBP confirmed Phase 3 launching end of July 2026 for finally liquidated entries (CIT order July 17, 2026). " +
+          "Federal Circuit appeal pending — legal counsel required.",
         deadlineDays: daysRemaining,
         deadlineDate,
-        filingMethod: "litigation",
+        filingMethod: "cape_phase3",
+        needsReview: true,
+        reviewNote:
+          "Finally liquidated entry: CAPE Phase 3 in progress (CBP confirmed end-of-July 2026 launch). " +
+          "Requires a filed CIT case for CBP to process refund. Government is appealing Federal Circuit — " +
+          "consult trade counsel before filing.",
       };
     }
 
