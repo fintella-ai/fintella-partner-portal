@@ -205,8 +205,12 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE Phase 1.
+ * Types 21/22 (warehouse entries) excluded per CBP CSMS #69127837, eff. July 7, 2026.
+ * IEEPA duties were paid at withdrawal (Types 31/32/34/38), not at warehouse entry.
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
