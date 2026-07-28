@@ -318,14 +318,16 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → litigation only (CAPE Phase 3 may apply for CIT plaintiffs)
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason: "Protest window expired (liquidated > 180 days ago) — standard path is CIT litigation; however, CAPE Phase 3 (launched late July 2026) may provide a refund path without litigation for importers who filed a protective action at the Court of International Trade",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
+        needsReview: true,
+        reviewNote: "CAPE Phase 3 covers finally liquidated entries (liquidated > 80 days) for CIT plaintiffs. CIT Senior Judge Eaton ordered CBP on July 17, 2026 to reliquidate these entries for ~3,700 IEEPA cases. The government's position: Phase 3 refunds process only for importers who filed a protective action at the CIT; Federal Circuit appeal is pending. If your client has filed or can file at the CIT, consult trade counsel about Phase 3 eligibility before assuming litigation is the only path.",
       };
     }
 
