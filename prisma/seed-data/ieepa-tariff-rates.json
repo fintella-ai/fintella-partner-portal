@@ -1,15 +1,20 @@
 {
   "_metadata": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "generatedDate": "2026-04-29",
-    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
-    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
+    "lastUpdated": "2026-07-30",
+    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026, Section 122 replacement (expired Jul 24, 2026), and Section 301 forced labor tariff replacement.",
+    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132), Trade Act of 1974 Section 301 (19 U.S.C. 2411)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
       "Federal Register notices",
       "CBP CSMS guidance messages",
+      "CBP CSMS #69066837 (Jun 24, 2026) — CAPE Phase 2 warehouse entry exclusion",
+      "CBP Customs Bulletin Vol. 60 No. 19 (Jul 15, 2026) — Q3 2026 interest rates",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "CIT Senior Judge Eaton order Jul 17, 2026 (Freestyle World Inc. v. United States, Case No. 25-595)",
+      "USTR Section 301 forced labor action (Jul 24, 2026)"
     ]
   },
   "rates": [
@@ -332,8 +337,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. EXPIRED 12:01 AM EDT July 24, 2026 — statutory 150-day maximum reached; extension requires Act of Congress, President cannot extend unilaterally. Max statutory rate is 15% (Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued). Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). REPLACED BY: Section 301 forced labor tariffs (10%–12.5%) on 60 economies, effective same minute, HTS 9903.05.20–9903.05.84. Section 301 tariffs are NOT IEEPA tariffs and are NOT refundable via CAPE.",
+      "supersededBy": "S301-FORCED-LABOR-2026"
     },
     {
       "id": "DZ-RECIP-ORIG",
@@ -4878,6 +4883,19 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "CBP Customs Bulletin Vol. 60 No. 19 (Jul 15, 2026); IRS Rev. Rul. 2026-Q3; federal short-term rate 4% for Apr 2026 +3pp = 7% non-corporate overpayment rate"
       }
     ]
   },
@@ -4917,12 +4935,12 @@
         {
           "code": "21",
           "name": "Warehouse Entry",
-          "notes": "Warehouse entries where IEEPA Chapter 99 codes were declared"
+          "notes": "EXCLUDED from CAPE effective July 7, 2026 (per CBP CSMS Jun 24, 2026). Were accepted in Phase 1 for entries filed before July 7, 2026."
         },
         {
           "code": "22",
           "name": "Warehouse Withdrawal",
-          "notes": "Warehouse withdrawals for consumption"
+          "notes": "EXCLUDED from CAPE effective July 7, 2026 (per CBP CSMS Jun 24, 2026). Were accepted in Phase 1 for entries filed before July 7, 2026."
         }
       ],
       "excluded": [
@@ -4980,6 +4998,64 @@
         "If on drawback, may need to withdraw drawback claim first"
       ]
     }
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 — Reconciliation-Flagged Entries",
+    "launchDate": "2026-06-29",
+    "legalBasis": "CIT order; CBP CSMS #69066837 (Jun 24, 2026)",
+    "scope": "Entry types 01, 02, and 06 that are flagged for reconciliation but for which the reconciliation entry (type 09) has NOT yet been filed. Phase 2 allows these entries to proceed through CAPE even with a pending reconciliation flag.",
+    "eligibilityCriteria": {
+      "liquidationStatus": [
+        "Unliquidated entries",
+        "Entries liquidated within 80 days of CAPE Phase 2 filing date"
+      ],
+      "additionalRequirements": [
+        "Base entry must be type 01, 02, or 06",
+        "Reconciliation entry (type 09) must NOT have been filed yet",
+        "Entry must have declared IEEPA Chapter 99 HTS codes"
+      ]
+    },
+    "warehouseExclusion": {
+      "effectiveDate": "2026-07-07",
+      "entryTypes": ["21", "22"],
+      "description": "Warehouse entries (types 21 and 22) are NO LONGER accepted on a CAPE declaration as of July 7, 2026. These entry types were eligible in Phase 1 but excluded by CBP update (CSMS Jun 24, 2026)."
+    }
+  },
+  "capePhase3": {
+    "description": "CAPE Phase 3 — Finally Liquidated Entries",
+    "expectedLaunch": "Late July 2026",
+    "legalBasis": "CIT Senior Judge Eaton order Jul 17, 2026 (Euro-Notions / Freestyle World Inc. v. United States, Case No. 25-595); CBP progress report due Aug 4, 2026",
+    "scope": "Finally liquidated entries (liquidated more than 80 days ago, outside the normal CAPE Phase 1 window) on which IEEPA deposits were made. Phase 3 covers entries where the statutory protest window (19 U.S.C. §1514) has expired.",
+    "restriction": "ONLY available to importers who filed at the Court of International Trade (CIT plaintiffs). Importers who did not file at the CIT cannot access Phase 3 — they must pursue Federal Circuit appeal or await further court action.",
+    "leadCase": "Freestyle World Inc. v. United States (Case No. 25-595) — designated after Euro-Notions Florida, Inc. voluntarily dismissed its case",
+    "governmentAppeal": {
+      "status": "Active — Government appealed CIT universal refund orders to the U.S. Court of Appeals for the Federal Circuit",
+      "argument": "Government argues CIT refund orders constitute impermissible universal injunctions extending relief to importers who did not file at CIT",
+      "impact": "CAPE Phase 3 proceeds under the CIT order regardless; Federal Circuit ruling may affect scope of relief for non-CIT-filers"
+    },
+    "calculatorNote": "The tariff calculator's 'excluded_expired' status (liquidated > 180 days) now notes Phase 3 availability for CIT plaintiffs, but the filingMethod remains 'litigation' because Phase 3 access requires prior CIT filing which is not a standard calculator input."
+  },
+  "section301Replacement": {
+    "description": "Section 301 forced labor tariffs that replaced Section 122 effective July 24, 2026",
+    "authority": "Section 301 of the Trade Act of 1974 (19 U.S.C. 2411)",
+    "effectiveDate": "2026-07-24",
+    "htsHeadings": "9903.05.20 through 9903.05.84 plus U.S. Note 52 to Subchapter III of Chapter 99",
+    "rates": {
+      "standard": "10% ad valorem on most of the 60 covered economies",
+      "elevated": "12.5% ad valorem on 46 countries with more severe forced labor findings",
+      "special": "EU, Japan, Korea, Switzerland, and Taiwan have threshold or combined-rate treatment"
+    },
+    "coveredEconomies": 60,
+    "exemptions": [
+      "USMCA-origin goods from Canada and Mexico",
+      "Civil aircraft",
+      "Pharmaceuticals",
+      "Certain automobiles",
+      "Wood products",
+      "Semiconductors",
+      "Specified HTS lines per U.S. Note 52"
+    ],
+    "calculatorRelevance": "NOT relevant to IEEPA refund calculations. Section 301 tariffs are a separate authority, are NOT IEEPA duties, and are NOT refundable via CAPE. This data is for historical reference only."
   },
   "calculatorLogic": {
     "description": "Rules for computing IEEPA tariff refund amounts",

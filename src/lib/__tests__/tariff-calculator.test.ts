@@ -190,6 +190,14 @@ test("entry type 23 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "23" }).status, "excluded_type");
 });
 
+test("entry type 21 (warehouse) → excluded_type (excl. from CAPE eff. Jul 7 2026)", () => {
+  assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "21" }).status, "excluded_type");
+});
+
+test("entry type 22 (warehouse withdrawal) → excluded_type (excl. from CAPE eff. Jul 7 2026)", () => {
+  assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "22" }).status, "excluded_type");
+});
+
 test("unliquidated AD/CVD → excluded_adcvd", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isAdCvd: true }).status, "excluded_adcvd");
 });

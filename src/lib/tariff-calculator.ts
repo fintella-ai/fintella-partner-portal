@@ -205,8 +205,12 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE.
+ * Types 21 and 22 (warehouse entries) were accepted in Phase 1 but excluded from CAPE
+ * declarations effective July 7, 2026 per CBP CSMS update (June 24, 2026).
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -318,11 +322,14 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → litigation only (or CAPE Phase 3 for CIT plaintiffs)
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago) — CIT litigation only. " +
+          "Note: CAPE Phase 3 (launched late July 2026) may cover finally-liquidated entries " +
+          "for importers who filed at the Court of International Trade (Euro-Notions / Freestyle World docket).",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
