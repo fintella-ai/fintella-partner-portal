@@ -32,10 +32,16 @@ export interface RateLookupResult {
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - litigation:  liquidated > 180 days ago → protest window closed; CIT litigation or CAPE Phase 3 if importer has a CIT case
+ *  - cape_phase3: finally liquidated (> 180 days) AND importer has a pending CIT case → CBP will reliquidate per Jul 17, 2026 CIT order
  *  - none:        not eligible for any refund path
+ *
+ * CAPE Phases launched:
+ *  - Phase 1 (Apr 20, 2026): unliquidated + entries liquidated within 80 days — entry types 01/03/06/11/21/22
+ *  - Phase 2 (Jun 29, 2026): parent entries (01/02/06) flagged for reconciliation where type-09 not yet filed
+ *  - Phase 3 (Jul 17, 2026 CIT order): finally liquidated entries for CIT plaintiffs only; ~3,700 cases; government appealing at Federal Circuit
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -205,7 +211,12 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from all CAPE phases.
+ *  08 = USMCA Duty Deferral, 09 = Reconciliation Summary (type-09 entries themselves
+ *  are excluded; Phase 2 [Jun 29, 2026] covers the parent entries 01/02/06 that have
+ *  a pending type-09, not the type-09 entries themselves), 23 = TIB, 47 = Drawback.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -216,10 +227,11 @@ const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 const PROTEST_WINDOW_DAYS = 180;
 
 /**
- * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
- * entries liquidated within the last 80 days. Entries liquidated 80–180 days
- * ago are still recoverable, but require a formal protest rather than the
- * automated CAPE channel.
+ * CAPE Phase-1 (and Phase-2) automated window: CBP processes unliquidated entries
+ * and entries liquidated within the last 80 days. Entries liquidated 80–180 days
+ * ago still require a formal protest (not CAPE). Entries finally liquidated > 180 days
+ * ago may qualify for CAPE Phase-3 reliquidation if the importer has a CIT case
+ * (Jul 17, 2026 order); otherwise CIT litigation is the only path.
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
@@ -318,14 +330,18 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → CIT litigation, or CAPE Phase 3 for CIT plaintiffs
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago). If a CIT case is pending, CAPE Phase 3 may allow automated reliquidation (CIT order Jul 17, 2026, ~3,700 cases; government appealing at Federal Circuit). Otherwise CIT litigation is the only path.",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
+        needsReview: true,
+        reviewNote:
+          "CAPE Phase 3 (Jul 17, 2026 CIT order): if importer has a pending CIT case, CBP may reliquidate this entry without IEEPA duties — check with counsel. Without a CIT case, formal litigation (19 U.S.C. §1581) is required.",
       };
     }
 

@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Expired 12:01 AM EDT Jul 24, 2026 at 150-day statutory limit. Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). No extension legislation was passed.",
+      "supersededBy": "S301-FL-01"
     },
     {
       "id": "DZ-RECIP-ORIG",
@@ -4072,6 +4072,34 @@
       "htsChapter99": "9903.01.25",
       "notes": "Terminated by SCOTUS.",
       "supersededBy": "TERMINATED-SCOTUS"
+    },
+    {
+      "id": "S301-FL-01",
+      "executiveOrder": "USTR Section 301 Final Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor - Tier 1 (10%) — 40 Economies",
+      "rateType": "section301",
+      "countryCode": "FL-TIER1",
+      "countryName": "Economies with forced-labor import prohibition or commitment",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "USTR took final action Jul 23, 2026 under Section 301 of the Trade Act of 1974 (19 U.S.C. 2411). Effective 12:01 AM EDT Jul 24, 2026 — same moment Section 122 expired. 10% ad valorem on all products of Chapters 1-97 from 40 economies that impose (or have committed to impose) a prohibition on imports produced with forced labor, including the EU (net of MFN, capped 10% total), UK, Taiwan, Japan, South Korea, Switzerland, Argentina, Malaysia, Cambodia, Guatemala, El Salvador, Bangladesh, Indonesia, Ecuador, Jordan, and others. CSMS #69326983 issued Jul 23, 2026. HTS heading 9903.05.20 is the general Tier-1 heading; country-specific product exemptions fall under 9903.05.96–9903.06.21. No statutory expiration. Already in litigation at CIT. Exemptions: USMCA goods (CA/MX), CAFTA-DR textiles, Section 232 goods, Chapter 98 (except 9802 value-added), donations to relieve human suffering, informational materials. NOTE: These are NEW forward-looking tariffs; they do NOT create IEEPA refund eligibility — only IEEPA duties paid Feb 4, 2025–Feb 23, 2026 are refundable.",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-02",
+      "executiveOrder": "USTR Section 301 Final Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor - Tier 2 (12.5%) — 20 Economies",
+      "rateType": "section301",
+      "countryCode": "FL-TIER2",
+      "countryName": "Economies without forced-labor import prohibition",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.21",
+      "notes": "12.5% ad valorem on all products of Chapters 1-97 from 20 economies that have not adopted a forced labor import prohibition and have not committed to do so — including China, Vietnam, India, Thailand, Pakistan, and others. CSMS #69326983 issued Jul 23, 2026. HTS heading 9903.05.21 is the general Tier-2 heading; country-specific product exemptions fall under 9903.05.96–9903.06.21. No statutory expiration. Already in litigation at CIT. Same exemptions as Tier 1 apply (USMCA, CAFTA-DR, Section 232, etc.). NOTE: These are NEW forward-looking tariffs; they do NOT create IEEPA refund eligibility. Brazil is subject to a SEPARATE Section 301 action (Jul 19, 2026) at 25% under a distinct investigation; do not confuse with these forced-labor rates.",
+      "supersededBy": null
     }
   ],
   "liberationDayAnnexI": {
@@ -4878,14 +4906,28 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily"
       }
     ]
   },
   "capePhase1": {
-    "description": "Consolidated Administration and Processing of Entries (CAPE) Phase 1 - IEEPA Duty Refund Program",
+    "description": "Consolidated Administration and Processing of Entries (CAPE) - IEEPA Duty Refund Program. Phase 1 launched Apr 20, 2026. Phase 2 launched Jun 29, 2026 (adds reconciliation-flagged parent entries). Phase 3 in effect Jul 17, 2026 via CIT order (finally liquidated entries for CIT plaintiffs only). Government appealing Phase 3 scope at Federal Circuit.",
     "launchDate": "2026-04-20",
+    "phase2LaunchDate": "2026-06-29",
+    "phase3CITOrderDate": "2026-07-17",
     "systemName": "CAPE (within ACE)",
-    "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT order Mar 4, 2026",
+    "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT order Mar 4, 2026; CSMS #68340863 (Phase 1); CSMS #69035485 (Phase 2); CIT order Jul 17, 2026 (Phase 3)",
     "refundScope": "IEEPA duties ONLY. Section 232, Section 301, and other duties on same entry are NOT refundable.",
     "refundPeriod": {
       "startDate": "2025-02-04",
