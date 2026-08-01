@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired 12:01 AM ET Jul 24, 2026 — the statutory 150-day ceiling. Replaced immediately at expiration by Section 301 forced labor tariffs (USTR final action Jul 23, 2026): 10% for 17 economies with forced labor prohibitions, 12.5% for 43 economies without. See S301-10PCT and S301-125PCT entries.",
+      "supersededBy": "S301-125PCT"
     },
     {
       "id": "DZ-RECIP-ORIG",
@@ -4072,6 +4072,32 @@
       "htsChapter99": "9903.01.25",
       "notes": "Terminated by SCOTUS.",
       "supersededBy": "TERMINATED-SCOTUS"
+    },
+    {
+      "id": "S301-10PCT",
+      "executiveOrder": "USTR Section 301 Final Action (USTR-2026-0265/0266; FR 2026-15181)",
+      "name": "Section 301 Forced Labor Tariff - Economies With Prohibitions (10%)",
+      "rateType": "section301",
+      "countryCode": "S301-FL-10PCT",
+      "countryName": "17 Economies With Forced Labor Import Prohibitions",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.xx",
+      "notes": "Section 301 forced labor tariffs finalized July 23, 2026; effective 12:01 AM ET July 24, 2026 (exact moment Section 122 expired). Applies 10% additional duty to all goods of 17 economies that USTR found have a forced labor import prohibition in place (or committed to one via Accountable Relationships and Trade). Confirmed 10% economies include: Argentina, Bangladesh, Cambodia, Canada, Ecuador, European Union, Indonesia, Mexico, Pakistan (and 8 others per FR 2026-15181). Chapter 99 headings 9903.05.xx cover 10% economies; 9903.06.xx cover 12.5% economies; 101 new headings total; U.S. Note 52 governs. CBP entry filing guidance: CSMS #69326983. No statutory expiration (unlike Section 122). Exclusion annexes: USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, energy (15 exemption categories, Parts A–O). NOT eligible for CAPE refund — Section 301 is a current forward-going tariff, not an IEEPA tariff. Source: Federal Register 2026-15181 (Jul 28, 2026); USTR press release Jul 23, 2026."
+    },
+    {
+      "id": "S301-125PCT",
+      "executiveOrder": "USTR Section 301 Final Action (USTR-2026-0265/0266; FR 2026-15181)",
+      "name": "Section 301 Forced Labor Tariff - Economies Without Prohibitions (12.5%)",
+      "rateType": "section301",
+      "countryCode": "S301-FL-125PCT",
+      "countryName": "43 Economies Without Forced Labor Import Prohibitions",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.06.xx",
+      "notes": "Section 301 forced labor tariffs; 12.5% additional duty on all goods of 43 economies that USTR found have NO forced labor import prohibition in place. Includes China, India, United Kingdom, Vietnam, and approximately 40 other major trading partners. Same effective date and legal authority as S301-10PCT. Chapter 99 headings 9903.06.xx; CBP CSMS #69326983. No expiration. NOT eligible for CAPE refund. Source: Federal Register 2026-15181 (Jul 28, 2026)."
     }
   ],
   "liberationDayAnnexI": {
@@ -4791,7 +4817,7 @@
       "9903.01.63": "China-specific reciprocal tariff (variable rate)"
     },
     "section122Codes": {
-      "9903.03.01": "Section 122 global surcharge (10%)",
+      "9903.03.01": "Section 122 global surcharge (10%) — EXPIRED Jul 24, 2026",
       "9903.03.02": "Section 122 exemption - USMCA goods",
       "9903.03.03": "Section 122 exemption - Section 232 goods",
       "9903.03.04": "Section 122 exemption - critical minerals",
@@ -4802,6 +4828,11 @@
       "9903.03.09": "Section 122 exemption - country-specific trade deal goods",
       "9903.03.10": "Section 122 exemption - agriculture products",
       "9903.03.11": "Section 122 exemption - other specified exclusions"
+    },
+    "section301ForcedLaborCodes": {
+      "description": "Section 301 forced labor tariff codes effective July 24, 2026 (USTR FR 2026-15181). 101 new Chapter 99 headings under U.S. Note 52. 9903.05.xx = 10% tier (economies with prohibitions); 9903.06.xx = 12.5% tier (economies without prohibitions). CBP CSMS #69326983 provides complete code list and filing instructions.",
+      "9903.05.xx": "Section 301 forced labor tariff — 10% tier (17 economies with forced labor import prohibitions; see FR 2026-15181 Annex I)",
+      "9903.06.xx": "Section 301 forced labor tariff — 12.5% tier (43 economies without forced labor import prohibitions; see FR 2026-15181 Annex II)"
     }
   },
   "irsInterestRates": {
@@ -4878,6 +4909,19 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "IRS IRB 2026-22; FR 2026-13298 (public inspection). Rate rose from 6% (Q2) to 7% because the federal short-term rate for April 2026 was 4%, restoring the pre-Q2 level."
       }
     ]
   },
@@ -5039,5 +5083,28 @@
         "example": "Vietnam entry on Sep 1, 2025: 46% reciprocal (9903.01.25) only"
       }
     }
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 — launched June 29, 2026. Covers entries flagged for reconciliation where the reconciliation (Type 09) entry has not yet been filed.",
+    "launchDate": "2026-06-29",
+    "systemName": "CAPE Phase 2 (within ACE)",
+    "legalBasis": "CIT order Mar 4, 2026; CBP CSMS #69066837",
+    "eligibleEntryTypes": {
+      "included": ["01", "02", "06"],
+      "condition": "Entry must be flagged for reconciliation AND the corresponding Type 09 reconciliation entry must NOT yet be filed",
+      "excluded": "Entries flagged for reconciliation where a Type 09 reconciliation entry is already on file will be covered in a future phase"
+    },
+    "liquidationWindow": "Same 80-day CAPE automated window applies; entries liquidated 80–180 days ago use formal protest",
+    "notes": "Phase 2 expands CAPE beyond Phase 1's standard unliquidated/recently-liquidated entries to cover the reconciliation-flagged universe. As of July 3, 2026, approximately 4.36 million entries submitted under Phase 2 failed (many due to CBP system issues); CBP issued corrective CSMS guidance."
+  },
+  "capePhase3": {
+    "description": "CAPE Phase 3 — for finally liquidated entries (liquidated >80 days with no pending reliquidation). Targeted launch: end of July 2026 per CBP testimony at Jun 9, 2026 CIT hearing.",
+    "targetLaunchDate": "2026-07-31",
+    "systemName": "CAPE Phase 3 (within ACE)",
+    "legalBasis": "CIT order (Judge Eaton) Jul 15, 2026; Euro-Notions Florida, Inc. v. United States (No. 25-00595); ~3,700 pending CIT cases",
+    "criticalLimitation": "ONLY importers who have filed individual lawsuits at the U.S. Court of International Trade are currently confirmed to receive Phase 3 refunds. The federal government (via DOJ) is contesting the legal basis for refunds on finally liquidated entries for non-litigants and has appealed the CIT refund order to the Federal Circuit.",
+    "nonLitigationPath": "Not currently available as of August 1, 2026. Importers who have NOT filed CIT suits should consult counsel — Phase 3 access for non-litigants remains unresolved pending the Federal Circuit appeal.",
+    "cbpProgressReport": "CBP required to file progress report with CIT by 5:00 PM EDT August 4, 2026. Closed conference August 5, 2026.",
+    "calculatorImplication": "The calculator's 'litigation' filing method for finally liquidated entries remains correct for the general population. Importers with active CIT cases may qualify for Phase 3 — they should alert their customs broker or attorney."
   }
 }

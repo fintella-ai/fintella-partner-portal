@@ -25,7 +25,7 @@ export interface RateLookupResult {
   combinedRate: number;
   rates: RateRecord[];
   rateName: string;
-  breakdown: { fentanyl?: number; reciprocal?: number; section122?: number };
+  breakdown: { fentanyl?: number; reciprocal?: number; section122?: number; section301?: number };
 }
 
 /**
@@ -118,7 +118,7 @@ function daysBetween(a: Date, b: Date): number {
  * fentanyl + reciprocal rates, returns combined rate with breakdown.
  */
 export function lookupCombinedRate(rates: RateRecord[]): RateLookupResult {
-  const breakdown: { fentanyl?: number; reciprocal?: number; section122?: number } = {};
+  const breakdown: { fentanyl?: number; reciprocal?: number; section122?: number; section301?: number } = {};
   let combinedRate = 0;
   const names: string[] = [];
 
@@ -132,6 +132,8 @@ export function lookupCombinedRate(rates: RateRecord[]): RateLookupResult {
       breakdown.reciprocal = (breakdown.reciprocal ?? 0) + val;
     } else if (type === "section122") {
       breakdown.section122 = (breakdown.section122 ?? 0) + val;
+    } else if (type === "section301") {
+      breakdown.section301 = (breakdown.section301 ?? 0) + val;
     }
 
     combinedRate += val;
