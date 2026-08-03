@@ -332,7 +332,49 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Expired by operation of law at 12:01 AM ET Jul 24, 2026 (150-day statutory maximum reached). Rate remained at 10% throughout — Trump's Feb 22 social-media statement about raising to 15% never resulted in a formal proclamation. Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). Superseded at expiration by Section 301 forced labor tariffs (S301-FL-01), effective same date.",
+      "supersededBy": "S301-FL-01"
+    },
+    {
+      "id": "S301-FL-01",
+      "executiveOrder": "USTR Section 301 Determination (Jun 2, 2026) / Final Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Global Surcharge (10%)",
+      "rateType": "section301_fl",
+      "countryCode": "ALL-FL-10",
+      "countryName": "60 Designated Economies (10% tier)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "USTR Section 301 forced labor investigation determination. 10% additional duty on imports from 60 designated trading partners that failed to adequately prevent or prohibit importation of goods produced with forced labor. 10% rate applies to: Argentina, Bangladesh, Cambodia, Canada, Ecuador, El Salvador, Guatemala, Honduras, India, Indonesia, Jordan, Malaysia, Mexico, Pakistan, Sri Lanka, UK, Trinidad and Tobago, plus EU and Taiwan on goods where standard duty rate is <10%. Effective 12:01 AM EDT Jul 24, 2026 — timed to coincide with Section 122 expiration. NO statutory expiration (unlike Section 122's 150-day cap). Implemented via HTS Chapter 99 headings 9903.05.20–9903.05.84. Exclusions via 9903.05.85–9903.05.99 and 9903.06.01–9903.06.21 (USMCA/CAFTA-DR qualifying goods, civil aircraft, pharmaceuticals). Sources: USTR press release Jul 23, 2026; 91 Fed. Reg. [forthcoming].",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-02",
+      "executiveOrder": "USTR Section 301 Determination (Jun 2, 2026) / Final Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Surcharge (12.5%) - Japan/Korea/Switzerland",
+      "rateType": "section301_fl",
+      "countryCode": "JP-KR-CH-FL",
+      "countryName": "Japan, Korea, Switzerland (12.5% tier)",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "Higher 12.5% rate applies to Japan, South Korea, and Switzerland on goods where the standard MFN duty rate is less than 10%. Same legal basis and HTS implementation as S301-FL-01. These countries' standard rates were deemed insufficient, requiring higher combined burden. Effective 12:01 AM EDT Jul 24, 2026. No statutory expiration.",
+      "supersededBy": null
+    },
+    {
+      "id": "S338-CA-01",
+      "executiveOrder": "Proclamations (Jul 20, 2026) under Section 338 Tariff Act of 1930",
+      "name": "Section 338 Canada Tariff - Dairy/Alcohol/Wood/Consumer Products (50%)",
+      "rateType": "section338",
+      "countryCode": "CA",
+      "countryName": "Canada",
+      "rate": 0.5,
+      "effectiveDate": "2026-08-19",
+      "endDate": null,
+      "htsChapter99": "9903.03.12",
+      "notes": "Three Presidential Proclamations signed Jul 20, 2026 under Section 338 of the Tariff Act of 1930 impose 50% ad valorem duty on certain Canadian goods covering approximately $20 billion in imports. Product categories: (1) dairy and certain food products (9903.03.12), (2) alcoholic beverages (9903.03.13), (3) wood, paper, and consumer products (9903.03.14). Effective 12:01 AM ET Aug 19, 2026. USMCA compliance DOES NOT exempt — Section 338 overrides USMCA for listed products. Excluded: energy products, potash, fish, critical minerals, goods already subject to Section 232 tariffs (steel, aluminum, copper, autos). NOT retroactive — does not affect IEEPA refund eligibility. Source: White House Jul 20, 2026; Wiley Law alert Jul 21, 2026.",
       "supersededBy": null
     },
     {
@@ -4878,6 +4920,19 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "notes": "IRS Revenue Ruling 2026-XX (Internal Revenue Bulletin 2026-22). Federal short-term rate rose from 3% to 4% in April 2026, pushing overpayment rate back up to 7% for Q3. Source: IRS Internal Revenue Bulletin 2026-22; Tax Notes reporting Jun 2026."
       }
     ]
   },
@@ -4910,6 +4965,11 @@
           "notes": "Foreign Trade Zone consumption entries"
         },
         {
+          "code": "09",
+          "name": "Reconciliation Summary (base entries only)",
+          "notes": "CAPE accepts base entries (types 01, 02, 06) flagged for reconciliation where the reconciliation entry (type 09) has NOT yet been filed. Effective Jun 29, 2026 per CSMS #69066837. The reconciliation entry itself remains excluded."
+        },
+        {
           "code": "11",
           "name": "Informal",
           "notes": "Informal entries below formal entry threshold"
@@ -4917,34 +4977,29 @@
         {
           "code": "21",
           "name": "Warehouse Entry",
-          "notes": "Warehouse entries where IEEPA Chapter 99 codes were declared"
+          "notes": "Warehouse entries where IEEPA Chapter 99 codes were declared. See CSMS #69127837 for updated warehouse/withdrawal handling."
         },
         {
           "code": "22",
           "name": "Warehouse Withdrawal",
-          "notes": "Warehouse withdrawals for consumption"
+          "notes": "Warehouse withdrawals for consumption. See CSMS #69127837."
         }
       ],
       "excluded": [
         {
           "code": "08",
           "name": "USMCA Duty Deferral",
-          "notes": "Not accepted in Phase 1"
-        },
-        {
-          "code": "09",
-          "name": "Reconciliation Summary",
-          "notes": "Flagged for reconciliation - excluded"
+          "notes": "Not accepted in Phase 1 or Phase 3"
         },
         {
           "code": "23",
           "name": "Temporary Importation Under Bond",
-          "notes": "TIB entries excluded from Phase 1"
+          "notes": "TIB entries excluded from CAPE"
         },
         {
           "code": "47",
           "name": "Drawback",
-          "notes": "Entries on drawback claim excluded"
+          "notes": "Entries on drawback claim excluded — duties already recovered via drawback"
         }
       ]
     },
@@ -4979,6 +5034,24 @@
         "If reconciliation-flagged, file reconciliation entry to trigger liquidation",
         "If on drawback, may need to withdraw drawback claim first"
       ]
+    }
+  },
+  "capePhase3": {
+    "description": "CAPE Phase 3 - Finally Liquidated Entries. Extends IEEPA refund coverage to entries liquidated more than 80 days before CAPE submission (formerly classified as protest-only or litigation-only).",
+    "statusDate": "2026-08-03",
+    "legalBasis": [
+      "CIT Senior Judge Eaton order Jul 15, 2026 — directed CBP to reliquidate finally liquidated entries in ~3,700 IEEPA cases",
+      "CIT Senior Judge Eaton order Jul 17, 2026 — explicit direction to CBP to reliquidate 'any and all of Plaintiffs' entries that have been liquidated for more than 80 days and on which Plaintiffs made estimated deposits pursuant to IEEPA'",
+      "CBP CAPE progress report due Aug 4, 2026"
+    ],
+    "deploymentStatus": "Programming complete late July 2026; deployment in progress as of Aug 3, 2026",
+    "coverageNote": "Phase 3 applies specifically to Plaintiffs in the approximately 3,700 IEEPA cases currently assigned to Judge Eaton's docket. Importers who have NOT filed a CIT case may need to file suit or seek to join existing consolidated cases to benefit from court-ordered reliquidation. DOJ continues to contest CBP authority to reliquidate finally liquidated entries without individual lawsuit.",
+    "entryEligibility": "All entry types eligible for Phase 1 are also eligible for Phase 3, plus entries liquidated more than 80 days ago that were previously excluded from Phase 1 automated processing. Type 47 (drawback) remains excluded.",
+    "processingTimeline": {
+      "description": "CBP reports progress every 30 days to CIT. As of Jul 2026 status update: 8,338,081 entries reliquidated, ~$35.46 billion in refunds and interest processed."
+    },
+    "reconciledEntryUpdate": {
+      "description": "As of Jun 29, 2026 (CSMS #69066837), CAPE accepts base entries (types 01, 02, 06) flagged for reconciliation where the type-09 reconciliation has not yet been filed. Type 09 entries themselves (the reconciliation summaries) remain excluded from direct CAPE submission."
     }
   },
   "calculatorLogic": {

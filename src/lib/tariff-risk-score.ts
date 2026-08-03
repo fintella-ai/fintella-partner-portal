@@ -100,6 +100,7 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 const FILING_RISK: Record<FilingMethod, number> = {
   cape_phase1: 0,
   protest: 15,
+  cape_phase3: 25,  // CIT-ordered reliquidation; elevated vs protest due to Federal Circuit appeal risk
   litigation: 35,
   none: 60,
 };
