@@ -30,12 +30,13 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase1: unliquidated OR liquidated within the 80-day window → automated CAPE refund (Phase 1, launched Apr 20, 2026)
+ *  - cape_phase2: reconciliation-flagged Type 01/02/06 entries (no Type 09 filed) → CAPE Phase 2 (launched Jun 29, 2026)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -73,9 +74,10 @@ export interface EntryForEligibility {
   isAdCvd?: boolean;
   countryOfOrigin?: string; // ISO 2-letter — needed for the USMCA exemption check
   isUsmca?: boolean;        // goods claimed USMCA-preferential (CA/MX exemption from IEEPA fentanyl tariffs)
-  isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
-  hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
-  hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isDrawback?: boolean;           // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
+  reconciliationFlagged?: boolean; // Type 01/02/06 flagged for reconciliation with no Type 09 filed — eligible via CAPE Phase 2 (Jun 29, 2026)
+  hasSection232?: boolean;        // entry contains Section 232 goods (exempt from IEEPA per Annex II)
+  hasSection301?: boolean;        // entry contains Section 301 duties (not refundable; only IEEPA portion is)
 }
 
 export interface EntryForCape {
@@ -205,8 +207,15 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE (covers Phase 1 + Phase 2 restrictions).
+ * Types 21 and 22 (warehouse entries) were excluded effective July 7, 2026.
+ * Type 09 (reconciliation entry itself) is still excluded — but reconciliation-FLAGGED
+ * Type 01/02/06 entries where no Type 09 has been filed are now eligible via Phase 2.
+ * Phase 3 (expected late-Jul 2026, unconfirmed as of Aug 3 2026) is expected to cover
+ * finally-liquidated entries and may eventually open Types 08, 23, and 47.
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -216,10 +225,12 @@ const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 const PROTEST_WINDOW_DAYS = 180;
 
 /**
- * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
- * entries liquidated within the last 80 days. Entries liquidated 80–180 days
- * ago are still recoverable, but require a formal protest rather than the
- * automated CAPE channel.
+ * CAPE Phase-1 scope: unliquidated entries and entries liquidated within the
+ * last 80 days. Entries liquidated 80–180 days ago are still recoverable via
+ * formal protest (19 U.S.C. §1514).
+ *
+ * Phase 2 (launched Jun 29, 2026) uses the same 80-day window but additionally
+ * accepts reconciliation-flagged Types 01/02/06 where no Type 09 has been filed.
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
@@ -329,16 +340,24 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
       };
     }
 
-    // Within 80 days of liquidation → CAPE Phase-1 automated; 80–180 days → formal protest
-    const filingMethod: FilingMethod =
-      daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase1" : "protest";
+    // Within 80 days of liquidation → CAPE automated (Phase 1 or Phase 2); 80–180 days → protest
+    const inCapeWindow = daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS;
+    let filingMethod: FilingMethod;
+    let reason: string;
+    if (!inCapeWindow) {
+      filingMethod = "protest";
+      reason = "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)";
+    } else if (entry.reconciliationFlagged) {
+      filingMethod = "cape_phase2";
+      reason = "Reconciliation-flagged entry liquidated within 80 days — eligible via CAPE Phase 2 (launched Jun 29, 2026)";
+    } else {
+      filingMethod = "cape_phase1";
+      reason = "Liquidated within 80 days — eligible via CAPE Phase 1";
+    }
 
     const base: EligibilityResult = {
       status: "eligible",
-      reason:
-        filingMethod === "cape_phase1"
-          ? "Liquidated within 80 days — eligible via CAPE Phase 1"
-          : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
+      reason,
       deadlineDays: daysRemaining,
       isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
       deadlineDate,
@@ -347,11 +366,13 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     return applySectionReviewFlag(base, entry);
   }
 
-  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE Phase 1, no deadline yet
+  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE (Phase 2 if reconciliation-flagged, else Phase 1)
   const base: EligibilityResult = {
     status: "eligible",
-    reason: "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
-    filingMethod: "cape_phase1",
+    reason: entry.reconciliationFlagged
+      ? "Unliquidated reconciliation-flagged entry — eligible via CAPE Phase 2 (launched Jun 29, 2026)"
+      : "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
+    filingMethod: entry.reconciliationFlagged ? "cape_phase2" : "cape_phase1",
   };
   return applySectionReviewFlag(base, entry);
 }
