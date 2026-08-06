@@ -304,7 +304,7 @@
       "effectiveDate": "2025-08-07",
       "endDate": "2026-02-23",
       "htsChapter99": "9903.01.25",
-      "notes": "Country-specific rates came into effect Aug 7, 2025 (delayed from Aug 1). Many rates were modified from original Annex I via tariff letters and bilateral deals. See country-specific entries below. Countries without deals or letters reverted to original Annex I rates. Rate=0 is a placeholder — actual rates are per-country entries below.",
+      "notes": "Country-specific rates came into effect Aug 7, 2025 (delayed from Aug 1). Many rates were modified from original Annex I via tariff letters and bilateral deals. See country-specific entries below. Countries without deals or letters reverted to original Annex I rates. Rate=0 is a placeholder \u2014 actual rates are per-country entries below.",
       "supersededBy": "TERMINATED-SCOTUS"
     },
     {
@@ -332,7 +332,21 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days. EXPIRED by statute at 12:01 AM EDT July 24, 2026 \u2014 150-day limit reached; Congress did not extend it. Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation was ever issued; rate stayed 10% throughout. Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). REPLACED by Section 301 Forced Labor tariffs (S301-FL-2026) effective the same minute.",
+      "supersededBy": "S301-FL-2026"
+    },
+    {
+      "id": "S301-FL-2026",
+      "executiveOrder": "USTR Announcement (Jul 23, 2026) \u2014 Section 301 Final Action",
+      "name": "Section 301 Forced Labor \u2014 Replacement for Section 122 (10%\u201312.5%)",
+      "rateType": "section301",
+      "countryCode": "ALL-60",
+      "countryName": "60 Named Economies",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "NOT IEEPA. NOT refundable via CAPE. Post-IEEPA context only. USTR Jamieson Greer announced final Section 301 action on July 23, 2026 targeting 60 economies that fail to prohibit or enforce bans on forced-labor goods. Two tiers: (1) 12.5% on 46 high-risk economies including China, Vietnam, Thailand and others (HTS 9903.05.xx); (2) 10% on remaining 14 economies. Effective 12:01 AM ET July 24, 2026 \u2014 same minute Section 122 expired. Covers virtually all HTSUS Chapter 1\u201397 goods. Key exemptions: USMCA-qualifying goods from Canada and Mexico, CAFTA-DR textiles, 471 additional excluded subheadings per public comment. In-transit exemption for goods loaded before July 24 and entered before July 28. HTS range: 9903.05.20\u20139903.05.84 (duties); 9903.05.85\u20139903.05.99 and 9903.06.01\u20139903.06.21 (exemptions). Rate shown (0.10) is the Tier-2 standard rate; Tier-1 is 0.125 for 46 named high-risk economies. Source: CSMS #69326983; USTR press release Jul 23, 2026.",
       "supersededBy": null
     },
     {
@@ -4958,7 +4972,6 @@
         "Entry must be filed in ACE with a liquidation status visible in ACE",
         "Entry must have declared IEEPA Chapter 99 HTS codes",
         "Entry must NOT be covered by an open or suspended protest",
-        "Entry must NOT be flagged for reconciliation",
         "Entry must NOT be on an active drawback claim"
       ]
     },
@@ -4979,7 +4992,8 @@
         "If reconciliation-flagged, file reconciliation entry to trigger liquidation",
         "If on drawback, may need to withdraw drawback claim first"
       ]
-    }
+    },
+    "phase2Note": "CAPE Phase 2 launched June 29, 2026: entry types 01/02/06 that are flagged for reconciliation are now eligible, provided the Type 09 reconciliation entry has NOT yet been filed. Type 47 (drawback) entries remain excluded pending a future phase."
   },
   "calculatorLogic": {
     "description": "Rules for computing IEEPA tariff refund amounts",
@@ -5039,5 +5053,24 @@
         "example": "Vietnam entry on Sep 1, 2025: 46% reciprocal (9903.01.25) only"
       }
     }
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 \u2014 Reconciliation-Flagged Entries",
+    "launchDate": "2026-06-29",
+    "legalBasis": "CBP CSMS guidance; same court order as Phase 1",
+    "expandedScope": "Entry types 01, 02, 06 that are flagged for reconciliation (where the Type 09 reconciliation entry has NOT been filed) are now accepted on a CAPE declaration. Consistent with Phase 1, these entries are limited to unliquidated entries and entries within 80 days of liquidation.",
+    "stillExcluded": [
+      {
+        "code": "09",
+        "name": "Reconciliation Summary",
+        "notes": "The Type 09 reconciliation entry itself cannot be filed on a CAPE declaration. If a Type 09 has already been filed for the underlying entry, that entry is also ineligible."
+      },
+      {
+        "code": "47",
+        "name": "Drawback",
+        "notes": "Drawback entries remain excluded from all CAPE phases. Expected in a future phase."
+      }
+    ],
+    "source": "CBP CSMS #68340863 UPDATE (June 29, 2026 deployment)"
   }
 }
