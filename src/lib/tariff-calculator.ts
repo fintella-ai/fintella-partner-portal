@@ -205,7 +205,23 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE.
+ *
+ * Phase 1 (Apr 20, 2026): excludes 08, 09, 23, 47.
+ * Phase 2 (Jun 29, 2026 — CSMS #69035485): Entry types 01, 02, and 06 that are
+ *   *flagged for reconciliation* are now eligible, provided the reconciliation
+ *   entry (type 09) has NOT yet been filed. Type 09 itself remains excluded.
+ *   IMPORTANT: file the CAPE declaration BEFORE filing the type 09 — once type
+ *   09 is filed the underlying entries become ineligible for CAPE this phase.
+ * Phase 3 (late Jul 2026, CIT reliquidation): finally-liquidated entries (>180
+ *   days) are being reliquidated via CIT court orders for importers with active
+ *   lawsuits; filing method "litigation" remains correct for the self-file path.
+ *
+ * This set governs the direct CAPE eligibility check for entry types 08/09/23/47.
+ * Reconciliation-flagged types 01/02/06 are NOT excluded here; Phase 2 made them
+ * eligible. The `isDrawback` field on EntryForEligibility covers the drawback path.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
