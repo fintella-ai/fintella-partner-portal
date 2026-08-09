@@ -76,6 +76,14 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  /**
+   * Entry types 01/02/06 that are flagged for reconciliation (i.e. a Type 09 reconciliation
+   * entry will be filed against them). CAPE Phase 2 (effective June 29, 2026) makes these
+   * eligible for automated refund, but ONLY if submitted through CAPE BEFORE the Type 09
+   * reconciliation entry is filed. Filing the Type 09 first permanently locks these entries
+   * out of the CAPE automated channel.
+   */
+  isFlaggedForReconciliation?: boolean;
 }
 
 export interface EntryForCape {
@@ -205,7 +213,15 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE (all phases).
+ *   08 — informal entry (below de-minimis threshold handling)
+ *   09 — reconciliation entry itself (the Type 09 filing is excluded, but the
+ *         underlying consumption entries flagged for reconciliation — Types 01/02/06 —
+ *         ARE eligible via CAPE Phase 2 effective June 29, 2026; see isFlaggedForReconciliation)
+ *   23 — temporary importation under bond
+ *   47 — drawback (duties already recovered; CAPE rejects with "ENTRY ON DRAWBACK")
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -294,11 +310,65 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
 
   // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    const typeNote =
+      entry.entryType === "09"
+        ? "Type 09 (reconciliation entry itself) is excluded from CAPE — but if you have underlying consumption entries (Type 01/02/06) flagged for reconciliation, those ARE eligible via CAPE Phase 2 (effective June 29, 2026) as long as the Type 09 has not yet been filed."
+        : entry.entryType === "47"
+          ? "Type 47 (drawback) is excluded — duties were already recovered via drawback; there is no additional IEEPA refund to claim."
+          : `Entry type ${entry.entryType} excluded from CAPE.`;
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: typeNote,
       filingMethod: "none",
     };
+  }
+
+  // 4b. CAPE Phase 2 — reconciliation-flagged entries (effective June 29, 2026)
+  // Entry types 01/02/06 flagged for reconciliation are now eligible for the
+  // automated CAPE channel, provided the Type 09 reconciliation entry has not
+  // yet been filed. Filing the Type 09 first permanently locks these entries out.
+  if (entry.isFlaggedForReconciliation) {
+    const liqBase = (() => {
+      if (!entry.liquidationDate) return null;
+      const now = new Date();
+      const deadlineDate = new Date(entry.liquidationDate);
+      deadlineDate.setDate(deadlineDate.getDate() + PROTEST_WINDOW_DAYS);
+      const daysRemaining = daysBetween(now, deadlineDate);
+      const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
+      return { deadlineDate, daysRemaining, daysSinceLiquidation };
+    })();
+
+    if (liqBase && liqBase.daysRemaining < 0) {
+      // Past the 180-day protest window — not eligible even via Phase 2
+      return {
+        status: "excluded_expired",
+        reason:
+          "Protest window expired (liquidated > 180 days ago) for this reconciliation-flagged entry. CAPE Phase 2 requires entries to be within the 80-day liquidation window. CIT litigation may be an option for active case filers (see CAPE Phase 3).",
+        deadlineDays: liqBase.daysRemaining,
+        deadlineDate: liqBase.deadlineDate,
+        filingMethod: "litigation",
+      };
+    }
+
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason:
+        liqBase && liqBase.daysSinceLiquidation > CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS
+          ? "Reconciliation-flagged entry liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514) or CAPE Phase 2 if filed before the Type 09."
+          : "Reconciliation-flagged entry — eligible via CAPE Phase 2 (effective June 29, 2026).",
+      needsReview: true,
+      reviewNote:
+        "⚠️ CAPE PHASE 2 FILING ORDER: Submit this entry through CAPE BEFORE filing the Type 09 reconciliation entry. Filing the Type 09 first permanently locks this entry out of the automated CAPE refund channel.",
+      filingMethod: liqBase && liqBase.daysSinceLiquidation > CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS
+        ? "protest"
+        : "cape_phase1",
+      ...(liqBase && {
+        deadlineDays: liqBase.daysRemaining,
+        isUrgent: liqBase.daysRemaining <= URGENT_THRESHOLD_DAYS,
+        deadlineDate: liqBase.deadlineDate,
+      }),
+    };
+    return applySectionReviewFlag(base, entry);
   }
 
   // 5. AD/CVD check (unliquidated AD/CVD entries are excluded from Phase 1)
@@ -318,11 +388,16 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → litigation; or CAPE Phase 3 for CIT case plaintiffs
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago). Standard path: CIT litigation. " +
+          "CAPE Phase 3 alternative (effective late July 2026): if you have an active CIT case, " +
+          "CBP has been court-ordered (CIT Senior Judge Eaton, July 17, 2026) to reliquidate " +
+          "finally-liquidated IEEPA entries without IEEPA duties for case plaintiffs. Consult " +
+          "your trade counsel to determine if your entries qualify for Phase 3 reliquidation.",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",

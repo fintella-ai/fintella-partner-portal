@@ -1,15 +1,19 @@
 {
   "_metadata": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "generatedDate": "2026-04-29",
-    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
-    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
+    "lastUpdated": "2026-08-09",
+    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026, Section 122 replacement (Feb 24 – Jul 23, 2026), and Section 301 forced labor tariff successor regime (Jul 24, 2026+). Section 301 entries are informational only — not refundable via CAPE.",
+    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132), Trade Act of 1974 Section 301 (19 U.S.C. 2411)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "Euro-Notions Florida v. United States (CIT, May 7, 2026) — Section 122 struck down, CAFC stay May 12 2026, moot July 24 2026",
+      "USTR Section 301 Final Action — Forced Labor Investigations, 60 Economies (Federal Register, July 23, 2026)",
+      "CBP CSMS #69326983 — Section 301 Forced Labor Import Duties guidance"
     ]
   },
   "rates": [
@@ -332,7 +336,35 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired Jul 24, 2026 (150-day statutory limit). Max statutory rate is 15%. As of Apr 2026, rate remained 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). CIT struck down Section 122 on May 7, 2026 (Euro-Notions Florida v. US) but CAFC issued administrative stay May 12, 2026; moot upon expiration July 24.",
+      "supersededBy": "S301-FL-TIER-A"
+    },
+    {
+      "id": "S301-FL-TIER-A",
+      "executiveOrder": "USTR Section 301 Final Action (Federal Register, July 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff — Tier A (10% additional)",
+      "rateType": "section301",
+      "countryCode": "S301-TIER-A",
+      "countryName": "Tier A: Argentina, Bangladesh, Cambodia, Canada, Ecuador, El Salvador, Guatemala, Honduras, India, Indonesia, Jordan, Malaysia, Mexico, Pakistan, Sri Lanka, Trinidad & Tobago, United Kingdom, and others",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "Section 301 forced labor tariff replacement for expired Section 122 (effective July 24, 2026 at 12:01 AM EDT). Legal authority: 19 USC 2411 (Trade Act of 1974, Section 301). Based on USTR investigations into 60 economies' failure to prohibit imports produced with forced labor. 10% additional duty on top of existing MFN rates for Tier A trading partners. USMCA-origin goods exempt. Extensive product exclusions in U.S. Note 52 to subchapter III of Chapter 99 (civil aircraft, pharmaceuticals, autos, wood, semiconductors, specified HTS lines). HTS codes 9903.05.20–9903.05.84 (country-specific within range). IN-TRANSIT exemption: goods loaded and in transit before July 24, entered before July 28, are exempt. NOT refundable via CAPE — this is an ongoing Section 301 duty regime, not an IEEPA tariff. EU/Japan/Korea/Switzerland/Taiwan have threshold treatment (combined MFN+Section301 brought to 10% rather than 10% added on top). Tier B (12.5%) entry: see S301-FL-TIER-B.",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-TIER-B",
+      "executiveOrder": "USTR Section 301 Final Action (Federal Register, July 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff — Tier B (12.5% additional)",
+      "rateType": "section301",
+      "countryCode": "S301-TIER-B",
+      "countryName": "Tier B: China, Vietnam, and approximately 40 other economies not in Tier A",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.84",
+      "notes": "Section 301 forced labor tariff Tier B (12.5% additional) for economies not receiving Tier A treatment. Effective July 24, 2026. Same legal authority and product exclusions as Tier A (S301-FL-TIER-A). China and Vietnam are prominent Tier B members. Same USMCA and product exemptions apply. NOT refundable via CAPE. Challenged by Liberty Justice Center in federal court as of July 2026 (separate litigation from the IEEPA/Section 122 cases).",
       "supersededBy": null
     },
     {
