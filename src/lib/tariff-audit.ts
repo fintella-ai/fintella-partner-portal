@@ -58,10 +58,12 @@ export interface AuditEntry {
 
 const MAX_ENTRIES = 9999;
 const ENTRY_NUMBER_PATTERN = /^[A-Z0-9]{3}-\d{7}-\d$/;
+/** Entry types excluded from all CAPE phases (Phase 1 + Phase 2): Duty Deferral (08),
+ *  Reconciliation (09), TIB (23), Drawback (47). Confirmed per CBP guidance June 29, 2026. */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 /** Statutory protest deadline from liquidation — 19 U.S.C. §1514. */
 const PROTEST_WINDOW_DAYS = 180;
-/** CAPE Phase-1 automated window: entries liquidated within this many days. */
+/** CAPE automated window: entries liquidated within this many days qualify for Phase 1 or Phase 2. */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 const URGENT_THRESHOLD_DAYS = 14;
 const USMCA_EXEMPTION_DATE = new Date("2025-03-07T00:00:00Z");

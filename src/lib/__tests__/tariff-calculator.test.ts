@@ -190,8 +190,19 @@ test("entry type 23 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "23" }).status, "excluded_type");
 });
 
-test("unliquidated AD/CVD → excluded_adcvd", () => {
-  assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isAdCvd: true }).status, "excluded_adcvd");
+test("unliquidated AD/CVD → eligible via CAPE Phase 2 (Phase 2 launched June 29, 2026)", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isAdCvd: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+  assert.equal(result.needsReview, true);
+});
+
+test("reconciliation-flagged entry (01/02/06, Type 09 not filed) → eligible via CAPE Phase 2 with sequencing warning", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isReconciliationFlagged: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+  assert.equal(result.needsReview, true);
+  assert.ok(result.reviewNote?.includes("SEQUENCING CRITICAL"));
 });
 
 test("liquidated AD/CVD within protest window → eligible", () => {
