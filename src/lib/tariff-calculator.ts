@@ -205,7 +205,19 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE Phase 1 AND Phase 2.
+ *
+ * Phase 2 (deployed Jun 29, 2026, CSMS #69066837) added support for entries
+ * FLAGGED for reconciliation (types 01/02/06 where the Type 09 summary has not
+ * yet been filed). The Type 09 (Reconciliation Summary) entry itself and the
+ * other three types below remain excluded in both phases.
+ *
+ * Phase 3 (CIT order Jul 17, 2026): CBP must reliquidate finally-liquidated entries
+ * (> 80 days) for PLAINTIFFS with pending CIT suits. This does not change the
+ * default filing-method classification for importers without active litigation —
+ * those entries remain "litigation" path.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -296,7 +308,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1 and Phase 2 — legal counsel required`,
       filingMethod: "none",
     };
   }
@@ -318,11 +330,14 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → litigation only.
+    // Note: CIT Jul 17, 2026 order (Euro-Notions/Freestyle World) directs CBP to reliquidate
+    // finally-liquidated entries for importers who have filed CIT suits. This path requires
+    // active litigation and is outside the standard self-file scope of this calculator.
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only. Note: importers with pending CIT suits may qualify for Phase 3 reliquidation per CIT Jul 17, 2026 order.",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
