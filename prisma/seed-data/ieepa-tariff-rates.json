@@ -1,15 +1,19 @@
 {
   "_metadata": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "generatedDate": "2026-04-29",
-    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
-    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
+    "lastUpdated": "2026-08-13",
+    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026, Section 122 replacement (Feb–Jul 2026), and Section 301 Forced Labor tariffs (Jul 24, 2026+). NOTE: Only IEEPA-period rates (Feb 2025 – Feb 23, 2026) are used for refund calculations. Section 122 and Section 301 entries are reference data showing the post-IEEPA tariff regime.",
+    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132), Trade Act of 1974 Section 301 (19 U.S.C. 2411)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "USTR Section 301 Forced Labor Investigation Final Action, Federal Register Jul 23, 2026",
+      "CBP CSMS #69326983 — Section 301 Forced Labor Import Duties guidance",
+      "CIT Order (Judge Eaton, Jul 17, 2026) — CAPE Phase 3 reliquidation of finally-liquidated entries"
     ]
   },
   "rates": [
@@ -332,8 +336,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). EXPIRED Jul 24, 2026 per 150-day statutory limit; replaced by Section 301 Forced Labor tariffs same day.",
+      "supersededBy": "S301-FL-BASELINE-10"
     },
     {
       "id": "DZ-RECIP-ORIG",
@@ -4072,6 +4076,34 @@
       "htsChapter99": "9903.01.25",
       "notes": "Terminated by SCOTUS.",
       "supersededBy": "TERMINATED-SCOTUS"
+    },
+    {
+      "id": "S301-FL-BASELINE-10",
+      "executiveOrder": "Presidential Action (Jul 23, 2026) — Section 301 Forced Labor Investigations",
+      "name": "Section 301 Forced Labor Tariff — 10% Additional (60 Economies)",
+      "rateType": "section301fl",
+      "countryCode": "MULTI-60",
+      "countryName": "60 Named Economies (see notes)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20-9903.05.84",
+      "notes": "Replaced Section 122 tariffs effective 12:01 AM ET July 24, 2026. Section 301 of Trade Act of 1974 (19 U.S.C. 2411). USTR concluded investigations (initiated Mar 12, 2026) that 60 economies failed to prohibit imports produced with forced labor. Most economies: 10% additional tariff stacked on top of normal MFN duties (9903.05.20–9903.05.84, country-specific codes). Exceptions: EU and Taiwan at 10% ALL-IN (including MFN); Japan, South Korea, Switzerland at 12.5% all-in — see S301-FL-125-ALLIN. Canada: 9903.05.29, 10% additional, USMCA-compliant goods exempt per 9903.05.93. Known 10%-additional economies include: Argentina, Bangladesh, Cambodia, Canada, Ecuador, El Salvador, Guatemala, Honduras, India, Indonesia, Jordan, Malaysia, Mexico, Pakistan, Sri Lanka, Trinidad & Tobago, United Kingdom and ~43 others. Full country list: USTR Federal Register Notice Jul 23, 2026 (FLIP 301 Investigation Final Action). Product exemptions: 9903.05.85 (in-transit goods entered before Jul 28, 2026); 9903.05.88 (civil aircraft, engines, parts); 9903.05.89 (pharmaceuticals); 9903.06.01–9903.06.21 (additional product-specific exclusions). No statutory expiration — unlike Section 122, this layer is open-ended. CAPE and IEEPA refund eligibility are UNAFFECTED — IEEPA refund period closed Feb 23, 2026. Source: https://ustr.gov/about/policy-offices/press-office/press-releases/2026/july/ustr-takes-action-forced-labor-section-301-investigations",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-125-ALLIN",
+      "executiveOrder": "Presidential Action (Jul 23, 2026) — Section 301 Forced Labor Investigations",
+      "name": "Section 301 Forced Labor Tariff — 12.5% All-In (Japan, South Korea, Switzerland)",
+      "rateType": "section301fl",
+      "countryCode": "JP-KR-CH",
+      "countryName": "Japan, South Korea, Switzerland",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.XX",
+      "notes": "Japan, South Korea, and Switzerland face a 12.5% ALL-IN rate (inclusive of MFN duties). Effective 12:01 AM ET July 24, 2026. The all-in structure means normal MFN duties are subsumed rather than stacked; the additional Section 301 layer may be less than 12.5% depending on the product's MFN rate. Part of same Section 301 forced labor investigation action as S301-FL-BASELINE-10. Source: USTR Federal Register Notice Jul 23, 2026.",
+      "supersededBy": null
     }
   ],
   "liberationDayAnnexI": {
@@ -4802,6 +4834,16 @@
       "9903.03.09": "Section 122 exemption - country-specific trade deal goods",
       "9903.03.10": "Section 122 exemption - agriculture products",
       "9903.03.11": "Section 122 exemption - other specified exclusions"
+    },
+    "section301ForcedLaborCodes": {
+      "description": "Section 301 Forced Labor tariffs (19 U.S.C. 2411) replacing Section 122 effective July 24, 2026. NOT refundable under IEEPA — new regime only.",
+      "9903.05.20-9903.05.84": "Country-specific headings (one per economy, 60 economies). Rate is 10% additional or 12.5% all-in depending on economy.",
+      "9903.05.29": "Canada — 10% additional; USMCA-compliant goods exempt per 9903.05.93",
+      "9903.05.85": "Exemption — goods loaded/in-transit before Jul 24 and entered for consumption before Jul 28, 2026",
+      "9903.05.88": "Exemption — civil aircraft, engines, parts, components, flight simulators",
+      "9903.05.89": "Exemption — articles for pharmaceutical applications",
+      "9903.05.93": "Exemption — Canada goods entered duty-free under USMCA",
+      "9903.06.01-9903.06.21": "Additional product-specific exclusions and exemptions"
     }
   },
   "irsInterestRates": {
@@ -4980,6 +5022,26 @@
         "If on drawback, may need to withdraw drawback claim first"
       ]
     }
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 — Reconciliation-Flagged Entries. Launched June 29, 2026.",
+    "launchDate": "2026-06-29",
+    "legalBasis": "CBP guidance effective Jun 29, 2026 (see CSMS update). CIT order expanding CAPE scope.",
+    "scope": "Accepts entry types 01, 02, and 06 that are FLAGGED FOR RECONCILIATION where the subsequent reconciliation entry (Type 09) has NOT yet been filed. Limited to unliquidated entries and entries within 80 days of liquidation.",
+    "keyDifferenceFromPhase1": "Phase 1 categorically excluded all Type 09 reconciliation entries. Phase 2 opens the door for the UNDERLYING entries that are flagged for reconciliation, but only before the Type 09 is filed. Once the Type 09 is filed, the entry is no longer eligible.",
+    "processingNote": "After CAPE accepts a reconciliation-flagged entry, the importer may file the Type 09 reconciliation entry. CAPE removes IEEPA duties from the flagged entry before the reconciliation calculation, keeping refund separate from reconciliation math.",
+    "codeNote": "The checkEligibility() function currently excludes entry type '09' from CAPE. Phase 2 does NOT change this — it is the underlying flagged entries (types 01, 02, 06) that become eligible, not the Type 09 summary itself. No code change to EXCLUDED_ENTRY_TYPES required for Phase 2 correctness."
+  },
+  "capePhase3": {
+    "description": "CAPE Phase 3 — Finally Liquidated Entries for Active CIT Litigants.",
+    "citOrderDate": "2026-07-17",
+    "progressReportDue": "2026-08-04",
+    "targetLaunch": "Late July / August 2026 (in progress as of 2026-08-13)",
+    "legalBasis": "CIT Senior Judge Richard Eaton order, Jul 17, 2026. Covers ~3,700 active IEEPA cases before the CIT. Directs CBP to reliquidate entries liquidated >80 days ago on which plaintiffs paid IEEPA duties.",
+    "scope": "Finally liquidated entries (liquidated >80 days ago) WHERE THE IMPORTER HAS AN ACTIVE CIT CASE. Not a general eligibility expansion — only applies to the ~3,700 plaintiff importers with pending CIT dockets.",
+    "refundMechanism": "CBP reliquidates the entries under court order, removing IEEPA duties. Separate from the automated ACE/CAPE system used in Phases 1 and 2.",
+    "codeNote": "No change needed to checkEligibility() — entries liquidated >180 days ago correctly route to filingMethod: 'litigation', and the court-ordered reliquidation process is separate from the CAPE automated channel. The 'litigation' path accurately describes Phase 3 eligibility.",
+    "source": "https://www.thompsonhinesmartrade.com/2026/07/cit-orders-cbp-to-process-ieepa-tariff-refunds-for-phase-3-finally-liquidated-entries/"
   },
   "calculatorLogic": {
     "description": "Rules for computing IEEPA tariff refund amounts",
