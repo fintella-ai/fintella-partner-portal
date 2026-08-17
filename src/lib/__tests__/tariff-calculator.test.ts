@@ -190,6 +190,52 @@ test("entry type 23 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "23" }).status, "excluded_type");
 });
 
+// Warehouse entry types removed from CAPE effective July 7, 2026 (CSMS #69127837)
+test("entry type 21 (warehouse entry) → excluded_type with withdrawal redirect message", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "21" });
+  assert.equal(result.status, "excluded_type");
+  assert.equal(result.filingMethod, "none");
+  assert.ok(result.reason.includes("withdrawal"), "reason should direct broker to withdrawal entries");
+});
+
+test("entry type 22 (re-warehouse entry) → excluded_type", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "22" });
+  assert.equal(result.status, "excluded_type");
+  assert.equal(result.filingMethod, "none");
+});
+
+// CAPE Phase 2 (June 29, 2026) — reconciliation-flagged entries
+test("Phase 2: type 01 flagged for reconciliation → eligible cape_phase2 with needsReview", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isFlaggedForReconciliation: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+  assert.equal(result.needsReview, true);
+});
+
+test("Phase 2: type 02 flagged for reconciliation → eligible cape_phase2", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "02", isFlaggedForReconciliation: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("Phase 2: type 06 flagged for reconciliation → eligible cape_phase2", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "06", isFlaggedForReconciliation: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("Phase 2: non-eligible type (47) with reconciliation flag → excluded_type", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "47", isFlaggedForReconciliation: true });
+  assert.equal(result.status, "excluded_type");
+  assert.equal(result.filingMethod, "none");
+});
+
+test("type 01 without reconciliation flag → normal cape_phase1 path (unaffected)", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isFlaggedForReconciliation: false });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase1");
+});
+
 test("unliquidated AD/CVD → excluded_adcvd", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isAdCvd: true }).status, "excluded_adcvd");
 });
