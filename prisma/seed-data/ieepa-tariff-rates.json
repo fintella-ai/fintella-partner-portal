@@ -1,7 +1,7 @@
 {
   "_metadata": {
     "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "generatedDate": "2026-08-17",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +9,10 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "USTR Section 301 Forced Labor Final Action (Jul 23, 2026)",
+      "CBP Trade Information Notice CAPE July 2026",
+      "CIT order Freestyle World v. United States (Jul 17, 2026) — Phase 3 finally-liquidated entries"
     ]
   },
   "rates": [
@@ -332,7 +335,36 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). NOTE: CIT 2-1 panel struck down Section 122 on May 7, 2026 (held preconditions not met); CAFC stayed the ruling May 12, 2026 — collections continued. Ruling became moot when Section 122 expired by its own 150-day term on July 24, 2026.",
+      "supersededBy": "S301-FORCED-LABOR-12_5"
+    },
+    {
+      "_comment": "=== Section 301 Forced Labor Tariffs (July 24, 2026 onward) ===",
+      "_note": "These Section 301 tariffs replaced Section 122. They are NOT IEEPA tariffs and NOT refundable under CAPE. Documented here for historical completeness and rate reference only. The seeder will skip these rows (rateType 'section301' is not in the IeepaRateType enum).",
+      "id": "S301-FORCED-LABOR-12_5",
+      "executiveOrder": "USTR Section 301 Final Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff - No-Compliance Tier (12.5%)",
+      "rateType": "section301",
+      "countryCode": "ALL-NO-COMPLIANCE",
+      "countryName": "46 Economies with No Forced-Labor Enforcement",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20-9903.05.84",
+      "notes": "Section 301 of Trade Act of 1974 (19 USC 2411). USTR final action July 23, 2026, effective July 24, 2026 (coinciding with Section 122 expiration). 12.5% applies to ~46 economies that have neither imposed a forced-labor import prohibition nor committed to one. Includes China, EU, Japan, South Korea, Vietnam, Brazil, and most other major trading partners NOT on the 10% tier. No statutory expiration. HTS codes 9903.05.20 through 9903.05.84 (country-specific headings). Exemptions: USMCA-compliant goods, CAFTA-DR textiles, Section 232 articles, civil aircraft, pharmaceuticals, goods in-transit before Jul 24. Liberty Justice Center has challenged this authority in court."
+    },
+    {
+      "id": "S301-FORCED-LABOR-10",
+      "executiveOrder": "USTR Section 301 Final Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff - Partial-Compliance Tier (10%)",
+      "rateType": "section301",
+      "countryCode": "ALL-PARTIAL-COMPLIANCE",
+      "countryName": "~14 Economies with Partial Forced-Labor Enforcement",
+      "rate": 0.10,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20-9903.05.84",
+      "notes": "10% applies to ~14 economies that already ban forced-labor imports, have committed to do so, or have a partial enforcement regime. Includes: Argentina, Bangladesh, Cambodia, Canada, Ecuador, El Salvador, Guatemala, Honduras, India, Indonesia, Jordan, Malaysia, Mexico, Pakistan, Sri Lanka, United Kingdom, Trinidad and Tobago. USMCA-compliant goods from Canada/Mexico are exempt (0%). No statutory expiration. See S301-FORCED-LABOR-12_5 for full exemptions list.",
       "supersededBy": null
     },
     {
@@ -4791,7 +4823,7 @@
       "9903.01.63": "China-specific reciprocal tariff (variable rate)"
     },
     "section122Codes": {
-      "9903.03.01": "Section 122 global surcharge (10%)",
+      "9903.03.01": "Section 122 global surcharge (10%) — EXPIRED July 24, 2026",
       "9903.03.02": "Section 122 exemption - USMCA goods",
       "9903.03.03": "Section 122 exemption - Section 232 goods",
       "9903.03.04": "Section 122 exemption - critical minerals",
@@ -4802,6 +4834,15 @@
       "9903.03.09": "Section 122 exemption - country-specific trade deal goods",
       "9903.03.10": "Section 122 exemption - agriculture products",
       "9903.03.11": "Section 122 exemption - other specified exclusions"
+    },
+    "section301ForcedLaborCodes": {
+      "_note": "Section 301 Forced Labor tariffs effective July 24, 2026. NOT IEEPA tariffs — NOT refundable under CAPE.",
+      "_range": "9903.05.20 through 9903.05.84 (country-specific headings)",
+      "rates": {
+        "10percent": "~14 economies with partial forced-labor enforcement compliance (Argentina, Bangladesh, Cambodia, Canada, Ecuador, El Salvador, Guatemala, Honduras, India, Indonesia, Jordan, Malaysia, Mexico, Pakistan, Sri Lanka, UK, Trinidad & Tobago)",
+        "12.5percent": "~46 economies with no forced-labor import prohibition (China, EU, Japan, South Korea, Vietnam, Brazil, and most others)"
+      },
+      "authority": "Section 301 of Trade Act of 1974 (19 USC 2411); USTR Final Action July 23, 2026"
     }
   },
   "irsInterestRates": {
@@ -4878,8 +4919,35 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "IRS Rev. Rul. 2026-XX (Q3 2026); Tax Notes — Interest Rates Increase for Third Quarter of 2026"
       }
     ]
+  },
+  "capeProgram": {
+    "_note": "CAPE Phase 1 launched April 20, 2026. Phase 2 launched June 29, 2026. Phase 3 CIT-ordered July 17, 2026.",
+    "phases": {
+      "phase1": { "launchDate": "2026-04-20", "scope": "Unliquidated entries + entries liquidated within 80 days; standard entry types 01/02/03/06/11/51/52; excludes 08/09/23/47" },
+      "phase2": { "launchDate": "2026-06-29", "scope": "Entries flagged for reconciliation (types 01/02/06) where Type 09 reconciliation entry has NOT been filed. Must be unliquidated or liquidated within 80 days. File CAPE BEFORE filing Type 09. ~$28.7B / 2.8M additional entries." },
+      "phase3": { "citOrderDate": "2026-07-17", "scope": "Finally-liquidated entries (past 180-day protest window) for importers who have individually filed CIT lawsuits. CBP to reliquidate per case-specific orders in ~3,700 cases. Non-litigants must file affirmative CIT actions. Government contesting legal basis.", "leadCase": "Freestyle World, Inc. v. United States (CIT No. 26-01088)" }
+    },
+    "overallStats": {
+      "asOf": "2026-07-31",
+      "capeDeclarationsSubmitted": 75000,
+      "entriesValidatedAndLiquidated": 17690000,
+      "totalCertifiedAndPotentialRefunds": "128.68B"
+    }
   },
   "capePhase1": {
     "description": "Consolidated Administration and Processing of Entries (CAPE) Phase 1 - IEEPA Duty Refund Program",
