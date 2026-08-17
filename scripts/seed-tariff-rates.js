@@ -18,11 +18,17 @@ const fs = require("fs");
 // The JSON file may contain rateType values that don't directly match
 // the Prisma IeepaRateType enum (fentanyl | reciprocal | section122).
 // Map known alternates here; unmapped values are skipped with a warning.
+//
+// "section301" is intentionally NOT mapped — Section 301 forced-labor tariffs
+// (eff. July 24, 2026) are documented in the JSON for reference but are NOT
+// IEEPA tariffs and should not be seeded into the IeepaRate table.
+// To add section301 as a first-class DB enum, a dedicated schema migration is required.
 const RATE_TYPE_MAP = {
   fentanyl: "fentanyl",
   reciprocal: "reciprocal",
   section122: "section122",
   trafficking: "fentanyl", // alternate name
+  // section301: intentionally omitted — see note above
 };
 
 // ── Fallback IRS interest rates ────────────────────────────────────────
@@ -34,6 +40,7 @@ const FALLBACK_INTEREST_RATES = [
   { quarter: "Q4 2025", startDate: "2025-10-01", endDate: "2025-12-31", nonCorporateRate: 0.07, corporateRate: 0.06 },
   { quarter: "Q1 2026", startDate: "2026-01-01", endDate: "2026-03-31", nonCorporateRate: 0.07, corporateRate: 0.06 },
   { quarter: "Q2 2026", startDate: "2026-04-01", endDate: "2026-06-30", nonCorporateRate: 0.06, corporateRate: 0.05 },
+  { quarter: "Q3 2026", startDate: "2026-07-01", endDate: "2026-09-30", nonCorporateRate: 0.07, corporateRate: 0.06 },
 ];
 
 async function seedTariffRates() {
