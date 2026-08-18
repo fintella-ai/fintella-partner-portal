@@ -2,6 +2,7 @@
   "_metadata": {
     "version": "1.0.0",
     "generatedDate": "2026-04-29",
+    "lastMonitoredDate": "2026-06-01",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +10,8 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "Section 122 CIT ruling (May 7, 2026) + CAFC administrative stay (May 12, 2026)"
     ]
   },
   "rates": [
@@ -332,7 +334,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL CHALLENGE (as of Jun 1, 2026): On May 7, 2026, a divided CIT panel ruled Section 122 tariffs unlawful, holding the President exceeded statutory authority. DOJ noticed appeal May 8; CAFC entered an administrative stay May 12, suspending the CIT order pending appeal. CIT denied government's motion for stay pending appeal on May 20 (found no irreparable harm, no likelihood of success on merits) but the CAFC administrative stay remains in effect. As of June 1, 2026 CBP continues collecting the 10% duty from non-party importers. If CAFC ultimately upholds the CIT ruling, Section 122 duties paid Feb 24 – Jul 24, 2026 may become separately refundable — but this is NOT part of the IEEPA refund calculator (IEEPA_END_DATE = Feb 23, 2026; Section 122 entries are excluded by the date check in checkEligibility()).",
       "supersededBy": null
     },
     {
