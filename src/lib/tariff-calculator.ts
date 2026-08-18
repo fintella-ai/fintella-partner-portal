@@ -216,10 +216,21 @@ const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 const PROTEST_WINDOW_DAYS = 180;
 
 /**
- * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
- * entries liquidated within the last 80 days. Entries liquidated 80–180 days
- * ago are still recoverable, but require a formal protest rather than the
- * automated CAPE channel.
+ * CAPE Phase-1 scope (live Apr 20, 2026): CBP automatically processes
+ * unliquidated entries and entries liquidated within the last 80 days.
+ * Entries liquidated 80–180 days ago are still recoverable, but require a
+ * formal protest rather than the automated CAPE channel.
+ *
+ * CAPE Phase-2 (live Jun 29, 2026): extends Phase-1 to cover entries
+ * flagged for type-09 reconciliation where the reconciliation entry has
+ * not yet been filed. The *parent* entry types (01/02/06) become eligible;
+ * type-09 entries themselves remain excluded from CAPE.
+ *
+ * CAPE Phase-3 (targeted end of Jul 2026): will cover finally-liquidated
+ * entries beyond the 90-day CBP reliquidation window. Non-litigant
+ * eligibility for Phase-3 refunds is unresolved (Federal Circuit No. 26-1898).
+ * Until Phase-3 launches and the legal question is settled, entries in the
+ * 80–180 day post-liquidation window route to formal protest.
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
