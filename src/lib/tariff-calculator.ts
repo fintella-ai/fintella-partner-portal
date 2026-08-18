@@ -205,7 +205,19 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE.
+ *
+ * - 08 (Duty Deferral / Foreign Trade Zone): excluded from all CAPE phases
+ * - 09 (Reconciliation entry itself): excluded from all CAPE phases. NOTE: Type 01/02/06
+ *   entries *flagged for reconciliation* (i.e., a Type 09 has not yet been filed) are
+ *   eligible via CAPE Phase 2 (effective June 29, 2026; CSMS #69035485). Filing sequence
+ *   is critical: submit the CAPE Declaration FIRST, then file the Type 09 afterward.
+ *   Entries where a reconciliation (Type 09) has already been filed are excluded from
+ *   Phase 2 and will be addressed in a future CAPE phase.
+ * - 23 (Temporary Importation under Bond): excluded from all CAPE phases
+ * - 47 (Drawback): excluded from all CAPE phases; not addressed in Phase 2
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -216,10 +228,12 @@ const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 const PROTEST_WINDOW_DAYS = 180;
 
 /**
- * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
- * entries liquidated within the last 80 days. Entries liquidated 80–180 days
- * ago are still recoverable, but require a formal protest rather than the
- * automated CAPE channel.
+ * CAPE Phase-1/2 scope: CBP automatically processes unliquidated entries and
+ * entries liquidated within the last 80 days (applies to both Phase 1 and Phase 2).
+ * Phase 2 (eff. June 29, 2026) adds support for reconciliation-flagged entries
+ * (Types 01/02/06) where the Type 09 reconciliation entry has not yet been filed.
+ * Entries liquidated 80–180 days ago are still recoverable, but require a formal
+ * protest rather than the automated CAPE channel.
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
