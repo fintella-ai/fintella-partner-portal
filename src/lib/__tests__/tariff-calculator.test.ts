@@ -190,6 +190,22 @@ test("entry type 23 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "23" }).status, "excluded_type");
 });
 
+test("entry type 21 (warehouse) → excluded_type eff. July 7, 2026", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "21" });
+  assert.equal(result.status, "excluded_type");
+  assert.ok(result.reason.includes("warehouse withdrawal"), `reason should mention withdrawal, got: ${result.reason}`);
+});
+
+test("entry type 22 (warehouse) → excluded_type eff. July 7, 2026", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "22" });
+  assert.equal(result.status, "excluded_type");
+  assert.ok(result.reason.includes("warehouse withdrawal"), `reason should mention withdrawal, got: ${result.reason}`);
+});
+
+test("warehouse withdrawal type 31 → eligible (IEEPA duty paid at withdrawal)", () => {
+  assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "31" }).status, "eligible");
+});
+
 test("unliquidated AD/CVD → excluded_adcvd", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isAdCvd: true }).status, "excluded_adcvd");
 });
@@ -272,6 +288,36 @@ test("Section 301 goods → eligible but needsReview", () => {
   const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", hasSection301: true });
   assert.equal(result.status, "eligible");
   assert.equal(result.needsReview, true);
+});
+
+test("reconciliation-flagged unliquidated entry → eligible via cape_phase2", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isReconciliationFlagged: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+  assert.equal(result.needsReview, true);
+  assert.ok(result.reviewNote?.includes("CAPE Declaration BEFORE"), `should warn about sequence, got: ${result.reviewNote}`);
+});
+
+test("reconciliation-flagged entry liquidated within 80 days → cape_phase2", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 30);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "02", isReconciliationFlagged: true, liquidationDate: liq });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("reconciliation-flagged entry liquidated 80–180 days ago → protest (Phase 2 does not extend protest path)", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 120);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isReconciliationFlagged: true, liquidationDate: liq });
+  assert.equal(result.status, "eligible");
+  // Phase 2 only upgrades cape_phase1; protest path is unchanged
+  assert.equal(result.filingMethod, "protest");
+});
+
+test("non-reconciliation-flagged type 01 → still cape_phase1 (flag absent)", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01" });
+  assert.equal(result.filingMethod, "cape_phase1");
 });
 
 // ── 5. Entry Number Validation ──────────────────────────────────────────────
