@@ -202,12 +202,12 @@ test("liquidated AD/CVD within protest window → eligible", () => {
   assert.ok(result.deadlineDays! > 0);
 });
 
-test("past protest window (>180 days) → excluded_expired + litigation", () => {
+test("past protest window (>180 days) → excluded_expired + cape_phase3", () => {
   const liq = new Date();
   liq.setDate(liq.getDate() - 200);
   const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
   assert.equal(result.status, "excluded_expired");
-  assert.equal(result.filingMethod, "litigation");
+  assert.equal(result.filingMethod, "cape_phase3");
 });
 
 test("urgent when ≤14 days remaining (near 180-day deadline)", () => {

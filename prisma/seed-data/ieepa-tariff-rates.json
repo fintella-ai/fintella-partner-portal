@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires 12:01 AM EDT July 24, 2026 (endDate = Jul 23, last day in effect). Max statutory rate is 15%; rate remained 10% throughout — Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). No Congressional extension enacted. Replacement: USTR pursuing Section 301 actions (12.5% on 46 countries) to take effect after expiration; if Section 301 decision slips, rates temporarily revert to MFN plus existing Section 232/301 surcharges. NOTE: Section 122 duties are NOT refundable via CAPE — CAPE covers only IEEPA duties from the Feb 2025–Feb 2026 period.",
+      "supersededBy": "S301-REPLACEMENT-TBD"
     },
     {
       "id": "DZ-RECIP-ORIG",
