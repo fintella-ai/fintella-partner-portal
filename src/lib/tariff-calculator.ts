@@ -205,7 +205,20 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE.
+ *
+ * CAPE Phase 1 (Apr 20, 2026): excludes 08, 09, 23, 47.
+ * CAPE Phase 2 (Jun 29, 2026): types 01/02/06 flagged for reconciliation (where
+ *   the Type-09 reconciliation entry has NOT yet been filed) are now accepted,
+ *   but only for unliquidated entries or entries liquidated within 80 days.
+ *   Entries with the Type-09 already on file remain excluded pending a future phase.
+ *   The type-code exclusions below are unchanged by Phase 2.
+ * CAPE Phase 3 (end Jul 2026, CBP-announced): finally-liquidated entries will
+ *   be processable via CAPE, but only for importers who have filed suit at CIT.
+ *   For non-CIT filers the 180-day protest window and litigation path remain the
+ *   only recovery channels. (CSMS #69035485; govt CAFC appeal ongoing as of Jul 2026.)
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -318,11 +331,14 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → litigation only.
+    // Note: CAPE Phase 3 (end Jul 2026) will provide a CAPE channel for
+    // finally-liquidated entries, but only for importers who have already filed
+    // at the CIT. For all others, CIT complaint remains the sole path.
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only (CAPE Phase 3 for CIT filers, end Jul 2026)",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
