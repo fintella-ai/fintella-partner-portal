@@ -1,7 +1,7 @@
 {
   "_metadata": {
     "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "generatedDate": "2026-06-21",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +9,11 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "State of Oregon et al. v. Trump (CIT, May 7, 2026) — Section 122 invalidity ruling",
+      "Federal Circuit admin stay of CIT Section 122 ruling (May 12, 2026)",
+      "IRS Rev. Rul. 2026-22 — Q3 2026 interest rates (announced May 18, 2026)",
+      "CBP CIT hearing testimony re CAPE Phase 2 reconciliation launch June 29, 2026"
     ]
   },
   "rates": [
@@ -332,7 +336,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026 (statutory 150-day limit). Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL STATUS (June 2026): CIT ruled Section 122 tariffs unlawful in a 2-1 divided opinion in State of Oregon et al. v. Trump on May 7, 2026, finding the statutory conditions for Section 122 were not met. The permanent injunction is NARROW — covers only 3 named plaintiffs (State of Washington, Burlap and Barrel, Basic Fun). Government appealed May 8, 2026; Federal Circuit issued an administrative stay May 12, 2026 pending its consideration of a more durable stay pending appeal. PRACTICAL EFFECT: Section 122 tariffs continue to be collected from all non-plaintiff importers as of June 2026. No Congressional extension enacted; tariff expires July 24, 2026 absent legislative action (President cannot extend unilaterally under Section 122).",
       "supersededBy": null
     },
     {
@@ -4878,6 +4882,19 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "IRS Rev. Rul. 2026-22; CBP Federal Register 2026-09871 (May 18, 2026). Rate rises from Q2 2026 (6%) back to 7%, matching Q1 2026 and all 2025 quarters."
       }
     ]
   },
@@ -4934,7 +4951,7 @@
         {
           "code": "09",
           "name": "Reconciliation Summary",
-          "notes": "Flagged for reconciliation - excluded"
+          "notes": "Type 09 entries themselves are excluded from CAPE. IMPORTANT DISTINCTION: CAPE Phase 2 (launching June 29, 2026) covers the underlying entries (Types 01, 02, 06) that are flagged for reconciliation but for which a Type 09 has NOT YET been filed. The Type 09 entry itself remains excluded in all phases. CBP recommends holding Type 09 filings (unless deadline is within 30 days) so the underlying entry can receive its IEEPA refund via CAPE first."
         },
         {
           "code": "23",
@@ -4980,6 +4997,28 @@
         "If on drawback, may need to withdraw drawback claim first"
       ]
     }
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 — Reconciliation-Flagged Entry IEEPA Refund Processing",
+    "status": "announced",
+    "launchDate": "2026-06-29",
+    "source": "CBP testimony at CIT hearing, June 9, 2026; CBP CSMS announcement expected prior to launch",
+    "scope": "Entries flagged for reconciliation (Entry Types 01, 02, and 06) where a Type 09 reconciliation entry has NOT yet been filed at the time of CAPE submission",
+    "liquidationWindow": "Same 80-day window as Phase 1 — unliquidated OR liquidated within 80 days of the CAPE declaration submission date",
+    "excludedFromPhase2": "Type 09 entries themselves remain excluded. Entries whose underlying entries liquidated more than 80 days before the June 29 launch (i.e., entries filed before approximately May 31, 2025 that liquidated on a standard 314-day cycle) fall outside Phase 2 scope.",
+    "filingRecommendation": "CBP recommends holding Type 09 reconciliation filings unless the reconciliation deadline is within 30 days of expiring, so the underlying entry can receive IEEPA refund via CAPE first.",
+    "calculatorImpact": "No change to checkEligibility() EXCLUDED_ENTRY_TYPES. The Type 09 code ('09') remains excluded. Underlying entries (01, 02, 06) that are reconciliation-flagged were already eligible in Phase 1 unless the reconciliation flag was an explicit exclusion criterion — Phase 2 explicitly confirms their eligibility."
+  },
+  "capePhase3": {
+    "description": "CAPE Phase 3 — Finally Liquidated Entries (Announced, Scope Contested)",
+    "status": "announced_contested",
+    "anticipatedLaunch": "Approximately 30 days after Phase 2 (tentative Q3 2026)",
+    "source": "CBP testimony at CIT hearing, June 9, 2026 (Euro-Notions Florida v. United States)",
+    "announced": "CBP representative testified Phase 3 will begin processing finally liquidated entries (liquidated more than 80 days ago, protest window expired)",
+    "governmentPosition": "CBP and Trump administration maintain that Phase 3 eligibility is limited to importers who filed Section 1581(i) actions at the CIT. The agency cannot issue refunds on finally liquidated entries without a court order.",
+    "conflict": "CBP's courtroom position contradicts guidance on CBP's published IEEPA FAQ page, which states that finally liquidated entries will be included in upcoming CAPE phases. The conflict has been noted by the CIT.",
+    "governmentAppeal": "The Trump administration is separately appealing Judge Eaton's universal IEEPA refund order (Euro-Notions Florida v. United States) to the Federal Circuit, arguing the government can retain billions in unlawfully collected IEEPA tariffs from entries not subject to a specific court order.",
+    "calculatorImpact": "No change to checkEligibility() yet. The 'litigation' filingMethod for excluded_expired entries (protest window > 180 days expired) remains the correct conservative guidance until a formal CSMS announcement with binding scope is issued."
   },
   "calculatorLogic": {
     "description": "Rules for computing IEEPA tariff refund amounts",

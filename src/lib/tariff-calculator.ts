@@ -205,7 +205,13 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE Phase 1 (and Phase 2).
+ *
+ * Type 09 note: Phase 2 (launching June 29, 2026) covers the *underlying* entries
+ * (Types 01/02/06) flagged for reconciliation where no Type 09 has yet been filed.
+ * The Type 09 entry itself remains excluded in all phases.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -294,9 +300,12 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
 
   // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    const reason = entry.entryType === "09"
+      ? "Type 09 reconciliation entry excluded from CAPE. If the underlying entry (Type 01/02/06) has not yet had a Type 09 filed, that underlying entry may be eligible via CAPE Phase 2 (launching June 29, 2026) — consult your customs broker."
+      : `Entry type ${entry.entryType} excluded from CAPE Phase 1`;
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason,
       filingMethod: "none",
     };
   }
