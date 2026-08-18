@@ -30,12 +30,15 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
- *  - none:        not eligible for any refund path
+ *  - cape_phase1:          unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2:          reconciliation entry (Type 09) — eligible via CAPE Phase 2 (launched Jun 29, 2026)
+ *  - protest:              liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - phase3_reliquidation: finally liquidated (>180 days) — CBP reliquidation available under Jul 17, 2026 CIT
+ *                          order for importers with active CIT litigation; all others require new litigation
+ *  - litigation:           protest window closed, no active CIT case → CIT litigation only
+ *  - none:                 not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "phase3_reliquidation" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -205,8 +208,26 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE Phase 1 *and all later CAPE phases*.
+ * Type 08 = Informal entry; Type 23 = TIB; Type 47 = Drawback.
+ * (Type 09 reconciliation entries are handled separately via CAPE Phase 2 — see below.)
+ */
+const FULLY_EXCLUDED_ENTRY_TYPES = new Set(["08", "23", "47"]);
+
+/**
+ * Entry types covered by CAPE Phase 2 (launched Jun 29, 2026), not Phase 1.
+ * Type 09 = Reconciliation entry. Phase 2 covers reconciliation entries where
+ * the underlying entry (01/02/06) is unliquidated or liquidated within 80 days
+ * of the Phase 2 filing date and the reconciliation entry has not yet been filed.
+ * Source: CBP CSMS #69127837; Thompson Hine SmarTrade Jun 2026.
+ */
+const CAPE_PHASE2_ENTRY_TYPES = new Set(["09"]);
+
+// Backward-compat alias — retains the previous name used in tests/other callers.
+// Equivalent to FULLY_EXCLUDED_ENTRY_TYPES ∪ CAPE_PHASE2_ENTRY_TYPES.
+/** @deprecated Use FULLY_EXCLUDED_ENTRY_TYPES or CAPE_PHASE2_ENTRY_TYPES directly. */
+const EXCLUDED_ENTRY_TYPES = new Set([...FULLY_EXCLUDED_ENTRY_TYPES, ...CAPE_PHASE2_ENTRY_TYPES]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -292,11 +313,30 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
-  if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+  // 4a. CAPE Phase 2 entry types — reconciliation entries (Type 09)
+  //     Phase 2 launched Jun 29, 2026. File via ACE Secure Data Portal Phase 2 module.
+  if (CAPE_PHASE2_ENTRY_TYPES.has(entry.entryType)) {
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason:
+        "Reconciliation entry (Type 09) — not eligible for CAPE Phase 1, but eligible via CAPE Phase 2 " +
+        "(launched Jun 29, 2026). Submit through the ACE Secure Data Portal Phase 2 module. " +
+        "Entry must be unliquidated or liquidated within 80 days of your Phase 2 filing date, " +
+        "and the reconciliation entry must not yet have been filed.",
+      filingMethod: "cape_phase2",
+    };
+    return applySectionReviewFlag(base, entry);
+  }
+
+  // 4b. Entry types excluded from all CAPE phases (08 = Informal, 23 = TIB, 47 = Drawback)
+  if (FULLY_EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason:
+        `Entry type ${entry.entryType} excluded from all CAPE phases. ` +
+        (entry.entryType === "47"
+          ? "Drawback entries (Type 47) must pursue refund through the courts or await further CBP guidance on a dedicated drawback phase."
+          : `Entry type ${entry.entryType} entries are not eligible for IEEPA duty refunds via CAPE.`),
       filingMethod: "none",
     };
   }
@@ -318,14 +358,28 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → Phase 3 reliquidation (if active CIT litigation)
+    // or new CIT litigation for those without an existing case.
+    // CIT order Jul 17, 2026 (Euro-Notions / Freestyle World lead case) directed CBP to
+    // reliquidate "finally liquidated" entries for importers with active cases.
+    // CBP progress report filed Aug 4, 2026 showed 75k+ CAPE declarations; Phase 3 on track.
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago). Two paths remain: " +
+          "(1) CAPE Phase 3 reliquidation — available if you already have an active CIT case; " +
+          "CBP was ordered on Jul 17, 2026 to reliquidate these entries for active litigants. " +
+          "(2) New CIT litigation — if no active case exists, file with the Court of International Trade. " +
+          "Consult trade counsel immediately.",
         deadlineDays: daysRemaining,
         deadlineDate,
-        filingMethod: "litigation",
+        filingMethod: "phase3_reliquidation",
+        needsReview: true,
+        reviewNote:
+          "Finally liquidated entry: Phase 3 reliquidation requires active CIT litigation per Jul 17, 2026 " +
+          "court order (Freestyle World, Inc. v. United States lead case). " +
+          "Importers without an active case must file new CIT litigation. Verify litigation status with counsel.",
       };
     }
 
@@ -501,8 +555,15 @@ export function classifyDealTier(totalIeepaDuties: number): DealTier {
 
 export type RoutingBucket = "self_file" | "legal_required" | "not_applicable";
 
-export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
-  if (eligibilityStatus === "eligible") return "self_file";
+export function getRoutingBucket(eligibilityStatus: string, filingMethod?: FilingMethod): RoutingBucket {
+  if (eligibilityStatus === "eligible") {
+    // Phase 2 (reconciliation) and Phase 3 (finally liquidated) are still self-file in ACE,
+    // but Phase 3 needs counsel review first — treat as legal_required.
+    if (filingMethod === "phase3_reliquidation") return "legal_required";
+    return "self_file";
+  }
+  // excluded_expired always requires legal review (Phase 3 / new litigation)
+  if (eligibilityStatus === "excluded_expired") return "legal_required";
   // Entries that paid no refundable IEEPA duty (or none was due) → nothing to file
   if (
     eligibilityStatus === "excluded_date" ||
@@ -512,7 +573,7 @@ export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
   ) {
     return "not_applicable";
   }
-  // excluded_type / excluded_adcvd / excluded_expired → needs counsel / litigation
+  // excluded_type / excluded_adcvd → needs counsel / litigation
   return "legal_required";
 }
 

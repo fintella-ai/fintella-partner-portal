@@ -1,15 +1,20 @@
 {
   "_metadata": {
-    "version": "1.0.0",
-    "generatedDate": "2026-04-29",
-    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
-    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
+    "version": "1.1.0",
+    "generatedDate": "2026-08-15",
+    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026, Section 122 replacement (Feb 24 – Jul 23, 2026), and Section 301 Forced Labor successor (Jul 24, 2026 onward). Section 301 entries are context-only — not part of the IEEPA/Section 122 refund system.",
+    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132), Trade Act of 1974 Section 301 (19 U.S.C. 2411)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "USTR Final Action – Section 301 Forced Labor Investigations (Jul 24, 2026)",
+      "CBP CSMS #69326983 – Section 301 Forced Labor Import Duties guidance",
+      "CIT – Euro-Notions Florida v. United States / Freestyle World, Inc. v. United States (lead IEEPA refund case as of Jun 2026)",
+      "CBP CAPE Phase 2 launch (Jun 29, 2026) – reconciliation entries",
+      "CIT order Jul 17, 2026 – Phase 3 reliquidation of finally liquidated entries"
     ]
   },
   "rates": [
@@ -332,7 +337,21 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). CIT NOTE: On May 7, 2026, the Court of International Trade held that the Section 122 tariffs were unlawful because the statutory balance-of-payments deficit condition was not satisfied (government appealed). Despite the ruling, CBP continued collecting through the statutory 150-day expiry (Jul 23). Refundability of Section 122 duties is being litigated separately.",
+      "supersededBy": "S301-FL-01"
+    },
+    {
+      "id": "S301-FL-01",
+      "executiveOrder": "USTR Final Action – Section 301 Forced Labor Investigations",
+      "name": "Section 301 Forced Labor – Global (10% / 12.5% two-tier)",
+      "rateType": "section301_fl",
+      "countryCode": "MULTI-60",
+      "countryName": "60 Economies (see notes)",
+      "rate": 0,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "CONTEXT-ONLY — not an IEEPA or Section 122 tariff; NOT part of the IEEPA/Section 122 refund system. Effective 12:01 AM ET Jul 24, 2026. Seamlessly replaced the Section 122 10% surcharge at expiry with no gap. Authority: Trade Act of 1974 Section 301 (19 U.S.C. 2411). USTR final action following 60 forced-labor investigations. Rate=0 here is a placeholder; actual two-tier structure: 10% ad valorem on 17 economies (9903.05.20–9903.05.36 range), 12.5% ad valorem on 38+ economies (9903.05.37–9903.05.84 range). Canada specific heading: 9903.05.29. EU, Japan, S. Korea, Switzerland, Taiwan use combined-duty rate structure rather than additional ad valorem. Covers ~60 economies (~99.4% of US imports by value). EXEMPTIONS: 9903.05.85–9903.05.92 — goods loaded on vessel and in transit before 12:01 AM Jul 24 and entered before 12:01 AM Jul 28, 2026. All Section 232, Section 301 China, and other applicable duties stack on top. CBP guidance: CSMS #69326983. For individual economy headings see HTSUS Chapter 99 notes.",
       "supersededBy": null
     },
     {

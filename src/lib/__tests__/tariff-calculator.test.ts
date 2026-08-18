@@ -182,8 +182,12 @@ test("entry type 08 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "08" }).status, "excluded_type");
 });
 
-test("entry type 09 → excluded_type", () => {
-  assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09" }).status, "excluded_type");
+// CAPE Phase 2 (launched Jun 29, 2026): Type 09 reconciliation entries are now eligible
+// via Phase 2, not excluded. Updated test to reflect new behavior.
+test("entry type 09 → eligible via cape_phase2 (CAPE Phase 2)", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09" });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
 });
 
 test("entry type 23 → excluded_type", () => {
@@ -202,12 +206,15 @@ test("liquidated AD/CVD within protest window → eligible", () => {
   assert.ok(result.deadlineDays! > 0);
 });
 
-test("past protest window (>180 days) → excluded_expired + litigation", () => {
+// CAPE Phase 3 (CIT order Jul 17, 2026): finally-liquidated entries now route to
+// phase3_reliquidation (for active CIT litigants) or new CIT litigation — not just "litigation".
+test("past protest window (>180 days) → excluded_expired + phase3_reliquidation + needsReview", () => {
   const liq = new Date();
   liq.setDate(liq.getDate() - 200);
   const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
   assert.equal(result.status, "excluded_expired");
-  assert.equal(result.filingMethod, "litigation");
+  assert.equal(result.filingMethod, "phase3_reliquidation");
+  assert.equal(result.needsReview, true);
 });
 
 test("urgent when ≤14 days remaining (near 180-day deadline)", () => {
