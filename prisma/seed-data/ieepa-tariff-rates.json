@@ -1,16 +1,23 @@
 {
   "_metadata": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "generatedDate": "2026-04-29",
+    "lastReviewedDate": "2026-07-12",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
       "Federal Register notices",
-      "CBP CSMS guidance messages",
+      "CBP CSMS guidance messages — including CSMS #69035485 (CAPE Phase 2 announcement, Jun 23 2026) and CSMS #69066837 (Phase 2 deployed, Jun 29 2026)",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
-    ]
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "Euro-Notions Florida, Inc. v. United States (CIT #25-00595) — CBP progress report Jul 1 2026: 213,939 declarations, 18.1M entries accepted"
+    ],
+    "regulatoryNotes": {
+      "capePhase2": "CAPE Phase 2 deployed Jun 29 2026. Expands CAPE to types 01/02/06 flagged for reconciliation with no Type 09 filed. Must file CAPE before filing Type 09 or refund is forfeited. Entries with Type 09 already filed are deferred to a future CAPE phase. See checkEligibility() in tariff-calculator.ts.",
+      "section122Expiration": "Section 122 10% surcharge (S122-01) expires Jul 24 2026 by statute. No extension enacted as of 2026-07-12. USTR Section 301 replacement (proposed 12.5% on 46 countries) has Jul 20 USTR deadline — no final rule published yet. Monitor Federal Register before Jul 24.",
+      "governmentAppeal": "DOJ appealed Euro-Notions CIT refund order (Jun 2026). CAPE continues under existing CIT order while appeal is pending."
+    }
   },
   "rates": [
     {
