@@ -1,7 +1,8 @@
 {
   "_metadata": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "generatedDate": "2026-04-29",
+    "lastUpdated": "2026-07-09",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -4878,6 +4879,19 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "source": "Rev. Rul. 2026-22 (IRB 2026-22); Federal Register 2026-13298 (Jul 1, 2026)",
+        "compounding": "daily"
       }
     ]
   },
@@ -4915,14 +4929,24 @@
           "notes": "Informal entries below formal entry threshold"
         },
         {
-          "code": "21",
-          "name": "Warehouse Entry",
-          "notes": "Warehouse entries where IEEPA Chapter 99 codes were declared"
+          "code": "31",
+          "name": "Warehouse Withdrawal - Consumption",
+          "notes": "IEEPA duties were paid at time of withdrawal from bonded warehouse"
         },
         {
-          "code": "22",
-          "name": "Warehouse Withdrawal",
-          "notes": "Warehouse withdrawals for consumption"
+          "code": "32",
+          "name": "Warehouse Withdrawal - T&E",
+          "notes": "IEEPA duties were paid at time of withdrawal"
+        },
+        {
+          "code": "34",
+          "name": "Warehouse Withdrawal - Other",
+          "notes": "IEEPA duties were paid at time of withdrawal"
+        },
+        {
+          "code": "38",
+          "name": "Warehouse Withdrawal - Combining",
+          "notes": "IEEPA duties were paid at time of withdrawal"
         }
       ],
       "excluded": [
@@ -4934,7 +4958,17 @@
         {
           "code": "09",
           "name": "Reconciliation Summary",
-          "notes": "Flagged for reconciliation - excluded"
+          "notes": "Flagged for reconciliation - excluded from Phase 1; see capePhase2 for reconciliation-flagged underlying entries"
+        },
+        {
+          "code": "21",
+          "name": "Warehouse Entry",
+          "notes": "Excluded from CAPE effective July 7, 2026 (CSMS #69127837). IEEPA duties were collected on the warehouse withdrawal (Type 31/32/34/38), not the warehouse entry itself. File on the withdrawal entry."
+        },
+        {
+          "code": "22",
+          "name": "Re-warehouse Entry",
+          "notes": "Excluded from CAPE effective July 7, 2026 (CSMS #69127837). IEEPA duties were collected on the warehouse withdrawal (Type 31/32/34/38), not the re-warehouse entry itself."
         },
         {
           "code": "23",
@@ -4980,6 +5014,23 @@
         "If on drawback, may need to withdraw drawback claim first"
       ]
     }
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 — launched June 29, 2026 (CSMS #69066837). Expands CAPE to cover entries flagged for reconciliation.",
+    "launchDate": "2026-06-29",
+    "csmsReference": "CSMS #69066837 (deployed Jun 29, 2026); CSMS #69035485 (guidance Jun 23, 2026)",
+    "newEligibility": {
+      "description": "Entries of type 01, 02, 06 flagged for reconciliation are now eligible for CAPE, provided the reconciliation entry (Type 09) has NOT yet been filed.",
+      "entryTypes": ["01", "02", "06"],
+      "criticalSequencingRule": "File the CAPE declaration BEFORE filing the reconciliation entry (Type 09). Filing Type 09 first permanently locks those underlying entries out of CAPE for this phase.",
+      "liquidationRequirement": "Entry must be unliquidated, or liquidated within 80 days of the CAPE declaration filing date."
+    },
+    "stillExcluded": {
+      "entryType09": "Type 09 reconciliation summaries themselves remain excluded from CAPE",
+      "entryType47": "Type 47 drawback entries remain excluded from CAPE",
+      "entryTypes21and22": "Warehouse entries (21/22) excluded as of July 7, 2026 per CSMS #69127837 — file on withdrawal entries (31/32/34/38) instead"
+    },
+    "appealStatus": "Government filed appeal of CIT's universal refund order (Euro-Notions Florida v. United States, No. 25-595). CAPE processing continues while appeal is pending."
   },
   "calculatorLogic": {
     "description": "Rules for computing IEEPA tariff refund amounts",

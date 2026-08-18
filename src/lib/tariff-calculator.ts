@@ -205,8 +205,13 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE.
+ * Types 21/22 (warehouse entries) removed from CAPE effective July 7, 2026
+ * (CSMS #69127837) — IEEPA duties were collected on withdrawals (31/32/34/38),
+ * not on the warehouse entries themselves.
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -294,9 +299,13 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
 
   // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    const typeReason =
+      entry.entryType === "21" || entry.entryType === "22"
+        ? `Entry type ${entry.entryType} (warehouse entry) excluded from CAPE as of July 7, 2026 — IEEPA duties are on the withdrawal entry (Type 31/32/34/38), file on that entry instead`
+        : `Entry type ${entry.entryType} excluded from CAPE`;
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: typeReason,
       filingMethod: "none",
     };
   }
