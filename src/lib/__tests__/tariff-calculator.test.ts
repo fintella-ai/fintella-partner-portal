@@ -182,8 +182,19 @@ test("entry type 08 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "08" }).status, "excluded_type");
 });
 
-test("entry type 09 → excluded_type", () => {
-  assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09" }).status, "excluded_type");
+test("entry type 09 → cape_phase2 eligible (CAPE Phase 2, June 29, 2026)", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09" });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+  assert.equal(result.needsReview, true);
+});
+
+test("entry type 09 liquidated >180 days → excluded_expired + litigation", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 200);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09", liquidationDate: liq });
+  assert.equal(result.status, "excluded_expired");
+  assert.equal(result.filingMethod, "litigation");
 });
 
 test("entry type 23 → excluded_type", () => {
