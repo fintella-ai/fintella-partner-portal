@@ -34,6 +34,7 @@ const FALLBACK_INTEREST_RATES = [
   { quarter: "Q4 2025", startDate: "2025-10-01", endDate: "2025-12-31", nonCorporateRate: 0.07, corporateRate: 0.06 },
   { quarter: "Q1 2026", startDate: "2026-01-01", endDate: "2026-03-31", nonCorporateRate: 0.07, corporateRate: 0.06 },
   { quarter: "Q2 2026", startDate: "2026-04-01", endDate: "2026-06-30", nonCorporateRate: 0.06, corporateRate: 0.05 },
+  { quarter: "Q3 2026", startDate: "2026-07-01", endDate: "2026-09-30", nonCorporateRate: 0.07, corporateRate: 0.06 },
 ];
 
 async function seedTariffRates() {
