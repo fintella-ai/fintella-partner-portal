@@ -1,7 +1,8 @@
 {
   "_metadata": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "generatedDate": "2026-04-29",
+    "lastUpdated": "2026-07-08",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +10,11 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "IRS Revenue Ruling 2026-10; Federal Register 2026-13298 (Jul 1, 2026) — Q3 2026 interest rate",
+      "CBP CAPE Phase 2 launch guidance (June 29, 2026) — reconciliation-flagged entry eligibility",
+      "Oregon v. United States; Burlap and Barrel v. United States (CIT May 7, 2026) — Section 122 struck down, CAFC-stayed",
+      "USTR Section 301 investigation completion deadline Jul 20, 2026 — proposed 12.5% on 46 countries"
     ]
   },
   "rates": [
@@ -332,7 +337,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL STATUS: On May 7, 2026, the CIT (Oregon v. United States; Burlap and Barrel v. United States) struck down Section 122 tariffs as unconstitutional, but the Federal Circuit issued an administrative stay on May 12, 2026 — Section 122 tariffs are still being collected for all importers except the three named plaintiffs. Appeal pending at the Federal Circuit. IMMINENT EXPIRY: Section 122's 150-day statutory maximum expires Jul 24, 2026 — 16 days from monitor date. Congress cannot extend unilaterally. PENDING REPLACEMENT: USTR had a July 20, 2026 deadline to complete two Section 301 investigations (launched Mar 11, 2026). Proposed replacement: 12.5% Section 301 duties on 46 countries (China, Vietnam, India, Thailand, Japan, South Korea, and others). Section 301 has no statutory rate cap and no time limit. No formal proclamation issued as of Jul 8, 2026 — do not add Section 301 rates to this file until an official EO or proclamation is published.",
       "supersededBy": null
     },
     {
@@ -4878,6 +4883,19 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "IRS Revenue Ruling 2026-10; Federal Register 2026-13298 (Jul 1, 2026) — rate increased from 6% (Q2) back to 7% as federal short-term rate rebounded to 4%"
       }
     ]
   },
@@ -4958,7 +4976,7 @@
         "Entry must be filed in ACE with a liquidation status visible in ACE",
         "Entry must have declared IEEPA Chapter 99 HTS codes",
         "Entry must NOT be covered by an open or suspended protest",
-        "Entry must NOT be flagged for reconciliation",
+        "Entry must NOT be flagged for reconciliation (Phase 1 only — see capePhase2 for reconciliation-flagged entry path launched June 29, 2026)",
         "Entry must NOT be on an active drawback claim"
       ]
     },
@@ -4980,6 +4998,17 @@
         "If on drawback, may need to withdraw drawback claim first"
       ]
     }
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 — launched June 29, 2026. Expands refund eligibility to entry types 01, 02, and 06 that are flagged for reconciliation where the Type 09 reconciliation entry has NOT yet been filed.",
+    "launchDate": "2026-06-29",
+    "legalBasis": "Same as Phase 1 (Learning Resources v. Trump; Euro-Notions Florida v. United States). Phase 2 scope confirmed via CBP CSMS guidance.",
+    "estimatedEntries": "~2.8 million additional entries",
+    "estimatedRefunds": "~$28.7 billion",
+    "eligibleEntryTypes": ["01", "02", "06"],
+    "keyConstraint": "The CAPE Phase 2 declaration MUST be filed BEFORE the Type 09 reconciliation entry is submitted. Once a Type 09 is filed, the underlying entries become ineligible for CAPE Phase 2.",
+    "liquidationWindow": "Same as Phase 1: unliquidated entries, or entries liquidated within 80 days of the CAPE submission date. Entries liquidated 80–180 days ago must use formal protest (19 USC 1514). Entries liquidated >180 days ago: litigation only (CAPE Phase 3 expected late July 2026).",
+    "knownIssues": "As of July 3, 2026, CBP reported 4.36 million Phase 2 entries failing validation. Finally-liquidated importer (>180 days) refunds are NOT included in Phase 2; CAPE Phase 3 for finally-liquidated entries is expected late July 2026 but only for importers who have filed at the CIT."
   },
   "calculatorLogic": {
     "description": "Rules for computing IEEPA tariff refund amounts",
