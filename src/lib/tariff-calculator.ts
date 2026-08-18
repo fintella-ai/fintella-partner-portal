@@ -30,7 +30,11 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE automated window → CAPE refund.
+ *                 Phase 1 (launched Apr 20, 2026): covers types 01/02/06 NOT flagged for reconciliation.
+ *                 Phase 2 (launched Jun 29, 2026): extends to types 01/02/06 flagged for reconciliation
+ *                 where the Type 09 reconciliation entry has not yet been filed. 80-day window unchanged.
+ *                 Types 08/09/23/47 remain excluded from all CAPE phases (see EXCLUDED_ENTRY_TYPES).
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
@@ -205,7 +209,18 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE (all phases).
+ *
+ * Phase 1 (Apr 20, 2026): excluded types 08, 09, 23, 47 AND entries of types 01/02/06
+ * that are flagged for reconciliation.
+ *
+ * Phase 2 (Jun 29, 2026): reconciliation-flagged 01/02/06 entries are now ELIGIBLE,
+ * provided the Type 09 summary has not yet been filed. Types 08, 09, 23, 47 remain
+ * excluded across all phases. Type 47 (drawback) is expected in a future phase.
+ *
+ * Source: CBP CSMS #68340863 UPDATE (Jun 29, 2026 deployment).
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -216,12 +231,13 @@ const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 const PROTEST_WINDOW_DAYS = 180;
 
 /**
- * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
+ * CAPE automated-processing scope: CBP processes unliquidated entries and
  * entries liquidated within the last 80 days. Entries liquidated 80–180 days
  * ago are still recoverable, but require a formal protest rather than the
- * automated CAPE channel.
+ * automated CAPE channel. This 80-day window applies across both Phase 1
+ * (Apr 20, 2026) and Phase 2 (Jun 29, 2026).
  */
-const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
+const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80; // named for Phase 1 launch; applies to all phases
 
 /** Entries with <= this many days remaining are flagged urgent */
 const URGENT_THRESHOLD_DAYS = 14;
@@ -296,7 +312,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (all phases — type 47 drawback expected in a future phase)`,
       filingMethod: "none",
     };
   }
@@ -337,7 +353,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
       status: "eligible",
       reason:
         filingMethod === "cape_phase1"
-          ? "Liquidated within 80 days — eligible via CAPE Phase 1"
+          ? "Liquidated within 80 days — eligible via CAPE automated refund (Phase 1/2)"
           : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
       deadlineDays: daysRemaining,
       isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
@@ -347,10 +363,10 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     return applySectionReviewFlag(base, entry);
   }
 
-  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE Phase 1, no deadline yet
+  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE automated refund, no deadline yet
   const base: EligibilityResult = {
     status: "eligible",
-    reason: "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
+    reason: "Unliquidated entry — eligible via CAPE automated refund (Phase 1/2), no immediate deadline",
     filingMethod: "cape_phase1",
   };
   return applySectionReviewFlag(base, entry);
