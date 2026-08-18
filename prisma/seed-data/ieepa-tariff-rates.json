@@ -1,7 +1,8 @@
 {
   "_metadata": {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "generatedDate": "2026-04-29",
+    "lastUpdated": "2026-06-22",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +10,11 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "Oregon v. United States & Burlap and Barrel, Inc. v. United States, Slip Op. 26-47 (CIT May 7, 2026) — Section 122 challenge",
+      "Euro-Notions Florida v. United States, CIT No. 25-595 — government appeal filed June 2, 2026",
+      "IRS Revenue Ruling 2026-22 — Q3 2026 interest rates effective July 1, 2026",
+      "USTR Section 301 forced labor tariff proposal, June 2, 2026 (proposed 10-12.5% for 60 economies; hearings July 7, 2026)"
     ]
   },
   "rates": [
@@ -332,7 +337,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026 (statutory ceiling; cannot be extended by executive action — requires Congressional authorization). Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL CHALLENGE: On May 7, 2026, a 3-judge CIT panel (2-1) struck down Section 122 tariffs in Oregon v. United States & Burlap and Barrel, Inc. v. United States, Slip Op. 26-47 (Ct. Int'l Trade, Nos. 26-01472 & 26-01606), holding the balance-of-payments criteria were not met. Permanent injunction entered — but limited to 3 plaintiff importer companies (State of Washington, Burlap and Barrel, Basic Fun). Government appealed to the Federal Circuit on May 8, 2026; tariffs remain fully in effect for all other importers pending appeal. Section 122 tariffs still expected to expire at their statutory maximum of July 24, 2026. REPLACEMENT WATCH: USTR June 2, 2026 proposed Section 301 tariffs (10%–12.5%) on goods from 60 economies with forced labor concerns; hearings July 7, 2026. If enacted before July 24, would provide a successor tariff mechanism.",
       "supersededBy": null
     },
     {
@@ -4877,6 +4882,18 @@
         "underpaymentRate": 0.06,
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
+        "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
         "compounding": "daily"
       }
     ]
