@@ -30,9 +30,14 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase1: unliquidated OR liquidated within the 80-day window → automated CAPE refund
+ *                 (also covers CAPE Phase 2 entries — reconciliation-flagged types 01/02/06
+ *                  without a filed Type 09, eff. June 29, 2026)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - litigation:  liquidated > 180 days ago → protest window closed, CIT suit required
+ *                 (CAPE Phase 3 for finally-liquidated entries expected late July 2026,
+ *                  but CBP confirmed Phase 3 will only process refunds for importers who
+ *                  have filed individual CIT suits — litigation path remains correct)
  *  - none:        not eligible for any refund path
  */
 export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
@@ -205,8 +210,17 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE (all phases as of 2026-07-11).
+ * "08" informal entry, "09" reconciliation entry (the Type 09 itself; entries
+ *   flagged for reconciliation that haven't yet filed a Type 09 are eligible via
+ *   CAPE Phase 2 — June 29, 2026 deployment), "23" formal entry — certain categories,
+ * "47" drawback entry.
+ * "21"/"22" warehouse entries (CSMS #69127837, eff. Jul 7, 2026 — IEEPA duties
+ *   are paid at withdrawal, not at warehouse entry; submit withdrawal entries
+ *   31/32/34/38 instead).
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -294,9 +308,12 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
 
   // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    const warehouseEntry = entry.entryType === "21" || entry.entryType === "22";
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: warehouseEntry
+        ? `Warehouse entries (Type ${entry.entryType}) excluded from CAPE (eff. Jul 7 2026, CSMS #69127837) — IEEPA duties were paid at time of withdrawal, not at warehouse entry. Submit the associated warehouse withdrawal entries (Types 31, 32, 34, 38) on a CAPE Declaration instead.`
+        : `Entry type ${entry.entryType} excluded from CAPE`,
       filingMethod: "none",
     };
   }
