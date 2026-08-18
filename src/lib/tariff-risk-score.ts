@@ -100,6 +100,9 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 const FILING_RISK: Record<FilingMethod, number> = {
   cape_phase1: 0,
   protest: 15,
+  // cape_phase3: finally liquidated entry with pending CIT case — higher risk than Phase 1 due to
+  // ongoing Federal Circuit appeal that could reverse Phase 3 refunds if government prevails.
+  cape_phase3: 25,
   litigation: 35,
   none: 60,
 };
