@@ -332,7 +332,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. Rate remains 10% through expiry. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL STATUS: CIT ruled Section 122 tariffs unlawful (Oregon v. United States and Burlap and Barrel, Inc. v. United States, May 7, 2026, 2-1 decision) — but injunction limited to 3 importer plaintiffs only. U.S. Court of Appeals for the Federal Circuit issued an administrative stay May 12, 2026; tariffs continue to be collected from all other importers pending appeal. Congressional extension beyond Jul 24 is considered unlikely (extension requires Act of Congress; President cannot extend unilaterally).",
       "supersededBy": null
     },
     {
@@ -4878,6 +4878,19 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "notes": "Rate rose from Q2 2026 6% back to 7%. IRS announced May 18, 2026 (Rev. Rul. 2026-22). Affects IEEPA refund interest accruing from July 1, 2026 onward."
       }
     ]
   },
@@ -4933,8 +4946,8 @@
         },
         {
           "code": "09",
-          "name": "Reconciliation Summary",
-          "notes": "Flagged for reconciliation - excluded"
+          "name": "Reconciliation Summary (already filed)",
+          "notes": "Filed Type 09 reconciliation summaries are excluded from CAPE Phase 1 and Phase 2. Note: entries FLAGGED for reconciliation (Type 01/02/06, Type 09 not yet filed) ARE eligible via CAPE Phase 2 (June 29, 2026)."
         },
         {
           "code": "23",
@@ -4958,8 +4971,8 @@
         "Entry must be filed in ACE with a liquidation status visible in ACE",
         "Entry must have declared IEEPA Chapter 99 HTS codes",
         "Entry must NOT be covered by an open or suspended protest",
-        "Entry must NOT be flagged for reconciliation",
-        "Entry must NOT be on an active drawback claim"
+        "Entry flagged for reconciliation (Type 01/02/06, no Type 09 filed yet): eligible via CAPE Phase 2 (June 29, 2026) within the same 80-day window — hold Type 09 filing until CAPE Phase 2 declaration is processed",
+        "Entry must NOT be on an active drawback claim (Type 47 excluded from all CAPE phases)"
       ]
     },
     "refundCalculation": {
@@ -4969,7 +4982,21 @@
     },
     "processingTimeline": {
       "targetDays": 45,
-      "description": "CBP targets 45-day processing for Phase 1 refunds from date of CAPE submission"
+      "description": "CBP targets 45-day processing for Phase 1 refunds from date of CAPE submission. Phase 2 processing timeline TBD."
+    },
+    "capePhase2": {
+      "launchDate": "2026-06-29",
+      "description": "CAPE Phase 2 covers entries flagged for reconciliation (Entry Types 01, 02, 06) where a corresponding Type 09 reconciliation has NOT yet been filed. Same 80-day liquidation window as Phase 1. Estimated ~2.8 million entries representing ~$28.7 billion in IEEPA duties. IMPORTANT: CBP advises importers to hold Type 09 reconciliation filings unless filing deadline is within 30 days — file CAPE Phase 2 declaration first.",
+      "eligibleEntryTypes": ["01", "02", "06"],
+      "condition": "Entry flagged for reconciliation AND no Type 09 reconciliation summary filed at time of CAPE acceptance",
+      "excludedFromPhase2": ["09 (already filed)", "47 (drawback)", "protested entries", "entries outside 80-day liquidation window"],
+      "source": "CBP CSMS #69035485; cbp.gov/trade/programs-administration/trade-remedies/ieepa-duty-refunds"
+    },
+    "capePhase3": {
+      "estimatedLaunchDate": "2026-07-late",
+      "description": "CAPE Phase 3 covers finally-liquidated entries (liquidated more than 180 days ago, past protest window) for importers who have filed at the CIT. Limited to CIT plaintiffs only — not available to general importers. Follows from CIT's April 7, 2026 order in Euro-Notions Florida v. United States (Case No. 25-595) ordering refunds on finally liquidated entries. DOJ has appealed to the Federal Circuit (filed June 3, 2026); Phase 3 proceeds contingent on appeal outcome.",
+      "eligibility": "Importer must have filed a complaint in the U.S. Court of International Trade",
+      "source": "Euro-Notions Florida v. United States, CIT Case No. 25-595 (Apr 7, 2026)"
     },
     "preservingRefundRights": {
       "description": "For entries NOT eligible for Phase 1, importers must take action to preserve refund rights",

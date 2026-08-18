@@ -274,6 +274,34 @@ test("Section 301 goods → eligible but needsReview", () => {
   assert.equal(result.needsReview, true);
 });
 
+test("reconciliation-flagged unliquidated entry → filingMethod cape_phase2", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isFlaggedForReconciliation: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("reconciliation-flagged, liquidated within 80 days → filingMethod cape_phase2", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 30);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq, isFlaggedForReconciliation: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("reconciliation-flagged, liquidated 80–180 days ago → protest (not cape_phase2)", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 120);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq, isFlaggedForReconciliation: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "protest");
+});
+
+test("filed Type 09 entry → excluded regardless of reconciliation flag", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09", isFlaggedForReconciliation: true });
+  assert.equal(result.status, "excluded_type");
+  assert.equal(result.filingMethod, "none");
+});
+
 // ── 5. Entry Number Validation ──────────────────────────────────────────────
 
 console.log("\n▸ validateEntryNumber");
