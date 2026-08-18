@@ -99,6 +99,7 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 
 const FILING_RISK: Record<FilingMethod, number> = {
   cape_phase1: 0,
+  cape_phase2: 5,  // slightly higher risk: filing-order sensitivity (must file CAPE before Type 09)
   protest: 15,
   litigation: 35,
   none: 60,
