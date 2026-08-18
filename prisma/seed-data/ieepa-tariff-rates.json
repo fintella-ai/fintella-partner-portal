@@ -332,7 +332,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026 (hard statutory limit — President cannot extend unilaterally). Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LITIGATION STATUS: CIT Slip Op. 26-47 (May 7, 2026) held Section 122 tariffs unlawful — limited injunction issued for State of Washington and two private importers. Federal Circuit STAYED the injunction June 11, 2026 (found government likely to succeed on merits) — CBP continues to collect Section 122 duties pending CAFC appeal. Government brief due July 2026; appeal unlikely resolved before July 24 expiration. REPLACEMENT: USTR proposed Section 301 forced-labor tariffs covering 60 economies at 10% (countries with forced-labor prohibition) or 12.5% (all others). Comments due July 6, 2026; hearing July 7, 2026. USTR targeting finalization before July 24 expiration. Section 232 pharma expansion also scheduled for July 31.",
       "supersededBy": null
     },
     {
@@ -4878,6 +4878,19 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "Federal Register 2026-13298 (Jul 1, 2026); IRS Rev. Rul. 2026-22_IRB"
       }
     ]
   },

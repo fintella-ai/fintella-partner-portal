@@ -76,6 +76,8 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isFlaggedForReconciliation?: boolean; // base entry (01/02/06) flagged in ACE for reconciliation
+  reconciliationFiled?: boolean;        // whether the Type 09 reconciliation entry has been filed
 }
 
 export interface EntryForCape {
@@ -274,6 +276,18 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     return {
       status: "excluded_drawback",
       reason: "Entry is on drawback — not refundable via CAPE (duties already recovered)",
+      filingMethod: "none",
+    };
+  }
+
+  // 2a. Reconciliation-filed exclusion (CAPE June 29, 2026 update, CSMS #69066837)
+  // Base entries (01/02/06) flagged for reconciliation are eligible ONLY while the Type 09
+  // reconciliation entry has not yet been filed. Once the Type 09 is filed, the underlying
+  // entries are ineligible via CAPE in this phase.
+  if (entry.isFlaggedForReconciliation && entry.reconciliationFiled) {
+    return {
+      status: "excluded_type",
+      reason: "Type 09 reconciliation entry already filed — underlying entry no longer eligible via CAPE (CSMS #69066837)",
       filingMethod: "none",
     };
   }
