@@ -30,9 +30,13 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE window → automated CAPE refund
+ *                 (CAPE Phase 2, effective Jun 29 2026, also accepts unliquidated entries flagged for
+ *                 reconciliation — types 01/02/06 — even when the Type 09 hasn't been filed yet)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *                 (CAPE Phase 3, ordered Jul 17 2026, allows reliquidation of finally-liquidated entries
+ *                 for importers who are plaintiffs in the ~3,700 CIT cases; progress report filed Aug 4 2026)
  *  - none:        not eligible for any refund path
  */
 export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
@@ -205,7 +209,14 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE (Phases 1 and 2).
+ * CAPE Phase 2 (effective Jun 29 2026) accepts entries of types 01/02/06 that are flagged
+ * for Type 09 reconciliation even when the Type 09 has not yet been filed — those underlying
+ * entries are NOT in this exclusion set. Only the Type 09 summary entry itself remains excluded.
+ * Type 47 (drawback) and Type 08 (USMCA duty deferral) remain excluded across all phases.
+ * Type 23 (TIB) remains excluded. Type 09 (reconciliation summary entry) remains excluded.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -216,10 +227,13 @@ const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 const PROTEST_WINDOW_DAYS = 180;
 
 /**
- * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
+ * CAPE Phase 1/2 scope: CBP automatically processes unliquidated entries and
  * entries liquidated within the last 80 days. Entries liquidated 80–180 days
- * ago are still recoverable, but require a formal protest rather than the
- * automated CAPE channel.
+ * ago are still recoverable via formal protest (19 U.S.C. §1514). Entries
+ * liquidated > 180 days ago require CIT litigation — unless the importer is a
+ * named plaintiff in the ~3,700 CIT cases consolidated before Judge Eaton, in
+ * which case CAPE Phase 3 (CIT order Jul 17 2026, progress report filed Aug 4
+ * 2026) may allow reliquidation without regard to the 180-day protest bar.
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
