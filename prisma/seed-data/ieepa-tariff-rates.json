@@ -1,7 +1,7 @@
 {
   "_metadata": {
-    "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "version": "1.1.0",
+    "generatedDate": "2026-05-23",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +9,11 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "Burlap & Barrel, Inc. v. Trump, consolidated with Oregon v. Trump (CIT, May 7, 2026)",
+      "CAFC administrative stay of CIT Section 122 injunction (May 12, 2026)",
+      "CBP IEEPA Duty Refunds / CAPE Phase 1 progress report (May 2026)",
+      "USTR: President Trump State Visit to China (May 14-18, 2026)"
     ]
   },
   "rates": [
@@ -332,7 +336,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026 unless extended by Congress. Max statutory rate is 15% — rate remains 10% as of May 2026; Trump's Feb 22 social-media statement of intent to raise to 15% was never formalized in a proclamation. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL STATUS UPDATE (May 2026): On May 7, 2026, the U.S. Court of International Trade (CIT) ruled 2-1 in Burlap & Barrel, Inc. v. Trump (consolidated with Oregon v. Trump) that the Section 122 tariffs are unlawful and issued a permanent injunction against collection — but the injunction applies ONLY to the named plaintiffs (Burlap & Barrel Inc., Basic Fun Inc., State of Washington). On May 12, 2026, the U.S. Court of Appeals for the Federal Circuit (CAFC) entered an administrative stay suspending the CIT injunction while the appeal proceeds. As of May 23, 2026: CBP continues collecting the 10% duty from all non-party importers; no refund basis exists yet for the general importer population. If the CAFC ultimately upholds the CIT, Section 122 duties could become broadly refundable analogous to the IEEPA post-SCOTUS refund window — watch for CAFC ruling. CHINA SUMMIT (May 14-18, 2026): Trump-Xi state visit produced agricultural purchase commitments ($27B/yr) and a 'Board of Trade and Investment'; Trump stated tariffs were not discussed and no China-specific Section 122 exemption proclamation or HTS modification was issued.",
       "supersededBy": null
     },
     {
