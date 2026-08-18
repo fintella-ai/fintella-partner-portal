@@ -1,7 +1,7 @@
 {
   "_metadata": {
-    "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "version": "1.1.0",
+    "generatedDate": "2026-06-29",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +9,9 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "Oregon v. United States / Burlap and Barrel, Inc. v. United States (CIT Slip Op. 26-47, May 7, 2026)",
+      "CBP CSMS #69035485 (Jun 23, 2026) — CAPE Phase 2 deployment Jun 29, 2026"
     ]
   },
   "rates": [
@@ -332,7 +334,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL CHALLENGE: On May 7, 2026, the Court of International Trade (Slip Op. 26-47, Oregon v. United States / Burlap and Barrel, Inc. v. United States) ruled Proclamation 11012 unlawful — held that Section 122 requires identifying 'balance-of-payments deficits' per specific metrics Congress contemplated in 1974, which the proclamation failed to do. Injunction limited to direct importer plaintiffs only (State of Washington / University of Washington direct imports, Burlap and Barrel, Basic Fun); 23 other state plaintiffs dismissed for lack of standing. Government appealed to CAFC; CAFC administrative stay entered May 12, 2026 suspends CIT order pending appeal. CIT separately denied government's stay motion on May 20, 2026, but the CAFC administrative stay remains in force. Practical effect: all importers except named plaintiffs continue paying the 10% surcharge. Tariff expires Jul 24, 2026 regardless of appeal outcome.",
       "supersededBy": null
     },
     {

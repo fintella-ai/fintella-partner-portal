@@ -30,7 +30,9 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE window → automated CAPE refund
+ *                 (CAPE Phase 1 launched Apr 20 2026; Phase 2 launched Jun 29 2026 adding
+ *                  entries flagged for reconciliation where no Type 09 has been filed)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
@@ -205,7 +207,13 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE (Phase 1 & 2).
+ * 08 = informal entry, 09 = reconciliation summary, 23 = temporary import, 47 = drawback.
+ * CAPE Phase 2 (Jun 29 2026) added entries flagged for reconciliation (types 01/02/06 where no
+ * Type 09 has been filed) — Type 09 summary entries themselves and Type 47 drawback remain excluded.
+ * Type 47 drawback deferred to a future CAPE phase per CSMS #69035485.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -292,11 +300,11 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
+  // 4. Entry type exclusion (Type 09 summary, Type 47 drawback deferred; see CSMS #69035485)
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (Type 47 drawback and Type 09 reconciliation summary deferred to a future CAPE phase)`,
       filingMethod: "none",
     };
   }
