@@ -30,9 +30,15 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund.
+ *                 Also covers entries flagged for reconciliation (types 01/02/06) with no Type-09 on file —
+ *                 CAPE Phase 2 (launched Jun 29, 2026) added this functionality.
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - litigation:  liquidated > 180 days ago → protest window closed.
+ *                 For importers who have filed CIT suits, CAPE Phase 3 (launched late Jul 2026) provides
+ *                 an automated refund channel following CIT reliquidation orders; importers without suits
+ *                 are locked out of Phase 3 and must file to join the class action (Freestyle World,
+ *                 CIT No. 26-01088, class-cert argument Aug 19, 2026 — ruling pending).
  *  - none:        not eligible for any refund path
  */
 export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
@@ -220,6 +226,13 @@ const PROTEST_WINDOW_DAYS = 180;
  * entries liquidated within the last 80 days. Entries liquidated 80–180 days
  * ago are still recoverable, but require a formal protest rather than the
  * automated CAPE channel.
+ *
+ * CAPE Phase 2 (launched Jun 29, 2026): same 80-day window; adds entries
+ * flagged for reconciliation (types 01/02/06) with no Type-09 on file.
+ *
+ * CAPE Phase 3 (launched late Jul 2026): covers "finally liquidated" entries
+ * (> 80 days) for importers who have obtained CIT reliquidation orders.
+ * As of Aug 2026, ~$121.75B in refunds accepted into CAPE, $86.3B sent to Treasury.
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
