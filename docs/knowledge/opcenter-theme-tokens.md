@@ -73,3 +73,32 @@ opcenter.app too. This is intentionally **deferred** as its own task because:
   4. Audit admin + partner screens (light + dark) before making it default.
 - Do **not** change `--brand-gold` or the default theme tokens directly on a
   live-prod commit without John's explicit go-ahead + a visual pass.
+
+## ▶️ PLANNED — public-marketing OLED rollout (next session, Opus agents)
+
+John wants the opcenter.app/launch look on the **public marketing shell**
+(authenticated portal untouched). Run with Opus subagents, **screenshot-gated**
+before every push. Adapt the spec to Fintella's stack — do NOT copy shadcn
+`dark`/`text-foreground` verbatim (no `foreground` token; tailwind is
+`darkMode:"media"`); use explicit `text-white`/`bg-[#050507]`; never change
+global `darkMode` or `--app-*`/`--brand-gold`.
+
+### Canonical pattern (from the OpCenter builder terminal)
+- Root: `relative min-h-dvh bg-[#050507] text-white overflow-hidden`
+- Glow blob: `absolute … w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none`
+- Eyebrow: `text-xs uppercase tracking-[0.2em] text-violet-400/80 font-semibold`
+- Body: `text-white/60 text-lg leading-relaxed`
+- Stat card: `bg-white/[0.03] border border-white/[0.06] rounded-xl p-6 text-center` (`text-4xl font-bold text-white` + `text-sm text-white/50`)
+- Feature icon: `w-12 h-12 rounded-xl bg-violet-600/20 border border-violet-500/20 flex items-center justify-center`
+- Glass card: `bg-white/[0.025] border border-white/[0.06]`
+- Accent **#7c3aed** (violet-600); gradient text **violet→sky→cyan** L-to-R
+- Fonts: **Syne 700/800** via `next/font/google` → `--font-display` + tailwind `fontFamily.display`; body **Geist Sans**. Apply headlines via `className="font-[family-name:var(--font-display)]"` (NOT the `font-display` utility — collides with the `.font-display{…DM Serif…!important}` rule).
+
+### Steps
+1. **Foundation first (shared files):** next/font in `layout.tsx`; tailwind `display` token; reusable `src/components/marketing/` (`MarketingShell`, `Eyebrow`, `GlassCard`, `StatCard`, `FeatureIcon`, `GradientText`). Keep scoped.
+2. **Fan out (parallel Opus agents, one per page):** wrap existing content in `MarketingShell`, swap classes, **preserve all logic/DB/forms**. Screenshot each.
+
+### Pages (public marketing only)
+- `src/app/landing-v2/page.tsx` — FLAGSHIP (`/` redirects here). ⚠️ admin-editable + DB-driven; built on SHARED theme (`landing.css`, `var(--app-*)`, `var(--brand-gold)`, global `card`/`btn-gold`). Re-theme via a SCOPED wrapper overriding those classes only inside `.landing-root`; read `landing.css` first; never touch global token defs.
+- `src/app/apply/page.tsx`, `pricing/page.tsx`, `partners/brokers/page.tsx`, `webinar/page.tsx`, `calculator/page.tsx`.
+- `/recover/tariff-diy` already overhauled (#1097/#1098 merged). **PR #1099** (open) = the good gradient-glow look for it — merge early to fix the live flat-violet page, then align tariff-diy to #7c3aed + next/font during the rollout.
