@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, EXPIRED Jul 24, 2026 (150-day statutory ceiling). Max statutory rate is 15%. As of Apr 2026, rate remained 10% — Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). REPLACED by Section 301 forced labor tariff (S301-FL-01) at same effective date.",
+      "supersededBy": "S301-FL-01"
     },
     {
       "id": "DZ-RECIP-ORIG",
@@ -4072,6 +4072,34 @@
       "htsChapter99": "9903.01.25",
       "notes": "Terminated by SCOTUS.",
       "supersededBy": "TERMINATED-SCOTUS"
+    },
+    {
+      "id": "S301-FL-01",
+      "executiveOrder": "USTR Section 301 Action (Forced Labor — 60 Economies, Jul 24 2026)",
+      "name": "Section 301 Forced Labor Surcharge — Standard Tier (10%)",
+      "rateType": "section301",
+      "countryCode": "ALL-STANDARD",
+      "countryName": "22 Standard-Tier Economies (ban or commitment in place)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20-9903.05.84",
+      "notes": "Section 301 forced labor tariff. USTR final action across 60 forced-labor Section 301 investigations, effective 12:01 AM ET Jul 24, 2026. Replaces Section 122 (expired same date). 10% standard rate for ~22 economies that ban forced-labor imports, committed to a ban via bilateral Agreement on Reciprocal Trade, or operate a partial regime. HTS Chapter 99 headings 9903.05.20–9903.05.84 per USTR Federal Register notice. CBP implementation: CSMS #69326983. USMCA goods (Canada/Mexico) and CAFTA-DR textile/apparel exempt. No statutory expiration — only legislation, litigation, or negotiation removes it. Source: https://ustr.gov/about/policy-offices/press-office/press-releases/2026/july/ustr-takes-action-forced-labor-section-301-investigations NOTE: This is NOT an IEEPA tariff — not subject to IEEPA refund through CAPE.",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-02",
+      "executiveOrder": "USTR Section 301 Action (Forced Labor — 60 Economies, Jul 24 2026)",
+      "name": "Section 301 Forced Labor Surcharge — Elevated Tier (12.5%)",
+      "rateType": "section301",
+      "countryCode": "ALL-ELEVATED",
+      "countryName": "38 Elevated-Tier Economies (no adequate forced-labor ban)",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20-9903.06.21",
+      "notes": "Section 301 forced labor tariff at elevated 12.5% rate for 38 economies with inadequate forced-labor import prohibitions. Includes China, Vietnam, Thailand, Brazil, Russia, and 33 others. Effective 12:01 AM ET Jul 24, 2026; goods loaded before Jul 24 and entered before Jul 28 are exempt (in-transit exclusion). HTS Chapter 99 headings 9903.05.20–9903.06.21 per USTR Federal Register notice. CBP implementation: CSMS #69326983. USMCA goods (Canada/Mexico) and CAFTA-DR textile/apparel exempt. No statutory expiration. Source: https://ustr.gov/about/policy-offices/press-office/fact-sheets/2026/july/fact-sheet-ustr-section-301-action-response-failure-60-economies-ban-imports-produced-forced-labor NOTE: This is NOT an IEEPA tariff — not subject to IEEPA refund through CAPE.",
+      "supersededBy": null
     }
   ],
   "liberationDayAnnexI": {
@@ -4881,8 +4909,33 @@
       }
     ]
   },
+  "capePhases": {
+    "phase1": {
+      "description": "CAPE Phase 1 — Standard unliquidated and recently liquidated consumption entries",
+      "launchDate": "2026-04-20",
+      "csms": "CSMS #68340863",
+      "entryTypes": "Types 01, 03, 06, 11, 21, 22 (unliquidated or liquidated within 80 days)",
+      "excludes": "Types 08, 09 (reconciliation summary), 23, 47 (drawback); reconciliation-flagged entries"
+    },
+    "phase2": {
+      "description": "CAPE Phase 2 — Reconciliation-flagged consumption entries (Types 01, 02, 06) where Type 09 not yet filed",
+      "launchDate": "2026-06-29",
+      "csms": "CSMS #69066837",
+      "entryTypes": "Types 01, 02, 06 that are flagged for reconciliation AND for which the Type 09 reconciliation entry has NOT been filed",
+      "excludes": "Same as Phase 1 plus: reconciliation-flagged entries where Type 09 has already been filed; if reconciliation deadline is <30 days away, filers should file the Type 09 first",
+      "scale": "2.8M additional entries, $28.7B in additional IEEPA duties covered"
+    },
+    "phase3": {
+      "description": "CAPE Phase 3 — Finally liquidated entries (protest window expired); CIT litigants only",
+      "launchDate": "2026-07-31",
+      "csms": "TBD — CBP progress report due 2026-08-04",
+      "entryTypes": "Entries liquidated more than 180 days ago where importer has filed a case at the U.S. Court of International Trade",
+      "excludes": "Importers WITHOUT active CIT cases; Type 47 drawback entries remain excluded from all phases",
+      "note": "General importers without CIT cases cannot use Phase 3; they must have filed protest within 180 days of liquidation or filed CIT suit to have any path"
+    }
+  },
   "capePhase1": {
-    "description": "Consolidated Administration and Processing of Entries (CAPE) Phase 1 - IEEPA Duty Refund Program",
+    "description": "DEPRECATED key — see capePhases above. Kept for backward compatibility with existing seed consumers.",
     "launchDate": "2026-04-20",
     "systemName": "CAPE (within ACE)",
     "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT order Mar 4, 2026",
@@ -4934,7 +4987,7 @@
         {
           "code": "09",
           "name": "Reconciliation Summary",
-          "notes": "Flagged for reconciliation - excluded"
+          "notes": "Type 09 entries (the reconciliation summary itself) excluded from all phases. Types 01/02/06 flagged for reconciliation now eligible under Phase 2 (Jun 29, 2026) if Type 09 has not yet been filed."
         },
         {
           "code": "23",

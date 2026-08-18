@@ -80,6 +80,8 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 
   let filingMethod: FilingMethod = "cape_phase1";
   if (isLiquidated) filingMethod = deadlineDays != null && deadlineDays <= 0 ? "litigation" : "protest";
+  // Note: cape_phase2 (reconciliation-flagged entries) is set by checkEligibility directly; deriveRiskInput
+  // does not have visibility into reconciliation state, so it defaults to cape_phase1 for unliquidated entries.
 
   return {
     eligibilityStatus: anyEligible ? "eligible" : "excluded",
@@ -99,6 +101,7 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 
 const FILING_RISK: Record<FilingMethod, number> = {
   cape_phase1: 0,
+  cape_phase2: 0,  // same automated CAPE risk as Phase 1; reconciliation-flagged adds minimal complexity
   protest: 15,
   litigation: 35,
   none: 60,
