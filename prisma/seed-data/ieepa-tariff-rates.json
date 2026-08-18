@@ -1,15 +1,17 @@
 {
   "_metadata": {
     "version": "1.0.0",
-    "generatedDate": "2026-04-29",
-    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
-    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
+    "generatedDate": "2026-07-27",
+    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026, Section 122 replacement (expired Jul 24, 2026), and Section 301 forced-labor successor (eff. Jul 24, 2026).",
+    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132), Trade Act of 1974 Section 301 (19 U.S.C. 2411)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
       "Federal Register notices",
-      "CBP CSMS guidance messages",
+      "CBP CSMS guidance messages (incl. #69127837 re: warehouse entry exclusion Jul 7, 2026)",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "Burlap & Barrel, Inc. v. United States (CIT May 7, 2026) — Section 122 struck down, stayed by Fed. Cir. Jun 11, 2026",
+      "USTR Section 301 Forced Labor Final Action (effective Jul 24, 2026)"
     ]
   },
   "rates": [
@@ -332,7 +334,21 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired at 12:01 AM ET Jul 24, 2026. Max statutory rate is 15%. CIT struck down Section 122 on May 7, 2026 (Burlap & Barrel v. US) but Federal Circuit stayed the injunction on Jun 11, 2026 pending appeal — moot as tariff expired by operation of law. Replaced by Section 301 forced-labor tariffs effective Jul 24, 2026.",
+      "supersededBy": "S301-FORCED-LABOR-01"
+    },
+    {
+      "id": "S301-FORCED-LABOR-01",
+      "executiveOrder": "USTR Section 301 Final Action (Jul 24, 2026)",
+      "name": "Section 301 Forced-Labor Surcharge (10–12.5%)",
+      "rateType": "section301",
+      "countryCode": "ALL",
+      "countryName": "All Countries (60 economies)",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "USTR Section 301 forced-labor investigation final action. Simultaneous with Section 122 expiration. Two-tier structure: 12.5% for economies without adequate forced-labor import prohibitions (~most covered countries); 10% for economies with at least partial protections. Covers ~60 economies (~99.4% of US imports). Country-specific HTS subheadings 9903.05.20 through 9903.05.84; exemptions under 9903.05.85–9903.05.99 and 9903.06.01–9903.06.21 (USMCA/CAFTA-DR goods, civil aircraft, pharmaceuticals, Chapter 98 special provisions). No statutory expiration, unlike Section 122. Applies to goods entered on or after 12:01 AM ET Jul 24, 2026. NOTE: Section 301 tariffs are NOT refundable under CAPE — CAPE applies only to IEEPA duties paid Feb 2025–Feb 2026. This entry documents the post-Section-122 tariff environment for calculator context only.",
       "supersededBy": null
     },
     {
