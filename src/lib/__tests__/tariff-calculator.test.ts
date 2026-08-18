@@ -202,12 +202,15 @@ test("liquidated AD/CVD within protest window → eligible", () => {
   assert.ok(result.deadlineDays! > 0);
 });
 
-test("past protest window (>180 days) → excluded_expired + litigation", () => {
+test("past protest window (>180 days) → eligible via CAPE Phase 3", () => {
+  // CAPE Phase 3: CIT ordered CBP to reliquidate finally-liquidated entries (July 17, 2026).
+  // Entries previously marked excluded_expired are now eligible with filingMethod=cape_phase3.
   const liq = new Date();
   liq.setDate(liq.getDate() - 200);
   const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
-  assert.equal(result.status, "excluded_expired");
-  assert.equal(result.filingMethod, "litigation");
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase3");
+  assert.equal(result.needsReview, true); // Phase 3 carries a human-review caveat
 });
 
 test("urgent when ≤14 days remaining (near 180-day deadline)", () => {
@@ -245,6 +248,29 @@ test("liquidated 80–180 days ago → eligible via protest", () => {
 test("drawback entry → excluded_drawback", () => {
   const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isDrawback: true });
   assert.equal(result.status, "excluded_drawback");
+});
+
+// ── CAPE Phase 2: reconciliation-flagged entries (launched Jun 29, 2026) ────
+test("reconciliation-flagged, no Type 09 filed → eligible via cape_phase2", () => {
+  const result = checkEligibility({
+    entryDate: new Date("2025-06-15"),
+    entryType: "01",
+    isFlaggedForReconciliation: true,
+    hasReconciliationEntry: false,
+  });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("reconciliation-flagged, Type 09 already filed → excluded_recon_filed", () => {
+  const result = checkEligibility({
+    entryDate: new Date("2025-06-15"),
+    entryType: "01",
+    isFlaggedForReconciliation: true,
+    hasReconciliationEntry: true,
+  });
+  assert.equal(result.status, "excluded_recon_filed");
+  assert.equal(result.filingMethod, "none");
 });
 
 test("USMCA CA goods after Mar 7, 2025 → excluded_usmca", () => {
@@ -309,6 +335,7 @@ test("excluded_adcvd → legal_required", () => assert.equal(getRoutingBucket("e
 test("excluded_expired → legal_required", () => assert.equal(getRoutingBucket("excluded_expired"), "legal_required"));
 test("excluded_drawback → not_applicable", () => assert.equal(getRoutingBucket("excluded_drawback"), "not_applicable"));
 test("excluded_usmca → not_applicable", () => assert.equal(getRoutingBucket("excluded_usmca"), "not_applicable"));
+test("excluded_recon_filed → not_applicable", () => assert.equal(getRoutingBucket("excluded_recon_filed"), "not_applicable"));
 
 // ── 6b. Deal Tiering ─────────────────────────────────────────────────────────
 

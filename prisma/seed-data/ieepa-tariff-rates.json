@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired 12:01 AM ET Jul 24, 2026 (statutory sunset). Max statutory rate is 15%. Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). NOTE: CIT struck down Section 122 on May 7, 2026 (Euro-Notions case) ruling balance-of-payments conditions not met; CAFC issued administrative stay May 12, 2026 — tariff remained in effect through statutory expiration. Superseded by Section 301 forced-labor tariffs effective Jul 24, 2026.",
+      "supersededBy": "S301-FL-10PCT"
     },
     {
       "id": "DZ-RECIP-ORIG",
@@ -4072,6 +4072,34 @@
       "htsChapter99": "9903.01.25",
       "notes": "Terminated by SCOTUS.",
       "supersededBy": "TERMINATED-SCOTUS"
+    },
+    {
+      "id": "S301-FL-10PCT",
+      "executiveOrder": "USTR Section 301 Final Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff — 10% Countries",
+      "rateType": "section301",
+      "countryCode": "S301-10PCT-GROUP",
+      "countryName": "18 Economies with Forced-Labor Import Bans",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "USTR imposed Section 301 additional tariffs of 10% on imports from 18 economies that have adopted or committed to forced-labor import prohibitions. Effective 12:01 AM ET July 24, 2026 — same moment Section 122 expired. No statutory sunset (unlike Section 122). Source: USTR Final Action FRN published July 23, 2026. CSMS #69326983 provides CBP filing instructions; Chapter 99 range 9903.05.20 – 9903.06.21. Countries subject to 10% rate: Argentina (AR), Bangladesh (BD), Cambodia (KH), Canada (CA), Ecuador (EC), El Salvador (SV), Guatemala (GT), Honduras (HN), India (IN), Indonesia (ID), Jordan (JO), Malaysia (MY), Mexico (MX), Pakistan (PK), Sri Lanka (LK), Trinidad and Tobago (TT), United Kingdom (GB), and additional countries per final USTR action. IMPORTANT — USMCA exemption: goods entered free of duty under USMCA (CA/MX) are exempt. CAFTA-DR textile and apparel (El Salvador, Guatemala, Honduras, and other CAFTA-DR parties) are exempt. In-transit exemption: goods loaded before Jul 24, 2026 and entered before Jul 28, 2026 exempt. NOTE: These are NOT IEEPA tariffs and are not eligible for CAPE refunds. This entry is for rate-database completeness.",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-125PCT",
+      "executiveOrder": "USTR Section 301 Final Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff — 12.5% Countries",
+      "rateType": "section301",
+      "countryCode": "S301-125PCT-GROUP",
+      "countryName": "42 Economies Without Effective Forced-Labor Bans",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "USTR imposed Section 301 additional tariffs of 12.5% on imports from approximately 42 economies that have not adopted or do not effectively enforce prohibitions on imports produced with forced labor. Effective 12:01 AM ET July 24, 2026. No statutory sunset. Source: USTR Final Action FRN July 23, 2026 / CSMS #69326983. Countries subject to 12.5% rate include (but not limited to): China (CN), Brazil (BR), Vietnam (VN), Russia (RU), South Korea (KR), Thailand (TH), Japan (JP), EU member states, Taiwan, Turkey, and other economies not in the 10% group. Full definitive country list in USTR Federal Register notice. NOTE: These are NOT IEEPA tariffs and are not eligible for CAPE refunds. This entry is for rate-database completeness.",
+      "supersededBy": null
     }
   ],
   "liberationDayAnnexI": {
