@@ -31,11 +31,16 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: entries flagged for reconciliation (types 01/02/06, Type 09 not yet filed) → CAPE Phase 2
+ *                 (effective Jun 29, 2026; entries still limited to unliquidated / within 80 days of liquidation)
+ *  - cape_phase3: finally liquidated (protest window closed, >180 days since liquidation) with IEEPA duties →
+ *                 CIT reliquidation order (Jul 17, 2026) / CAPE Phase 3; non-litigants may join
+ *                 Freestyle World v. United States class action (class cert oral argument Aug 19, 2026)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - litigation:  superseded by cape_phase3 for IEEPA entries; retained for non-IEEPA edge cases
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -318,14 +323,21 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → CAPE Phase 3 / CIT reliquidation order (Jul 17, 2026)
+    // CIT ordered CBP to reliquidate all finally-liquidated IEEPA-duty entries; ~3,700 active
+    // litigants are covered by the order. Non-litigants should monitor Freestyle World v. United
+    // States (class cert oral argument Aug 19, 2026). Phase 3 not yet live as of Aug 2026.
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (>180 days since liquidation). Eligible for CAPE Phase 3 via CIT reliquidation order (Jul 17, 2026). Non-litigants: monitor Freestyle World v. United States class certification (oral argument Aug 19, 2026).",
         deadlineDays: daysRemaining,
         deadlineDate,
-        filingMethod: "litigation",
+        filingMethod: "cape_phase3",
+        needsReview: true,
+        reviewNote:
+          "CAPE Phase 3 not yet live (expected late Jul 2026, still pending as of Aug 2026). CIT reliquidation order covers ~3,700 active litigants; non-litigants should consult legal counsel and monitor Freestyle World class certification.",
       };
     }
 
