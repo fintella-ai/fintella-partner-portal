@@ -30,12 +30,14 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase1: unliquidated OR liquidated within 80 days (automated CAPE Phase 1)
+ *  - cape_phase2: reconciliation-flagged entry (Types 01/02/06, no Type 09 filed) — CAPE Phase 2,
+ *                 per CSMS #69035485 (launches Jun 29, 2026); same automated channel as Phase 1
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +78,7 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isReconFlagged?: boolean; // entry flagged for reconciliation with no Type 09 filed → CAPE Phase 2 (CSMS #69035485, Jun 29 2026)
 }
 
 export interface EntryForCape {
@@ -205,7 +208,7 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/** CBP entry types excluded from CAPE (all current phases). Types 01/02/06 flagged for reconciliation (isReconFlagged) route to CAPE Phase 2 — see CSMS #69035485. */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -296,19 +299,23 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (all current phases)`,
       filingMethod: "none",
     };
   }
 
-  // 5. AD/CVD check (unliquidated AD/CVD entries are excluded from Phase 1)
+  // 5. AD/CVD check (unliquidated AD/CVD entries are excluded from Phase 1/2)
   if (entry.isAdCvd && !entry.liquidationDate) {
     return {
       status: "excluded_adcvd",
-      reason: "Unliquidated AD/CVD entry excluded from Phase 1",
+      reason: "Unliquidated AD/CVD entry excluded from CAPE Phase 1/2",
       filingMethod: "none",
     };
   }
+
+  // Reconciliation-flagged entries (Types 01/02/06, no Type 09 filed) use CAPE Phase 2
+  // per CSMS #69035485 (launched Jun 29, 2026); same 80-day liquidation window applies.
+  const capeMethod: FilingMethod = entry.isReconFlagged ? "cape_phase2" : "cape_phase1";
 
   // 6. Liquidation → protest-deadline + filing-method determination
   if (entry.liquidationDate) {
@@ -329,16 +336,18 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
       };
     }
 
-    // Within 80 days of liquidation → CAPE Phase-1 automated; 80–180 days → formal protest
+    // Within 80 days of liquidation → CAPE automated (Phase 1 or 2); 80–180 days → formal protest
     const filingMethod: FilingMethod =
-      daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase1" : "protest";
+      daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? capeMethod : "protest";
 
     const base: EligibilityResult = {
       status: "eligible",
       reason:
-        filingMethod === "cape_phase1"
-          ? "Liquidated within 80 days — eligible via CAPE Phase 1"
-          : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
+        filingMethod === "protest"
+          ? "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)"
+          : filingMethod === "cape_phase2"
+          ? "Liquidated within 80 days, reconciliation-flagged — eligible via CAPE Phase 2 (CSMS #69035485)"
+          : "Liquidated within 80 days — eligible via CAPE Phase 1",
       deadlineDays: daysRemaining,
       isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
       deadlineDate,
@@ -347,11 +356,13 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     return applySectionReviewFlag(base, entry);
   }
 
-  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE Phase 1, no deadline yet
+  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE Phase 1 or 2
   const base: EligibilityResult = {
     status: "eligible",
-    reason: "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
-    filingMethod: "cape_phase1",
+    reason: entry.isReconFlagged
+      ? "Unliquidated reconciliation-flagged entry — eligible via CAPE Phase 2 (CSMS #69035485)"
+      : "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
+    filingMethod: capeMethod,
   };
   return applySectionReviewFlag(base, entry);
 }
