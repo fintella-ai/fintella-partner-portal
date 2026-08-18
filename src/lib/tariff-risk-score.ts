@@ -99,6 +99,7 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 
 const FILING_RISK: Record<FilingMethod, number> = {
   cape_phase1: 0,
+  cape_phase2: 2,  // slight uplift vs Phase 1: reconciliation flag adds minor CBP review risk
   protest: 15,
   litigation: 35,
   none: 60,
