@@ -332,7 +332,35 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired 12:01 AM EDT Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remained 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). CIT struck down tariffs May 7, 2026 (exceeded presidential authority - general trade deficits do not constitute balance-of-payments deficits required by statute); Federal Circuit issued administrative stay pending appeal. Expired at statutory 150-day limit Jul 24, 2026; immediately superseded by Section 301 forced labor tariffs (S301-FL-01/S301-FL-02). Congressional extension was not enacted.",
+      "supersededBy": "S301-FL-01"
+    },
+    {
+      "id": "S301-FL-01",
+      "executiveOrder": "USTR Section 301 Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff - 10% Economies",
+      "rateType": "section301",
+      "countryCode": "FL-10",
+      "countryName": "17 economies with forced labor import prohibition or bilateral commitment (UK, India, Mexico, Canada, EU, Taiwan, and others)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "Section 301 of Trade Act of 1974 (19 USC 2411). USTR determination Jun 2026 that 60 economies failed to ban imports made with forced labor or failed to enforce existing bans. 10% rate applies to economies that impose a forced labor import prohibition, have committed to impose/enforce such prohibition through an Agreement on Reciprocal Trade, or have imposed a partial regime. Includes UK, India, Mexico, Canada, EU member states, Taiwan. Same exemptions as Section 122: USMCA goods, CAFTA-DR textiles, Section 232 goods, Chapter 98 entries, informational materials, humanitarian donations. Pharmaceutical patent amendment adds pharma to Section 232 exemption from Jul 31, 2026. HTS codes 9903.05.20-9903.05.84. Federal Register: FR Doc. 2026-15274 (Jul 28, 2026). White House Presidential Action Jul 23, 2026. CSMS #69326983.",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-02",
+      "executiveOrder": "USTR Section 301 Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff - 12.5% Economies",
+      "rateType": "section301",
+      "countryCode": "FL-12.5",
+      "countryName": "38 economies without adequate forced labor import prohibition (China, Brazil, Vietnam, Russia, Japan, South Korea, Switzerland, and others)",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "Section 301 of Trade Act of 1974 (19 USC 2411). 12.5% rate applies to all remaining investigated economies that do not meet the forced labor prohibition threshold. Includes China, Brazil, Vietnam, Russia; Japan, South Korea, and Switzerland at 12.5% applied net-of-MFN. Same effective date and exemptions as S301-FL-01. In-transit exemption: goods loaded before 12:01 AM EDT Jul 24, 2026 and entered before 12:01 AM EDT Jul 28, 2026. HTS codes 9903.05.20-9903.05.84. Federal Register: FR Doc. 2026-15274 (Jul 28, 2026).",
       "supersededBy": null
     },
     {
@@ -4791,7 +4819,7 @@
       "9903.01.63": "China-specific reciprocal tariff (variable rate)"
     },
     "section122Codes": {
-      "9903.03.01": "Section 122 global surcharge (10%)",
+      "9903.03.01": "Section 122 global surcharge (10%) — EXPIRED Jul 24, 2026",
       "9903.03.02": "Section 122 exemption - USMCA goods",
       "9903.03.03": "Section 122 exemption - Section 232 goods",
       "9903.03.04": "Section 122 exemption - critical minerals",
@@ -4802,6 +4830,10 @@
       "9903.03.09": "Section 122 exemption - country-specific trade deal goods",
       "9903.03.10": "Section 122 exemption - agriculture products",
       "9903.03.11": "Section 122 exemption - other specified exclusions"
+    },
+    "section301ForcedLaborCodes": {
+      "9903.05.20": "Section 301 forced labor tariff baseline (10% or 12.5% depending on economy) — effective Jul 24, 2026",
+      "description": "HTS Chapter 99 headings 9903.05.20–9903.05.84 implement Section 301 forced labor tariffs. 10% for 17 economies (UK, India, Mexico, Canada, EU, Taiwan, others with forced labor import prohibition or commitment). 12.5% for remaining 38 economies (China, Brazil, Vietnam, Russia, Japan net-of-MFN, South Korea net-of-MFN, Switzerland net-of-MFN, others). Authority: Section 301, Trade Act of 1974 (19 USC 2411). FR Doc. 2026-15274 / 2026-15181. CSMS #69326983."
     }
   },
   "irsInterestRates": {
@@ -4878,12 +4910,27 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "notes": "Rate increased from 6% back to 7% for Q3 2026. IRS Revenue Ruling published IRB 2026-22. Source: federalregister.gov Quarterly IRS Interest Rates 2026-09871."
       }
     ]
   },
   "capePhase1": {
-    "description": "Consolidated Administration and Processing of Entries (CAPE) Phase 1 - IEEPA Duty Refund Program",
+    "description": "Consolidated Administration and Processing of Entries (CAPE) - IEEPA Duty Refund Program. Phase 1 launched Apr 20, 2026. Phase 2 launched Jun 29, 2026. Phase 3 targeted late Jul 2026 (CIT reliquidation orders for finally-liquidated entries issued Jul 15, 2026).",
     "launchDate": "2026-04-20",
+    "phase2LaunchDate": "2026-06-29",
+    "phase2CsmsRef": "CSMS #69035485",
     "systemName": "CAPE (within ACE)",
     "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT order Mar 4, 2026",
     "refundScope": "IEEPA duties ONLY. Section 232, Section 301, and other duties on same entry are NOT refundable.",
@@ -4933,8 +4980,8 @@
         },
         {
           "code": "09",
-          "name": "Reconciliation Summary",
-          "notes": "Flagged for reconciliation - excluded"
+          "name": "Reconciliation Summary (direct)",
+          "notes": "Type 09 reconciliation summary entries are directly excluded from CAPE. However, as of CAPE Phase 2 (Jun 29, 2026), the UNDERLYING entries flagged for reconciliation (types 01, 02, 06) ARE now eligible IF the type 09 entry has not yet been filed. CRITICAL: file CAPE declaration BEFORE filing the type 09 entry — once type 09 is filed, the underlying entries are locked out of CAPE."
         },
         {
           "code": "23",
@@ -4958,8 +5005,8 @@
         "Entry must be filed in ACE with a liquidation status visible in ACE",
         "Entry must have declared IEEPA Chapter 99 HTS codes",
         "Entry must NOT be covered by an open or suspended protest",
-        "Entry must NOT be flagged for reconciliation",
-        "Entry must NOT be on an active drawback claim"
+        "Entry must NOT be a Type 09 (reconciliation summary) entry — Phase 2 (Jun 29, 2026) allows the UNDERLYING flagged entries (types 01/02/06) if type 09 not yet filed",
+        "Entry must NOT be on an active drawback claim (Type 47 remains excluded)"
       ]
     },
     "refundCalculation": {
