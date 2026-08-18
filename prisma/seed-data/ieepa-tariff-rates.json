@@ -1,7 +1,7 @@
 {
   "_metadata": {
-    "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "version": "1.1.0",
+    "generatedDate": "2026-07-28",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL STATUS: On May 7, 2026, a CIT three-judge panel struck down the Section 122 tariffs as exceeding presidential authority (finding no qualifying balance-of-payments emergency). DOJ appealed May 8; the Federal Circuit issued an administrative stay May 12, 2026, so tariffs continued to be collected under the stay. Tariffs then expired naturally at 12:01 AM EDT July 24, 2026 per the 150-day statutory maximum — rendered moot by expiration before the Federal Circuit ruled on the merits. Immediately replaced by Section 301 forced labor tariffs (S301-FL-01) from USTR.",
+      "supersededBy": "S301-FL-01"
     },
     {
       "id": "DZ-RECIP-ORIG",
@@ -4072,6 +4072,20 @@
       "htsChapter99": "9903.01.25",
       "notes": "Terminated by SCOTUS.",
       "supersededBy": "TERMINATED-SCOTUS"
+    },
+    {
+      "id": "S301-FL-01",
+      "executiveOrder": "USTR Section 301 Forced Labor Investigations (Dockets USTR-2026-0265/0266, FR notice July 23, 2026)",
+      "name": "Section 301 Forced Labor Global Tariff (10%/12.5% on 60 Economies)",
+      "rateType": "section301_fl",
+      "countryCode": "60-ECONOMIES",
+      "countryName": "60 Designated Economies",
+      "rate": 0.10,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "USTR imposed Section 301 tariffs under Trade Act of 1974 §301 based on findings that 60 economies failed to prohibit or effectively enforce bans on imports made with forced labor. Effective 12:01 AM EDT July 24, 2026 — took effect simultaneously with Section 122 expiration. Two rate tiers: (1) 10% for ~14 economies that made trade agreement forced labor commitments (Argentina, Bangladesh, Cambodia, El Salvador, Guatemala, Malaysia, Taiwan, UK, and six economies with partial enforcement); (2) 12.5% for remaining ~46 economies including China, EU member states, Japan, South Korea, Vietnam, Canada, Mexico, India, Switzerland. USMCA-compliant goods from Canada and Mexico remain exempt. CAFTA-DR textile/apparel exempt. Section 232 articles, civil aircraft, pharmaceutical articles, informational materials, and donations also exempt. Product-specific exemptions for 13 additional economies under HTSUS 9903.05.96–9903.06.21. HTS implementation: duties filed under 9903.05.20–9903.05.84 (per-country headings); exemptions under 9903.05.85–9903.05.99 and 9903.06.01–9903.06.21. CBMS # 69326983 (CBP filing guidance issued July 24, 2026). IMPORTANT: These are Section 301 tariffs — NOT IEEPA. They are NOT refundable via CAPE. Do not include in IEEPA refund calculations. Litigation challenging these tariffs is expected given the forced labor pretext argument.",
+      "supersededBy": null
     }
   ],
   "liberationDayAnnexI": {
