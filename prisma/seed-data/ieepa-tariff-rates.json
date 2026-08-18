@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, EXPIRED Jul 24, 2026. Max statutory rate is 15%. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). CIT RULING (May 7, 2026): Court of International Trade held Proclamation 11012 ultra vires — the proclamation cited trade deficits and current account deficits but did not identify a balance-of-payments deficit as Congress defined the term in 1974 (liquidity, official settlements, basic balance). Permanent injunction entered for three named importer plaintiffs only; tariff continued to apply to all other importers. Government appealed to Federal Circuit (May 8, 2026). STATUTORY EXPIRATION: Section 122 expired by operation of law on Jul 24, 2026 (150-day maximum per 19 USC 2132(a)), making the Federal Circuit appeal moot as to prospective enforcement. PENDING REPLACEMENT: USTR proposed Section 301 tariffs (June 2, 2026) following investigations into forced-labor practices across 59 countries + EU and excess manufacturing capacity across 16 economies. Proposed rates: 10% on 15 trading partners, 12.5% on 45-46 trading partners. Comment period closed Jul 6, 2026; hearing held Jul 7, 2026. Final rule expected around Jul 24, 2026 — NOT YET CONFIRMED as of this update.",
+      "supersededBy": "PENDING-S301"
     },
     {
       "id": "DZ-RECIP-ORIG",

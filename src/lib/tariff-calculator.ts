@@ -31,11 +31,12 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: Type 09 reconciliation entries → automated CAPE Phase 2 refund (live as of Jun 29, 2026)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -205,8 +206,16 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE.
+ * - 08: informal entries / de minimis — excluded from CAPE
+ * - 21, 22: warehouse entries — excluded from CAPE per CSMS #69127837 (eff. Jul 7, 2026)
+ * - 23: temporary import bond (TIB) — excluded from CAPE
+ * - 47: drawback — excluded from CAPE ("ENTRY ON DRAWBACK" error)
+ * NOTE: Type 09 (reconciliation) was excluded from Phase 1 but is now eligible
+ *       via CAPE Phase 2 (launched Jun 29, 2026) — handled separately below.
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -292,11 +301,21 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
+  // 4. Type 09 reconciliation entries → CAPE Phase 2 (live Jun 29, 2026)
+  if (entry.entryType === "09") {
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: "Type 09 reconciliation entry — eligible via CAPE Phase 2 (launched Jun 29, 2026)",
+      filingMethod: "cape_phase2",
+    };
+    return applySectionReviewFlag(base, entry);
+  }
+
+  // 4b. Other excluded entry types (warehouse entries per CSMS #69127837, TIB, drawback, informal)
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE`,
       filingMethod: "none",
     };
   }
