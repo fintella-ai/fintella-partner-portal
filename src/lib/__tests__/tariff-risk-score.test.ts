@@ -59,10 +59,12 @@ test("drawback + AD/CVD stack risk points", () => {
 });
 
 test("litigation filing method is riskier than protest, which is riskier than cape", () => {
-  const cape = computeRiskScore({ ...cleanLowRisk, filingMethod: "cape_phase1" }).score;
+  const cape1 = computeRiskScore({ ...cleanLowRisk, filingMethod: "cape_phase1" }).score;
+  const cape2 = computeRiskScore({ ...cleanLowRisk, filingMethod: "cape_phase2" }).score;
   const protest = computeRiskScore({ ...cleanLowRisk, filingMethod: "protest" }).score;
   const litigation = computeRiskScore({ ...cleanLowRisk, filingMethod: "litigation" }).score;
-  assert.ok(protest > cape, "protest > cape");
+  assert.ok(cape2 >= cape1, "cape_phase2 >= cape_phase1 (sequencing complexity)");
+  assert.ok(protest > cape2, "protest > cape_phase2");
   assert.ok(litigation > protest, "litigation > protest");
 });
 
