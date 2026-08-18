@@ -31,11 +31,13 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - cape_phase2: entry flagged for reconciliation (types 01/02/06) → CAPE Phase 2 (launched June 29, 2026)
+ *  - cape_phase3: finally liquidated >80 days, importer has CIT filing → CAPE Phase 3 (CIT order July 17, 2026)
+ *  - protest:     liquidated 80–180 days ago, no CIT filing → must file a formal protest (19 U.S.C. §1514)
+ *  - litigation:  liquidated > 180 days ago, no CIT filing → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +78,8 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isReconciliationFlagged?: boolean; // entry (types 01/02/06) was flagged for reconciliation in ACE → CAPE Phase 2
+  hasCitFiling?: boolean;            // importer has filed a protective action at CIT → CAPE Phase 3 for finally liquidated entries
 }
 
 export interface EntryForCape {
@@ -292,6 +296,18 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
+  // 3a. Reconciliation-flagged entries (CAPE Phase 2, launched June 29, 2026)
+  // Entries of types 01/02/06 that were flagged for reconciliation in ACE are now accepted
+  // by CAPE Phase 2. Type 09 reconciliation entries themselves remain excluded (step 4).
+  if (entry.isReconciliationFlagged && !EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: "Reconciliation-flagged entry — eligible via CAPE Phase 2 (launched June 29, 2026)",
+      filingMethod: "cape_phase2",
+    };
+    return applySectionReviewFlag(base, entry);
+  }
+
   // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
@@ -318,8 +334,20 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline
     if (daysRemaining < 0) {
+      // CAPE Phase 3 (CIT order July 17, 2026): importers with CIT filings can get reliquidation
+      // even after the 180-day protest window, via the court's CAPE Phase 3 order.
+      if (entry.hasCitFiling) {
+        const base: EligibilityResult = {
+          status: "eligible",
+          reason: "Finally liquidated >180 days ago — eligible via CAPE Phase 3 (requires CIT filing; court order July 17, 2026)",
+          deadlineDays: daysRemaining,
+          deadlineDate,
+          filingMethod: "cape_phase3",
+        };
+        return applySectionReviewFlag(base, entry);
+      }
       return {
         status: "excluded_expired",
         reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
@@ -329,16 +357,25 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
       };
     }
 
-    // Within 80 days of liquidation → CAPE Phase-1 automated; 80–180 days → formal protest
-    const filingMethod: FilingMethod =
-      daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase1" : "protest";
+    // Within 80 days of liquidation → CAPE Phase 1 (automated)
+    // 80–180 days: CAPE Phase 3 if CIT filed, otherwise formal protest
+    let filingMethod: FilingMethod;
+    if (daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS) {
+      filingMethod = "cape_phase1";
+    } else if (entry.hasCitFiling) {
+      filingMethod = "cape_phase3";
+    } else {
+      filingMethod = "protest";
+    }
 
     const base: EligibilityResult = {
       status: "eligible",
       reason:
         filingMethod === "cape_phase1"
           ? "Liquidated within 80 days — eligible via CAPE Phase 1"
-          : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
+          : filingMethod === "cape_phase3"
+            ? "Finally liquidated >80 days — eligible via CAPE Phase 3 (CIT order July 17, 2026)"
+            : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
       deadlineDays: daysRemaining,
       isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
       deadlineDate,
