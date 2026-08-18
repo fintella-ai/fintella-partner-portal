@@ -1,15 +1,23 @@
 {
   "_metadata": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "generatedDate": "2026-04-29",
-    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
-    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
+    "lastUpdated": "2026-08-10",
+    "description": "Comprehensive tariff rate database for the TIE refund calculator. Covers IEEPA tariffs (Feb 2025–Feb 2026), Section 122 replacement (Feb–Jul 2026), Section 301 forced-labor replacement (Jul 2026–), and Section 338 Canada tariffs (Aug 2026–). Primary refund scope: IEEPA period only.",
+    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.); Trade Act of 1974 §122 (19 U.S.C. 2132); Trade Act of 1974 §301 (19 U.S.C. 2411); Tariff Act of 1930 §338 (19 U.S.C. 1338)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
+      "Proclamation (Feb 23, 2026) — Section 122 global surcharge",
+      "Proclamation (Jul 20, 2026) — Section 338 tariffs on Canada (three proclamations)",
+      "USTR Section 301 Forced Labor Investigation determination (Jul 23, 2026)",
       "Federal Register notices",
       "CBP CSMS guidance messages",
+      "CBP CSMS #68340863 — CAPE Phase 1 launch (Apr 20, 2026)",
+      "CBP CSMS #69127837 — CAPE warehouse entry guidance",
+      "CIT order Jul 17, 2026 — CAPE Phase 3 reliquidation (finally liquidated entries, plaintiffs)",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "Euro-Notions Florida v. United States (CIT, CAPE progress reporting vehicle)"
     ]
   },
   "rates": [
@@ -332,7 +340,63 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Expired Jul 24, 2026 (150-day statutory limit; no congressional extension). CIT also ruled Section 122 unlawful (May 7, 2026, 2-1 decision) but limited to 3 plaintiff importers; government appealed to Fed. Cir. Annex II exclusions applied (USMCA goods, Section 232, critical minerals, pharmaceuticals, semiconductors). Succeeded immediately by Section 301 forced-labor tariffs (S301-GLOBAL-01).",
+      "supersededBy": "S301-GLOBAL-01"
+    },
+    {
+      "id": "S301-GLOBAL-01",
+      "executiveOrder": "USTR Section 301 Determination + Proclamation (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Global Tariff (10% / 12.5%)",
+      "rateType": "section301",
+      "countryCode": "ALL",
+      "countryName": "All Countries (~60 economies)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "Seamless replacement for expired Section 122. USTR Section 301 investigation (19 USC 2411) found ~60 trading economies failed to enforce prohibitions on forced-labor imports. Two-tier rate: 10% for economies with partial forced-labor protections (lower tier); 12.5% for non-compliant economies (upper tier). Covers ~99.4% of all US imports. HTS codes 9903.05.20 through 9903.05.84 (per new U.S. Note 52 to Subchapter III of Chapter 99). Exemptions for USMCA goods, civil aircraft, pharmaceuticals, semiconductors, and other specified HTS lines. Effective 12:01 AM ET July 24, 2026 — same minute Section 122 expired, no gap. IMPORTANT: NOT an IEEPA tariff — this authority cannot be challenged under Learning Resources. No refund path via CAPE for duties collected under this authority.",
+      "supersededBy": null
+    },
+    {
+      "id": "CA-S338-01",
+      "executiveOrder": "Proclamation (Jul 20, 2026) — Alcoholic Beverages & Related Goods",
+      "name": "Section 338 Canada Tariff - Alcoholic Beverages (50%)",
+      "rateType": "section338",
+      "countryCode": "CA",
+      "countryName": "Canada",
+      "rate": 0.5,
+      "effectiveDate": "2026-08-19",
+      "endDate": null,
+      "htsChapter99": "9903.03.12",
+      "notes": "First modern invocation of Section 338 of the Tariff Act of 1930 (19 USC 1338). One of three simultaneous proclamations signed July 20, 2026. 50% ad valorem on Canadian-origin: beer (HTS 2203), wine (2204), vermouth (2205), other fermented beverages (2206), spirits/whisky/gin/vodka/rum/brandy/liqueurs (2208), plus certain coniferous wood, wooden kitchenware, and hockey articles. USMCA provides NO relief — applies regardless of USMCA preference status. Effective 12:01 AM ET August 19, 2026. Part of broader Canada trade dispute. NOT an IEEPA tariff — no refund path via CAPE.",
+      "supersededBy": null
+    },
+    {
+      "id": "CA-S338-02",
+      "executiveOrder": "Proclamation (Jul 20, 2026) — Dairy Products",
+      "name": "Section 338 Canada Tariff - Dairy Products (50%)",
+      "rateType": "section338",
+      "countryCode": "CA",
+      "countryName": "Canada",
+      "rate": 0.5,
+      "effectiveDate": "2026-08-19",
+      "endDate": null,
+      "htsChapter99": "9903.03.13",
+      "notes": "One of three simultaneous Section 338 proclamations signed July 20, 2026. 50% ad valorem on Canadian-origin dairy products including milk, cream, butter, cheese, yogurt, whey (selected lines, HTS Chapter 4). USMCA provides NO relief. Effective 12:01 AM ET August 19, 2026. NOT an IEEPA tariff — no refund path via CAPE.",
+      "supersededBy": null
+    },
+    {
+      "id": "CA-S338-03",
+      "executiveOrder": "Proclamation (Jul 20, 2026) — Motor Vehicles & Consumer Goods",
+      "name": "Section 338 Canada Tariff - Motor Vehicles & Consumer Goods (50%)",
+      "rateType": "section338",
+      "countryCode": "CA",
+      "countryName": "Canada",
+      "rate": 0.5,
+      "effectiveDate": "2026-08-19",
+      "endDate": null,
+      "htsChapter99": "9903.03.14",
+      "notes": "One of three simultaneous Section 338 proclamations signed July 20, 2026. 50% ad valorem on Canadian-origin motor vehicles, cement, furniture, clothing, seeds, fishing rods, wigs, and other consumer goods (hundreds of HTS lines). USMCA provides NO relief. Combined, all three Section 338 proclamations cover ~$20B in annual Canadian imports (~5% of all Canadian imports to US). Effective 12:01 AM ET August 19, 2026. NOT an IEEPA tariff — no refund path via CAPE.",
       "supersededBy": null
     },
     {
@@ -4791,7 +4855,7 @@
       "9903.01.63": "China-specific reciprocal tariff (variable rate)"
     },
     "section122Codes": {
-      "9903.03.01": "Section 122 global surcharge (10%)",
+      "9903.03.01": "Section 122 global surcharge (10%) — expired Jul 24, 2026",
       "9903.03.02": "Section 122 exemption - USMCA goods",
       "9903.03.03": "Section 122 exemption - Section 232 goods",
       "9903.03.04": "Section 122 exemption - critical minerals",
@@ -4802,6 +4866,14 @@
       "9903.03.09": "Section 122 exemption - country-specific trade deal goods",
       "9903.03.10": "Section 122 exemption - agriculture products",
       "9903.03.11": "Section 122 exemption - other specified exclusions"
+    },
+    "section338Codes": {
+      "9903.03.12": "Section 338 Canada tariff - alcoholic beverages & related goods (50%, eff. Aug 19, 2026)",
+      "9903.03.13": "Section 338 Canada tariff - dairy products (50%, eff. Aug 19, 2026)",
+      "9903.03.14": "Section 338 Canada tariff - motor vehicles & consumer goods (50%, eff. Aug 19, 2026)"
+    },
+    "section301ForcedLaborCodes": {
+      "9903.05.20-9903.05.84": "Section 301 forced-labor tariffs (10%/12.5%, eff. Jul 24, 2026) — replaced Section 122; NOT refundable under CAPE"
     }
   },
   "irsInterestRates": {
@@ -4878,6 +4950,19 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "IRS Revenue Ruling Q3 2026; federal short-term rate Apr 2026 = 4%"
       }
     ]
   },
@@ -4979,6 +5064,47 @@
         "If reconciliation-flagged, file reconciliation entry to trigger liquidation",
         "If on drawback, may need to withdraw drawback claim first"
       ]
+    }
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 — Reconciliation-Flagged Entries (Type 09 not yet filed)",
+    "launchDate": "2026-06-29",
+    "systemName": "CAPE (within ACE)",
+    "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT order Mar 4, 2026",
+    "scope": "Entries of type 01, 02, or 06 that are flagged for reconciliation AND where the reconciliation entry (Type 09) has NOT yet been filed.",
+    "eligibilityCriteria": [
+      "Entry must be unliquidated OR liquidated within 80 days of the CAPE Phase 2 declaration filing date",
+      "Entry types: 01 (Consumption), 02, or 06 (FTZ) flagged for reconciliation",
+      "Reconciliation entry (Type 09) must NOT yet have been filed",
+      "CAPE removes IEEPA duties from the flagged entry BEFORE the Type 09 is filed, separating IEEPA refund from reconciliation calculations"
+    ],
+    "exclusions": [
+      "Entries where Type 09 reconciliation has already been filed (pending future phase)",
+      "Type 47 drawback entries (separate drawback refund pathway, risk of double-refund)",
+      "Type 08 USMCA Duty Deferral",
+      "Type 23 TIB entries",
+      "Surety-paid entries",
+      "Warehouse entries (covered separately via CSMS #69127837 guidance)"
+    ],
+    "notes": "CBP confirmed June 29, 2026 launch date via CSMS guidance. Phase 2 entries where Type 09 has already been filed will be addressed in a future phase."
+  },
+  "capePhase3": {
+    "description": "CAPE Phase 3 — Finally Liquidated Entries (liquidated >80 days, past protest window)",
+    "launchDate": "2026-07-17",
+    "systemName": "CAPE (within ACE)",
+    "legalBasis": "CIT Senior Judge Richard Eaton order, Jul 15–17, 2026; reliquidation of ~3,700 IEEPA cases",
+    "scope": "Entries that were FINALLY LIQUIDATED (liquidated >80 days ago, protest window may be closed). Initially plaintiff-specific per CIT order.",
+    "keyDevelopment": "On July 15, 2026, CIT Judge Eaton stated the court would order CBP to reliquidate finally liquidated entries in connection with Phase 3 launch. On July 17, 2026, the court directed CBP to reliquidate 'any and all of Plaintiffs' entries that have been liquidated for more than 80 days' without regard to IEEPA duties, across approximately 3,700 IEEPA cases.",
+    "importantCaveats": [
+      "IMPORTANT: As of Aug 10, 2026 the July 17 order covers PLAINTIFFS in the ~3,700 CIT cases, not all importers universally.",
+      "Non-plaintiff importers with finally-liquidated entries still need formal protest (if within 180 days) or CIT litigation (if beyond 180 days).",
+      "CBP filed a progress report with the court by Aug 4, 2026 EDT per court order.",
+      "Federal Circuit is hearing the government's appeal of the broader CIT refund order — outcome could affect Phase 3 scope.",
+      "tariff-calculator.ts FilingMethod='litigation' status remains correct for non-plaintiff finally-liquidated entries."
+    ],
+    "cbpProgressReport": {
+      "dueDate": "2026-08-04",
+      "description": "CBP required to file short progress report on CAPE status with CIT by 5:00 PM EDT Aug 4, 2026"
     }
   },
   "calculatorLogic": {
