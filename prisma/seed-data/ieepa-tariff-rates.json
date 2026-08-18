@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max statutory 150-day limit expired at 12:01 AM ET Jul 24, 2026 — no extension was enacted. Rate remained 10% through expiry (Trump's Feb 22 social-media announcement of 15% never converted to a formal proclamation). Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). REPLACED at expiry by Section 301 forced-labor tariffs (USTR, new HTS Chapter 99 codes 9903.05.20–9903.05.84) at 10% or 12.5% on 60 countries. Section 301 is NOT an IEEPA tariff and is NOT refundable via CAPE — this calculator covers only the IEEPA period (Feb 4, 2025–Feb 23, 2026) and this Section 122 bridge period (Feb 24–Jul 23, 2026) where applicable.",
+      "supersededBy": "EXPIRED-S301-FORCED-LABOR"
     },
     {
       "id": "DZ-RECIP-ORIG",
@@ -4877,7 +4877,21 @@
         "underpaymentRate": 0.06,
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
-        "compounding": "daily"
+        "compounding": "daily",
+        "source": "IRS Revenue Ruling, Internal Revenue Bulletin 2026-09"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "IRS Revenue Ruling, Internal Revenue Bulletin 2026-22 (announced ~May 2026, effective Jul 1, 2026). Rate rose back to 7% from Q2 2026 low of 6%."
       }
     ]
   },
@@ -4980,6 +4994,37 @@
         "If on drawback, may need to withdraw drawback claim first"
       ]
     }
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 - Expanded IEEPA Duty Refund Program covering reconciliation-flagged entries",
+    "launchDate": "2026-06-29",
+    "systemName": "CAPE (within ACE)",
+    "legalBasis": "Expansion of CIT order framework; CBP CSMS guidance issued ~June 2026",
+    "capeProgressReport": "CBP filed required progress report with CIT on August 4, 2026. As of July 31, 2026: 75,000+ CAPE declarations submitted; 17.69M validated entries liquidated without IEEPA tariffs; $128.68B in potential/certified refunds accepted for processing.",
+    "scope": "Entry types 01, 02, and 06 flagged for reconciliation in CBP ACE where the reconciliation entry (Type 09) has NOT yet been filed",
+    "liquidationWindow": "Same 80-day window as Phase 1: unliquidated entries and entries liquidated within 80 days of CAPE submission",
+    "criticalOrderingRule": "CAPE declaration MUST be submitted BEFORE the reconciliation entry (Type 09) is filed. Filing Type 09 first permanently bars the underlying entries from the CAPE automated refund path. Exception: if reconciliation deadline is within 30 days, CBP advises prioritizing the reconciliation filing.",
+    "stillExcluded": [
+      {
+        "code": "09",
+        "name": "Reconciliation Summary Entry",
+        "notes": "The Type 09 reconciliation entry itself is still excluded from CAPE automated processing"
+      },
+      {
+        "code": "47",
+        "name": "Drawback",
+        "notes": "Drawback entries remain excluded from both Phase 1 and Phase 2; processed via separate ACE drawback module"
+      },
+      {
+        "name": "Historically liquidated entries",
+        "notes": "Entries finally liquidated with no pending CIT claim are NOT eligible for CAPE Phase 2. Importers whose entries have finally liquidated without filing their own CIT claim will not receive refunds unless a court order specifically covers them."
+      },
+      {
+        "name": "Surety-paid entries",
+        "notes": "Surety-paid entries and TIB entries remain outside Phase 1 and Phase 2"
+      }
+    ],
+    "source": "https://www.medey.com/cape-phase-2-is-live-here-is-what-that-means-for-ieepa-refunds/"
   },
   "calculatorLogic": {
     "description": "Rules for computing IEEPA tariff refund amounts",

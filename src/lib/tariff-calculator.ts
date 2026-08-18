@@ -31,11 +31,13 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: reconciliation-flagged entry (Type 01/02/06, no Type 09 yet filed) → CAPE Phase 2 automated refund
+ *                 ⚠ ORDERING CRITICAL: CAPE declaration must be submitted BEFORE the Type 09 reconciliation entry is filed.
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -74,6 +76,7 @@ export interface EntryForEligibility {
   countryOfOrigin?: string; // ISO 2-letter — needed for the USMCA exemption check
   isUsmca?: boolean;        // goods claimed USMCA-preferential (CA/MX exemption from IEEPA fentanyl tariffs)
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
+  isFlaggedForReconciliation?: boolean; // flagged for reconciliation in CBP ACE (Type 09 not yet filed) — CAPE Phase 2 eligible (eff. Jun 29, 2026). ⚠ File CAPE *before* the Type 09 entry.
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
 }
@@ -205,7 +208,15 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE automated refund processing (Phase 1 and Phase 2).
+ *
+ * Note on Type 09 (Reconciliation Summary): The Type 09 entry *itself* remains excluded.
+ * However, CAPE Phase 2 (eff. Jun 29, 2026) covers the *underlying* entries (Types 01/02/06)
+ * that are flagged for reconciliation in CBP ACE where the Type 09 has not yet been filed.
+ * Those underlying entries have entry type 01/02/06 (not 09) and are handled by the
+ * `isFlaggedForReconciliation` path in checkEligibility().
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -251,7 +262,9 @@ function applySectionReviewFlag(
     );
   }
   if (notes.length === 0) return result;
-  return { ...result, needsReview: true, reviewNote: notes.join(" ") };
+  // Preserve any existing reviewNote (e.g. Phase 2 ordering warning) by appending rather than replacing.
+  const existingNote = result.reviewNote ? result.reviewNote + " " : "";
+  return { ...result, needsReview: true, reviewNote: existingNote + notes.join(" ") };
 }
 
 /**
@@ -292,11 +305,72 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
+  // 4a. Reconciliation-flagged entries → CAPE Phase 2 path (eff. Jun 29, 2026)
+  //     Applies when: (a) entry is flagged for reconciliation in CBP ACE AND (b) the Type 09
+  //     reconciliation summary has NOT yet been filed AND (c) the entry type is not itself
+  //     excluded (09, 47, etc.).
+  //     ⚠ CRITICAL ORDERING RULE: the CAPE declaration must be submitted BEFORE filing
+  //     the reconciliation entry (Type 09). Filing Type 09 first permanently bars the
+  //     underlying entries from the CAPE automated refund path.
+  if (entry.isFlaggedForReconciliation && !EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    if (entry.liquidationDate) {
+      const now = new Date();
+      const deadlineDate = new Date(entry.liquidationDate);
+      deadlineDate.setDate(deadlineDate.getDate() + PROTEST_WINDOW_DAYS);
+      const daysRemaining = daysBetween(now, deadlineDate);
+      const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
+
+      if (daysRemaining < 0) {
+        return {
+          status: "excluded_expired",
+          reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+          deadlineDays: daysRemaining,
+          deadlineDate,
+          filingMethod: "litigation",
+        };
+      }
+
+      const filingMethod: FilingMethod =
+        daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase2" : "protest";
+
+      const base: EligibilityResult = {
+        status: "eligible",
+        reason:
+          filingMethod === "cape_phase2"
+            ? "Reconciliation-flagged entry — eligible via CAPE Phase 2 (eff. Jun 29, 2026)"
+            : "Reconciliation-flagged entry liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
+        deadlineDays: daysRemaining,
+        isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
+        deadlineDate,
+        filingMethod,
+        needsReview: true,
+        reviewNote:
+          "⚠ CAPE Phase 2 ordering rule: submit your CAPE declaration BEFORE filing the reconciliation entry (Type 09). " +
+          "Filing Type 09 first permanently bars this entry from the CAPE automated refund path. " +
+          "Exception: if the reconciliation deadline is within 30 days, CBP advises prioritizing the reconciliation filing.",
+      };
+      return applySectionReviewFlag(base, entry);
+    }
+
+    // Unliquidated reconciliation-flagged entry
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: "Reconciliation-flagged unliquidated entry — eligible via CAPE Phase 2 (eff. Jun 29, 2026)",
+      filingMethod: "cape_phase2",
+      needsReview: true,
+      reviewNote:
+        "⚠ CAPE Phase 2 ordering rule: submit your CAPE declaration BEFORE filing the reconciliation entry (Type 09). " +
+        "Filing Type 09 first permanently bars this entry from the CAPE automated refund path. " +
+        "Exception: if the reconciliation deadline is within 30 days, CBP advises prioritizing the reconciliation filing.",
+    };
+    return applySectionReviewFlag(base, entry);
+  }
+
+  // 4b. Entry type exclusion (Phase 1 — Type 09 reconciliation summary, Type 47 drawback, etc.)
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (Phase 1 and Phase 2)`,
       filingMethod: "none",
     };
   }
