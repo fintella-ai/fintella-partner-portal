@@ -1,15 +1,18 @@
 {
   "_metadata": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "generatedDate": "2026-04-29",
-    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
-    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
+    "lastUpdated": "2026-08-19",
+    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026, Section 122 replacement (expired Jul 24, 2026), and Section 301 successor (effective Jul 24, 2026, for context only — NOT refundable via CAPE).",
+    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132), Trade Act of 1974 Section 301 (19 U.S.C. 2411)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "Proclamation 11012 (Jul 20, 2026) — Section 301 replacement for Section 122",
+      "TIE Legal/Regulatory Monitor run 2026-08-19"
     ]
   },
   "rates": [
@@ -332,7 +335,21 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired Jul 24, 2026 by operation of law. Rate remained 10% through expiration (Trump's Feb 22 social-media intent to raise to 15% was never formalized by proclamation). Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). Replaced by Section 301 duties effective Jul 24, 2026 (see S301-01). NOTE: Section 301 duties are NOT refundable via CAPE and are outside the IEEPA refund program.",
+      "supersededBy": "S301-01"
+    },
+    {
+      "id": "S301-01",
+      "executiveOrder": "Proclamation 11012 (Jul 20, 2026)",
+      "name": "Section 301 Replacement Tariff (10%/12.5% Two-Tier)",
+      "rateType": "section301",
+      "countryCode": "ALL",
+      "countryName": "~60 Countries (all but exempted)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.03.02",
+      "notes": "IMPORTANT: This is NOT an IEEPA tariff and NOT refundable via CAPE. Included here for historical context only. President Trump signed Proclamation 11012 on Jul 20, 2026, invoking Section 301 of the Trade Act of 1974 to replace the expired Section 122 surcharge. Two-tier structure: 10% for countries with qualifying forced-labor import prohibitions; 12.5% for all other countries. Applies to ~60 economies covering 99.4% of US imports. Exceptions under HTS 9903.03.02 through 9903.03.11 include critical minerals, energy, pharmaceuticals, electronics, vehicles/parts, aerospace, certain agricultural goods, USMCA-qualifying CA/MX goods, CAFTA-DR textiles/apparel, and goods already subject to Section 232. No statutory expiration (unlike Section 122's 150-day cap). Legal challenge pending: Liberty Justice Center filed suit shortly after effective date. Source: https://www.tariffstool.com/guides/section-301-replacing-section-122",
       "supersededBy": null
     },
     {

@@ -205,7 +205,20 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE.
+ *
+ * Phase 1 (Apr 20, 2026): types 08, 09, 23, 47 excluded.
+ * Phase 2 (Jun 29, 2026): CAPE now accepts entry types 01/02/06 *flagged for
+ *   reconciliation* where the Type-09 reconciliation entry has NOT yet been
+ *   filed. Type-09 entries themselves remain excluded. Types 08, 23, 47 remain
+ *   excluded pending future phases.
+ * Phase 3 (late Jul 2026): finally-liquidated entries are being processed for
+ *   importers who have filed suit at CIT. The Freestyle World class-certification
+ *   motion (No. 26-01088) — oral argument Aug 19, 2026, ruling pending — could
+ *   extend Phase 3 access to non-litigant importers; update this comment and
+ *   the litigation / protest path if class is certified.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -216,10 +229,11 @@ const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 const PROTEST_WINDOW_DAYS = 180;
 
 /**
- * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
- * entries liquidated within the last 80 days. Entries liquidated 80–180 days
- * ago are still recoverable, but require a formal protest rather than the
- * automated CAPE channel.
+ * CAPE Phase-1/2 scope: CBP automatically processes unliquidated entries and
+ * entries liquidated within the last 80 days. Phase 2 (Jun 29, 2026) extended
+ * this to reconciliation-flagged entries (types 01/02/06). Entries liquidated
+ * 80–180 days ago are still recoverable, but require a formal protest rather
+ * than the automated CAPE channel.
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
