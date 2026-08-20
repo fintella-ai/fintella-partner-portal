@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Rate remained at 10% throughout — Trump's Feb 22 social-media announcement of intent to raise to 15% was never formalized by proclamation. Same Annex II exclusions (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). EXPIRED July 24, 2026 at the 150-day statutory maximum; Congress did not extend. Replaced by Section 301 forced-labor tariffs (10–12.5%) under HTS 9903.05.20–9903.05.84 effective July 24, 2026 on 60 economies — those are a different legal authority (Trade Act §301) and are not part of the IEEPA refund program.",
+      "supersededBy": "TERMINATED-EXPIRED-JUL24"
     },
     {
       "id": "DZ-RECIP-ORIG",
