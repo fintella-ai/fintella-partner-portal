@@ -30,12 +30,16 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
- *  - none:        not eligible for any refund path
+ *  - cape_phase1:      unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2_recon: entry is flagged for reconciliation (ACE Type 01/02/06 with pending Type 09) →
+ *                      eligible via CAPE Phase 2 (launched June 29, 2026); MUST file CAPE before Type 09
+ *  - cape_phase3:      finally liquidated entries (> 180 days) → eligible via CAPE Phase 3 per
+ *                      CIT July 15, 2026 order directing CBP to reliquidate; procedure per forthcoming court order
+ *  - protest:          liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - litigation:       reserved for truly excluded entries (AD/CVD, excluded types) needing CIT
+ *  - none:             not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2_recon" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -73,9 +77,12 @@ export interface EntryForEligibility {
   isAdCvd?: boolean;
   countryOfOrigin?: string; // ISO 2-letter — needed for the USMCA exemption check
   isUsmca?: boolean;        // goods claimed USMCA-preferential (CA/MX exemption from IEEPA fentanyl tariffs)
-  isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
-  hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
-  hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isDrawback?: boolean;               // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
+  hasSection232?: boolean;            // entry contains Section 232 goods (exempt from IEEPA per Annex II)
+  hasSection301?: boolean;            // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isFlaggedForReconciliation?: boolean; // entry (type 01/02/06) is flagged in ACE for a future Type 09
+                                        // reconciliation entry not yet filed — eligible via CAPE Phase 2
+                                        // (launched June 29, 2026); MUST submit CAPE before filing Type 09
 }
 
 export interface EntryForCape {
@@ -220,6 +227,16 @@ const PROTEST_WINDOW_DAYS = 180;
  * entries liquidated within the last 80 days. Entries liquidated 80–180 days
  * ago are still recoverable, but require a formal protest rather than the
  * automated CAPE channel.
+ *
+ * CAPE Phase-2 (launched June 29, 2026): additionally accepts entries of type
+ * 01/02/06 that are flagged for reconciliation in ACE where the Type 09
+ * reconciliation entry has NOT yet been filed. Same 80-day liquidation scope
+ * as Phase 1. Critical: importer must file CAPE BEFORE filing Type 09.
+ *
+ * CAPE Phase-3 (CIT order July 15, 2026): CBP directed to reliquidate
+ * "finally liquidated" entries (those past the 80-day CAPE window, including
+ * entries past the 180-day protest deadline) under a procedure to be spelled
+ * out in a forthcoming court order. Covers ~$11.4B across ~3,700 IEEPA cases.
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
@@ -255,9 +272,34 @@ function applySectionReviewFlag(
 }
 
 /**
+ * Upgrades a Cape Phase-1 result to Phase-2 when the entry is flagged for
+ * reconciliation in ACE but the Type 09 has not yet been filed.
+ * Does nothing if the entry is not flagged, or if the filing method isn't
+ * cape_phase1 (Phase 2 has the same 80-day scope as Phase 1).
+ */
+function applyPhase2Flag(result: EligibilityResult, entry: EntryForEligibility): EligibilityResult {
+  if (!entry.isFlaggedForReconciliation) return result;
+  if (result.filingMethod !== "cape_phase1") return result;
+
+  const criticalNote =
+    "CRITICAL: Entry is flagged for reconciliation in ACE — submit CAPE declaration BEFORE filing the " +
+    "Type 09 reconciliation entry. Once Type 09 is filed the underlying entries are locked out of CAPE Phase 2.";
+
+  return {
+    ...result,
+    filingMethod: "cape_phase2_recon",
+    reason: result.reason.replace("CAPE Phase 1", "CAPE Phase 2"),
+    needsReview: true,
+    reviewNote: [result.reviewNote, criticalNote].filter(Boolean).join(" "),
+  };
+}
+
+/**
  * Determines refund eligibility and the correct filing path for a single entry.
  * Distinguishes the CAPE Phase-1 (80-day) automated window from the 180-day
- * statutory protest deadline (19 U.S.C. §1514).
+ * statutory protest deadline (19 U.S.C. §1514), and reflects Phase-2
+ * (reconciliation-flagged entries, June 29 2026) and Phase-3 (finally
+ * liquidated entries, CIT order July 15 2026).
  */
 export function checkEligibility(entry: EntryForEligibility): EligibilityResult {
   // 1. Date range check
@@ -318,14 +360,19 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → CAPE Phase 3 (finally liquidated entries)
+    // CIT July 15, 2026 order directed CBP to reliquidate finally liquidated entries
+    // under Phase 3; procedure to be specified in a forthcoming court order.
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Liquidated > 180 days ago — eligible via CAPE Phase 3 per CIT July 15, 2026 order " +
+          "directing CBP to reliquidate finally liquidated entries (~3,700 IEEPA cases, ~$11.4B). " +
+          "Procedure per forthcoming court order; professional assistance recommended.",
         deadlineDays: daysRemaining,
         deadlineDate,
-        filingMethod: "litigation",
+        filingMethod: "cape_phase3",
       };
     }
 
@@ -344,7 +391,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
       deadlineDate,
       filingMethod,
     };
-    return applySectionReviewFlag(base, entry);
+    return applyPhase2Flag(applySectionReviewFlag(base, entry), entry);
   }
 
   // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE Phase 1, no deadline yet
@@ -353,7 +400,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     reason: "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
     filingMethod: "cape_phase1",
   };
-  return applySectionReviewFlag(base, entry);
+  return applyPhase2Flag(applySectionReviewFlag(base, entry), entry);
 }
 
 // ── 5. validateEntryNumber ──────────────────────────────────────────────────

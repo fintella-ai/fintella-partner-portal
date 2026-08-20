@@ -202,12 +202,12 @@ test("liquidated AD/CVD within protest window → eligible", () => {
   assert.ok(result.deadlineDays! > 0);
 });
 
-test("past protest window (>180 days) → excluded_expired + litigation", () => {
+test("past protest window (>180 days) → excluded_expired + cape_phase3 (CIT July 15 2026 order)", () => {
   const liq = new Date();
   liq.setDate(liq.getDate() - 200);
   const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
   assert.equal(result.status, "excluded_expired");
-  assert.equal(result.filingMethod, "litigation");
+  assert.equal(result.filingMethod, "cape_phase3");
 });
 
 test("urgent when ≤14 days remaining (near 180-day deadline)", () => {
@@ -240,6 +240,60 @@ test("liquidated 80–180 days ago → eligible via protest", () => {
   const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
   assert.equal(result.status, "eligible");
   assert.equal(result.filingMethod, "protest");
+});
+
+// ── 4c. CAPE Phase 2 — reconciliation-flagged entries (launched June 29, 2026) ─
+
+console.log("\n▸ checkEligibility — CAPE Phase 2 reconciliation");
+
+test("unliquidated + isFlaggedForReconciliation → cape_phase2_recon (Phase 2)", () => {
+  const result = checkEligibility({
+    entryDate: new Date("2025-06-15"),
+    entryType: "01",
+    isFlaggedForReconciliation: true,
+  });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2_recon");
+  assert.equal(result.needsReview, true);
+  assert.ok(result.reviewNote?.includes("CRITICAL"));
+});
+
+test("isFlaggedForReconciliation within 80 days → cape_phase2_recon", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 30);
+  const result = checkEligibility({
+    entryDate: new Date("2025-06-15"),
+    entryType: "01",
+    liquidationDate: liq,
+    isFlaggedForReconciliation: true,
+  });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2_recon");
+});
+
+test("isFlaggedForReconciliation + 80–180 days (protest window) → stays protest, not Phase 2", () => {
+  // Phase 2 scope is the same as Phase 1 (80-day window); protest entries don't get Phase 2 path
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 120);
+  const result = checkEligibility({
+    entryDate: new Date("2025-06-15"),
+    entryType: "01",
+    liquidationDate: liq,
+    isFlaggedForReconciliation: true,
+  });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "protest");
+});
+
+test("isFlaggedForReconciliation + excluded type (09) → still excluded_type", () => {
+  // The TYPE 09 entry itself (the reconciliation entry) is still excluded;
+  // only the underlying flagged entries (01/02/06) are eligible via Phase 2
+  const result = checkEligibility({
+    entryDate: new Date("2025-06-15"),
+    entryType: "09",
+    isFlaggedForReconciliation: true,
+  });
+  assert.equal(result.status, "excluded_type");
 });
 
 test("drawback entry → excluded_drawback", () => {
