@@ -1,7 +1,7 @@
 {
   "_metadata": {
     "version": "1.0.0",
-    "generatedDate": "2026-04-29",
+    "generatedDate": "2026-08-21",
     "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
@@ -9,7 +9,11 @@
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "IRS Rev. Rul. 2026 (Q3 2026 interest rate increase to 7%)",
+      "USTR Section 301 forced-labor tariff action effective July 24, 2026 (replacing Section 122)",
+      "CBP CAPE Phase 2 launch June 29, 2026 (reconciliation-flagged entries)",
+      "CIT orders July 15/21, 2026 ordering reliquidation of finally liquidated IEEPA entries for litigants"
     ]
   },
   "rates": [
@@ -332,7 +336,7 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days. EXPIRED 12:01 AM ET July 24, 2026 as required by statute — no extension possible without Act of Congress. Replaced at the same moment by new Section 301 forced-labor tariffs of 10–12.5% on ~60 economies (HTS 9903.05.20–9903.05.84, USTR action effective July 24, 2026). The Section 301 replacement tariffs are on current imports only; they are not IEEPA tariffs and not refundable. Same Annex II exclusions had applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
       "supersededBy": null
     },
     {
@@ -4878,6 +4882,19 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "IRS Rev. Rul. 2026-XX; Tax Notes 'Interest Rates Increase for Third Quarter of 2026'"
       }
     ]
   },
@@ -4958,7 +4975,7 @@
         "Entry must be filed in ACE with a liquidation status visible in ACE",
         "Entry must have declared IEEPA Chapter 99 HTS codes",
         "Entry must NOT be covered by an open or suspended protest",
-        "Entry must NOT be flagged for reconciliation",
+        "Entry must NOT be flagged for reconciliation (Phase 1 only; reconciliation-flagged entries of types 01/02/06 where Type 09 has NOT been filed are covered by CAPE Phase 2, launched June 29, 2026)",
         "Entry must NOT be on an active drawback claim"
       ]
     },

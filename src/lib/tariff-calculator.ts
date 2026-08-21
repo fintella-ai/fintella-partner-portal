@@ -31,11 +31,14 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: reconciliation-flagged entry (types 01/02/06, Type 09 not yet filed) → CAPE Phase 2
+ *                 (launched June 29, 2026; covers unliquidated entries and entries within 80 days of liquidation)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *                 (CIT July 2026 orders require reliquidation for importers who have already sued)
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -74,6 +77,7 @@ export interface EntryForEligibility {
   countryOfOrigin?: string; // ISO 2-letter — needed for the USMCA exemption check
   isUsmca?: boolean;        // goods claimed USMCA-preferential (CA/MX exemption from IEEPA fentanyl tariffs)
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
+  isReconFlagged?: boolean; // entry is flagged for reconciliation but Type 09 not yet filed — routes to CAPE Phase 2 (eff. June 29, 2026)
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
 }
@@ -205,7 +209,13 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE Phase 1.
+ * Note: entries of types 01/02/06 that are *flagged* for reconciliation (but
+ * where Type 09 has not been filed) are NOT in this set — they are eligible
+ * via CAPE Phase 2 (launched June 29, 2026). Use `isReconFlagged` to route them.
+ * Type 09 (the reconciliation summary entry itself) is still excluded entirely.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -301,6 +311,54 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
+  // 4b. Reconciliation-flagged entries → CAPE Phase 2 (launched June 29, 2026)
+  // Applies to types 01/02/06 where the import entry is flagged for reconciliation
+  // but the Type 09 reconciliation entry has not yet been filed.
+  if (entry.isReconFlagged) {
+    // Phase 2 uses the same 80-day/protest-deadline windows as Phase 1
+    if (entry.liquidationDate) {
+      const now = new Date();
+      const deadlineDate = new Date(entry.liquidationDate);
+      deadlineDate.setDate(deadlineDate.getDate() + PROTEST_WINDOW_DAYS);
+      const daysRemaining = daysBetween(now, deadlineDate);
+      const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
+
+      if (daysRemaining < 0) {
+        return {
+          status: "excluded_expired",
+          reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+          deadlineDays: daysRemaining,
+          deadlineDate,
+          filingMethod: "litigation",
+        };
+      }
+
+      const filingMethod: FilingMethod =
+        daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase2" : "protest";
+
+      const base: EligibilityResult = {
+        status: "eligible",
+        reason:
+          filingMethod === "cape_phase2"
+            ? "Reconciliation-flagged entry liquidated within 80 days — eligible via CAPE Phase 2"
+            : "Reconciliation-flagged entry liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
+        deadlineDays: daysRemaining,
+        isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
+        deadlineDate,
+        filingMethod,
+      };
+      return applySectionReviewFlag(base, entry);
+    }
+
+    // Unliquidated reconciliation-flagged entry → Phase 2, no deadline yet
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: "Reconciliation-flagged unliquidated entry — eligible via CAPE Phase 2 (launched June 29, 2026), no immediate deadline",
+      filingMethod: "cape_phase2",
+    };
+    return applySectionReviewFlag(base, entry);
+  }
+
   // 5. AD/CVD check (unliquidated AD/CVD entries are excluded from Phase 1)
   if (entry.isAdCvd && !entry.liquidationDate) {
     return {
@@ -347,7 +405,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     return applySectionReviewFlag(base, entry);
   }
 
-  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE Phase 1, no deadline yet
+  // 7. Unliquidated, non-AD/CVD, non-recon-flagged, in date range → eligible via CAPE Phase 1, no deadline yet
   const base: EligibilityResult = {
     status: "eligible",
     reason: "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
@@ -529,5 +587,16 @@ export function getRoutingColor(bucket: RoutingBucket): string {
     case "self_file": return "green";
     case "legal_required": return "red";
     case "not_applicable": return "gray";
+  }
+}
+
+/** Human-readable label for a FilingMethod value */
+export function getFilingMethodLabel(method: FilingMethod): string {
+  switch (method) {
+    case "cape_phase1": return "CAPE Phase 1";
+    case "cape_phase2": return "CAPE Phase 2";
+    case "protest": return "Formal Protest";
+    case "litigation": return "CIT Litigation";
+    case "none": return "Not Eligible";
   }
 }
