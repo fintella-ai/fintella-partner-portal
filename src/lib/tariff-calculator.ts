@@ -205,8 +205,19 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE.
+ *
+ * Phase 1 (Apr 20, 2026): 08, 09, 23, 47 excluded from automated CAPE processing.
+ * July 7, 2026 (CSMS #69127837): Warehouse entries 21 and 22 added to the exclusion
+ *   list — CBP stopped accepting them on CAPE Declarations effective that date.
+ * Phase 2 (Jun 29, 2026): Type 01/02/06 entries *flagged for reconciliation* are now
+ *   eligible IF the Type 09 reconciliation entry has NOT yet been filed.
+ *   (TODO: add `flaggedForReconciliation` + `reconciliationFiled` fields to
+ *   EntryForEligibility to gate Phase 2 eligibility correctly at the per-entry level.
+ *   Entries where Type 09 IS already on file remain ineligible — future phase.)
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
