@@ -25,17 +25,21 @@ export interface RateLookupResult {
   combinedRate: number;
   rates: RateRecord[];
   rateName: string;
-  breakdown: { fentanyl?: number; reciprocal?: number; section122?: number };
+  breakdown: { fentanyl?: number; reciprocal?: number; section122?: number; section301?: number };
 }
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
- *  - none:        not eligible for any refund path
+ *  - cape_phase1:  unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2:  entry flagged for reconciliation (Type 01/02/06 with pending Type 09 recon) → CAPE Phase 2
+ *                  (launched June 29, 2026; processes IEEPA duties before the reconciliation entry is filed)
+ *  - cape_phase3:  finally liquidated entry (liquidated > 80 days ago) for importers with a CIT lawsuit →
+ *                  CAPE Phase 3 via reliquidation order (CIT order July 17, 2026; CBP launched late July 2026)
+ *  - protest:      liquidated 80–180 days ago, no CIT lawsuit → must file a formal protest (19 U.S.C. §1514)
+ *  - litigation:   liquidated > 180 days ago → protest window closed, CIT litigation required
+ *  - none:         not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -132,6 +136,10 @@ export function lookupCombinedRate(rates: RateRecord[]): RateLookupResult {
       breakdown.reciprocal = (breakdown.reciprocal ?? 0) + val;
     } else if (type === "section122") {
       breakdown.section122 = (breakdown.section122 ?? 0) + val;
+    } else if (type === "section301") {
+      // Section 301 forced-labor tariffs replaced Section 122 on July 24, 2026.
+      // These are NOT IEEPA tariffs and are not refund-eligible via CAPE.
+      breakdown.section301 = (breakdown.section301 ?? 0) + val;
     }
 
     combinedRate += val;
@@ -205,8 +213,18 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE.
+ *
+ * Original Phase 1 exclusions: 08 (informal non-mail), 09 (reconciliation entries themselves),
+ * 23 (Foreign Trade Zone admission), 47 (drawback).
+ *
+ * July 7, 2026 update (CSMS #69127837): Warehouse entries (21, 22) removed from CAPE.
+ * IEEPA duties on warehoused goods are assessed at withdrawal time, so the WITHDRAWAL entries
+ * (Types 31, 32, 34, 38) remain eligible and will be refunded upon (re)liquidation of the
+ * associated warehouse entry.
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -218,8 +236,8 @@ const PROTEST_WINDOW_DAYS = 180;
 /**
  * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
  * entries liquidated within the last 80 days. Entries liquidated 80–180 days
- * ago are still recoverable, but require a formal protest rather than the
- * automated CAPE channel.
+ * ago require a formal protest; entries liquidated > 80 days ago by CIT
+ * litigants may qualify for CAPE Phase 3 (launched late July 2026).
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
