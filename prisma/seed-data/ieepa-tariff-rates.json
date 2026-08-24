@@ -332,7 +332,35 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired Jul 24, 2026 (150-day statutory cap). CIT also struck Section 122 down as unlawful on May 7, 2026; government appealed; Federal Circuit entered administrative stay, so Section 122 continued collecting through expiry. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "supersededBy": "S301-FL-BASELINE"
+    },
+    {
+      "id": "S301-FL-BASELINE",
+      "executiveOrder": "USTR Section 301 Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor - Global Baseline (10-12.5%)",
+      "rateType": "section301",
+      "countryCode": "ALL",
+      "countryName": "All Countries (60 economies, >99% of U.S. imports)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20-9903.05.84",
+      "notes": "USTR imposed Section 301 tariffs on 60 economies effective 12:01 AM Jul 24, 2026, immediately replacing the expired Section 122 10% surcharge. Authority: Section 301 of the Trade Act of 1974, based on USTR investigations finding 60 economies failed to adequately prevent forced labor in supply chains. Rates: 10% for economies meeting USTR forced-labor enforcement thresholds; 12.5% for those failing thresholds. Chapter 99 headings 9903.05.20-9903.05.84 assigned per-economy. Pharma exemption under 9903.04.60-9903.04.66 effective Jul 31, 2026. Source: Honigman alert (https://www.honigman.com/alert-3462); GHY (https://www.ghy.com/trade-compliance/ustr-section-301-forced-labor-60-economies/); CSMS # 69326983. NOTE: These are NOT IEEPA duties and are not refundable via CAPE. CIT litigation challenging Section 301 authority anticipated.",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-PHARMA-EXEMPT",
+      "executiveOrder": "USTR Section 301 Action (Jul 23, 2026)",
+      "name": "Section 301 Pharmaceutical Exemption",
+      "rateType": "section301_exemption",
+      "countryCode": "ALL",
+      "countryName": "All Countries",
+      "rate": 0.0,
+      "effectiveDate": "2026-07-31",
+      "endDate": null,
+      "htsChapter99": "9903.04.60-9903.04.66",
+      "notes": "Patented pharmaceutical articles exempt from Section 301 forced-labor tariffs. Exemption headings 9903.04.60-9903.04.66 effective Jul 31, 2026 (one week after main Section 301 action). These 0% exemption codes stack with 9903.05.xx to net the section301 duty to zero for covered pharma products.",
       "supersededBy": null
     },
     {
