@@ -99,6 +99,7 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 
 const FILING_RISK: Record<FilingMethod, number> = {
   cape_phase1: 0,
+  cape_phase2: 5,   // slightly more complex than Phase 1 (recon sequencing constraint)
   protest: 15,
   litigation: 35,
   none: 60,

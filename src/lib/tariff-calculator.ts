@@ -31,14 +31,16 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: entry flagged for reconciliation (types 01/02/06) where Type 09 recon not yet filed →
+ *                 CAPE Phase 2 automated refund (launched Jun 29, 2026); CAPE declaration MUST precede the recon filing
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
-  status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
+  status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca" | "excluded_recon_filed"
   reason: string;
   deadlineDays?: number;
   isUrgent?: boolean;
@@ -76,6 +78,9 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isReconFlagged?: boolean; // entry is flagged for reconciliation (CAPE Phase 2, launched Jun 29, 2026)
+  reconFiled?: boolean;     // whether the Type 09 reconciliation entry has already been filed;
+                            // if true the entry is locked out of CAPE Phase 2 (must file protest instead)
 }
 
 export interface EntryForCape {
@@ -205,7 +210,14 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE Phase 1.
+ * Note: Type 09 (reconciliation entries) remain excluded because they are the
+ * reconciliation filing itself, not the underlying goods entry. However, the
+ * UNDERLYING entries (types 01/02/06) that are *flagged* for reconciliation
+ * are eligible via CAPE Phase 2 (launched Jun 29, 2026) provided the Type 09
+ * recon has not yet been filed — see isReconFlagged handling in checkEligibility().
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -292,7 +304,32 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
+  // 4. Reconciliation-flagged entry — route to CAPE Phase 2 (launched Jun 29, 2026)
+  // Applies to entry types 01/02/06 carrying a reconciliation flag where the Type 09
+  // recon has NOT yet been filed. If the recon was already filed, the entry is locked
+  // out of CAPE and falls through to the normal protest/litigation window below.
+  if (entry.isReconFlagged && entry.entryType !== "09") {
+    if (!entry.reconFiled) {
+      const base: EligibilityResult = {
+        status: "eligible",
+        reason:
+          "Reconciliation-flagged entry eligible via CAPE Phase 2 (launched Jun 29, 2026) — " +
+          "CAPE declaration MUST be submitted before filing the Type 09 reconciliation entry",
+        filingMethod: "cape_phase2",
+      };
+      return applySectionReviewFlag(base, entry);
+    }
+    // Recon already filed → locked out of CAPE Phase 2; must protest or litigate
+    return {
+      status: "excluded_recon_filed",
+      reason:
+        "Reconciliation entry (Type 09) already filed — entry locked out of CAPE Phase 2. " +
+        "File a formal protest within 180 days of liquidation (19 U.S.C. §1514) if still within window.",
+      filingMethod: entry.liquidationDate ? "protest" : "none",
+    };
+  }
+
+  // 4b. Entry type exclusion (Phase 1 and unhandled types)
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
@@ -512,7 +549,7 @@ export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
   ) {
     return "not_applicable";
   }
-  // excluded_type / excluded_adcvd / excluded_expired → needs counsel / litigation
+  // excluded_type / excluded_adcvd / excluded_expired / excluded_recon_filed → needs counsel / litigation
   return "legal_required";
 }
 
