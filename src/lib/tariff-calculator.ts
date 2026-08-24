@@ -39,6 +39,7 @@ export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
+                          // Note: "excluded_type" covers Types 08/09/21/22/23/47 as of the Jul 7 2026 update
   reason: string;
   deadlineDays?: number;
   isUrgent?: boolean;
@@ -205,8 +206,23 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE.
+ *
+ * History:
+ *   Phase 1 (April 20, 2026): 08, 09, 23, 47 excluded; Types 21/22 warehouse entries
+ *     were initially accepted.
+ *   Phase 2 (June 29, 2026): Entries flagged for reconciliation (base types 01/02/06)
+ *     where the reconciliation entry (09) has NOT been filed are now eligible.
+ *     Type 09 (reconciliation entry itself) remains excluded.
+ *   July 7, 2026 update: Warehouse entries (Types 21 and 22) are no longer accepted on
+ *     a CAPE Declaration. Warehouse withdrawals (Types 31, 32, 34, 38) remain eligible.
+ *     Importers who had Types 21/22 accepted Apr 20–Jul 6, 2026 without a withdrawal
+ *     submission must file a separate CAPE Declaration for the withdrawals.
+ *
+ * Still excluded (future phase): 08 (Duty Deferral), 23 (TIB), 47 (Drawback).
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -294,9 +310,17 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
 
   // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    const typeReasons: Record<string, string> = {
+      "08": "Entry type 08 (Duty Deferral) excluded from CAPE — future phase",
+      "09": "Entry type 09 (Reconciliation) excluded — base entries flagged for recon are now eligible via Phase 2 (Jun 29, 2026) if no Type 09 filed yet",
+      "21": "Entry type 21 (Warehouse) excluded from CAPE as of Jul 7, 2026 — file a separate CAPE Declaration for associated warehouse withdrawals (Types 31/32/34/38)",
+      "22": "Entry type 22 (Warehouse) excluded from CAPE as of Jul 7, 2026 — file a separate CAPE Declaration for associated warehouse withdrawals (Types 31/32/34/38)",
+      "23": "Entry type 23 (TIB) excluded from CAPE — future phase",
+      "47": "Entry type 47 (Drawback) excluded from CAPE — future phase",
+    };
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: typeReasons[entry.entryType] ?? `Entry type ${entry.entryType} excluded from CAPE`,
       filingMethod: "none",
     };
   }
