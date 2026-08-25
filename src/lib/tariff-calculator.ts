@@ -30,12 +30,16 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
- *  - none:        not eligible for any refund path
+ *  - cape_phase1:  unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2:  entry flagged for reconciliation (types 01/02/06) with no Type-09 filed yet →
+ *                  eligible via CAPE Phase 2 (effective Jun 29, 2026; CSMS # 69066837)
+ *  - cape_phase3:  finally liquidated (> 180 days) AND importer is a CIT plaintiff →
+ *                  eligible for reliquidation per CIT order (Jul 17, 2026, Euro-Notions/Learning Resources)
+ *  - protest:      liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - litigation:   liquidated > 180 days ago, not a CIT plaintiff → protest window closed, CIT litigation only
+ *  - none:         not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +80,19 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  /**
+   * Entry is flagged for reconciliation in ACE (a future Type-09 reconciliation entry is expected).
+   * Types 01/02/06 flagged for reconciliation were excluded from CAPE Phase 1 but are eligible
+   * under CAPE Phase 2 (effective Jun 29, 2026) provided no Type-09 has been filed yet.
+   * CSMS # 69066837.
+   */
+  isFlaggedForReconciliation?: boolean;
+  /**
+   * Importer has an active CIT lawsuit (Euro-Notions Florida v. United States or related actions).
+   * CIT Senior Judge Eaton ordered reliquidation of finally-liquidated entries for CIT plaintiffs
+   * on Jul 17, 2026. These entries are eligible for CAPE Phase 3, even past the 180-day protest window.
+   */
+  isCitPlaintiff?: boolean;
 }
 
 export interface EntryForCape {
@@ -205,8 +222,15 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/** CBP entry types excluded from CAPE (all phases) */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+
+/**
+ * CBP entry types eligible for CAPE Phase 2 reconciliation-flagged path.
+ * Entries of these types that are flagged for reconciliation (no Type-09 filed yet)
+ * became eligible under CAPE Phase 2 effective Jun 29, 2026. CSMS # 69066837.
+ */
+const RECON_ELIGIBLE_ENTRY_TYPES = new Set(["01", "02", "06"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -229,6 +253,14 @@ const URGENT_THRESHOLD_DAYS = 14;
 /** USMCA-compliant CA/MX goods are exempt from IEEPA fentanyl tariffs from this date. */
 const USMCA_EXEMPTION_DATE = new Date("2025-03-07T00:00:00Z");
 const USMCA_COUNTRIES = new Set(["CA", "MX"]);
+
+/**
+ * CAPE Phase 3: CIT Senior Judge Eaton ordered reliquidation of finally-liquidated entries
+ * for CIT plaintiffs on Jul 17, 2026 (Euro-Notions Florida v. United States). Entries
+ * previously considered past the protest window are now eligible via CBP reliquidation
+ * IF the importer is an active CIT plaintiff.
+ */
+const CAPE_PHASE3_ORDER_DATE = new Date("2026-07-17T00:00:00Z");
 
 /**
  * Applies a human-review flag to an otherwise-eligible result when the entry
@@ -292,11 +324,33 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
+  // 4a. Entry type exclusion (Types 08, 09, 23, 47 are excluded from all CAPE phases)
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (all phases)`,
+      filingMethod: "none",
+    };
+  }
+
+  // 4b. CAPE Phase 2: reconciliation-flagged entries (types 01/02/06) are eligible as of Jun 29, 2026.
+  //     Under Phase 1, these were excluded at the CBP system level even though their entry type
+  //     was not in EXCLUDED_ENTRY_TYPES. Phase 2 (CSMS # 69066837) lifts this restriction provided
+  //     the Type-09 reconciliation entry has not yet been filed.
+  if (entry.isFlaggedForReconciliation && RECON_ELIGIBLE_ENTRY_TYPES.has(entry.entryType)) {
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason:
+        "Entry flagged for reconciliation — eligible via CAPE Phase 2 (eff. Jun 29, 2026). " +
+        "File CAPE Declaration before the corresponding Type-09 reconciliation entry.",
+      filingMethod: "cape_phase2",
+    };
+    return applySectionReviewFlag(base, entry);
+  } else if (entry.isFlaggedForReconciliation) {
+    // Flagged for reconciliation but entry type is not in the Phase 2 eligible set
+    return {
+      status: "excluded_type",
+      reason: `Entry type ${entry.entryType} flagged for reconciliation is not eligible under CAPE Phase 2 (eligible types: 01, 02, 06)`,
       filingMethod: "none",
     };
   }
@@ -318,11 +372,28 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline.
+    // For CIT plaintiffs: CAPE Phase 3 (CIT order Jul 17, 2026) authorizes CBP reliquidation.
+    // For non-plaintiffs: litigation only.
     if (daysRemaining < 0) {
+      if (entry.isCitPlaintiff) {
+        const base: EligibilityResult = {
+          status: "eligible",
+          reason:
+            "Protest window expired, but eligible via CAPE Phase 3: CIT ordered CBP to reliquidate " +
+            "finally-liquidated entries for CIT plaintiffs (Jul 17, 2026 — Euro-Notions Florida v. United States). " +
+            "Contact your CIT counsel to confirm entry is covered by the reliquidation order.",
+          deadlineDays: daysRemaining,
+          deadlineDate,
+          filingMethod: "cape_phase3",
+          needsReview: true,
+          reviewNote: "CIT plaintiff status must be verified. Phase 3 reliquidation requires entry to be covered by the Jul 17, 2026 CIT order.",
+        };
+        return applySectionReviewFlag(base, entry);
+      }
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only (or CAPE Phase 3 if a CIT plaintiff)",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
