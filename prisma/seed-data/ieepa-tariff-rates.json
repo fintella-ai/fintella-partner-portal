@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired 12:01 AM EDT Jul 24, 2026. Max statutory rate is 15%. Rate remained at 10% through expiry - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LEGAL CHALLENGE: On May 7, 2026, a 2-1 CIT panel struck down Section 122 tariffs (held balance-of-payments conditions did not meet statutory threshold); CAFC issued an administrative stay May 12, 2026 pending appeal, so collection continued through expiry. REPLACED: Effective Jul 24, 2026, new Section 301 forced-labor duties of 10-12.5% on ~60-80 economies replaced Section 122 (USTR final rule); entries on/after Jul 24 owed Section 301, not Section 122. Section 301 has no statutory time cap.",
+      "supersededBy": "S301-FORCED-LABOR-01"
     },
     {
       "id": "DZ-RECIP-ORIG",
@@ -4877,6 +4877,18 @@
         "underpaymentRate": 0.06,
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
+        "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
         "compounding": "daily"
       }
     ]

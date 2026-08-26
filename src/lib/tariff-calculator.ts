@@ -205,7 +205,21 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE.
+ *
+ * Phase 1 (Apr 20, 2026): excludes Type 08 (duty-free formal), Type 09 (reconciliation entries
+ * themselves), Type 23 (temporary importation under bond), and Type 47 (drawback).
+ *
+ * Phase 2 (Jun 29, 2026): reconciliation-FLAGGED entries (Types 01, 02, 06 that have a
+ * pending Type 09 reconciliation not yet filed) are NOW eligible. The Type 09 entry itself
+ * remains excluded. Standard 01/02/06 entries were already eligible in Phase 1.
+ *
+ * Phase 3 (late Jul 2026): finally-liquidated entries eligible but only for importers who
+ * have filed suit at CIT — the `litigation` FilingMethod still correctly represents this path.
+ *
+ * Type 47 drawback entries remain excluded; they are in a future phase.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
