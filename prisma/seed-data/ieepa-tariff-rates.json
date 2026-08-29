@@ -332,7 +332,35 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days; expired at 12:01 AM ET Jul 24, 2026 (statutory 150-day cap, no Congressional extension). Rate remained at 10% throughout — Trump floated 15% in Feb 2026 social media but no formal proclamation issued. Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). Immediately superseded at expiry by Section 301 forced-labor tariffs.",
+      "supersededBy": "S301-BASELINE"
+    },
+    {
+      "id": "S301-BASELINE",
+      "executiveOrder": "USTR Section 301 Determination (Jul 23, 2026)",
+      "name": "Section 301 Forced-Labor Tariff — Baseline (10%)",
+      "rateType": "section301",
+      "countryCode": "S301-BASELINE-COUNTRIES",
+      "countryName": "~46 economies with qualifying forced-labor import prohibition",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "Replacement for expired Section 122. USTR imposed additional duties under Section 301 of Trade Act of 1974 (19 USC 2411) based on finding that 60 economies failed to adopt or effectively enforce forced-labor import prohibitions. Effective 12:01 AM EDT Jul 24, 2026 — the exact minute Section 122 expired. Baseline 10% rate applies to ~46 economies that have enacted or committed to a qualifying forced-labor import ban (e.g., India moved from 12.5% to 10% tier after enacting such a ban). HTS classification through Chapter 99 provisions 9903.05.20–9903.05.84 (exact per-country subheadings in USTR determination). Exemptions via 9903.05.85–9903.06.21 covering USMCA/CAFTA-DR goods, civil aircraft, pharmaceuticals, and Chapter 98 goods. No statutory expiration (unlike Section 122). Challenged by 25 states (led by OR, AZ, CA) in CIT suit filed Aug 3, 2026 alleging inadequate per-country findings; challenge also filed by Liberty Justice Center. NOT an IEEPA tariff — not refundable via CAPE. Source: USTR Section 301 forced-labor investigation (launched Mar 12, 2026).",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-ELEVATED",
+      "executiveOrder": "USTR Section 301 Determination (Jul 23, 2026)",
+      "name": "Section 301 Forced-Labor Tariff — Elevated (12.5%)",
+      "rateType": "section301",
+      "countryCode": "S301-ELEVATED-COUNTRIES",
+      "countryName": "~14 economies without qualifying forced-labor import prohibition",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.40",
+      "notes": "Elevated 12.5% rate under the same Jul 24, 2026 Section 301 forced-labor determination as S301-BASELINE. Applies to the roughly 14 economies among the 60 covered that have NOT enacted a qualifying forced-labor import ban. Same exemptions apply (9903.05.85–9903.06.21). No statutory expiration. NOT an IEEPA tariff — not refundable via CAPE. HTS subheading is illustrative of the elevated tier; exact per-country subheadings defined in the USTR determination published Jul 23, 2026.",
       "supersededBy": null
     },
     {
