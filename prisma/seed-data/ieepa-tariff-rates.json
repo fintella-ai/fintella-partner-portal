@@ -332,7 +332,35 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). NOTE: CIT ruled Section 122 invalid (May 7, 2026, 2-1 decision in State of Washington v. Trump) but CAFC stay issued May 12, 2026 — government continued collecting through expiry. CAFC appeal pending as of Aug 2026; non-plaintiff importers may have future refund claims if ruling upheld.",
+      "supersededBy": "S301-FL-TIER1"
+    },
+    {
+      "id": "S301-FL-TIER1",
+      "executiveOrder": "Presidential Memorandum (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Surcharge — Tier 1 (10%)",
+      "rateType": "section301",
+      "countryCode": "FL-PARTIAL",
+      "countryName": "Countries with partial forced-labor enforcement (~30 economies)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20-9903.05.84",
+      "notes": "Replacement surcharge under Section 301 of the Trade Act of 1974 (19 USC 2411). Effective 12:01 AM ET July 24, 2026, the same minute Section 122 expired. 10% ad valorem on imports from ~30 economies that impose a forced-labor import prohibition but do not yet effectively enforce it, or have made commitments in bilateral Agreements on Reciprocal Trade regarding forced labor. Tier 1 countries include: EU member states, Canada, Mexico, Indonesia, UK, Bangladesh, Cambodia, Jordan, Malaysia, India, Taiwan, and others (see FR 2026-15181 Annex A for full country-to-code mapping). HTS codes 9903.05.20–9903.05.84 are country-specific. Exemptions: Section 232 goods; patented pharmaceuticals (eff. Jul 31, 2026); products in Annex A. IMPORTANT: These are Section 301 tariffs, NOT IEEPA. They are NOT refundable under CAPE. Federal Register 2026-15181 (Jul 28, 2026). USTR press release: https://ustr.gov/about/policy-offices/press-office/press-releases/2026/july/ustr-takes-action-forced-labor-section-301-investigations. CBP CSMS #69326983.",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-TIER2",
+      "executiveOrder": "Presidential Memorandum (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Surcharge — Tier 2 (12.5%)",
+      "rateType": "section301",
+      "countryCode": "FL-NONCOMPLIANT",
+      "countryName": "Countries with no forced-labor enforcement (~30 economies)",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20-9903.05.84",
+      "notes": "Replacement surcharge under Section 301 of the Trade Act of 1974 (19 USC 2411). Effective 12:01 AM ET July 24, 2026. 12.5% ad valorem on imports from ~30 economies that have failed to adopt or effectively enforce any prohibition on the importation of goods produced with forced labor, and have not made commitments in bilateral agreements. Same HTS codes (9903.05.20–9903.05.84, country-specific per Annex A of FR 2026-15181). Same exemptions as Tier 1. IMPORTANT: These are Section 301 tariffs, NOT IEEPA. They are NOT refundable under CAPE. Federal Register 2026-15181 (Jul 28, 2026). CBP CSMS #69326983.",
       "supersededBy": null
     },
     {
