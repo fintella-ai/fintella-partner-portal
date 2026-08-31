@@ -61,7 +61,7 @@ const ENTRY_NUMBER_PATTERN = /^[A-Z0-9]{3}-\d{7}-\d$/;
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 /** Statutory protest deadline from liquidation — 19 U.S.C. §1514. */
 const PROTEST_WINDOW_DAYS = 180;
-/** CAPE Phase-1 automated window: entries liquidated within this many days. */
+/** CAPE automated window (Phase 1 + Phase 2): entries liquidated within this many days. */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 const URGENT_THRESHOLD_DAYS = 14;
 const USMCA_EXEMPTION_DATE = new Date("2025-03-07T00:00:00Z");
