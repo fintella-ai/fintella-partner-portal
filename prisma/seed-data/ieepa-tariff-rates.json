@@ -333,6 +333,20 @@
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
       "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "supersededBy": "S301-FL-01"
+    },
+    {
+      "id": "S301-FL-01",
+      "executiveOrder": "USTR Section 301 Final Action (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Surcharge — Global (10%/12.5%)",
+      "rateType": "section301",
+      "countryCode": "ALL",
+      "countryName": "60 Named Economies",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "Replaces Section 122 global surcharge effective 12:01 AM ET Jul 24, 2026 (exact moment Section 122 expired). Imposed by USTR under Section 301 of the Trade Act of 1974 following forced-labor investigations into 60 economies. Rate is 10% for countries with operative forced-labor import bans, 12.5% for countries without such prohibitions. HTS codes 9903.05.20–9903.05.84 are country-specific. Exemptions via 9903.05.85–9903.05.99 and 9903.06.01–9903.06.21 (USMCA/CAFTA-DR goods, civil aircraft, pharmaceuticals, Chapter 98 goods). Unlike IEEPA tariffs, these are NOT subject to IEEPA refund claims — Section 301 duties on entries after Jul 24, 2026 are assessed under a separate legal authority. This entry is informational; the IEEPA refund calculator only covers duties paid Feb 1, 2025 – Feb 23, 2026. Source: USTR press release Jul 23, 2026 (https://ustr.gov/about/policy-offices/press-office/press-releases/2026/july/ustr-takes-action-forced-labor-section-301-investigations); Federal Register effective Jul 24, 2026.",
       "supersededBy": null
     },
     {
