@@ -30,9 +30,12 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1/Phase-2 window → automated CAPE refund
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *                 NOTE: CAPE Phase 3 (for finally-liquidated entries) was postponed as of Aug 21, 2026
+ *                 (originally targeted Aug 20, 2026). Once Phase 3 launches, some "litigation" entries
+ *                 may gain a CAPE path via reliquidation orders. Check cbp.gov for Phase 3 status.
  *  - none:        not eligible for any refund path
  */
 export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
@@ -205,7 +208,15 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE.
+ * Phase 1 (launched Apr 20, 2026): excludes 08, 09, 23, 47.
+ * Phase 2 (launched Jun 29, 2026): accepts Types 01/02/06 flagged for reconciliation IF the
+ *   Type 09 reconciliation entry has NOT yet been filed. Once Type 09 is filed, underlying
+ *   entries are locked out of CAPE. Type 09 itself remains excluded.
+ * Type 47 (drawback): excluded from ALL phases — pursue via protest or litigation.
+ * Warehouse entries (21, 22): excluded effective Jul 7, 2026 (previously allowed in Phase 1).
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
