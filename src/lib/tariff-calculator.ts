@@ -31,11 +31,14 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: entry types 01/02/06 flagged for reconciliation with unfiled Type-09 → CAPE Phase 2
+ *                 (Phase 2 live as of June 29, 2026; same 80-day liquidation window applies)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *                 (CAPE Phase 3 for finally-liquidated entries is delayed as of Aug 25, 2026)
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +79,9 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isFlaggedForReconciliation?: boolean; // entry types 01/02/06 with Type-09 reconciliation pending →
+                                        // eligible under CAPE Phase 2 (live June 29, 2026) even if
+                                        // the Type-09 reconciliation entry has not yet been filed
 }
 
 export interface EntryForCape {
@@ -205,8 +211,24 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE (all phases).
+ *
+ * Phase 1 (live April 20, 2026): excludes 08, 09, 23, 47.
+ * Phase 2 (live June 29, 2026): adds support for types 01/02/06 flagged for reconciliation
+ *   (where the Type-09 reconciliation entry has not yet been filed). Those entries route to
+ *   `cape_phase2` rather than being excluded — see `isFlaggedForReconciliation` flag.
+ *   Type 09 itself (the reconciliation entry form) remains excluded from all CAPE phases.
+ * Phase 3 (finally-liquidated entries / CIT lawsuit filers): temporarily delayed as of
+ *   August 25, 2026 per CBP announcement. No ETA; check cbp.gov/cape for updates.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+
+/** Entry types eligible for CAPE Phase 2 reconciliation routing (live June 29, 2026) */
+const CAPE_PHASE2_RECONCILIATION_ENTRY_TYPES = new Set(["01", "02", "06"]);
+
+/** CAPE Phase 2 launch date — reconciliation-flagged entries accepted from this date */
+const CAPE_PHASE2_LAUNCH_DATE = new Date("2026-06-29T00:00:00Z");
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -292,11 +314,28 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
+  // 4. CAPE Phase 2 — reconciliation-flagged entries (types 01/02/06 with unfiled Type 09)
+  //    are eligible via CAPE Phase 2 as of June 29, 2026. Route them before the general
+  //    exclusion check so they don't fall into "excluded_type" incorrectly.
+  if (
+    entry.isFlaggedForReconciliation &&
+    CAPE_PHASE2_RECONCILIATION_ENTRY_TYPES.has(entry.entryType) &&
+    new Date() >= CAPE_PHASE2_LAUNCH_DATE
+  ) {
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason:
+        "Entry flagged for reconciliation with unfiled Type-09 — eligible via CAPE Phase 2 (live June 29, 2026)",
+      filingMethod: "cape_phase2",
+    };
+    return applySectionReviewFlag(base, entry);
+  }
+
+  // 4b. Entry type exclusion (all phases)
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (all phases)`,
       filingMethod: "none",
     };
   }
