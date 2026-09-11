@@ -1,15 +1,19 @@
 {
   "_metadata": {
     "version": "1.0.0",
-    "generatedDate": "2026-04-29",
-    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
-    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
+    "generatedDate": "2026-09-11",
+    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026, Section 122 replacement and expiry (July 24, 2026), and Section 301 forced-labor tariff regime (July 24, 2026+). CAPE Phase 2 launched June 29, 2026.",
+    "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132), Trade Act of 1974 Section 301 (19 U.S.C. 2411)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
       "Federal Register notices",
       "CBP CSMS guidance messages",
       "White House Annex I and Annex II",
-      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)"
+      "Learning Resources, Inc. v. Trump (SCOTUS, Feb 20, 2026)",
+      "Presidential Proclamation (Feb 23, 2026) — Section 122 global surcharge",
+      "CIT ruling (May 7, 2026) — Section 122 struck down (stayed by Federal Circuit June 11, 2026)",
+      "USTR Proclamation (July 23, 2026) — Section 301 forced-labor tariffs replacing Section 122",
+      "CBP CSMS — CAPE Phase 2 guidance (June 29, 2026) — reconciliation-flagged entries now eligible"
     ]
   },
   "rates": [
@@ -332,7 +336,35 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired 12:01 AM ET July 24, 2026. Max statutory rate is 15%; rate remained 10% throughout. Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). LITIGATION: CIT struck down Section 122 tariffs 2-1 on May 7, 2026 (held proclamation exceeded statutory authority); Federal Circuit issued administrative stay May 12, 2026 and full stay pending appeal June 11, 2026 (found government likely to succeed on merits) — tariffs continued to be collected through expiry. Expired naturally via 150-day statutory limit July 24, 2026; superseded by Section 301 forced-labor tariffs. NOTE: Section 122 duties are NOT currently eligible for CAPE refunds (refund program covers IEEPA period only, Feb 4–Feb 23, 2026). If Federal Circuit ultimately upholds CIT ruling, separate refund mechanism would be required.",
+      "supersededBy": "S301FL-01"
+    },
+    {
+      "id": "S301FL-01",
+      "executiveOrder": "USTR Proclamation (July 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff — Partial Enforcement Countries (10%)",
+      "rateType": "section301_forced_labor",
+      "countryCode": "S301FL-PARTIAL",
+      "countryName": "~45 economies with partial forced-labor enforcement commitment (incl. EU, Taiwan, India, Vietnam, Canada, Mexico, Brazil, UK, Australia, Singapore, UAE)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.04.01",
+      "notes": "USTR imposed Section 301 tariffs under 19 U.S.C. 2411 effective 12:01 AM ET July 24, 2026, replacing the expired Section 122 global surcharge. 10% additional ad valorem duty on imports from economies that have taken partial steps toward enforcing prohibitions on goods made with forced labor. IMPORTANT: These are NOT IEEPA tariffs and are NOT refundable via CAPE. This entry is informational only — for current-tariff context, not refund calculation. Country list is approximate; verify exact USTR annex for specific origin determination.",
+      "supersededBy": null
+    },
+    {
+      "id": "S301FL-02",
+      "executiveOrder": "USTR Proclamation (July 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff — No Enforcement Countries (12.5%)",
+      "rateType": "section301_forced_labor",
+      "countryCode": "S301FL-NONE",
+      "countryName": "~15 economies with no meaningful forced-labor enforcement (incl. Japan, South Korea, Switzerland, Liechtenstein, Nigeria, Ethiopia)",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.04.02",
+      "notes": "12.5% additional ad valorem duty on imports from economies found to have made no meaningful effort to prohibit imports of goods made with forced labor. IMPORTANT: These are NOT IEEPA tariffs and are NOT refundable via CAPE. This entry is informational only. Country list is approximate; verify exact USTR annex for specific origin determination.",
       "supersededBy": null
     },
     {
@@ -4878,15 +4910,29 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "Rev. Rul. 2026-XX; IRS IRB 2026-36; rates increased from Q2 2026 level"
       }
     ]
   },
   "capePhase1": {
-    "description": "Consolidated Administration and Processing of Entries (CAPE) Phase 1 - IEEPA Duty Refund Program",
+    "description": "Consolidated Administration and Processing of Entries (CAPE) — IEEPA Duty Refund Program. Phase 1 launched April 20, 2026. Phase 2 (reconciliation-flagged entries) launched June 29, 2026.",
     "launchDate": "2026-04-20",
+    "phase2LaunchDate": "2026-06-29",
     "systemName": "CAPE (within ACE)",
     "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT order Mar 4, 2026",
-    "refundScope": "IEEPA duties ONLY. Section 232, Section 301, and other duties on same entry are NOT refundable.",
+    "refundScope": "IEEPA duties ONLY. Section 232, Section 301, Section 122, and other duties on same entry are NOT refundable.",
     "refundPeriod": {
       "startDate": "2025-02-04",
       "endDate": "2026-02-23",
@@ -4897,7 +4943,7 @@
         {
           "code": "01",
           "name": "Consumption",
-          "notes": "Standard formal consumption entries"
+          "notes": "Standard formal consumption entries. Phase 2 (June 29, 2026): also eligible if flagged for reconciliation, provided the type 09 reconciliation entry has NOT yet been filed. CAPE declaration must be filed BEFORE the type 09 reconciliation entry."
         },
         {
           "code": "03",
@@ -4907,7 +4953,7 @@
         {
           "code": "06",
           "name": "Consumption - FTZ",
-          "notes": "Foreign Trade Zone consumption entries"
+          "notes": "Foreign Trade Zone consumption entries. Phase 2: also eligible if flagged for reconciliation (same conditions as code 01)."
         },
         {
           "code": "11",
@@ -4929,22 +4975,22 @@
         {
           "code": "08",
           "name": "USMCA Duty Deferral",
-          "notes": "Not accepted in Phase 1"
+          "notes": "Not accepted in Phase 1 or Phase 2"
         },
         {
           "code": "09",
-          "name": "Reconciliation Summary",
-          "notes": "Flagged for reconciliation - excluded"
+          "name": "Reconciliation Summary (the type 09 entry itself)",
+          "notes": "The type 09 reconciliation summary entry itself remains excluded. However, Phase 2 (June 29, 2026) changed policy for entries OF TYPE 01/02/06 that are FLAGGED for reconciliation: those consumption entries are now eligible provided the type 09 has not been filed yet."
         },
         {
           "code": "23",
           "name": "Temporary Importation Under Bond",
-          "notes": "TIB entries excluded from Phase 1"
+          "notes": "TIB entries excluded from Phase 1 and Phase 2"
         },
         {
           "code": "47",
           "name": "Drawback",
-          "notes": "Entries on drawback claim excluded"
+          "notes": "Entries on drawback claim remain excluded from Phase 1 and Phase 2. Await further CBP guidance or litigation."
         }
       ]
     },
@@ -4958,8 +5004,9 @@
         "Entry must be filed in ACE with a liquidation status visible in ACE",
         "Entry must have declared IEEPA Chapter 99 HTS codes",
         "Entry must NOT be covered by an open or suspended protest",
-        "Entry must NOT be flagged for reconciliation",
-        "Entry must NOT be on an active drawback claim"
+        "Entry must NOT be on an active drawback claim (type 47 excluded)",
+        "Phase 2 only: For reconciliation-flagged entries (type 01/02/06), CAPE declaration must be filed BEFORE the type 09 reconciliation entry. If the reconciliation entry has already been filed, the underlying entry is NOT eligible for Phase 2.",
+        "Phase 2 only: If reconciliation filing deadline is less than 30 days away, file the reconciliation entry first (do not risk losing reconciliation for the refund)"
       ]
     },
     "refundCalculation": {
