@@ -332,7 +332,49 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired Jul 24, 2026. Max statutory rate is 15%. CIT declared Section 122 unconstitutional on May 7, 2026 (2-1 decision) — ruling on appeal at time of expiration. Expired as scheduled Jul 24, 2026; not extended by Congress. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "supersededBy": "S301-FL-10"
+    },
+    {
+      "id": "S301-FL-10",
+      "executiveOrder": "USTR Section 301 Action (FR 2026-15181, Jul 28, 2026)",
+      "name": "Section 301 Forced Labor Surcharge - 10% Tier",
+      "rateType": "section301",
+      "countryCode": "TIER-10",
+      "countryName": "17 Economies (flat 10%) + EU + Taiwan (net-of-MFN 10%)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "Section 301 forced labor tariffs imposed by USTR under Trade Act of 1974. Effective 12:01 AM EDT Jul 24, 2026 — same minute Section 122 expired. 10% additional duty on imports from 19 economies. Flat 10% stacking rate on 17 countries: Argentina, Bangladesh, Cambodia, Canada, Ecuador, El Salvador, Guatemala, Honduras, India, Indonesia, Jordan, Malaysia, Mexico, Pakistan, Sri Lanka, Trinidad and Tobago, United Kingdom. Net-of-MFN 10% rate: EU (all member states) and Taiwan. HTS codes 9903.05.20–9903.05.84 implement this action. USMCA-compliant CA/MX goods remain exempt per Note 52. Section 232 goods exempt. Covers ~99.4% of U.S. imports from subject economies.",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-125",
+      "executiveOrder": "USTR Section 301 Action (FR 2026-15181, Jul 28, 2026)",
+      "name": "Section 301 Forced Labor Surcharge - 12.5% Tier",
+      "rateType": "section301",
+      "countryCode": "TIER-125",
+      "countryName": "38 Economies (flat 12.5%) + Japan, South Korea, Switzerland (net-of-MFN 12.5%)",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.40",
+      "notes": "Section 301 forced labor tariffs — 12.5% tier. Net-of-MFN 12.5% on Japan, South Korea, Switzerland. Flat 12.5% stacking rate on remaining 38 economies including China, Brazil, Vietnam, Russia, and others. These economies found to have made no meaningful effort to police forced labor practices. HTS codes 9903.05.40–9903.05.84 implement this tier. Same Note 52 exemptions (USMCA, Section 232, etc.) apply.",
+      "supersededBy": null
+    },
+    {
+      "id": "S338-CA-01",
+      "executiveOrder": "Proclamation (FR 2026-14997, Jul 23, 2026)",
+      "name": "Section 338 Canada Motor Vehicle Retaliation (50%)",
+      "rateType": "section338",
+      "countryCode": "CA",
+      "countryName": "Canada",
+      "rate": 0.5,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.04.10",
+      "notes": "Section 338 of the Tariff Act of 1930 action targeting Canada's discriminatory motor vehicle tariff scheme. 50% additional duty on specified Canadian goods including motor vehicles, dairy, and alcoholic beverages. Effective 12:01 AM EDT Jul 24, 2026. USMCA-origin goods claimed under preferential entry do NOT qualify for the USMCA Section 301 exemption for this action — no USMCA carve-out under Section 338. Proclamation 11055 (July 23, 2026). Note: Proclamation 11063 (Sep 14, 2026) modified scope; certain goods (rock salt, cement) removed Sep 15, 2026 while ATVs and dairy were added. Outright import prohibition (not merely tariff) for certain Canadian products effective Sep 29, 2026.",
       "supersededBy": null
     },
     {
@@ -4878,8 +4920,65 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "notes": "Rate increased from Q2 2026 (6%) back to 7%. Source: IRS Rev. Rul. 2026-22 / IRS newsroom Q3 2026 announcement."
+      },
+      {
+        "quarter": "Q4 2026",
+        "startDate": "2026-10-01",
+        "endDate": "2026-12-31",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "notes": "Rate unchanged from Q3 2026. Source: IRS newsroom 'interest rates remain the same for the fourth quarter of 2026'."
       }
     ]
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 — expanded eligibility for reconciliation-flagged entries. Launched June 29, 2026.",
+    "launchDate": "2026-06-29",
+    "csmsGuidance": "CSMS #69035485 (June 23, 2026)",
+    "newlyCoveredEntryTypes": [
+      {
+        "code": "01/02/06",
+        "name": "Reconciliation-flagged consumption entries",
+        "notes": "Entries of types 01, 02, or 06 that have been flagged for reconciliation (i.e., where a Type 09 reconciliation entry has NOT yet been filed) are now eligible for CAPE Phase 2. CRITICAL: once the Type 09 reconciliation entry is filed, the underlying flagged entries are locked out of CAPE. File CAPE BEFORE filing the Type 09 reconciliation.",
+        "liquidationRule": "Same 80-day liquidation window applies: unliquidated entries OR entries liquidated within 80 days of CAPE submission."
+      }
+    ],
+    "stillExcluded": [
+      {
+        "code": "47",
+        "name": "Drawback entries",
+        "notes": "Type 47 drawback entries remain excluded from Phase 2. CBP has indicated this may be addressed in a future Phase 3."
+      },
+      {
+        "code": "09",
+        "name": "Reconciliation entry (the Type 09 itself)",
+        "notes": "The Type 09 reconciliation entry itself is not submitted to CAPE — only the underlying flagged entries (01/02/06 before the Type 09 is filed)."
+      }
+    ],
+    "processingStatus": {
+      "asOf": "2026-08-21",
+      "accepted": "$132.5 billion in IEEPA refunds accepted for CAPE processing",
+      "completed": "$106.6 billion processed and sent to Treasury",
+      "phase3Status": "CBP temporarily delayed CAPE Phase 3 to build additional validations"
+    }
   },
   "capePhase1": {
     "description": "Consolidated Administration and Processing of Entries (CAPE) Phase 1 - IEEPA Duty Refund Program",
@@ -4934,7 +5033,7 @@
         {
           "code": "09",
           "name": "Reconciliation Summary",
-          "notes": "Flagged for reconciliation - excluded"
+          "notes": "The Type 09 entry itself is excluded from Phase 1. However, CAPE Phase 2 (launched Jun 29, 2026) allows the underlying flagged entries (types 01/02/06) to be submitted to CAPE BEFORE the Type 09 is filed. See capePhase2 section."
         },
         {
           "code": "23",
