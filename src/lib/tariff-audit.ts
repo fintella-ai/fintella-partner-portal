@@ -58,7 +58,8 @@ export interface AuditEntry {
 
 const MAX_ENTRIES = 9999;
 const ENTRY_NUMBER_PATTERN = /^[A-Z0-9]{3}-\d{7}-\d$/;
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+// Type 21 (Warehouse) and Type 22 (Re-warehouse) excluded effective July 7, 2026 (CSMS #69127837)
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 /** Statutory protest deadline from liquidation — 19 U.S.C. §1514. */
 const PROTEST_WINDOW_DAYS = 180;
 /** CAPE Phase-1 automated window: entries liquidated within this many days. */
