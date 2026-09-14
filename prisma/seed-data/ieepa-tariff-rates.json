@@ -332,7 +332,35 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired Jul 23, 2026 (day 150). Max statutory rate is 15%. Congress did not extend. Rate was NOT raised to 15% — Trump social media announcement Feb 22 was not formalized. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "supersededBy": "S301-FL-10"
+    },
+    {
+      "id": "S301-FL-10",
+      "executiveOrder": "Presidential Memorandum (Jul 23, 2026) / USTR Section 301 Action",
+      "name": "Section 301 Forced Labor Surcharge — Countries With FL Bans (10%)",
+      "rateType": "section301",
+      "countryCode": "ALL-FL-BAN",
+      "countryName": "60 Economies (forced-labor-ban countries at 10%)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "Section 301 forced labor tariffs replace Section 122 effective July 24, 2026. USTR initiated 60 Section 301 investigations on Mar 12, 2026; findings issued Jun 2, 2026; Presidential Memorandum signed Jul 23, 2026. Rate is 10% for economies that have prohibitions in place on imports made with forced labor. Economies without forced labor bans pay 12.5% (see S301-FL-12-5). HTS Chapter 99 headings 9903.05.20–9903.05.84 (economy-specific). Exemptions: in-transit goods, civil aircraft, pharmaceuticals, aluminum/steel/copper (Sec 232), vehicles, wood products, semiconductors, humanitarian donations, informational materials. NOTE: Section 301 tariffs are NOT IEEPA tariffs — entries from Jul 24, 2026 onward are outside the IEEPA refund window (IEEPA_END_DATE = Feb 23, 2026). This entry is for rate-reference display only. Source: https://ustr.gov/about/policy-offices/press-office/press-releases/2026/july/ustr-takes-action-forced-labor-section-301-investigations",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-12-5",
+      "executiveOrder": "Presidential Memorandum (Jul 23, 2026) / USTR Section 301 Action",
+      "name": "Section 301 Forced Labor Surcharge — Countries Without FL Bans (12.5%)",
+      "rateType": "section301",
+      "countryCode": "ALL-FL-NOBAN",
+      "countryName": "60 Economies (no-forced-labor-ban countries at 12.5%)",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "12.5% rate applies to the subset of the 60 investigated economies that have NOT enacted prohibitions on imports made with forced labor. Same exemptions as S301-FL-10. See S301-FL-10 for full context. NOTE: Section 301 tariffs are NOT IEEPA tariffs — entries from Jul 24, 2026 onward are outside the IEEPA refund window (IEEPA_END_DATE = Feb 23, 2026). This entry is for rate-reference display only. Source: https://ustr.gov/about/policy-offices/press-office/press-releases/2026/july/ustr-takes-action-forced-labor-section-301-investigations",
       "supersededBy": null
     },
     {

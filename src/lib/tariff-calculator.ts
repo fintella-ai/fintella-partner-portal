@@ -25,17 +25,19 @@ export interface RateLookupResult {
   combinedRate: number;
   rates: RateRecord[];
   rateName: string;
-  breakdown: { fentanyl?: number; reciprocal?: number; section122?: number };
+  breakdown: { fentanyl?: number; reciprocal?: number; section122?: number; section301?: number };
 }
 
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: entry type eligible via CAPE Phase 2 (launched June 29, 2026) — covers Type 09 (reconciliation)
+ *                 and Type 47 (drawback) entries regardless of liquidation status
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -118,7 +120,7 @@ function daysBetween(a: Date, b: Date): number {
  * fentanyl + reciprocal rates, returns combined rate with breakdown.
  */
 export function lookupCombinedRate(rates: RateRecord[]): RateLookupResult {
-  const breakdown: { fentanyl?: number; reciprocal?: number; section122?: number } = {};
+  const breakdown: { fentanyl?: number; reciprocal?: number; section122?: number; section301?: number } = {};
   let combinedRate = 0;
   const names: string[] = [];
 
@@ -132,6 +134,8 @@ export function lookupCombinedRate(rates: RateRecord[]): RateLookupResult {
       breakdown.reciprocal = (breakdown.reciprocal ?? 0) + val;
     } else if (type === "section122") {
       breakdown.section122 = (breakdown.section122 ?? 0) + val;
+    } else if (type === "section301") {
+      breakdown.section301 = (breakdown.section301 ?? 0) + val;
     }
 
     combinedRate += val;
@@ -205,8 +209,19 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE Phase 1 AND Phase 2 — not refundable via CAPE.
+ * Type 08 = informal entry; Type 23 = temporary importation bond (TIB).
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "23"]);
+
+/**
+ * CBP entry types eligible via CAPE Phase 2 (launched June 29, 2026) but NOT Phase 1.
+ * Type 09 = reconciliation entries; Type 47 = drawback entries.
+ * Phase 2 accepts these regardless of liquidation status.
+ * Source: CBP Trade Information Notice, CSMS #69326983, July 23, 2026.
+ */
+const CAPE_PHASE2_ENTRY_TYPES = new Set(["09", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -292,11 +307,22 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
+  // 4a. CAPE Phase 2 entry types (Type 09 reconciliation, Type 47 drawback)
+  //     Phase 2 launched June 29, 2026 — these are now eligible regardless of liquidation status.
+  if (CAPE_PHASE2_ENTRY_TYPES.has(entry.entryType)) {
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: `Entry type ${entry.entryType} eligible via CAPE Phase 2 (launched June 29, 2026)`,
+      filingMethod: "cape_phase2",
+    };
+    return applySectionReviewFlag(base, entry);
+  }
+
+  // 4b. Entry types excluded from all CAPE phases
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE`,
       filingMethod: "none",
     };
   }
