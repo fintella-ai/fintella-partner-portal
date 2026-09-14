@@ -190,6 +190,46 @@ test("entry type 23 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "23" }).status, "excluded_type");
 });
 
+test("entry type 47 → excluded_type", () => {
+  assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "47" }).status, "excluded_type");
+});
+
+// Type 21/22 (Warehouse/Re-warehouse) excluded from CAPE effective July 7, 2026
+test("entry type 21 (warehouse) → excluded_type", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "21" });
+  assert.equal(result.status, "excluded_type");
+  assert.ok(result.reason.includes("Warehouse withdrawals remain eligible"));
+});
+
+test("entry type 22 (re-warehouse) → excluded_type", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "22" });
+  assert.equal(result.status, "excluded_type");
+  assert.ok(result.reason.includes("Warehouse withdrawals remain eligible"));
+});
+
+// CAPE Phase 2 — reconciliation-flagged entries
+test("unliquidated reconciliation-flagged entry → eligible via cape_phase2", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isReconciliationFlagged: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("reconciliation-flagged entry liquidated within 80 days → cape_phase2", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 30);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq, isReconciliationFlagged: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("reconciliation-flagged entry liquidated 80–180 days ago → protest (Phase 2 80-day window expired)", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 120);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq, isReconciliationFlagged: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "protest");
+});
+
 test("unliquidated AD/CVD → excluded_adcvd", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isAdCvd: true }).status, "excluded_adcvd");
 });
