@@ -332,7 +332,35 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expired 12:01 AM EDT Jul 24, 2026. Max statutory rate is 15%. Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation was issued — rate remained 10% through expiration. Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "supersededBy": "S301-FL-01"
+    },
+    {
+      "id": "S301-FL-01",
+      "executiveOrder": "USTR Notice (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff - Tier 1 (10%)",
+      "rateType": "section301",
+      "countryCode": "SECTION301-TIER1",
+      "countryName": "60 Economies (Tier 1 — qualifying forced-labor prohibition)",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.04.xx",
+      "notes": "Replaces Section 122 (expired Jul 24, 2026). USTR action in Section 301 forced-labor investigations covering 60 economies (Docket Nos. USTR-2026-0265 and USTR-2026-0266). Effective 12:01 AM EDT Jul 24, 2026. 10% rate applies to economies that maintain a qualifying forced-labor import prohibition. Country-specific product exemptions under 9903.05.96–9903.06.21 for 13 economies. Pharmaceutical exemptions under 9903.04.60–9903.04.66 (effective Jul 31, 2026). In-transit grace period: goods loaded before Jul 24 entered before Jul 28 escape the additional duty. Federal Register 2026-15181 (published Jul 28, 2026). NOT subject to IEEPA refund via CAPE — entries post-Jul 24 are outside the IEEPA period.",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-02",
+      "executiveOrder": "USTR Notice (Jul 23, 2026)",
+      "name": "Section 301 Forced Labor Tariff - Tier 2 (12.5%)",
+      "rateType": "section301",
+      "countryCode": "SECTION301-TIER2",
+      "countryName": "60 Economies (Tier 2 — no qualifying forced-labor prohibition)",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.04.xx",
+      "notes": "Replaces Section 122 (expired Jul 24, 2026). USTR action in Section 301 forced-labor investigations. 12.5% rate applies to the majority of the 60 investigated economies that lack a qualifying forced-labor import prohibition. Same country-specific and pharmaceutical exemptions as S301-FL-01 apply. Federal Register 2026-15181 (published Jul 28, 2026). NOT subject to IEEPA refund via CAPE — entries post-Jul 24 are outside the IEEPA period.",
       "supersededBy": null
     },
     {
