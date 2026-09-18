@@ -1,12 +1,15 @@
 # Session State
 
 ## ▶️ RESUME HERE — NEXT STEPS
+5. **PR #1260** (`claude/tie-regulatory-update-2026-09-18`) — DRAFT, CI green, waiting John review. Three changes: IRS Q3+Q4 2026 rates fixed (Q3 bumped to 7%), CAPE Phase 3 (Oct 6, 2026) added to calculator, Section 122 supersession by Section 301 documented. Wire `isCitPlaintiff` into API/UI callers when ready.
+
+
 1. Nothing blocking — #1174 (PWA app-icon = F mark) merged + shipped; Vercel auto-deploying prod. Already-installed PWAs may keep the old icon until the OS icon cache refreshes (or reinstall the PWA) — the served bytes are correct as of merge.
 2. Optional: decide whether to re-enroll 2FA on `admin@fintella.partners` (John disabled it himself 2026-07-10 to test the embed after losing his codes; found them shortly after but has not re-enabled).
 3. If Google sign-in inside the OpCenter embed becomes a real need, build the popup-window OAuth workaround (see `docs/knowledge/opcenter-iframe-embed-auth.md`) — deferred by John since email/password already covers the embed use case.
 4. 82 remote branches remain from prior sessions (59 with open PRs, 23 with no PR record) — still untouched pending individual review; not urgent. 10 open DRAFT PRs are daily `claude/tie-*` regulatory/competitive-intel automation reports (#1157–#1165, #1171) — routine, not action items.
 
-🕒 Last updated: 2026-07-10 (evening, later) — PWA app-icon reverted to the F brand mark (#1174) shipped
+🕒 Last updated: 2026-09-18 (automated TIE regulatory monitor run) — PR #1260 opened (draft, CI green)
 
 ## 🌿 Git state
 - **Branch**: `main` @ `d46f8758` (#1174 "fix(pwa): use the F brand mark for the installed-app icon, not the full text logo" — auto-deploying to fintella.partners)

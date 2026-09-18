@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, EXPIRED by operation of law Jul 24, 2026 (150 days from Feb 24). Congress did not extend. Replaced midnight Jul 24 by new Section 301 tariffs (10–12.5%) on 60 economies under USTR authority — HTS 9903.05.20–9903.05.84. NOTE: Section 301 replacement duties are NOT eligible for IEEPA/Section 122 CAPE refunds; they are a separate tariff layer. The refund calculator covers IEEPA duties (Feb 4, 2025 – Feb 23, 2026) only; Section 122 duties were not subject to the SCOTUS Learning Resources order.",
+      "supersededBy": "SECTION301-REPLACEMENT"
     },
     {
       "id": "DZ-RECIP-ORIG",
@@ -4878,15 +4878,46 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "IRS Rev. Rul. 2026-XX (increased from Q2 2026); see https://www.irs.gov/newsroom/interest-rates for Q3 2026"
+      },
+      {
+        "quarter": "Q4 2026",
+        "startDate": "2026-10-01",
+        "endDate": "2026-12-31",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "source": "IRS announcement Aug 24, 2026 — rates unchanged from Q3 2026; see https://www.irs.gov/newsroom/interest-rates-remain-the-same-for-the-fourth-quarter-of-2026"
       }
     ]
   },
   "capePhase1": {
-    "description": "Consolidated Administration and Processing of Entries (CAPE) Phase 1 - IEEPA Duty Refund Program",
+    "description": "Consolidated Administration and Processing of Entries (CAPE) - IEEPA Duty Refund Program",
     "launchDate": "2026-04-20",
+    "phase2LaunchDate": "2026-06-29",
+    "phase3LaunchDate": "2026-10-06",
     "systemName": "CAPE (within ACE)",
-    "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT order Mar 4, 2026",
+    "legalBasis": "Learning Resources, Inc. v. Trump (SCOTUS Feb 20, 2026); CIT Atmus Filtration order Mar 4, 2026; CIT reliquidation order Jul 17, 2026 (Phase 3)",
     "refundScope": "IEEPA duties ONLY. Section 232, Section 301, and other duties on same entry are NOT refundable.",
+    "governmentAppeal": "DOJ filed Federal Circuit appeal Jun 3, 2026 challenging universal refund scope; CAPE continues per CIT order; final resolution expected late 2026.",
+    "phase2Notes": "Phase 2 launched Jun 29, 2026: accepts entries flagged for reconciliation (entry types 01, 02, 06) where Type 09 reconciliation has NOT yet been filed; restricted to unliquidated entries and entries within 80 days of liquidation.",
+    "phase3Notes": "Phase 3 launches Oct 6, 2026: CBP reliquidation of finally-liquidated entries for CIT plaintiffs who submitted valid IOR by Jul 30, 2026. ~$132.5B in IEEPA refunds accepted for CAPE as of Aug 21, 2026.",
     "refundPeriod": {
       "startDate": "2025-02-04",
       "endDate": "2026-02-23",
@@ -4958,8 +4989,8 @@
         "Entry must be filed in ACE with a liquidation status visible in ACE",
         "Entry must have declared IEEPA Chapter 99 HTS codes",
         "Entry must NOT be covered by an open or suspended protest",
-        "Entry must NOT be flagged for reconciliation",
-        "Entry must NOT be on an active drawback claim"
+        "Entry must NOT be on an active drawback claim",
+        "Reconciliation-flagged entries (types 01/02/06 without filed Type 09): eligible from Phase 2 onward (Jun 29, 2026) — previously excluded in Phase 1"
       ]
     },
     "refundCalculation": {
