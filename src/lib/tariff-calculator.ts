@@ -30,12 +30,13 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
- *  - none:        not eligible for any refund path
+ *  - cape_phase1:  unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - protest:      liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - cape_phase3:  liquidated > 180 days ago AND importer is a CIT plaintiff → CAPE Phase 3 (deploys Oct 6, 2026)
+ *  - litigation:   liquidated > 180 days ago, NOT a CIT plaintiff → protest window closed, CIT litigation only
+ *  - none:         not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "protest" | "cape_phase3" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -74,6 +75,7 @@ export interface EntryForEligibility {
   countryOfOrigin?: string; // ISO 2-letter — needed for the USMCA exemption check
   isUsmca?: boolean;        // goods claimed USMCA-preferential (CA/MX exemption from IEEPA fentanyl tariffs)
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
+  isCitPlaintiff?: boolean; // importer has a case pending at the CIT (gates CAPE Phase 3 for expired entries)
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
 }
@@ -318,11 +320,33 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → CAPE Phase 3 (CIT plaintiffs only) or litigation
     if (daysRemaining < 0) {
+      if (entry.isCitPlaintiff) {
+        // Phase 3 deploys Oct 6, 2026; restricted to importers with a CIT case pending and
+        // IOR submitted to CBP by Jul 30, 2026. (CBP notification to CIT, Sep 15, 2026)
+        const reviewNotes: string[] = [
+          "CAPE Phase 3 restricted to importers with a CIT case pending and IOR submitted to CBP by Jul 30, 2026 (deploys Oct 6, 2026).",
+        ];
+        if (entry.hasSection232) {
+          reviewNotes.push("Section 232 goods were exempt from IEEPA (Annex II) — verify IEEPA duty was actually paid before claiming.");
+        }
+        if (entry.hasSection301) {
+          reviewNotes.push("Section 301 duties are not refundable — only the IEEPA portion of duties paid is recoverable.");
+        }
+        return {
+          status: "eligible",
+          reason: "Protest window expired — eligible via CAPE Phase 3 (CIT plaintiff; deploys Oct 6, 2026)",
+          deadlineDays: daysRemaining,
+          deadlineDate,
+          filingMethod: "cape_phase3",
+          needsReview: true,
+          reviewNote: reviewNotes.join(" "),
+        };
+      }
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason: "Protest window expired (>180 days) — CAPE Phase 3 (Oct 6, 2026) is limited to CIT plaintiffs; litigation only for all others",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
