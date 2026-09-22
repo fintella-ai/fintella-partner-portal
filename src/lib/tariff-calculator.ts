@@ -31,11 +31,14 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: eligible via CAPE Phase 2 (eff. June 29, 2026): unliquidated AD/CVD entries with DOC
+ *                 liquidation instructions, and reconciliation-flagged entries (Types 01/02/06) where
+ *                 Type 09 hasn't been filed yet, within the same 80-day liquidation window
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +79,7 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  hasDocLiqInstructions?: boolean; // AD/CVD: DOC has issued liquidation instructions (enables CAPE Phase 2)
 }
 
 export interface EntryForCape {
@@ -205,7 +209,12 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from both CAPE Phase 1 and Phase 2.
+ * Type 09 (reconciliation) and Type 47 (drawback) remain excluded.
+ * Note: Types 01/02/06 *flagged* for reconciliation (where Type 09 hasn't been
+ * filed) are eligible via Phase 2 — those are regular entry types not in this set.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -301,11 +310,22 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 5. AD/CVD check (unliquidated AD/CVD entries are excluded from Phase 1)
+  // 5. AD/CVD check
+  // Phase 2 (eff. June 29, 2026): unliquidated AD/CVD entries for which DOC has issued
+  // liquidation instructions are now eligible via CAPE Phase 2. Entries without DOC
+  // liquidation instructions remain excluded (CBP cannot process them without the DOC rate).
   if (entry.isAdCvd && !entry.liquidationDate) {
+    if (entry.hasDocLiqInstructions) {
+      const base: EligibilityResult = {
+        status: "eligible",
+        reason: "Unliquidated AD/CVD entry — DOC has issued liquidation instructions, eligible via CAPE Phase 2",
+        filingMethod: "cape_phase2",
+      };
+      return applySectionReviewFlag(base, entry);
+    }
     return {
       status: "excluded_adcvd",
-      reason: "Unliquidated AD/CVD entry excluded from Phase 1",
+      reason: "Unliquidated AD/CVD entry without DOC liquidation instructions — excluded from CAPE",
       filingMethod: "none",
     };
   }

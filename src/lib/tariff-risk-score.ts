@@ -99,6 +99,7 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 
 const FILING_RISK: Record<FilingMethod, number> = {
   cape_phase1: 0,
+  cape_phase2: 5,   // automated CBP channel like Phase 1, but AD/CVD complexity adds slight risk
   protest: 15,
   litigation: 35,
   none: 60,

@@ -190,8 +190,14 @@ test("entry type 23 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "23" }).status, "excluded_type");
 });
 
-test("unliquidated AD/CVD → excluded_adcvd", () => {
+test("unliquidated AD/CVD without DOC instructions → excluded_adcvd", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isAdCvd: true }).status, "excluded_adcvd");
+});
+
+test("unliquidated AD/CVD with DOC liquidation instructions → eligible via cape_phase2", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isAdCvd: true, hasDocLiqInstructions: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
 });
 
 test("liquidated AD/CVD within protest window → eligible", () => {
