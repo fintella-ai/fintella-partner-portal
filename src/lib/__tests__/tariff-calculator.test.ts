@@ -182,8 +182,21 @@ test("entry type 08 → excluded_type", () => {
   assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "08" }).status, "excluded_type");
 });
 
-test("entry type 09 → excluded_type", () => {
-  assert.equal(checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09" }).status, "excluded_type");
+test("entry type 09 → eligible via CAPE Phase 2 (reconciliation)", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09" });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("entry type 47 → eligible via CAPE Phase 2 (drawback)", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "47" });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("entry type 47 with isDrawback → excluded_drawback (drawback-linked takes priority)", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "47", isDrawback: true });
+  assert.equal(result.status, "excluded_drawback");
 });
 
 test("entry type 23 → excluded_type", () => {
