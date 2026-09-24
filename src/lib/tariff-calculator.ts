@@ -35,7 +35,7 @@ export interface RateLookupResult {
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -205,8 +205,17 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/** CBP entry types excluded from all CAPE phases */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "23"]);
+
+/**
+ * CBP entry types eligible via CAPE Phase 2 (launched June 29, 2026).
+ * Type 09 (reconciliation) and Type 47 (drawback) were excluded from Phase 1
+ * but became Phase 2 candidates per CBP CSMS guidance.
+ * Note: Type 47 entries also pass through the isDrawback check at step 2;
+ * if isDrawback is set, the entry is caught there before reaching this check.
+ */
+const CAPE_PHASE2_ENTRY_TYPES = new Set(["09", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -292,11 +301,19 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 4. Entry type exclusion
+  // 4. Entry type routing: Phase 2 candidates → cape_phase2; fully excluded types → none
+  if (CAPE_PHASE2_ENTRY_TYPES.has(entry.entryType)) {
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: `Entry type ${entry.entryType} — eligible via CAPE Phase 2 (launched June 29, 2026)`,
+      filingMethod: "cape_phase2",
+    };
+    return applySectionReviewFlag(base, entry);
+  }
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE refund process`,
       filingMethod: "none",
     };
   }
