@@ -31,11 +31,12 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - cape_phase2: entries (types 01/02/06) flagged for reconciliation where Type 09 not yet filed → CAPE Phase 2 (launched Jun 29, 2026)
+ *  - protest:     liquidated 80–180 days ago → formal protest (19 U.S.C. §1514); CIT plaintiffs may also use CAPE Phase 3 (launching Oct 6, 2026)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -294,9 +295,16 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
 
   // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    const type = entry.entryType;
+    let reason = `Entry type ${type} excluded from CAPE Phase 1`;
+    if (type === "09") {
+      reason = "Entry type 09 (Reconciliation Summary) excluded from CAPE. Note: underlying entries (types 01/02/06) flagged for reconciliation where no Type 09 has been filed may be eligible via CAPE Phase 2 (launched Jun 29, 2026).";
+    } else if (type === "47") {
+      reason = "Entry type 47 (Drawback) excluded from all CAPE phases — duties already recovered via drawback; CAPE rejects with 'ENTRY ON DRAWBACK'.";
+    }
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason,
       filingMethod: "none",
     };
   }
@@ -330,6 +338,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     }
 
     // Within 80 days of liquidation → CAPE Phase-1 automated; 80–180 days → formal protest
+    // (CIT plaintiffs in the 80-180d window may also use CAPE Phase 3, launching Oct 6, 2026)
     const filingMethod: FilingMethod =
       daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase1" : "protest";
 
@@ -338,7 +347,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
       reason:
         filingMethod === "cape_phase1"
           ? "Liquidated within 80 days — eligible via CAPE Phase 1"
-          : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
+          : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514); CIT plaintiffs may also use CAPE Phase 3 (launching Oct 6, 2026)",
       deadlineDays: daysRemaining,
       isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
       deadlineDate,
