@@ -31,11 +31,12 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: Type 09 reconciliation entries → CAPE Phase 2 (launched Jun 29, 2026); file CAPE CSV *before* the Type 09 recon entry
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -205,8 +206,16 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/** CBP entry types excluded from both CAPE Phase 1 and Phase 2 */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "23", "47"]);
+
+/**
+ * CAPE Phase 2 launched Jun 29, 2026: Type 09 reconciliation entries are now
+ * eligible. CRITICAL sequencing rule: submit the CAPE CSV *before* filing the
+ * Type 09 reconciliation entry — filing the recon first permanently locks the
+ * underlying entries out of CAPE for this phase.
+ */
+const CAPE_PHASE2_ENTRY_TYPES = new Set(["09"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -296,8 +305,19 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (all phases)`,
       filingMethod: "none",
+    };
+  }
+
+  // 4a. CAPE Phase 2 entries (Type 09 reconciliation) — eligible but sequencing-critical
+  if (CAPE_PHASE2_ENTRY_TYPES.has(entry.entryType)) {
+    return {
+      status: "eligible",
+      reason: "Reconciliation entry (Type 09) — eligible via CAPE Phase 2 (launched Jun 29, 2026)",
+      filingMethod: "cape_phase2",
+      needsReview: true,
+      reviewNote: "CRITICAL: Submit CAPE declaration CSV before filing the Type 09 reconciliation entry. Filing the recon first permanently excludes the underlying entries from CAPE refund processing.",
     };
   }
 
