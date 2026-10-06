@@ -31,6 +31,10 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *                 (CAPE Phase 2 launched June 29, 2026: also accepts entry types 01/02/06 flagged for
+ *                  reconciliation where the Type 09 recon has not yet been filed — these already pass
+ *                  the EXCLUDED_ENTRY_TYPES check and are routed here; Type 47 drawback remains excluded
+ *                  pending CAPE Phase 3, which CBP has delayed for additional validations)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
