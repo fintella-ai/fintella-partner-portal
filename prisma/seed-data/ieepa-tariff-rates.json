@@ -4878,8 +4878,55 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "notes": "Rate raised back to 7% from Q2's 6%; federal short-term rate increased to 4%"
+      },
+      {
+        "quarter": "Q4 2026",
+        "startDate": "2026-10-01",
+        "endDate": "2026-12-31",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "compounding": "daily",
+        "notes": "Rate held steady at 7% for Q4; confirmed by IRS Rev. Rul. 2026-16"
       }
     ]
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 - Entries Flagged for Reconciliation (launched June 29, 2026)",
+    "launchDate": "2026-06-29",
+    "scope": "Entry types 01, 02, and 06 that are flagged for reconciliation but for which a corresponding Type 09 reconciliation entry has NOT yet been filed. Same liquidation criteria as Phase 1: unliquidated or within 80 days of liquidation.",
+    "notes": "Type 09 reconciliation entries themselves remain excluded from CAPE. Phase 2 does not expand to Type 47 drawback or historically liquidated entries."
+  },
+  "capePhase3": {
+    "description": "CAPE Phase 3 - Finally Liquidated Entries for CIT Plaintiffs (launched October 6, 2026)",
+    "launchDate": "2026-10-06",
+    "scope": "Finally liquidated entries (liquidated > 80 days ago) where the importer is a plaintiff in a pending CIT IEEPA case and submitted a valid importer-of-record number to CBP by July 30, 2026.",
+    "eligibility": {
+      "requirements": [
+        "Importer must be a named plaintiff in a pending CIT IEEPA case",
+        "Importer must have provided valid importer-of-record number to CBP by July 30, 2026",
+        "Entry must have been subject to IEEPA duties during the Feb 4, 2025 – Feb 23, 2026 period",
+        "Entry must be finally liquidated (court-ordered reliquidation required)"
+      ],
+      "estimatedPool": "$11.4 billion (6.9% of total IEEPA tariffs collected)"
+    },
+    "notes": "Phase 3 is not available to general importers — CIT plaintiff status is required. Importers who did not register by July 30, 2026 must pursue traditional CIT litigation for finally-liquidated entries."
   },
   "capePhase1": {
     "description": "Consolidated Administration and Processing of Entries (CAPE) Phase 1 - IEEPA Duty Refund Program",
