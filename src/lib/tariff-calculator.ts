@@ -32,10 +32,11 @@ export interface RateLookupResult {
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - cape_phase3: finally liquidated, CIT plaintiff only → CAPE Phase 3 (launched Oct 6, 2026)
+ *  - litigation:  liquidated > 180 days ago, not a CIT plaintiff → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "protest" | "cape_phase3" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +77,7 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isCitPlaintiff?: boolean; // plaintiff in a pending CIT IEEPA case who registered importer-of-record with CBP by Jul 30, 2026 — unlocks CAPE Phase 3 for finally-liquidated entries
 }
 
 export interface EntryForCape {
@@ -318,8 +320,18 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline
     if (daysRemaining < 0) {
+      // CIT plaintiffs who registered their importer-of-record number with CBP by Jul 30, 2026
+      // can file CAPE Phase 3 declarations for finally-liquidated entries (launched Oct 6, 2026).
+      if (entry.isCitPlaintiff) {
+        const base: EligibilityResult = {
+          status: "eligible",
+          reason: "Finally liquidated — eligible via CAPE Phase 3 (CIT plaintiff, launched Oct 6, 2026)",
+          filingMethod: "cape_phase3",
+        };
+        return applySectionReviewFlag(base, entry);
+      }
       return {
         status: "excluded_expired",
         reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",

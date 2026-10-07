@@ -100,6 +100,7 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 const FILING_RISK: Record<FilingMethod, number> = {
   cape_phase1: 0,
   protest: 15,
+  cape_phase3: 20,  // CIT plaintiff + CBP-automated pathway; more friction than protest but less uncertain than litigation
   litigation: 35,
   none: 60,
 };
