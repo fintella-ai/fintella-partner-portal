@@ -274,6 +274,34 @@ test("Section 301 goods → eligible but needsReview", () => {
   assert.equal(result.needsReview, true);
 });
 
+test("reconciliation-flagged type 01, no Type 09 filed → cape_phase2 (CAPE Phase 2)", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", isReconFlagged: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase2");
+});
+
+test("reconciliation-flagged type 09 itself → still excluded_type (Phase 2 does not cover recon summary entries)", () => {
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "09", isReconFlagged: true });
+  assert.equal(result.status, "excluded_type");
+});
+
+test("finally liquidated entry for CIT plaintiff → cape_phase3 with needsReview (CAPE Phase 3)", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 200); // 200 days ago — past 180-day protest window
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq, isCitPlaintiff: true });
+  assert.equal(result.status, "eligible");
+  assert.equal(result.filingMethod, "cape_phase3");
+  assert.equal(result.needsReview, true);
+});
+
+test("finally liquidated entry, NOT a CIT plaintiff → excluded_expired / litigation", () => {
+  const liq = new Date();
+  liq.setDate(liq.getDate() - 200);
+  const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
+  assert.equal(result.status, "excluded_expired");
+  assert.equal(result.filingMethod, "litigation");
+});
+
 // ── 5. Entry Number Validation ──────────────────────────────────────────────
 
 console.log("\n▸ validateEntryNumber");
