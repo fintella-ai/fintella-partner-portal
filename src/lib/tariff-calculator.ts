@@ -31,11 +31,14 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: reconciliation-flagged entry (types 01/02/06) where type-09 not yet filed → CAPE Phase 2
+ *                 (launched Jun 29, 2026 per CSMS #69035485). Same 80-day liquidation window.
+ *                 CAPE strips IEEPA duties from flagged entries before the type-09 reconciliation is filed.
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +79,8 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isReconFlagged?: boolean; // entry is flagged for reconciliation (types 01/02/06) AND type-09 not yet filed
+                            // → eligible for CAPE Phase 2 (launched Jun 29, 2026, CSMS #69035485)
 }
 
 export interface EntryForCape {
@@ -205,7 +210,15 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE (all phases).
+ *
+ * Phase 2 (launched Jun 29, 2026, CSMS #69035485) added coverage for
+ * reconciliation-flagged entries of types 01/02/06 where the type-09
+ * summary has NOT yet been filed — but type 09 itself remains excluded.
+ * Use `isReconFlagged` on `EntryForEligibility` to route eligible
+ * reconciliation-flagged entries to the cape_phase2 filing path.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -294,9 +307,13 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
 
   // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    const phase2Hint =
+      entry.entryType === "09"
+        ? " (if the underlying entries are types 01/02/06 and reconciliation has not yet been filed, those entries are eligible via CAPE Phase 2)"
+        : "";
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE${phase2Hint}`,
       filingMethod: "none",
     };
   }
@@ -329,16 +346,25 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
       };
     }
 
-    // Within 80 days of liquidation → CAPE Phase-1 automated; 80–180 days → formal protest
-    const filingMethod: FilingMethod =
-      daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase1" : "protest";
+    // Within 80 days of liquidation → CAPE automated; 80–180 days → formal protest
+    const isWithinCapeWindow = daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS;
+    let filingMethod: FilingMethod;
+    let reason: string;
+
+    if (!isWithinCapeWindow) {
+      filingMethod = "protest";
+      reason = "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)";
+    } else if (entry.isReconFlagged) {
+      filingMethod = "cape_phase2";
+      reason = "Reconciliation-flagged entry liquidated within 80 days — eligible via CAPE Phase 2 (CSMS #69035485)";
+    } else {
+      filingMethod = "cape_phase1";
+      reason = "Liquidated within 80 days — eligible via CAPE Phase 1";
+    }
 
     const base: EligibilityResult = {
       status: "eligible",
-      reason:
-        filingMethod === "cape_phase1"
-          ? "Liquidated within 80 days — eligible via CAPE Phase 1"
-          : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
+      reason,
       deadlineDays: daysRemaining,
       isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
       deadlineDate,
@@ -347,11 +373,15 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     return applySectionReviewFlag(base, entry);
   }
 
-  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE Phase 1, no deadline yet
+  // 7. Unliquidated, non-AD/CVD, in date range → eligible via CAPE (Phase 2 if recon-flagged)
+  const unliquidatedFilingMethod: FilingMethod = entry.isReconFlagged ? "cape_phase2" : "cape_phase1";
+  const unliquidatedReason = entry.isReconFlagged
+    ? "Reconciliation-flagged unliquidated entry — eligible via CAPE Phase 2 (CSMS #69035485), no immediate deadline"
+    : "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline";
   const base: EligibilityResult = {
     status: "eligible",
-    reason: "Unliquidated entry — eligible via CAPE Phase 1, no immediate deadline",
-    filingMethod: "cape_phase1",
+    reason: unliquidatedReason,
+    filingMethod: unliquidatedFilingMethod,
   };
   return applySectionReviewFlag(base, entry);
 }
@@ -500,6 +530,16 @@ export function classifyDealTier(totalIeepaDuties: number): DealTier {
 }
 
 export type RoutingBucket = "self_file" | "legal_required" | "not_applicable";
+
+export function getFilingMethodLabel(method: FilingMethod): string {
+  switch (method) {
+    case "cape_phase1": return "CAPE Phase 1";
+    case "cape_phase2": return "CAPE Phase 2";
+    case "protest":     return "Formal Protest";
+    case "litigation":  return "CIT Litigation";
+    case "none":        return "Not Applicable";
+  }
+}
 
 export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
   if (eligibilityStatus === "eligible") return "self_file";
