@@ -332,7 +332,35 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. 150-day statutory cap expired at close of Jul 23, 2026 — no Congressional extension. HTS headings 9903.03.01–9903.03.11 expired. Rate was never raised to 15% (announced via social media Feb 22 but no formal proclamation issued). Same Annex II exclusions applied (USMCA goods, Section 232, critical minerals, pharmaceuticals, semiconductors, certain electronics). CIT ruled Section 122 tariff unlawful in May 2026 (limited to plaintiffs). Succeeded by Section 301 forced-labor tariffs effective Jul 24, 2026.",
+      "supersededBy": "S301-FL-10"
+    },
+    {
+      "id": "S301-FL-10",
+      "executiveOrder": "USTR Section 301 Action (Jul 23, 2026)",
+      "name": "Section 301 Forced-Labor Surcharge — 10% Tier",
+      "rateType": "section301",
+      "countryCode": "S301-10PCT",
+      "countryName": "17 Economies: Argentina, Bangladesh, Cambodia, Canada, Ecuador, El Salvador, Guatemala, Honduras, India, Indonesia, Jordan, Malaysia, Mexico, Pakistan, Sri Lanka, Trinidad and Tobago, United Kingdom",
+      "rate": 0.1,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.20",
+      "notes": "USTR finalized Section 301 forced-labor tariffs on ~60 economies effective 12:01 AM ET Jul 24, 2026, replacing expired Section 122 surcharge. Two-tier rate structure. 10% tier covers approximately 17 economies (see countryName). Canada exempt for USMCA-compliant goods. HTS headings 9903.05.20–9903.05.84. Product exclusions: civil aircraft, engines and parts; pharmaceutical articles; Section 232-covered goods (steel, aluminum, copper, autos, semiconductors). IMPORTANT: Section 301 tariffs are NOT IEEPA duties and are not eligible for the CAPE refund process. These are prospective tariffs starting Jul 24, 2026 — outside the IEEPA refund eligibility window (Feb 1, 2025–Feb 24, 2026). Source: EY Tax News 2026-1607; Honigman alert; Federal Register 91 FR 47318 (Jul 28, 2026). NOTE: Litigation expected; CIT may also find these unlawful (plaintiffs argue investigation was predetermined to replace Section 122).",
+      "supersededBy": null
+    },
+    {
+      "id": "S301-FL-125",
+      "executiveOrder": "USTR Section 301 Action (Jul 23, 2026)",
+      "name": "Section 301 Forced-Labor Surcharge — 12.5% Tier",
+      "rateType": "section301",
+      "countryCode": "S301-125PCT",
+      "countryName": "~43 Economies including China, Vietnam, Brazil, Thailand, Australia, Singapore, Philippines, Israel, Saudi Arabia, EU (capped at 10% total), Japan/South Korea/Switzerland (capped at 12.5% total), Taiwan (capped at 10% total)",
+      "rate": 0.125,
+      "effectiveDate": "2026-07-24",
+      "endDate": null,
+      "htsChapter99": "9903.05.84",
+      "notes": "12.5% tier of the USTR Section 301 forced-labor action (Jul 23, 2026). Covers ~43 economies. Special combined caps: EU and Taiwan pay 10% total; Japan, South Korea, and Switzerland pay 12.5% total. Same product exclusions as 10% tier (civil aircraft, pharmaceuticals, Section 232). NOT IEEPA duties — not eligible for CAPE refund. These are prospective tariffs from Jul 24, 2026. Rates and country list subject to revision pending litigation. Source: EY Tax News 2026-1607; GHY Trade Compliance; 2026 HTS Revision 13.",
       "supersededBy": null
     },
     {
