@@ -30,12 +30,16 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
- *  - none:        not eligible for any refund path
+ *  - cape_phase1:  unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - protest:      liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - litigation:   liquidated > 180 days ago → protest window closed; CAPE Phase 3 may apply if importer
+ *                  is a plaintiff in pending CIT litigation or a class member (class certified Oct 8, 2026,
+ *                  Freestyle World, Slip Op. 26-123). Otherwise CIT litigation is the only path.
+ *  - cape_phase3:  entry is "litigation" tier but importer has a CIT reliquidation order → use CAPE Phase 3
+ *                  (launched Oct 6, 2026). Requires CBP to have issued a reliquidation order for the entry.
+ *  - none:         not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "cape_phase3" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -205,7 +209,13 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE Phase 1.
+ * Phase 2 (launched Apr 20, 2026) handles 01/02/06 entries with unfiled Type 09 reconciliations.
+ * Phase 3 (launched Oct 6, 2026) handles CIT plaintiffs with CBP reliquidation orders — these
+ * entries may be "litigation" tier but eligible for Phase 3; the calculator flags needsReview.
+ * Type 47 drawback is excluded because duties were already recovered via drawback.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -318,14 +328,21 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → litigation; CAPE Phase 3 may apply for CIT plaintiffs
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago) — primary path is CIT litigation. " +
+          "CAPE Phase 3 (launched Oct 6, 2026) may be available if you are a plaintiff in pending CIT litigation " +
+          "or a class member in Freestyle World v. United States (class certified Oct 8, 2026, Slip Op. 26-123).",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
+        needsReview: true,
+        reviewNote:
+          "CAPE Phase 3 check: if CBP has issued a reliquidation order for this entry, " +
+          "file via CAPE Phase 3 instead of pursuing separate CIT litigation.",
       };
     }
 
