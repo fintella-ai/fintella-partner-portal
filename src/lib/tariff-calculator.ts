@@ -30,12 +30,13 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
- *  - none:        not eligible for any refund path
+ *  - cape_phase1:  unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - protest:      liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - cape_phase3:  liquidated > 180 days ago → CAPE Phase 3 (launched Oct 6, 2026); CIT plaintiffs only
+ *  - litigation:   liquidated > 180 days ago, not yet a CIT plaintiff → file suit at CIT first
+ *  - none:         not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "protest" | "cape_phase3" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -318,14 +319,16 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → CAPE Phase 3 (CIT plaintiffs, launched Oct 6, 2026) or new litigation
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason: "Protest window expired (liquidated > 180 days ago) — CAPE Phase 3 available for active CIT plaintiffs (launched Oct 6, 2026); otherwise requires new CIT filing",
         deadlineDays: daysRemaining,
         deadlineDate,
-        filingMethod: "litigation",
+        filingMethod: "cape_phase3",
+        needsReview: true,
+        reviewNote: "CAPE Phase 3 (CBP CSMS, Sept 15, 2026; launched Oct 6, 2026) covers finally-liquidated entries but only for importers who filed at CIT and submitted their IOR by Jul 30, 2026. Non-plaintiffs must file new CIT litigation. Class certification issued Oct 8, 2026 (Freestyle World) but no injunction yet for non-litigants.",
       };
     }
 
@@ -512,7 +515,7 @@ export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
   ) {
     return "not_applicable";
   }
-  // excluded_type / excluded_adcvd / excluded_expired → needs counsel / litigation
+  // excluded_type / excluded_adcvd / excluded_expired (cape_phase3) → needs counsel / litigation
   return "legal_required";
 }
 
