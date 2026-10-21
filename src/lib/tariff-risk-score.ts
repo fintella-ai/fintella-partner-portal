@@ -79,7 +79,7 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
         : null;
 
   let filingMethod: FilingMethod = "cape_phase1";
-  if (isLiquidated) filingMethod = deadlineDays != null && deadlineDays <= 0 ? "litigation" : "protest";
+  if (isLiquidated) filingMethod = deadlineDays != null && deadlineDays <= 0 ? "cape_phase3" : "protest";
 
   return {
     eligibilityStatus: anyEligible ? "eligible" : "excluded",
