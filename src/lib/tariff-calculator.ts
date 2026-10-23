@@ -31,11 +31,14 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: unliquidated AD/CVD entry → CAPE Phase 2 (live Jun 29, 2026)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *                 (CAPE Phase 3, live Oct 6, 2026, provides an automated path for CIT plaintiffs
+ *                 with finally-liquidated entries — does not change the default routing)
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -301,13 +304,14 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     };
   }
 
-  // 5. AD/CVD check (unliquidated AD/CVD entries are excluded from Phase 1)
+  // 5. AD/CVD check — Phase 1 excluded unliquidated AD/CVD; Phase 2 (live Jun 29, 2026) covers them
   if (entry.isAdCvd && !entry.liquidationDate) {
-    return {
-      status: "excluded_adcvd",
-      reason: "Unliquidated AD/CVD entry excluded from Phase 1",
-      filingMethod: "none",
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: "Unliquidated AD/CVD entry — eligible via CAPE Phase 2 (live Jun 29, 2026)",
+      filingMethod: "cape_phase2",
     };
+    return applySectionReviewFlag(base, entry);
   }
 
   // 6. Liquidation → protest-deadline + filing-method determination
@@ -319,10 +323,15 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
     // Past the 180-day protest deadline → litigation only
+    // Note: CAPE Phase 3 (live Oct 6, 2026) provides an automated ACE path for CIT plaintiffs
+    // with finally-liquidated entries; if the importer is already a named plaintiff, Phase 3
+    // supersedes manual reliquidation — advise legal counsel to assess applicability.
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago) — CIT litigation only. " +
+          "CAPE Phase 3 (live Oct 6, 2026) offers an automated refund path if you are a named plaintiff in CIT IEEPA litigation.",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
