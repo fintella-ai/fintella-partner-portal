@@ -31,11 +31,13 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase2: reconciliation-flagged entry with no Type 09 filed yet → CAPE Phase 2 (launched Jun 29, 2026)
+ *  - cape_phase3: finally liquidated, importer is a CIT plaintiff with reliquidation order → CAPE Phase 3 (launched Oct 6, 2026)
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +78,11 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  // CAPE Phase 2 (launched Jun 29, 2026): reconciliation-flagged entries
+  hasReconciliationFlag?: boolean;      // entry is flagged for reconciliation in ACE
+  hasFiledReconciliationEntry?: boolean; // a Type 09 reconciliation entry has already been filed
+  // CAPE Phase 3 (launched Oct 6, 2026): CIT plaintiffs with court-ordered reliquidation
+  isCitPlaintiff?: boolean; // importer has a CIT case and court has ordered reliquidation
 }
 
 export interface EntryForCape {
@@ -276,6 +283,35 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
       reason: "Entry is on drawback — not refundable via CAPE (duties already recovered)",
       filingMethod: "none",
     };
+  }
+
+  // 2a. CAPE Phase 3 (launched Oct 6, 2026): CIT plaintiffs with court-ordered reliquidation
+  if (entry.isCitPlaintiff && entry.liquidationDate) {
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: "CIT plaintiff with reliquidation order — eligible via CAPE Phase 3",
+      filingMethod: "cape_phase3",
+    };
+    return applySectionReviewFlag(base, entry);
+  }
+
+  // 2b. Reconciliation-flagged entries — CAPE Phase 2 (launched Jun 29, 2026)
+  if (entry.hasReconciliationFlag) {
+    if (entry.hasFiledReconciliationEntry) {
+      // Type 09 already filed — excluded from Phase 2, handled in a future CAPE phase
+      return {
+        status: "excluded_type",
+        reason: "Reconciliation-flagged entry with Type 09 already filed — excluded from Phase 2 (future CAPE phase)",
+        filingMethod: "none",
+      };
+    }
+    // No Type 09 filed yet → eligible via Phase 2
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: "Reconciliation-flagged entry (no Type 09 filed) — eligible via CAPE Phase 2",
+      filingMethod: "cape_phase2",
+    };
+    return applySectionReviewFlag(base, entry);
   }
 
   // 3. USMCA exemption — USMCA-compliant CA/MX goods paid no IEEPA fentanyl duty (eff. Mar 7, 2025)
@@ -501,8 +537,12 @@ export function classifyDealTier(totalIeepaDuties: number): DealTier {
 
 export type RoutingBucket = "self_file" | "legal_required" | "not_applicable";
 
-export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
-  if (eligibilityStatus === "eligible") return "self_file";
+export function getRoutingBucket(eligibilityStatus: string, filingMethod?: FilingMethod): RoutingBucket {
+  if (eligibilityStatus === "eligible") {
+    // CAPE Phase 3 requires active CIT litigation — always needs legal counsel
+    if (filingMethod === "cape_phase3") return "legal_required";
+    return "self_file";
+  }
   // Entries that paid no refundable IEEPA duty (or none was due) → nothing to file
   if (
     eligibilityStatus === "excluded_date" ||
