@@ -1,8 +1,8 @@
 {
   "_metadata": {
-    "version": "1.0.0",
-    "generatedDate": "2026-04-29",
-    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement.",
+    "version": "1.1.0",
+    "generatedDate": "2026-10-29",
+    "description": "Comprehensive IEEPA tariff rate database for tariff refund calculator. Covers all rate changes from Feb 2025 through SCOTUS termination Feb 2026 and Section 122 replacement. Section 122 (S122-01) expired July 23, 2026 per 150-day statutory limit. CAPE Phase 3 launched Oct 6, 2026 for finally-liquidated entries (CIT plaintiffs only). Freestyle World class certified Oct 8, 2026 (Slip Op. 26-123).",
     "legalAuthority": "International Emergency Economic Powers Act (50 U.S.C. 1701 et seq.), Trade Act of 1974 Section 122 (19 U.S.C. 2132)",
     "sources": [
       "Executive Orders 14193, 14194, 14195, 14228, 14257, 14259, 14266, 14357",
@@ -332,8 +332,8 @@
       "effectiveDate": "2026-02-24",
       "endDate": "2026-07-23",
       "htsChapter99": "9903.03.01",
-      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days, expires Jul 24, 2026. Max statutory rate is 15%. As of Apr 2026, rate remains 10% - Trump announced intent to raise to 15% on Feb 22 via social media but no formal proclamation issued. Same Annex II exclusions apply (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics).",
-      "supersededBy": null
+      "notes": "Replacement tariff under Section 122 of Trade Act of 1974 (19 USC 2132). 10% global surcharge. Effective 12:01 AM ET Feb 24, 2026. Max 150 days. CONFIRMED EXPIRED July 23, 2026 (150-day statutory limit; 9903.03.xx HTS codes removed from HTSUS as of Jul 24, 2026 per hts.usitc.gov). Rate remained 10% throughout — announced intent to raise to 15% on Feb 22 via social media never resulted in a formal proclamation. Same Annex II exclusions applied (USMCA goods, Section 232 products, critical minerals, pharmaceuticals, semiconductors, certain electronics). As of Oct 2026, NO replacement tariff authority is in effect; no new EO issued.",
+      "supersededBy": "EXPIRED-S122"
     },
     {
       "id": "DZ-RECIP-ORIG",

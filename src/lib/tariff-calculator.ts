@@ -32,10 +32,12 @@ export interface RateLookupResult {
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - cape_phase3: finally-liquidated entry where importer is a CIT plaintiff — CBP Phase 3 CAPE processing
+ *                 (launched Oct 6, 2026; requires a court-ordered reliquidation, not self-service)
+ *  - litigation:  liquidated > 180 days ago, no court order yet → CIT litigation / class action required
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "protest" | "cape_phase3" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -318,11 +320,18 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → CIT litigation or class action
+    // NOTE: The Freestyle World, Inc. v. United States class was certified Oct 8, 2026 (CIT Slip Op. 26-123),
+    // covering all importers who paid IEEPA duties Feb 1, 2025–Feb 19, 2026. CAPE Phase 3 (launched Oct 6, 2026)
+    // processes court-ordered reliquidations for CIT plaintiffs; it is not self-service.
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago) — CIT action required. " +
+          "Importer may qualify as a class member in Freestyle World, Inc. v. United States " +
+          "(class certified Oct 8, 2026, Slip Op. 26-123). " +
+          "CAPE Phase 3 (launched Oct 6, 2026) can process refunds once a reliquidation order issues.",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
