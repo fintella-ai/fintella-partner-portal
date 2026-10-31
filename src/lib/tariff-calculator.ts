@@ -30,12 +30,14 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - cape_phase1: unliquidated OR liquidated within the 80-day window → automated CAPE refund
+ *  - cape_phase2: entry has a reconciliation obligation (no Type 09 filed yet) → CAPE Phase 2 (launched Jun 29, 2026)
+ *  - cape_phase3: finally liquidated entry, CIT plaintiff only → CAPE Phase 3 (launched Oct 6, 2026)
+ *  - protest:     liquidated 80–180 days ago, non-CIT plaintiff → formal protest (19 U.S.C. §1514)
+ *  - litigation:  liquidated > 180 days ago, non-CIT plaintiff → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +78,10 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  /** Entry was flagged for future reconciliation but no Type 09 has been filed → eligible for CAPE Phase 2 (launched Jun 29, 2026) */
+  hasReconciliationObligation?: boolean;
+  /** Importer is a named CIT plaintiff who submitted their IOR to CBP by Jul 30, 2026 → eligible for CAPE Phase 3 (launched Oct 6, 2026) for finally liquidated entries */
+  isCitPlaintiff?: boolean;
 }
 
 export interface EntryForCape {
@@ -205,7 +211,15 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE (all phases).
+ *  08 = Temporary Importation under Bond (TIB) — no duties assessed
+ *  09 = Reconciliation entry — already a reconciliation filing; CAPE rejects
+ *  23 = Temporary Importation under Bond (re-export)
+ *  47 = Drawback entry — duties already recovered via drawback; CAPE rejects
+ * Note: Type 01/02/06 entries WITH a reconciliation OBLIGATION (but no filed Type 09)
+ * are now handled by CAPE Phase 2 when hasReconciliationObligation is set.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -296,9 +310,20 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (all phases)`,
       filingMethod: "none",
     };
+  }
+
+  // 4a. Phase 2 — reconciliation-obligated entries (Type 01/02/06 with obligation, no Type 09 filed)
+  //     CAPE Phase 2 launched Jun 29, 2026; CBP now processes these in the automated channel.
+  if (entry.hasReconciliationObligation) {
+    const base: EligibilityResult = {
+      status: "eligible",
+      reason: "Reconciliation-obligated entry (no Type 09 filed) — eligible via CAPE Phase 2 (launched Jun 29, 2026)",
+      filingMethod: "cape_phase2",
+    };
+    return applySectionReviewFlag(base, entry);
   }
 
   // 5. AD/CVD check (unliquidated AD/CVD entries are excluded from Phase 1)
@@ -318,11 +343,23 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → litigation only (unless CIT plaintiff eligible for Phase 3)
     if (daysRemaining < 0) {
+      // CAPE Phase 3 (launched Oct 6, 2026): CIT plaintiffs who submitted their IOR to CBP
+      // by Jul 30, 2026 can file finally liquidated entries through the automated channel.
+      if (entry.isCitPlaintiff) {
+        const base: EligibilityResult = {
+          status: "eligible",
+          reason: "Finally liquidated entry, protest window expired — eligible via CAPE Phase 3 (CIT plaintiff, launched Oct 6, 2026)",
+          deadlineDays: daysRemaining,
+          deadlineDate,
+          filingMethod: "cape_phase3",
+        };
+        return applySectionReviewFlag(base, entry);
+      }
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only (non-plaintiffs: see CAPE Phase 3 if you are a named CIT plaintiff)",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
