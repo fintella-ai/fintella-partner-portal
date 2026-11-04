@@ -30,12 +30,17 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
- *  - none:        not eligible for any refund path
+ *  - cape_phase1:  unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase3:  finally liquidated, CIT plaintiff with court-ordered reliquidation → CAPE Phase 3 (launched Oct 6, 2026)
+ *  - protest:      liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - litigation:   liquidated > 180 days ago, NOT a CIT plaintiff → protest window closed, new litigation required
+ *  - none:         not eligible for any refund path
+ *
+ * Phase 2 (launched Jun 29, 2026): covers reconciliation-flagged underlying entries (types 01/02/06)
+ * where no Type-09 reconciliation entry has been filed. These flow through the normal cape_phase1
+ * or protest path; no separate FilingMethod is needed because Type-09 itself remains excluded.
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -76,6 +81,7 @@ export interface EntryForEligibility {
   isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
   hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
   hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isCitPlaintiff?: boolean; // importer filed a CIT case and received a court-ordered reliquidation (CAPE Phase 3, launched Oct 6, 2026)
 }
 
 export interface EntryForCape {
@@ -205,7 +211,13 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE.
+ * Type 09 (reconciliation entries) stays excluded; Phase 2 (Jun 29, 2026) added support for
+ * the underlying reconciliation-flagged entries (types 01/02/06) — those aren't listed here
+ * and flow through normally as long as no Type 09 has been filed for them.
+ * Type 47 (drawback) is excluded from all phases.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -318,11 +330,21 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline
     if (daysRemaining < 0) {
+      // CAPE Phase 3 (launched Oct 6, 2026): CIT plaintiffs with court-ordered reliquidation
+      // can use the automated CAPE process for finally liquidated entries.
+      if (entry.isCitPlaintiff) {
+        const base: EligibilityResult = {
+          status: "eligible",
+          reason: "Finally liquidated, protest window expired — eligible via CAPE Phase 3 (CIT plaintiff, court-ordered reliquidation)",
+          filingMethod: "cape_phase3",
+        };
+        return applySectionReviewFlag(base, entry);
+      }
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only (not a Phase 3 plaintiff)",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
