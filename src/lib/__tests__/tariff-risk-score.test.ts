@@ -119,7 +119,7 @@ test("deriveRiskInput maps a clean unliquidated dossier to a cape_phase1 input",
   assert.equal(ri.estimatedRefundCents, 4_200_000);
 });
 
-test("deriveRiskInput flags adcvd, drawback, liquidation and picks litigation when deadline passed", () => {
+test("deriveRiskInput flags adcvd, drawback, liquidation and picks cape_phase3 when deadline passed (Phase 3 for CIT plaintiffs)", () => {
   const ri = deriveRiskInput(
     { eligibleCount: 0, deadlineDays: -5, totalEstRefund: 0 },
     [
@@ -131,7 +131,7 @@ test("deriveRiskInput flags adcvd, drawback, liquidation and picks litigation wh
   assert.equal(ri.isDrawback, true);
   assert.equal(ri.isLiquidated, true);
   assert.equal(ri.needsReview, true);
-  assert.equal(ri.filingMethod, "litigation");
+  assert.equal(ri.filingMethod, "cape_phase3");
   // and it should score high risk end-to-end
   assert.equal(computeRiskScore(ri).band, "high");
 });

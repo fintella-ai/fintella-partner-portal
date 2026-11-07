@@ -31,11 +31,13 @@ export interface RateLookupResult {
 /**
  * How an eligible entry should be filed with CBP:
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - cape_phase2: reconciliation-flagged entry (types 01/02/06) where Type 09 not yet filed → Phase 2 (eff Jun 29, 2026)
+ *  - cape_phase3: finally liquidated (> 80 days) for CIT plaintiff importers only → Phase 3 (eff Oct 6, 2026); needsReview always set
+ *  - protest:     liquidated 80–180 days ago, non-plaintiff → must file a formal protest (19 U.S.C. §1514)
+ *  - litigation:  liquidated > 180 days ago, non-plaintiff → protest window closed, CIT litigation only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase2" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -205,7 +207,12 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/**
+ * CBP entry types excluded from CAPE Phase 1.
+ * Phase 2 (eff Jun 29, 2026) covers types 01/02/06 flagged for reconciliation where
+ * Type 09 is NOT yet on file — the "09" exclusion below applies when Type 09 is already filed.
+ * Phase 3 (eff Oct 6, 2026) covers finally-liquidated entries for CIT plaintiffs only.
+ */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -318,14 +325,18 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → Phase 3 for CIT plaintiffs, litigation otherwise
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago) — CAPE Phase 3 available for CIT plaintiffs (registered w/ CBP by Jul 30, 2026); otherwise CIT litigation only",
         deadlineDays: daysRemaining,
         deadlineDate,
-        filingMethod: "litigation",
+        filingMethod: "cape_phase3",
+        needsReview: true,
+        reviewNote:
+          "CAPE Phase 3 (eff Oct 6, 2026) covers finally-liquidated entries for CIT plaintiffs only. Verify importer is a named plaintiff with CBP registration before filing via CAPE. Non-plaintiffs must pursue CIT litigation.",
       };
     }
 
@@ -501,7 +512,7 @@ export function classifyDealTier(totalIeepaDuties: number): DealTier {
 
 export type RoutingBucket = "self_file" | "legal_required" | "not_applicable";
 
-export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
+export function getRoutingBucket(eligibilityStatus: string, filingMethod?: FilingMethod): RoutingBucket {
   if (eligibilityStatus === "eligible") return "self_file";
   // Entries that paid no refundable IEEPA duty (or none was due) → nothing to file
   if (
@@ -512,6 +523,7 @@ export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
   ) {
     return "not_applicable";
   }
+  // excluded_expired with cape_phase3 → still needs legal counsel (plaintiff verification required)
   // excluded_type / excluded_adcvd / excluded_expired → needs counsel / litigation
   return "legal_required";
 }
