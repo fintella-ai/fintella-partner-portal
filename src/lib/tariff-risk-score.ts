@@ -79,7 +79,7 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
         : null;
 
   let filingMethod: FilingMethod = "cape_phase1";
-  if (isLiquidated) filingMethod = deadlineDays != null && deadlineDays <= 0 ? "litigation" : "protest";
+  if (isLiquidated) filingMethod = deadlineDays != null && deadlineDays <= 0 ? "cape_phase3" : "protest";
 
   return {
     eligibilityStatus: anyEligible ? "eligible" : "excluded",
@@ -99,6 +99,8 @@ export function deriveRiskInput(dossier: RiskDossierLike, entries: RiskEntryLike
 
 const FILING_RISK: Record<FilingMethod, number> = {
   cape_phase1: 0,
+  cape_phase2: 5,   // reconciliation-flagged but still automated CAPE — slightly more complex
+  cape_phase3: 28,  // finally-liquidated, plaintiff-only — requires legal counsel to verify
   protest: 15,
   litigation: 35,
   none: 60,
