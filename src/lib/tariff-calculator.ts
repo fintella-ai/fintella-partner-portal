@@ -33,9 +33,11 @@ export interface RateLookupResult {
  *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
  *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
  *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - cape_phase3: finally liquidated entries for named CIT plaintiffs (CAPE Phase 3, launched Oct 6 2026;
+ *                 IOR registration deadline July 30 2026 — not available for new registrants)
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "cape_phase3" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -205,8 +207,17 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
-const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
+/**
+ * CBP entry types excluded from CAPE.
+ * - 08: Informal mail-entry (ineligible per CBP guidance)
+ * - 09: Reconciliation Summary Entry (the Type 09 itself is excluded; underlying 01/02/06 may be eligible)
+ * - 21/22: Warehouse entries — CAPE rejects with "ENTRY TYPE NOT ALLOWED" per CSMS #69127837 (eff. July 7, 2026).
+ *          IEEPA duties are paid on the WITHDRAWAL, not the warehouse entry. Use withdrawal types
+ *          31/32/34/38 instead.
+ * - 23: Temporary Import Bond (ineligible; no IEEPA duty paid)
+ * - 47: Drawback entries (duty already recovered; handled separately via isDrawback flag)
+ */
+const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "21", "22", "23", "47"]);
 
 /**
  * Legal protest deadline: a protest must be filed within 180 days of
@@ -294,9 +305,12 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
 
   // 4. Entry type exclusion
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
+    const isWarehouseEntry = entry.entryType === "21" || entry.entryType === "22";
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: isWarehouseEntry
+        ? `Warehouse entry type ${entry.entryType} excluded from CAPE — IEEPA duty was paid on the warehouse withdrawal, not this entry. File CAPE on the corresponding withdrawal (type 31/32/34/38) instead. See CBP CSMS #69127837 (eff. July 7, 2026).`
+        : `Entry type ${entry.entryType} excluded from CAPE`,
       filingMethod: "none",
     };
   }
@@ -318,11 +332,17 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → litigation only (or CAPE Phase 3 for named plaintiffs/class members)
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago) — CIT litigation only. " +
+          "Two exceptions may apply: (1) Named CIT plaintiffs who registered their IOR with CBP by July 30, 2026 " +
+          "qualify for CAPE Phase 3 (launched Oct 6, 2026). " +
+          "(2) The CIT certified a class action in Freestyle World v. United States (Slip Op. 26-123, Oct 8, 2026) " +
+          "covering all importers who paid IEEPA duties (Feb 1, 2025 – Feb 19, 2026) and did not file their own suit — " +
+          "class members may gain a CAPE Phase 3 path via the class reliquidation order. Confirm status with counsel.",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
@@ -513,6 +533,7 @@ export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
     return "not_applicable";
   }
   // excluded_type / excluded_adcvd / excluded_expired → needs counsel / litigation
+  // (excluded_expired may also qualify for CAPE Phase 3 for named plaintiffs — noted in reason string)
   return "legal_required";
 }
 
