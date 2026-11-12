@@ -30,12 +30,13 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
- *  - none:        not eligible for any refund path
+ *  - cape_phase1:  unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
+ *  - cape_phase3:  finally liquidated, CIT plaintiff with a court-ordered reliquidation → CAPE Phase 3 (live Oct 6, 2026)
+ *  - protest:      liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
+ *  - litigation:   liquidated > 180 days ago → protest window closed; CIT litigation or CAPE Phase 3 if plaintiff
+ *  - none:         not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -73,9 +74,10 @@ export interface EntryForEligibility {
   isAdCvd?: boolean;
   countryOfOrigin?: string; // ISO 2-letter — needed for the USMCA exemption check
   isUsmca?: boolean;        // goods claimed USMCA-preferential (CA/MX exemption from IEEPA fentanyl tariffs)
-  isDrawback?: boolean;     // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
-  hasSection232?: boolean;  // entry contains Section 232 goods (exempt from IEEPA per Annex II)
-  hasSection301?: boolean;  // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isDrawback?: boolean;      // entry is on drawback — CAPE rejects ("ENTRY ON DRAWBACK")
+  hasSection232?: boolean;   // entry contains Section 232 goods (exempt from IEEPA per Annex II)
+  hasSection301?: boolean;   // entry contains Section 301 duties (not refundable; only IEEPA portion is)
+  isCitPlaintiff?: boolean;  // importer is a CIT plaintiff with a court-ordered reliquidation → CAPE Phase 3
 }
 
 export interface EntryForCape {
@@ -318,11 +320,23 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → normally litigation only, but CAPE Phase 3 (Oct 6, 2026)
+    // opened automated refunds for finally-liquidated entries where the importer is a CIT plaintiff
+    // with a court-ordered reliquidation (Freestyle World, Inc. v. United States, CIT 26-01088).
     if (daysRemaining < 0) {
+      if (entry.isCitPlaintiff) {
+        const base: EligibilityResult = {
+          status: "eligible",
+          reason: "Finally liquidated — eligible via CAPE Phase 3 (CIT plaintiff with reliquidation order)",
+          deadlineDays: daysRemaining,
+          deadlineDate,
+          filingMethod: "cape_phase3",
+        };
+        return applySectionReviewFlag(base, entry);
+      }
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation or CAPE Phase 3 if plaintiff",
         deadlineDays: daysRemaining,
         deadlineDate,
         filingMethod: "litigation",
@@ -501,8 +515,12 @@ export function classifyDealTier(totalIeepaDuties: number): DealTier {
 
 export type RoutingBucket = "self_file" | "legal_required" | "not_applicable";
 
-export function getRoutingBucket(eligibilityStatus: string): RoutingBucket {
-  if (eligibilityStatus === "eligible") return "self_file";
+export function getRoutingBucket(eligibilityStatus: string, filingMethod?: FilingMethod): RoutingBucket {
+  if (eligibilityStatus === "eligible") {
+    // Phase 3 (CIT plaintiffs only) still routes through legal counsel, not pure self-file
+    if (filingMethod === "cape_phase3") return "legal_required";
+    return "self_file";
+  }
   // Entries that paid no refundable IEEPA duty (or none was due) → nothing to file
   if (
     eligibilityStatus === "excluded_date" ||
