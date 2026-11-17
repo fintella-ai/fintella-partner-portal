@@ -30,12 +30,16 @@ export interface RateLookupResult {
 
 /**
  * How an eligible entry should be filed with CBP:
- *  - cape_phase1: unliquidated OR liquidated within the 80-day CAPE Phase-1 window → automated CAPE refund
- *  - protest:     liquidated 80–180 days ago → must file a formal protest (19 U.S.C. §1514)
- *  - litigation:  liquidated > 180 days ago → protest window closed, CIT litigation only
+ *  - cape_phase1: unliquidated OR liquidated within 80 days → automated CAPE Phase 1 refund
+ *  - cape_phase3: liquidated > 80 days (finally liquidated) → CAPE Phase 3 (launched Oct 6, 2026);
+ *                 requires active CIT case or class membership in the Oct 8, 2026 certified class;
+ *                 formal protest (19 U.S.C. §1514) remains available as a fallback for entries still
+ *                 within the 180-day protest window
+ *  - protest:     liquidated 80–180 days ago; no CIT case; not in Phase 3 class → formal protest only
+ *  - litigation:  liquidated > 180 days ago; no CIT case; Phase 3 class order not yet entered → CIT only
  *  - none:        not eligible for any refund path
  */
-export type FilingMethod = "cape_phase1" | "protest" | "litigation" | "none";
+export type FilingMethod = "cape_phase1" | "cape_phase3" | "protest" | "litigation" | "none";
 
 export interface EligibilityResult {
   status: string;         // "eligible" | "excluded_expired" | "excluded_adcvd" | "excluded_type" | "excluded_date" | "excluded_drawback" | "excluded_usmca"
@@ -205,7 +209,7 @@ export function calculateInterest(
 
 // ── 4. checkEligibility ─────────────────────────────────────────────────────
 
-/** CBP entry types excluded from CAPE Phase 1 */
+/** CBP entry types excluded from CAPE (all phases: 1, 2, 3) */
 const EXCLUDED_ENTRY_TYPES = new Set(["08", "09", "23", "47"]);
 
 /**
@@ -217,9 +221,13 @@ const PROTEST_WINDOW_DAYS = 180;
 
 /**
  * CAPE Phase-1 scope: CBP automatically processes unliquidated entries and
- * entries liquidated within the last 80 days. Entries liquidated 80–180 days
- * ago are still recoverable, but require a formal protest rather than the
- * automated CAPE channel.
+ * entries liquidated within the last 80 days.
+ *
+ * CAPE Phase-3 scope (launched Oct 6, 2026): entries liquidated more than 80 days
+ * ago ("finally liquidated"). Requires an active CIT case or certified class membership
+ * (class certified Oct 8, 2026 in Atmus Filtration). For entries still within the 180-day
+ * protest window, formal protest under 19 U.S.C. §1514 remains a fallback if Phase 3 is
+ * unavailable. For entries beyond the protest window, Phase 3 / CIT litigation is the only path.
  */
 const CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS = 80;
 
@@ -296,7 +304,7 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
   if (EXCLUDED_ENTRY_TYPES.has(entry.entryType)) {
     return {
       status: "excluded_type",
-      reason: `Entry type ${entry.entryType} excluded from CAPE Phase 1`,
+      reason: `Entry type ${entry.entryType} excluded from CAPE (all phases)`,
       filingMethod: "none",
     };
   }
@@ -318,31 +326,45 @@ export function checkEligibility(entry: EntryForEligibility): EligibilityResult 
     const daysRemaining = daysBetween(now, deadlineDate);
     const daysSinceLiquidation = daysBetween(new Date(entry.liquidationDate), now);
 
-    // Past the 180-day protest deadline → litigation only
+    // Past the 180-day protest deadline → CAPE Phase 3 (requires CIT case/class membership)
     if (daysRemaining < 0) {
       return {
         status: "excluded_expired",
-        reason: "Protest window expired (liquidated > 180 days ago) — CIT litigation only",
+        reason:
+          "Protest window expired (liquidated > 180 days ago) — CAPE Phase 3 available (launched Oct 6, 2026) " +
+          "but requires active CIT case or certified class membership; otherwise CIT litigation only",
         deadlineDays: daysRemaining,
         deadlineDate,
-        filingMethod: "litigation",
+        filingMethod: "cape_phase3",
+        needsReview: true,
+        reviewNote:
+          "Phase 3 refund requires active CIT case or membership in the Oct 8, 2026 certified importer class. " +
+          "Importers without a CIT case should consult counsel — a classwide CBP reliquidation order has not yet been entered.",
       };
     }
 
-    // Within 80 days of liquidation → CAPE Phase-1 automated; 80–180 days → formal protest
+    // Within 80 days of liquidation → CAPE Phase-1 automated
+    // 80–180 days → CAPE Phase 3 preferred (launched Oct 6, 2026); formal protest is a fallback
     const filingMethod: FilingMethod =
-      daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase1" : "protest";
+      daysSinceLiquidation <= CAPE_PHASE1_LIQUIDATION_WINDOW_DAYS ? "cape_phase1" : "cape_phase3";
 
     const base: EligibilityResult = {
       status: "eligible",
       reason:
         filingMethod === "cape_phase1"
           ? "Liquidated within 80 days — eligible via CAPE Phase 1"
-          : "Liquidated 80–180 days ago — eligible via formal protest (19 U.S.C. §1514)",
+          : "Liquidated 80–180 days ago — eligible via CAPE Phase 3 (launched Oct 6, 2026); " +
+            "formal protest (19 U.S.C. §1514) available as a fallback",
       deadlineDays: daysRemaining,
       isUrgent: daysRemaining <= URGENT_THRESHOLD_DAYS,
       deadlineDate,
       filingMethod,
+      ...(filingMethod === "cape_phase3" && {
+        needsReview: true,
+        reviewNote:
+          "CAPE Phase 3 requires active CIT case or membership in the Oct 8, 2026 certified importer class. " +
+          "Formal protest under 19 U.S.C. §1514 remains available within 180 days of liquidation.",
+      }),
     };
     return applySectionReviewFlag(base, entry);
   }

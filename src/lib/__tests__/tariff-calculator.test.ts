@@ -202,12 +202,13 @@ test("liquidated AD/CVD within protest window → eligible", () => {
   assert.ok(result.deadlineDays! > 0);
 });
 
-test("past protest window (>180 days) → excluded_expired + litigation", () => {
+test("past protest window (>180 days) → excluded_expired + cape_phase3 (Phase 3 launched Oct 6, 2026)", () => {
   const liq = new Date();
   liq.setDate(liq.getDate() - 200);
   const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
   assert.equal(result.status, "excluded_expired");
-  assert.equal(result.filingMethod, "litigation");
+  assert.equal(result.filingMethod, "cape_phase3");
+  assert.equal(result.needsReview, true);
 });
 
 test("urgent when ≤14 days remaining (near 180-day deadline)", () => {
@@ -234,12 +235,13 @@ test("liquidated within 80 days → filingMethod cape_phase1", () => {
   assert.equal(result.filingMethod, "cape_phase1");
 });
 
-test("liquidated 80–180 days ago → eligible via protest", () => {
+test("liquidated 80–180 days ago → eligible via cape_phase3 (Phase 3 launched Oct 6, 2026)", () => {
   const liq = new Date();
   liq.setDate(liq.getDate() - 120);
   const result = checkEligibility({ entryDate: new Date("2025-06-15"), entryType: "01", liquidationDate: liq });
   assert.equal(result.status, "eligible");
-  assert.equal(result.filingMethod, "protest");
+  assert.equal(result.filingMethod, "cape_phase3");
+  assert.equal(result.needsReview, true);
 });
 
 test("drawback entry → excluded_drawback", () => {
