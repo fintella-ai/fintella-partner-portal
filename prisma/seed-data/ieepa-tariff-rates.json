@@ -4878,6 +4878,32 @@
         "underpaymentRateLargeCorporate": 0.08,
         "federalShortTermRate": 0.03,
         "compounding": "daily"
+      },
+      {
+        "quarter": "Q3 2026",
+        "startDate": "2026-07-01",
+        "endDate": "2026-09-30",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "source": "Rev. Rul. 2026-10; IRS IRB 2026-22",
+        "compounding": "daily"
+      },
+      {
+        "quarter": "Q4 2026",
+        "startDate": "2026-10-01",
+        "endDate": "2026-12-31",
+        "overpaymentRate": 0.07,
+        "overpaymentRateCorporate": 0.06,
+        "overpaymentRateCorporateLarge": 0.045,
+        "underpaymentRate": 0.07,
+        "underpaymentRateLargeCorporate": 0.09,
+        "federalShortTermRate": 0.04,
+        "source": "Rev. Rul. 2026-15; IRS IRB 2026-36; IRS newsroom \"interest rates remain the same for the fourth quarter of 2026\"",
+        "compounding": "daily"
       }
     ]
   },
@@ -4980,6 +5006,30 @@
         "If on drawback, may need to withdraw drawback claim first"
       ]
     }
+  },
+  "capePhase2": {
+    "description": "CAPE Phase 2 - Reconciliation-Flagged Entries",
+    "launchDate": "2026-06-29",
+    "source": "CBP CSMS; CBP Trade Information Notice (Jul 2026); C.H. Robinson client advisory 2026-06-24",
+    "scope": "Entries of types 01, 02, or 06 that are flagged for reconciliation but whose Type 09 reconciliation entry has NOT yet been filed. Once the Type 09 reconciliation entry is filed, the underlying entries are no longer eligible for Phase 2 — they will be addressed in a future phase.",
+    "filingNote": "Importers should file Phase 2 CAPE declarations BEFORE filing the reconciliation entry to avoid conflicts.",
+    "eligibleEntryTypes": ["01", "02", "06"],
+    "exclusions": "Same as Phase 1 plus: entries where the Type 09 reconciliation has already been filed. AD/CVD entries still excluded.",
+    "calculatorImpact": "No change to EXCLUDED_ENTRY_TYPES in tariff-calculator.ts. '09' in that set refers to the reconciliation summary entry type itself, not the underlying 01/02/06 entries that happen to be reconciliation-flagged."
+  },
+  "capePhase3": {
+    "description": "CAPE Phase 3 - Finally Liquidated Entries (CIT Plaintiffs Only)",
+    "launchDate": "2026-10-06",
+    "source": "CBP confirmation Sept 15, 2026; Thompson Hines SmartTrade 2026-09; CBH Insights Oct 2026; NLR 'Tariff-ied' Nov 2, 2026",
+    "scope": "Finally liquidated entries where the importer of record is a plaintiff in a Court of International Trade case in which the court has ordered reliquidation. Limited to plaintiffs who submitted a valid IOR number to CBP by July 30, 2026 (late-submission instructions issued separately by CBP).",
+    "citClarification": {
+      "date": "Early November 2026",
+      "source": "NLR Tariff-ied Nov 2, 2026; Judge Eaton, CIT",
+      "detail": "Judge Eaton clarified that CIT plaintiffs with finally-liquidated entries that are under protest or pending CIT litigation can file Phase 3 CAPE declarations WITHOUT first withdrawing their protests. Protests and CAPE can proceed in parallel."
+    },
+    "exclusions": "Non-plaintiff importers (use protest or litigation path). Drawback entries still excluded. AD/CVD entries still excluded.",
+    "futurePhase": "Importers are seeking a Phase 4 to cover AD/CVD entries; CBP has not yet announced a Phase 4 timeline.",
+    "calculatorImpact": "checkEligibility() correctly returns filingMethod='litigation' for finally-liquidated entries — this remains correct for non-plaintiff importers. CIT plaintiffs who qualify for Phase 3 should consult legal counsel; the calculator cannot detect plaintiff status from entry data alone."
   },
   "calculatorLogic": {
     "description": "Rules for computing IEEPA tariff refund amounts",
